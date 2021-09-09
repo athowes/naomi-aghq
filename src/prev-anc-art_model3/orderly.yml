@@ -21,3 +21,9 @@ packages:
   - tmbstan
   - rstan
   - aghq
+
+depends:
+  prev-anc-art_sim:
+    id: latest
+    use:
+      depends/sim_data.rdata: sim_data.rdata

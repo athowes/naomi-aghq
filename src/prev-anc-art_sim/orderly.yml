@@ -2,9 +2,9 @@ script: script.R
 
 artefacts:
   - data:
-      description: Results of model comparison
+      description: Simulation data
       filenames:
-        - comparison-results.rds
+        - sim_data.rdata
 
 packages:
   - dplyr
@@ -21,9 +21,3 @@ packages:
   - tmbstan
   - rstan
   - aghq
-
-depends:
-  prev-anc-art_sim:
-    id: latest
-    use:
-      depends/sim_data.rdata: sim_data.rdata

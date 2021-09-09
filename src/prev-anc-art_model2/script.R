@@ -7,25 +7,7 @@ set.seed(1)
 compile("model2.cpp")
 dyn.load(dynlib("model2"))
 
-#' Simulate data
-
-#' Survey prevalence
-n <- 5
-m_prev <- rep(20, n)
-beta_prev <- -1
-tau_phi_prev <- 1
-eta_prev <- beta_prev + rnorm(n, 0, 1 / sqrt(tau_phi_prev))
-rho_prev <- plogis(eta_prev)
-y_prev <- rbinom(n, m_prev, rho_prev)
-
-#' ANC
-m_anc <- rep(50, n)
-beta_anc <- 0.5
-tau_b_anc <- 4
-b_anc <- beta_anc + rnorm(n, 0,  1 / sqrt(tau_b_anc))
-logit_rho_anc <- logit_rho_prev + b_anc
-rho_anc <- plogis(logit_rho_anc)
-y_anc <- rbinom(n, m_anc, rho_anc)
+load("depends/sim_data.rdata")
 
 dat <- list(
   n = n,

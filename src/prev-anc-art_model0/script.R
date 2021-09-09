@@ -7,14 +7,7 @@ set.seed(1)
 compile("model0.cpp")
 dyn.load(dynlib("model0"))
 
-#' Simulate data
-n <- 5
-m_prev <- rep(20, n)
-beta_prev <- -1
-tau_phi_prev <- 1
-eta_prev <- beta_prev + rnorm(n, 0, 1 / sqrt(tau_phi_prev))
-rho_prev <- plogis(eta_prev)
-y_prev <- rbinom(n, m_prev, rho_prev)
+load("depends/sim_data.rdata")
 
 dat <- list(n = n, y_prev = y_prev, m_prev = m_prev)
 
