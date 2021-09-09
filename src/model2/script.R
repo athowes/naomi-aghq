@@ -12,8 +12,8 @@ n <- 5
 m_prev <- rep(20, n)
 beta_prev <- -1
 tau_phi_prev <- 1
-logit_rho_prev <- beta_prev + rnorm(n, 0, 1 / sqrt(tau_phi_prev))
-rho_prev <- plogis(logit_rho_prev)
+eta_prev <- beta_prev + rnorm(n, 0, 1 / sqrt(tau_phi_prev))
+rho_prev <- plogis(eta_prev)
 y_prev <- rbinom(n, m_prev, rho_prev)
 m_anc <- rep(50, n)
 beta_anc <- 0.5
