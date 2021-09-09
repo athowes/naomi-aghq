@@ -1,6 +1,6 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("model1")
-# setwd("src/model1")
+orderly::orderly_develop_start("model1")
+setwd("src/model1")
 
 set.seed(1)
 
@@ -10,26 +10,26 @@ dyn.load(dynlib("model1"))
 #' Simulate data
 n <- 5
 m_prev <- rep(20, n)
-beta_rho <- -1
-tau_phi_rho <- 1
-logit_rho <- beta_0 + rnorm(n, 0, 1 / sqrt(tau_phi))
-rho <- plogis(logit_rho)
-y_prev <- rbinom(n, m, rho)
+beta_prev <- -1
+tau_phi_prev <- 1
+eta_prev <- beta_prev + rnorm(n, 0, 1 / sqrt(tau_phi_prev))
+rho_prev <- plogis(eta_prev)
+y_prev <- rbinom(n, m_prev, rho_prev)
 
 dat <- list(n = n, y_prev = y_prev, m_prev = m_prev)
 
 #' TMB
 
 param <- list(
-  beta_rho = 0,
-  phi_rho = rep(0, n),
-  log_sigma_phi_rho = 0
+  beta_prev = 0,
+  phi_prev = rep(0, n),
+  log_sigma_phi_prev = 0
 )
 
 obj <- MakeADFun(
   data = dat,
   parameters = param,
-  random = "phi_rho", # Random effects to be integrated out
+  random = "phi_prev", # Random effects to be integrated out
   DLL = "model1"
 )
 
@@ -56,13 +56,13 @@ fit <- tmbstan(obj = obj, chains = 4)
 quad <- aghq::marginal_laplace_tmb(
   obj,
   k = 3,
-  startingvalue = c(param$beta_rho, param$log_sigma_phi_rho)
+  startingvalue = c(param$beta_prev, param$log_sigma_phi_prev)
 )
 
 #' Comparison
 
 tmb <- as.vector(t(data.frame(sd_out$par.fixed[1:2], sqrt(diag(sd_out$cov.fixed)[1:2]))))
-tmbstan <- as.vector(t(summary(fit)$summary[c("beta_rho", "log_sigma_phi_rho"), c(1, 3)]))
+tmbstan <- as.vector(t(summary(fit)$summary[c("beta_prev", "log_sigma_phi_prev"), c(1, 3)]))
 aghq <- as.vector(t(summary(quad)$summarytable[1:2, c(1, 4)]))
 
 df <- cbind(tmb, tmbstan, aghq) %>%

@@ -11,34 +11,34 @@ Type objective_function<Type>::operator()()
   DATA_VECTOR(m_prev);  // Vector of sample sizes
 
   // Parameter block
-  PARAMETER(beta_rho);            // Intercept
-  PARAMETER_VECTOR(phi_rho);      // Spatial effect
-  PARAMETER(log_sigma_phi_rho);   // Log precision of spatial effects
+  PARAMETER(beta_prev);            // Intercept
+  PARAMETER_VECTOR(phi_prev);      // Spatial effect
+  PARAMETER(log_sigma_phi_prev);   // Log precision of spatial effects
 
   // Transformed parameters block
-  Type sigma_phi_rho = exp(log_sigma_phi_rho); // Standard deviation of spatial effects
-  vector<Type> eta_rho(beta_rho + sigma_phi_rho * phi_rho);
+  Type sigma_phi_prev = exp(log_sigma_phi_prev); // Standard deviation of spatial effects
+  vector<Type> eta_prev(beta_prev + sigma_phi_prev * phi_prev);
 
   // Initialise negative log-likelihood
   Type nll(0.0);
 
   // Priors
-  nll -= dnorm(sigma_phi_rho, Type(0), Type(2.5), true) + log_sigma_phi_rho;
-  nll -= dnorm(beta_rho, Type(-2), Type(1), true);
-  nll -= dnorm(phi_rho, Type(0), Type(1), true).sum();
+  nll -= dnorm(sigma_phi_prev, Type(0), Type(2.5), true) + log_sigma_phi_prev;
+  nll -= dnorm(beta_prev, Type(-2), Type(1), true);
+  nll -= dnorm(phi_prev, Type(0), Type(1), true).sum();
 
   // Likelihood
-  nll -= dbinom_robust(y_prev, m_prev, eta_rho, true).sum();
+  nll -= dbinom_robust(y_prev, m_prev, eta_prev, true).sum();
 
   // Generated quantities block
-  vector<Type> rho(invlogit(eta_rho)); // Posterior prevalence estimates
-  Type tau_phi_rho = 1/pow(sigma_phi_rho, 2); // Precision of spatial effects
+  vector<Type> rho_prev(invlogit(eta_prev)); // Posterior prevalence estimates
+  Type tau_phi_prev = 1/pow(sigma_phi_prev, 2); // Precision of spatial effects
 
   // ADREPORT
-  ADREPORT(beta_rho);
-  ADREPORT(tau_phi_rho);
-  ADREPORT(phi_rho);
-  ADREPORT(rho);
+  ADREPORT(beta_prev);
+  ADREPORT(tau_phi_prev);
+  ADREPORT(phi_prev);
+  ADREPORT(rho_prev);
 
   return(nll);
 }

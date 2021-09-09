@@ -10,17 +10,17 @@ dyn.load(dynlib("model0"))
 #' Simulate data
 n <- 5
 m_prev <- rep(20, n)
-beta_rho <- -1
-tau_phi_rho <- 1
-logit_rho <- beta_0 + rnorm(n, 0, 1 / sqrt(tau_phi))
-rho <- plogis(logit_rho)
-y_prev <- rbinom(n, m, rho)
+beta_prev <- -1
+tau_phi_prev <- 1
+eta_prev <- beta_prev + rnorm(n, 0, 1 / sqrt(tau_phi_prev))
+rho_prev <- plogis(eta_prev)
+y_prev <- rbinom(n, m_prev, rho_prev)
 
 dat <- list(n = n, y_prev = y_prev, m_prev = m_prev)
 
 #' TMB
 
-param <- list(beta_rho = 0)
+param <- list(beta_prev = 0)
 
 #' random are integrated out with a Laplace approximation
 obj <- MakeADFun(
@@ -54,7 +54,7 @@ fit <- tmbstan(obj = obj, chains = 4)
 # quad <- aghq::marginal_laplace_tmb(
 #   obj,
 #   k = 3,
-#   startingvalue = c(param$beta_rho)
+#   startingvalue = c(param$beta_prev)
 # )
 
 #' Comparison

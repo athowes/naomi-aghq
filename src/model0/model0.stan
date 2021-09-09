@@ -2,15 +2,15 @@
 
 data {
   int<lower=1> n; // Number of regions
-  int y_prev[n];       // Vector of responses
-  int m_prev[n];       // Vector of sample sizes
+  int y_prev[n];  // Vector of responses
+  int m_prev[n];  // Vector of sample sizes
 }
 
 parameters {
-  real beta_rho; // Intercept
+  real beta_prev; // Intercept
 }
 
 model {
-  y_prev ~ binomial_logit(m_prev, beta_rho);
-  beta_rho ~ normal(-2, 1);
+  y_prev ~ binomial_logit(m_prev, beta_prev);
+  beta_prev ~ normal(-2, 1);
 }
