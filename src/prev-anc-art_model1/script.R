@@ -1,6 +1,6 @@
 #' Uncomment and run the two line below to resume development of this script
-orderly::orderly_develop_start("model1")
-setwd("src/model1")
+# orderly::orderly_develop_start("prev-anc-art_model1")
+# setwd("src/prev-anc-art_model1")
 
 set.seed(1)
 
@@ -8,6 +8,8 @@ compile("model1.cpp")
 dyn.load(dynlib("model1"))
 
 #' Simulate data
+
+#' Survey prevalence
 n <- 5
 m_prev <- rep(20, n)
 beta_prev <- -1

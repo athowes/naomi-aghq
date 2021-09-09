@@ -1,6 +1,6 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("model2")
-# setwd("src/model2")
+# orderly::orderly_develop_start("prev-anc-art_model2")
+# setwd("src/prev-anc-art_model2")
 
 set.seed(1)
 
@@ -8,6 +8,8 @@ compile("model2.cpp")
 dyn.load(dynlib("model2"))
 
 #' Simulate data
+
+#' Survey prevalence
 n <- 5
 m_prev <- rep(20, n)
 beta_prev <- -1
@@ -15,6 +17,8 @@ tau_phi_prev <- 1
 eta_prev <- beta_prev + rnorm(n, 0, 1 / sqrt(tau_phi_prev))
 rho_prev <- plogis(eta_prev)
 y_prev <- rbinom(n, m_prev, rho_prev)
+
+#' ANC
 m_anc <- rep(50, n)
 beta_anc <- 0.5
 tau_b_anc <- 4

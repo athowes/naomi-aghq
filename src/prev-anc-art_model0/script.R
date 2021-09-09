@@ -1,6 +1,6 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("model0")
-# setwd("src/model0")
+# orderly::orderly_develop_start("prev-anc-art_model0")
+# setwd("src/prev-anc-art_model0")
 
 set.seed(1)
 
