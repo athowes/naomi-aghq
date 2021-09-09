@@ -15,10 +15,10 @@ Type objective_function<Type>::operator()()
   // Parameter block
   PARAMETER(beta_prev);            // Survey intercept
   PARAMETER_VECTOR(phi_prev);      // Survey spatial effect
-  PARAMETER(log_sigma_phi_prev);   // Survey log precision of spatial effects
+  PARAMETER(log_sigma_phi_prev);   // Survey log standard deviation of spatial effects
   PARAMETER(beta_anc);             // ANC intercept
   PARAMETER_VECTOR(b_anc);         // ANC bias effect
-  PARAMETER(log_sigma_b_anc);    // ANC log precision of bias effects
+  PARAMETER(log_sigma_b_anc);      // ANC log standard deviation of bias effects
 
   // Transformed parameters block
   Type sigma_phi_prev = exp(log_sigma_phi_prev);

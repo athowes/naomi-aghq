@@ -7,16 +7,16 @@ Type objective_function<Type>::operator()()
 {
   // Data block
   DATA_INTEGER(n);      // Number of regions
-  DATA_VECTOR(y_prev);  // Vector of responses
-  DATA_VECTOR(m_prev);  // Vector of sample sizes
+  DATA_VECTOR(y_prev);  // Vector of survey responses
+  DATA_VECTOR(m_prev);  // Vector of survey sample sizes
 
   // Parameter block
-  PARAMETER(beta_prev);            // Intercept
-  PARAMETER_VECTOR(phi_prev);      // Spatial effect
-  PARAMETER(log_sigma_phi_prev);   // Log precision of spatial effects
+  PARAMETER(beta_prev);            // Survey intercept
+  PARAMETER_VECTOR(phi_prev);      // Survey spatial effect
+  PARAMETER(log_sigma_phi_prev);   // Survey log standard deviation of spatial effects
 
   // Transformed parameters block
-  Type sigma_phi_prev = exp(log_sigma_phi_prev); // Standard deviation of spatial effects
+  Type sigma_phi_prev = exp(log_sigma_phi_prev);
   vector<Type> eta_prev(beta_prev + sigma_phi_prev * phi_prev);
 
   // Initialise negative log-likelihood
