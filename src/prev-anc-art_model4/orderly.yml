@@ -1,0 +1,29 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Results of model comparison
+      filenames:
+        - comparison-results.rds
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - INLA
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - TMB
+  - glmmTMB
+  - tmbstan
+  - rstan
+  - aghq
+
+depends:
+  prev-anc-art_sim:
+    id: latest
+    use:
+      depends/sim_data.rdata: sim_data.rdata
