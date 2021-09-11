@@ -36,8 +36,8 @@ param <- list(
 obj <- MakeADFun(
   data = dat,
   parameters = param,
-  random = c("phi_prev", "b_anc"),
-  DLL = "model2"
+  random = c("phi_prev", "b_anc", "phi_art"),
+  DLL = "model4"
 )
 
 its <- 1000 # May converge before this
@@ -68,20 +68,20 @@ quad <- aghq::marginal_laplace_tmb(
       param$beta_prev,
       param$log_sigma_phi_prev,
       param$beta_anc,
-      param$log_sigma_b_anc
+      param$log_sigma_b_anc,
+      param$beta_art,
+      param$log_sigma_phi_art
     )
 )
 
 #' Comparison
 
-sd_out$par.fixed[1:4]
-
-tmb <- as.vector(t(data.frame(sd_out$par.fixed[1:4], sqrt(diag(sd_out$cov.fixed)[1:4]))))
-tmbstan <- as.vector(t(summary(fit)$summary[c("beta_prev", "log_sigma_phi_prev", "beta_anc", "log_sigma_b_anc"), c(1, 3)]))
-aghq <- as.vector(t(summary(quad)$summarytable[1:4, c(1, 4)]))
+tmb <- as.vector(t(data.frame(sd_out$par.fixed[1:6], sqrt(diag(sd_out$cov.fixed)[1:6]))))
+tmbstan <- as.vector(t(summary(fit)$summary[c("beta_prev", "log_sigma_phi_prev", "beta_anc", "log_sigma_b_anc", "beta_art", "log_sigma_phi_art"), c(1, 3)]))
+aghq <- as.vector(t(summary(quad)$summarytable[1:6, c(1, 6)]))
 
 df <- cbind(tmb, tmbstan, aghq) %>%
   as.data.frame() %>%
-  mutate(type = gl(2, 1, 8, labels = c("Mean", "SD")))
+  mutate(type = gl(2, 1, 12, labels = c("Mean", "SD")))
 
 saveRDS(df, "comparison-results.rds")
