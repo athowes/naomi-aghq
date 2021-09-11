@@ -69,8 +69,6 @@ quad <- aghq::marginal_laplace_tmb(
 
 #' Comparison
 
-sd_out$par.fixed[1:4]
-
 tmb <- as.vector(t(data.frame(sd_out$par.fixed[1:4], sqrt(diag(sd_out$cov.fixed)[1:4]))))
 tmbstan <- as.vector(t(summary(fit)$summary[c("beta_prev", "log_sigma_phi_prev", "beta_anc", "log_sigma_b_anc"), c(1, 3)]))
 aghq <- as.vector(t(summary(quad)$summarytable[1:4, c(1, 4)]))

@@ -6,7 +6,7 @@ template <class Type>
 Type objective_function<Type>::operator()()
 {
   // Data block
-  DATA_INTEGER(n); // Number of regions
+  DATA_INTEGER(n);      // Number of regions
   DATA_VECTOR(y_prev);  // Vector of responses
   DATA_VECTOR(m_prev);  // Vector of sample sizes
 

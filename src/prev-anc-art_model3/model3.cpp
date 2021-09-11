@@ -18,7 +18,7 @@ Type objective_function<Type>::operator()()
   PARAMETER(log_sigma_phi_prev);   // Survey log standard deviation of spatial effects
   PARAMETER(beta_art);             // ART intercept
   PARAMETER_VECTOR(phi_art);       // ART random effects
-  PARAMETER(log_sigma_phi_art);     // ART log standard deviation of random effects
+  PARAMETER(log_sigma_phi_art);    // ART log standard deviation of random effects
 
   // Transformed parameters block
   Type sigma_phi_prev = exp(log_sigma_phi_prev);

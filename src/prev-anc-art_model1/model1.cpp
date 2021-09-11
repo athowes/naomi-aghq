@@ -31,7 +31,7 @@ Type objective_function<Type>::operator()()
   nll -= dbinom_robust(y_prev, m_prev, eta_prev, true).sum();
 
   // Generated quantities block
-  vector<Type> rho_prev(invlogit(eta_prev)); // Posterior prevalence estimates
+  vector<Type> rho_prev(invlogit(eta_prev));    // Posterior prevalence estimates
   Type tau_phi_prev = 1/pow(sigma_phi_prev, 2); // Precision of spatial effects
 
   // ADREPORT
