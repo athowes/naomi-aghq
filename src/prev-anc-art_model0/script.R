@@ -4,14 +4,14 @@
 
 set.seed(1)
 
-compile("model0.cpp")
-dyn.load(dynlib("model0"))
-
 load("depends/sim_data.rdata")
 
 dat <- list(n = n, y_prev = y_prev, m_prev = m_prev)
 
 #' TMB
+
+compile("model0.cpp")
+dyn.load(dynlib("model0"))
 
 param <- list(beta_prev = 0)
 
