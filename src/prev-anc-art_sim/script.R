@@ -33,4 +33,4 @@ alpha_art <- plogis(eta_art)
 A_art <- rbinom(n, floor(N_art * rho_prev), alpha_art)
 
 #' Save image of workspace
-save.image(file = "sim_data.rdata")
+save(list = ls(all.names = TRUE), file = "sim_data.rdata")
