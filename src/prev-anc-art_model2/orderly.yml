@@ -8,6 +8,11 @@ artefacts:
       description: Results of model comparison
       filenames:
         - comparison-results.rds
+  - data:
+      description: MCMC diagnostics
+      filenames:
+        - mcmc-traceplots.pdf
+        - mcmc-monitor.txt
 
 packages:
   - dplyr

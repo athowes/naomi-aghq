@@ -44,6 +44,19 @@ sd_out <- sdreport(
 
 fit <- tmbstan(obj = obj, chains = 4)
 
+pdf("mcmc-traceplots.pdf", h = length(names(obj$par)) * 3.5, w = 8.5)
+
+rstan::traceplot(fit, pars = names(obj$par), inc_warmup = TRUE)
+
+dev.off()
+
+sink(file = "mcmc-monitor.txt")
+
+mon <- rstan::monitor(fit)
+mon
+
+sink(file = NULL)
+
 #' aghq
 
 quad <- aghq::marginal_laplace_tmb(
