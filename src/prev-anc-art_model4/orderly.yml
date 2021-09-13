@@ -1,5 +1,8 @@
 script: script.R
 
+resources:
+  - model4.cpp
+
 artefacts:
   - data:
       description: Results of model comparison

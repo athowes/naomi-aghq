@@ -1,5 +1,9 @@
 script: script.R
 
+resources:
+  - epil.cpp
+  - epil.stan
+
 artefacts:
   - data:
       description: Results of model comparison
