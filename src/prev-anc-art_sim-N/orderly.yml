@@ -1,0 +1,26 @@
+script: script.R
+
+sources:
+  - functions.R
+
+artefacts:
+  - data:
+      description: Simulation data
+      filenames:
+        - sim_data.rds
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - INLA
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - TMB
+  - glmmTMB
+  - tmbstan
+  - rstan
+  - aghq
