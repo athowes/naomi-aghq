@@ -26,6 +26,10 @@ simulate_prev_anc_art <- function(n = 30,
   A_art <- rbinom(n, floor(N_art * rho_prev), alpha_art)
 
   return(list(
+    n = n,
+    m_prev = m_prev,
+    m_anc = m_anc,
+    N_art = N_art,
     eta_prev = eta_prev,
     rho_prev = rho_prev,
     y_prev = y_prev,
