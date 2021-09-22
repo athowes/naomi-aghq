@@ -1,0 +1,48 @@
+script: script.R
+
+sources:
+  - functions.R
+
+artefacts:
+  - data:
+      description: Boxplots
+      filenames:
+        - boxplots.pdf
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - INLA
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - TMB
+  - glmmTMB
+  - tmbstan
+  - rstan
+  - aghq
+
+depends:
+  prev-anc-art_model0-N:
+    id: latest
+    use:
+      depends/results_model0.rds: results.rds
+  prev-anc-art_model1-N:
+    id: latest
+    use:
+      depends/results_model1.rds: results.rds
+  prev-anc-art_model2-N:
+    id: latest
+    use:
+      depends/results_model2.rds: results.rds
+  prev-anc-art_model3-N:
+    id: latest
+    use:
+      depends/results_model3.rds: results.rds
+  prev-anc-art_model4-N:
+    id: latest
+    use:
+      depends/results_model4.rds: results.rds
