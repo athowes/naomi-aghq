@@ -1,0 +1,35 @@
+script: script.R
+
+sources:
+  - functions.R
+
+resources:
+  - model3.cpp
+
+artefacts:
+  - data:
+      description: Results
+      filenames:
+        - results.rds
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - INLA
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - TMB
+  - glmmTMB
+  - tmbstan
+  - rstan
+  - aghq
+
+depends:
+  prev-anc-art_sim-N:
+    id: latest
+    use:
+      depends/sim_data.rds: sim_data.rds
