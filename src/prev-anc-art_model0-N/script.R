@@ -9,8 +9,6 @@ sim_data <- readRDS("depends/sim_data.rds")
 compile("model0.cpp")
 dyn.load(dynlib("model0"))
 
-#' No additional preparation needed for tmbstan, and nothing to integrate out for aghq
-
 #' Run for each simulated dataset (using head for now for speed)
 results <- map(head(sim_data), run_model0)
 

@@ -34,6 +34,7 @@ run_model0 <- function(data) {
     "mcmc_monitor" =  rstan::monitor(fit)
   )
 
+  #' Comparison
   tmb <- as.vector(t(data.frame(sd_out$par.fixed[1], sqrt(sd_out$cov.fixed[1]))))
   tmbstan <- as.vector(t(summary(fit)$summary[1, c(1, 3)]))
 
