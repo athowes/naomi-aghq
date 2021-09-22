@@ -77,5 +77,7 @@ run_model4 <- function(data) {
     as.data.frame() %>%
     mutate(type = gl(2, 1, 12, labels = c("Mean", "SD")))
 
+  out[["comparison_results"]] <- df
+
   return(out)
 }
