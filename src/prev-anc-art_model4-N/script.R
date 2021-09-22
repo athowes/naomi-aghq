@@ -4,8 +4,7 @@
 
 sim_data <- readRDS("depends/sim_data.rds")
 
-#' TMB
-
+#' TMB preparation
 compile("model4.cpp")
 dyn.load(dynlib("model4"))
 

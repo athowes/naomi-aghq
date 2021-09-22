@@ -5,7 +5,6 @@
 sim_data <- readRDS("depends/sim_data.rds")
 
 #' TMB preparation
-
 compile("model1.cpp")
 dyn.load(dynlib("model1"))
 

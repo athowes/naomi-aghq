@@ -40,7 +40,10 @@ run_model0 <- function(data) {
 
   df <- cbind(tmb, tmbstan) %>%
     as.data.frame() %>%
-    mutate(type = gl(2, 1, 2, labels = c("Mean", "SD")))
+    mutate(
+      type = gl(2, 1, 2, labels = c("Mean", "SD")),
+      parameter = rep(names(sd_out$par.fixed), each = 2)
+    )
 
   out[["comparison_results"]] <- df
 
