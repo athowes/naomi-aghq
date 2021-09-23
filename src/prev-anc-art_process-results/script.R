@@ -49,3 +49,25 @@ draw_scatterplots(model3, c("tmb", "tmbstan", "aghq")) + labs(title = "Model 3")
 draw_scatterplots(model4, c("tmb", "tmbstan", "aghq")) + labs(title = "Model 4")
 
 dev.off()
+
+#' MCMC diagnostics
+
+pdf("traceplots-model0", h = nrow(model0[[1]]$comparison_results), w = 8.5)
+map(model0, "mcmc_traceplots")
+dev.off()
+
+pdf("traceplots-model1.pdf", h = nrow(model0[[1]]$comparison_results), w = 8.5)
+map(model1, "mcmc_traceplots")
+dev.off()
+
+pdf("traceplots-model2.pdf", h = nrow(model0[[1]]$comparison_results), w = 8.5)
+map(model2, "mcmc_traceplots")
+dev.off()
+
+pdf("traceplots-model3.pdf", h = nrow(model0[[1]]$comparison_results), w = 8.5)
+map(model3, "mcmc_traceplots")
+dev.off()
+
+pdf("traceplots-model4.pdf", h = nrow(model0[[1]]$comparison_results), w = 8.5)
+map(model0, "mcmc_traceplots")
+dev.off()

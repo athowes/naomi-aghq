@@ -12,6 +12,14 @@ artefacts:
       description: Scatterplots
       filenames:
         - scatterplots.pdf
+  - data:
+      description: MCMC traceplots
+      filenames:
+        - traceplots-model0.pdf
+        - traceplots-model1.pdf
+        - traceplots-model2.pdf
+        - traceplots-model3.pdf
+        - traceplots-model4.pdf
 
 packages:
   - dplyr
