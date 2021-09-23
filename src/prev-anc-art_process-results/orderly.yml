@@ -8,6 +8,10 @@ artefacts:
       description: Boxplots
       filenames:
         - boxplots.pdf
+  - data:
+      description: Scatterplots
+      filenames:
+        - scatterplots.pdf
 
 packages:
   - dplyr

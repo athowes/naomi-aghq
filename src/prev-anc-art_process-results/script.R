@@ -39,3 +39,13 @@ draw_boxplots(model3, c("tmb", "tmbstan", "aghq")) + labs(title = "Model 3")
 draw_boxplots(model4, c("tmb", "tmbstan", "aghq")) + labs(title = "Model 4")
 
 dev.off()
+
+pdf("scatterplots.pdf", h = 11, w = 8.5)
+
+draw_scatterplots(model0, c("tmb", "tmbstan")) + labs(title = "Model 0")
+draw_scatterplots(model1, c("tmb", "tmbstan", "aghq")) + labs(title = "Model 1")
+draw_scatterplots(model2, c("tmb", "tmbstan", "aghq")) + labs(title = "Model 2")
+draw_scatterplots(model3, c("tmb", "tmbstan", "aghq")) + labs(title = "Model 3")
+draw_scatterplots(model4, c("tmb", "tmbstan", "aghq")) + labs(title = "Model 4")
+
+dev.off()
