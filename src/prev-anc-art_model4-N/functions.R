@@ -71,7 +71,7 @@ run_model4 <- function(data) {
 
   tmb <- as.vector(t(data.frame(sd_out$par.fixed[1:6], sqrt(diag(sd_out$cov.fixed)[1:6]))))
   tmbstan <- as.vector(t(summary(fit)$summary[c("beta_prev", "log_sigma_phi_prev", "beta_anc", "log_sigma_b_anc", "beta_art", "log_sigma_phi_art"), c(1, 3)]))
-  aghq <- as.vector(t(summary(quad)$summarytable[1:6, c(1, 6)]))
+  aghq <- as.vector(t(summary(quad)$summarytable[1:6, c(1, 4)]))
 
   df <- cbind(tmb, tmbstan, aghq) %>%
     as.data.frame() %>%
