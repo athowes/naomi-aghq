@@ -2,6 +2,26 @@
 # orderly::orderly_develop_start("prev-anc-art_process-results")
 # setwd("src/prev-anc-art_process-results")
 
+#' Create true values dataframe
+true_values <- data.frame(
+  parameter = c(
+    "beta_prev",
+    "log_sigma_phi_prev",
+    "beta_anc",
+    "log_sigma_b_anc",
+    "beta_art",
+    "log_sigma_phi_art"
+  ),
+  true_value = c(
+    -2.4,
+    log(sqrt(1 / 4)),
+    -0.2,
+    log(sqrt(1/ 100)),
+    0.7,
+    log(0.35)
+  )
+)
+
 model0 <- readRDS("depends/results_model0.rds")
 model1 <- readRDS("depends/results_model1.rds")
 model2 <- readRDS("depends/results_model2.rds")
