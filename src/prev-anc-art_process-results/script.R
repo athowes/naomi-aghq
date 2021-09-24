@@ -69,5 +69,5 @@ map(model3, "mcmc_traceplots")
 dev.off()
 
 pdf("traceplots-model4.pdf", h = nrow(model0[[1]]$comparison_results), w = 8.5)
-map(model0, "mcmc_traceplots")
+map(model4, "mcmc_traceplots")
 dev.off()
