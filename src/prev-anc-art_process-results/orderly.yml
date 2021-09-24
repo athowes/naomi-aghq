@@ -20,6 +20,10 @@ artefacts:
         - traceplots-model2.pdf
         - traceplots-model3.pdf
         - traceplots-model4.pdf
+  - data:
+      description: Rhat plots
+      filenames:
+        - rhat.pdf
 
 packages:
   - dplyr

@@ -71,3 +71,13 @@ dev.off()
 pdf("traceplots-model4.pdf", h = nrow(model0[[1]]$comparison_results), w = 8.5)
 map(model4, "mcmc_traceplots")
 dev.off()
+
+pdf("rhat.pdf", h = 5, w = 15)
+
+draw_rhatplot(model0) + labs(title = "Model 0")
+draw_rhatplot(model1) + labs(title = "Model 1")
+draw_rhatplot(model2) + labs(title = "Model 2")
+draw_rhatplot(model3) + labs(title = "Model 3")
+draw_rhatplot(model4) + labs(title = "Model 4")
+
+dev.off()
