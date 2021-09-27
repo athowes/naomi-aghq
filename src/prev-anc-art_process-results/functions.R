@@ -36,3 +36,15 @@ draw_scatterplots <- function(results, methods) {
     scale_color_manual(values = cbpalette) +
     labs(x = "Gold standard (tmbstan)", y = "Value", col = "Inference method")
 }
+
+draw_rhatplot <- function(results) {
+  map(results, "mcmc_monitor") %>%
+    map(as.data.frame) %>%
+    map(tibble::rownames_to_column, var = "parameter") %>%
+    bind_rows(.id = "sim_id") %>%
+    ggplot(aes(x = parameter, y = Rhat)) +
+    geom_point() +
+    geom_hline(yintercept = 1.1, linetype = "dashed") +
+    labs(x = "Parameter") +
+    theme(axis.text.x = element_text(angle = 90))
+}
