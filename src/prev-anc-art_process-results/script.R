@@ -52,7 +52,7 @@ dev.off()
 
 #' MCMC diagnostics
 
-pdf("traceplots-model0", h = nrow(model0[[1]]$comparison_results), w = 8.5)
+pdf("traceplots-model0.pdf", h = nrow(model0[[1]]$comparison_results), w = 8.5)
 map(model0, "mcmc_traceplots")
 dev.off()
 
