@@ -10,12 +10,33 @@
 #' 2. Import into archive
 
 #' A1.
-path_bundles <- "bundles"
+path_bundles <- "bundle-input"
 bundle <- orderly::orderly_bundle_pack(path_bundles, "prev-anc-art_model0-N")
 
 #' A2.
 spud <- spud::sharepoint$new("https://imperiallondon.sharepoint.com/")
 folder <- spud$folder("HIVInferenceGroup-WP", "Shared Documents/orderly/naomi-inf/bundle-input", verify = TRUE)
-folder$upload(path = "bundles/20210930-160113-d37516eb.zip")
+folder$upload(path = bundle$path)
 
-#' B: TO-DO
+#' B1.
+folder$download(path = "20210930-163548-5576c904.zip", dest = "bundle-input/20210930-163548-5576c904.zip")
+
+#' B2.
+orderly_packages <- yaml::read_yaml(file.path("src/prev-anc-art_model0-N/orderly.yml"))$packages
+packages <- list(loaded = c("orderly", orderly_packages))
+
+my_config <- didehpc::didehpc_config(
+  workdir = path_bundles,
+  credentials = "ath19",
+  cluster = "fi--didemrchnb"
+  # "fi--dideclusthn"
+  # "fi--didemrchnb"
+)
+
+ctx <- context::context_save(
+  "context",
+  packages = packages,
+  package_sources = conan::conan_sources("awstringer1/aghq")
+)
+
+obj <- didehpc::queue_didehpc(ctx, config = my_config)

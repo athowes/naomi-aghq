@@ -14,5 +14,6 @@ draft
 data
 archive
 store
-bundles
+bundle-input
+bundle-output
 context
