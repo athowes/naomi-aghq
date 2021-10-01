@@ -62,3 +62,26 @@ run_model1 <- function(data) {
 
   return(out)
 }
+
+#' TMB and tmbstan code for getting the latent field too.
+#' TODO: aghq
+# tmb <- summary(sd_out) %>%
+#   as.data.frame() %>%
+#   tibble::rownames_to_column() %>%
+#   mutate(rowname = str_replace(
+#     rowname,
+#     pattern = "\\.[0-9]+",
+#     replacement = paste0("[", str_extract(rowname, "[0-9]+"), "]"))
+#   ) %>%
+#   rename(
+#     "parameter" = "rowname",
+#     "mean" = "Estimate",
+#     "sd" = "Std. Error"
+#   ) %>%
+#   mutate(method = "TMB")
+#
+# summary(fit)$summary %>%
+#   as.data.frame() %>%
+#   tibble::rownames_to_column("parameter") %>%
+#   select(parameter, mean, sd) %>%
+#   mutate(method = "tmbstan")
