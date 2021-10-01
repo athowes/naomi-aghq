@@ -16,16 +16,13 @@ packages:
   - dplyr
   - forcats
   - ggplot2
-  - INLA
   - readr
   - tidyr
   - purrr
   - stringr
   - Matrix
   - TMB
-  - glmmTMB
   - tmbstan
-  - rstan
   - aghq
 
 depends:
