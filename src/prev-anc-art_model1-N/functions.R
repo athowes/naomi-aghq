@@ -1,3 +1,48 @@
+tmb_summary <- function(sd_out) {
+  summary(sd_out) %>%
+    as.data.frame() %>%
+    #' Warning! Having an issue here with rownames, needs to be fixed
+    tibble::rownames_to_column() %>%
+    mutate(rowname = str_replace(
+      rowname,
+      pattern = "\\.[0-9]+",
+      replacement = paste0("[", as.character(as.numeric(str_extract(rowname, "[0-9]+")) + 1), "]"))
+    ) %>%
+    rename(
+      "parameter" = "rowname",
+      "mean" = "Estimate",
+      "sd" = "Std. Error"
+    ) %>%
+    mutate(method = "TMB")
+}
+
+tmbstan_summary <- function(fit) {
+  summary(fit)$summary %>%
+    as.data.frame() %>%
+    tibble::rownames_to_column("parameter") %>%
+    select(parameter, mean, sd) %>%
+    mutate(method = "tmbstan")
+}
+
+aghq_summary <- function(quad) {
+  aghq_hyper <- summary(quad)$aghqsummary$summarytable %>%
+    as.data.frame() %>%
+    tibble::rownames_to_column() %>%
+    rename(parameter = rowname) %>%
+    select(parameter, mean, sd)
+
+  aghq_random <- summary(quad)$randomeffectsummary %>%
+    as.data.frame() %>%
+    tibble::rownames_to_column() %>%
+    #' Warning: this rownumber as index only works when you have one random effect!
+    mutate(variable = paste0(variable, "[", rowname, "]")) %>%
+    rename(parameter = variable) %>%
+    select(parameter, mean, sd)
+
+  bind_rows(aghq_hyper, aghq_random) %>%
+    mutate(method = "aghq")
+}
+
 run_model1 <- function(data) {
 
   dat <- list(n = data$n, y_prev = data$y_prev, m_prev = data$m_prev)
@@ -47,41 +92,11 @@ run_model1 <- function(data) {
   )
 
   #' Comparison
-  tmb <- as.vector(t(data.frame(sd_out$par.fixed[1:2], sqrt(diag(sd_out$cov.fixed)[1:2]))))
-  tmbstan <- as.vector(t(summary(fit)$summary[c("beta_prev", "log_sigma_phi_prev"), c(1, 3)]))
-  aghq <- as.vector(t(summary(quad)$summarytable[1:2, c(1, 4)]))
-
-  df <- cbind(tmb, tmbstan, aghq) %>%
-    as.data.frame() %>%
-    mutate(
-      type = gl(2, 1, 4, labels = c("Mean", "SD")),
-      parameter = rep(names(sd_out$par.fixed), each = 2)
-    )
+  tmb <- tmb_summary(sd_out)
+  tmbstan <- tmbstan_summary(fit)
+  aghq <- aghq_summary(quad)
 
   out[["comparison_results"]] <- df
 
   return(out)
 }
-
-#' TMB and tmbstan code for getting the latent field too.
-#' TODO: aghq
-# tmb <- summary(sd_out) %>%
-#   as.data.frame() %>%
-#   tibble::rownames_to_column() %>%
-#   mutate(rowname = str_replace(
-#     rowname,
-#     pattern = "\\.[0-9]+",
-#     replacement = paste0("[", str_extract(rowname, "[0-9]+"), "]"))
-#   ) %>%
-#   rename(
-#     "parameter" = "rowname",
-#     "mean" = "Estimate",
-#     "sd" = "Std. Error"
-#   ) %>%
-#   mutate(method = "TMB")
-#
-# summary(fit)$summary %>%
-#   as.data.frame() %>%
-#   tibble::rownames_to_column("parameter") %>%
-#   select(parameter, mean, sd) %>%
-#   mutate(method = "tmbstan")
