@@ -50,16 +50,5 @@ Type objective_function<Type>::operator()()
   Type tau_phi_prev = 1/pow(sigma_phi_prev, 2);
   Type tau_phi_art = 1/pow(sigma_phi_art, 2);
 
-  // ADREPORT
-  ADREPORT(beta_prev);
-  ADREPORT(tau_phi_prev);
-  ADREPORT(phi_prev);
-  ADREPORT(rho_prev);
-
-  ADREPORT(beta_art);
-  ADREPORT(tau_phi_art);
-  ADREPORT(phi_art);
-  ADREPORT(alpha_art);
-
   return(nll);
 }

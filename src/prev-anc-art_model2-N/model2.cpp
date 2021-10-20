@@ -50,16 +50,5 @@ Type objective_function<Type>::operator()()
   vector<Type> rho_anc(invlogit(eta_anc));
   Type tau_b_anc = 1 / pow(sigma_b_anc, 2);
 
-  // ADREPORT
-  ADREPORT(beta_prev);
-  ADREPORT(tau_phi_prev);
-  ADREPORT(phi_prev);
-  ADREPORT(rho_prev);
-
-  ADREPORT(beta_anc);
-  ADREPORT(tau_b_anc);
-  ADREPORT(b_anc);
-  ADREPORT(rho_anc);
-
   return(nll);
 }

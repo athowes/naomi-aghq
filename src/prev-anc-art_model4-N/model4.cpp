@@ -65,21 +65,5 @@ Type objective_function<Type>::operator()()
   Type tau_b_anc = 1 / pow(sigma_b_anc, 2);
   Type tau_phi_art = 1/pow(sigma_phi_art, 2);
 
-  // ADREPORT
-  ADREPORT(beta_prev);
-  ADREPORT(tau_phi_prev);
-  ADREPORT(phi_prev);
-  ADREPORT(rho_prev);
-
-  ADREPORT(beta_anc);
-  ADREPORT(tau_b_anc);
-  ADREPORT(b_anc);
-  ADREPORT(rho_anc);
-
-  ADREPORT(beta_art);
-  ADREPORT(tau_phi_art);
-  ADREPORT(phi_art);
-  ADREPORT(alpha_art);
-
   return(nll);
 }

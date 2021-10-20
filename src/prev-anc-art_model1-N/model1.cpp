@@ -34,11 +34,5 @@ Type objective_function<Type>::operator()()
   vector<Type> rho_prev(invlogit(eta_prev));    // Posterior prevalence estimates
   Type tau_phi_prev = 1/pow(sigma_phi_prev, 2); // Precision of spatial effects
 
-  // ADREPORT
-  ADREPORT(beta_prev);
-  ADREPORT(tau_phi_prev);
-  ADREPORT(phi_prev);
-  ADREPORT(rho_prev);
-
   return(nll);
 }
