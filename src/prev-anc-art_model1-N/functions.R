@@ -1,15 +1,20 @@
 tmb_summary <- function(sd_out) {
-  summary(sd_out) %>%
+  sd_summary <- summary(sd_out)
+  tab <- table(rownames(sd_summary))
+
+  parameter_names <- sapply(split(tab, names(tab)), function(x) {
+    if(x > 1) paste0(names(x), "[", 1:x, "]")
+    else(names(x))
+  }) %>%
+    unlist() %>%
+    as.vector()
+
+  row.names(sd_summary) <- NULL
+
+  sd_summary %>%
     as.data.frame() %>%
-    #' Warning! Having an issue here with rownames, needs to be fixed
-    tibble::rownames_to_column() %>%
-    mutate(rowname = str_replace(
-      rowname,
-      pattern = "\\.[0-9]+",
-      replacement = paste0("[", as.character(as.numeric(str_extract(rowname, "[0-9]+")) + 1), "]"))
-    ) %>%
+    mutate(parameter = parameter_names) %>%
     rename(
-      "parameter" = "rowname",
       "mean" = "Estimate",
       "sd" = "Std. Error"
     ) %>%
