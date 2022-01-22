@@ -8,4 +8,6 @@ This may be done by developing an alternative implementation of the integrated n
 
 The R package `prevartcov` can be installed using:
 
-`devtools::install_github("athowes/prevartcov", auth_token = Sys.getenv("GITHUB_PAT"))`
+```r
+devtools::install_github("athowes/prevartcov", auth_token = Sys.getenv("GITHUB_PAT"))
+```
