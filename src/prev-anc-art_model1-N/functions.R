@@ -57,19 +57,28 @@ run_model1 <- function(data) {
 
   #' Kolmogorov-Smirnov test
 
-  # aghq::sample_marginal(quad, M = 1000)$samps %>%
-  #   as.data.frame() %>%
-  #   tibble::rownames_to_column("variable") %>%
-  #   tibble::rownames_to_column("rowname") %>%
-  #   mutate(variable = paste0(str_split(variable, pattern = "[.]")[[1]][1], "[", rowname, "]")) %>%
-  #   select(-rowname) %>%
-  #   tibble::column_to_rownames("variable") %>%
-  #   t()
+  samples_aghq <- aghq::sample_marginal(quad, M = 1000)$samps %>%
+    as.data.frame() %>%
+    tibble::rownames_to_column("variable") %>%
+    tibble::rownames_to_column("rowname") %>%
+    mutate(variable = paste0(str_split(variable, pattern = "[.]")[[1]][1], "[", rowname, "]")) %>%
+    select(-rowname) %>%
+    tibble::column_to_rownames("variable") %>%
+    t()
 
-  out[["ks_test"]] <- NULL
+  samples_tmbstan <- as.data.frame(fit)
+
+  ks_aghq_tmbstan <- lapply(colnames(samples_aghq), function(col) {
+    c("parameter" = col, "ks" = get_ks(samples_aghq[, col], samples_tmbstan[, col]))
+  }) %>%
+    bind_rows() %>%
+    mutate(method1 = "aghq", method2 = "tmbstan")
+
+  #' TODO: KS test for TMB and tmbstan
+  #' Requries function to sample from generic TMB model!
+  #' Will then bind_rows() these together before outputting below
+
+  out[["ks_test"]] <- ks_aghq_tmbstan
 
   return(out)
 }
-
-tmbstan_samples <- rstan::extract(fit)
-aghq_samples <- aghq::sample_marginal(quad)
