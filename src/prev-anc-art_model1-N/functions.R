@@ -55,5 +55,21 @@ run_model1 <- function(data) {
 
   out[["comparison_results"]] <- df
 
+  #' Kolmogorov-Smirnov test
+
+  # aghq::sample_marginal(quad, M = 1000)$samps %>%
+  #   as.data.frame() %>%
+  #   tibble::rownames_to_column("variable") %>%
+  #   tibble::rownames_to_column("rowname") %>%
+  #   mutate(variable = paste0(str_split(variable, pattern = "[.]")[[1]][1], "[", rowname, "]")) %>%
+  #   select(-rowname) %>%
+  #   tibble::column_to_rownames("variable") %>%
+  #   t()
+
+  out[["ks_test"]] <- NULL
+
   return(out)
 }
+
+tmbstan_samples <- rstan::extract(fit)
+aghq_samples <- aghq::sample_marginal(quad)
