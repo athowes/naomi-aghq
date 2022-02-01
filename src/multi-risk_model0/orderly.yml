@@ -1,0 +1,33 @@
+script: script.R
+
+sources:
+  - functions.R
+
+resources:
+  - model0.cpp
+
+artefacts:
+  - data:
+      description: Results
+      filenames:
+        - results.rds
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - TMB
+  - tmbstan
+  - aghq
+  - inf.utils
+
+depends:
+  multi-risk_sim:
+    id: latest
+    use:
+      depends/sim_data.rds: sim_data.rds
