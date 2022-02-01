@@ -62,16 +62,11 @@ run_model2 <- function(data) {
   )
 
   #' Comparison
-  tmb <- as.vector(t(data.frame(sd_out$par.fixed[1:4], sqrt(diag(sd_out$cov.fixed)[1:4]))))
-  tmbstan <- as.vector(t(summary(fit)$summary[c("beta_prev", "log_sigma_phi_prev", "beta_anc", "log_sigma_b_anc"), c(1, 3)]))
-  aghq <- as.vector(t(summary(quad)$summarytable[1:4, c(1, 4)]))
+  tmb <- tmb_summary(sd_out)
+  tmbstan <- tmbstan_summary(fit)
+  aghq <- aghq_summary(quad)
 
-  df <- cbind(tmb, tmbstan, aghq) %>%
-    as.data.frame() %>%
-    mutate(
-      type = gl(2, 1, 8, labels = c("Mean", "SD")),
-      parameter = rep(names(sd_out$par.fixed), each = 2)
-    )
+  df <- bind_rows(tmb, tmbstan, aghq)
 
   out[["comparison_results"]] <- df
 

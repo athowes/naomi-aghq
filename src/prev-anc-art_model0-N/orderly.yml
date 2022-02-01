@@ -24,6 +24,7 @@ packages:
   - TMB
   - tmbstan
   - aghq
+  - inf.utils
 
 depends:
   prev-anc-art_sim-N:

@@ -35,15 +35,10 @@ run_model0 <- function(data) {
   )
 
   #' Comparison
-  tmb <- as.vector(t(data.frame(sd_out$par.fixed[1], sqrt(sd_out$cov.fixed[1]))))
-  tmbstan <- as.vector(t(summary(fit)$summary[1, c(1, 3)]))
+  tmb <- tmb_summary(sd_out)
+  tmbstan <- tmbstan_summary(fit)
 
-  df <- cbind(tmb, tmbstan) %>%
-    as.data.frame() %>%
-    mutate(
-      type = gl(2, 1, 2, labels = c("Mean", "SD")),
-      parameter = rep(names(sd_out$par.fixed), each = 2)
-    )
+  df <- bind_rows(tmb, tmbstan)
 
   out[["comparison_results"]] <- df
 
