@@ -1,53 +1,3 @@
-tmb_summary <- function(sd_out) {
-  sd_summary <- summary(sd_out)
-  tab <- table(rownames(sd_summary))
-
-  parameter_names <- sapply(split(tab, names(tab)), function(x) {
-    if(x > 1) paste0(names(x), "[", 1:x, "]")
-    else(names(x))
-  }) %>%
-    unlist() %>%
-    as.vector()
-
-  row.names(sd_summary) <- NULL
-
-  sd_summary %>%
-    as.data.frame() %>%
-    mutate(parameter = parameter_names) %>%
-    rename(
-      "mean" = "Estimate",
-      "sd" = "Std. Error"
-    ) %>%
-    mutate(method = "TMB")
-}
-
-tmbstan_summary <- function(fit) {
-  summary(fit)$summary %>%
-    as.data.frame() %>%
-    tibble::rownames_to_column("parameter") %>%
-    select(parameter, mean, sd) %>%
-    mutate(method = "tmbstan")
-}
-
-aghq_summary <- function(quad) {
-  aghq_hyper <- summary(quad)$aghqsummary$summarytable %>%
-    as.data.frame() %>%
-    tibble::rownames_to_column() %>%
-    rename(parameter = rowname) %>%
-    select(parameter, mean, sd)
-
-  aghq_random <- summary(quad)$randomeffectsummary %>%
-    as.data.frame() %>%
-    tibble::rownames_to_column() %>%
-    #' Warning: this rownumber as index only works when you have one random effect!
-    mutate(variable = paste0(variable, "[", rowname, "]")) %>%
-    rename(parameter = variable) %>%
-    select(parameter, mean, sd)
-
-  bind_rows(aghq_hyper, aghq_random) %>%
-    mutate(method = "aghq")
-}
-
 run_model1 <- function(data) {
 
   dat <- list(n = data$n, y_prev = data$y_prev, m_prev = data$m_prev)
@@ -100,6 +50,8 @@ run_model1 <- function(data) {
   tmb <- tmb_summary(sd_out)
   tmbstan <- tmbstan_summary(fit)
   aghq <- aghq_summary(quad)
+
+  df <- bind_rows(tmb, tmbstan, aghq)
 
   out[["comparison_results"]] <- df
 
