@@ -4,7 +4,7 @@ sources:
   - functions.R
 
 resources:
-  - model1.cpp
+  - model0.cpp
 
 artefacts:
   - data:
@@ -27,7 +27,7 @@ packages:
   - inf.utils
 
 depends:
-  prev-anc-art_sim-N:
+  prev-anc-art_sim:
     id: latest
     use:
       depends/sim_data.rds: sim_data.rds
