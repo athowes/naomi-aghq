@@ -1,6 +1,6 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("prev-anc-art_sim-N")
-# setwd("src/prev-anc-art_sim-N")
+# orderly::orderly_develop_start("prev-anc-art_sim")
+# setwd("src/prev-anc-art_sim")
 
 N_sim <- 1000
 
