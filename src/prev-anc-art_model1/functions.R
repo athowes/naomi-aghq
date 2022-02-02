@@ -58,15 +58,15 @@ run_model1 <- function(data) {
   #' Kolmogorov-Smirnov test
 
   samples_aghq <- aghq::sample_marginal(quad, M = 1000)$samps %>%
+    t() %>%
     as.data.frame() %>%
-    tibble::rownames_to_column("variable") %>%
-    tibble::rownames_to_column("rowname") %>%
-    mutate(variable = paste0(str_split(variable, pattern = "[.]")[[1]][1], "[", rowname, "]")) %>%
-    select(-rowname) %>%
-    tibble::column_to_rownames("variable") %>%
-    t()
+    inf.utils::replace_duplicate_colnames()
 
   samples_tmbstan <- as.data.frame(fit)
+
+  samples_tmb <- sample_tmb(sd_out, obj, M = 1000) %>%
+    as.data.frame() %>%
+    inf.utils::replace_duplicate_colnames()
 
   ks_aghq_tmbstan <- lapply(colnames(samples_aghq), function(col) {
     c("parameter" = col, "ks" = get_ks(samples_aghq[, col], samples_tmbstan[, col]))
@@ -74,11 +74,13 @@ run_model1 <- function(data) {
     bind_rows() %>%
     mutate(method1 = "aghq", method2 = "tmbstan")
 
-  #' TODO: KS test for TMB and tmbstan
-  #' Requries function to sample from generic TMB model!
-  #' Will then bind_rows() these together before outputting below
+  ks_tmb_tmbstan <- lapply(colnames(samples_tmb), function(col) {
+    c("parameter" = col, "ks" = get_ks(samples_tmb[, col], samples_tmbstan[, col]))
+  }) %>%
+    bind_rows() %>%
+    mutate(method1 = "TMB", method2 = "tmbstan")
 
-  out[["ks_test"]] <- ks_aghq_tmbstan
+  out[["ks_test"]] <- bind_rows(ks_aghq_tmbstan, ks_tmb_tmbstan)
 
   return(out)
 }

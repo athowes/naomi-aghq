@@ -69,5 +69,32 @@ run_model3 <- function(data) {
 
   out[["comparison_results"]] <- df
 
+  #' Kolmogorov-Smirnov test
+
+  samples_aghq <- aghq::sample_marginal(quad, M = 1000)$samps %>%
+    t() %>%
+    as.data.frame() %>%
+    inf.utils::replace_duplicate_colnames()
+
+  samples_tmbstan <- as.data.frame(fit)
+
+  samples_tmb <- sample_tmb(sd_out, obj, M = 1000) %>%
+    as.data.frame() %>%
+    inf.utils::replace_duplicate_colnames()
+
+  ks_aghq_tmbstan <- lapply(colnames(samples_aghq), function(col) {
+    c("parameter" = col, "ks" = get_ks(samples_aghq[, col], samples_tmbstan[, col]))
+  }) %>%
+    bind_rows() %>%
+    mutate(method1 = "aghq", method2 = "tmbstan")
+
+  ks_tmb_tmbstan <- lapply(colnames(samples_tmb), function(col) {
+    c("parameter" = col, "ks" = get_ks(samples_tmb[, col], samples_tmbstan[, col]))
+  }) %>%
+    bind_rows() %>%
+    mutate(method1 = "TMB", method2 = "tmbstan")
+
+  out[["ks_test"]] <- bind_rows(ks_aghq_tmbstan, ks_tmb_tmbstan)
+
   return(out)
 }

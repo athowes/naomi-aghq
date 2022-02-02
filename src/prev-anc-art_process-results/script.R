@@ -53,6 +53,9 @@ dev.off()
 pdf("ks-test.pdf", h = 11, w = 8.5)
 
 draw_ksplots(model1) + labs(title = "Model 1")
+draw_ksplots(model2) + labs(title = "Model 2")
+draw_ksplots(model3) + labs(title = "Model 3")
+draw_ksplots(model4) + labs(title = "Model 4")
 
 dev.off()
 
