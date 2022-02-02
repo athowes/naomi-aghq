@@ -1,4 +1,4 @@
-// model1.cpp
+// model0.cpp
 
 #include <TMB.hpp>
 
