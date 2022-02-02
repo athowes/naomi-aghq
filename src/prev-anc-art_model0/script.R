@@ -8,6 +8,11 @@ sim_data <- readRDS("depends/sim_data.rds")
 compile("model0.cpp")
 dyn.load(dynlib("model0"))
 
+#' TODO
+#' sd_out has no jointPrecision because there are no random effects in this model
+#' Need to extend the functionality of inf.utils::sample_tmb to account for this case
+#' Try rerunning this once that is done!
+
 #' Run for each simulated dataset (using head for now for speed)
 results <- map(head(sim_data), run_model0)
 
