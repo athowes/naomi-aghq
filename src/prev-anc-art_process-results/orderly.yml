@@ -13,6 +13,10 @@ artefacts:
       filenames:
         - scatterplots.pdf
   - data:
+      description: KS test plots
+      filenames:
+        - ks-test.pdf
+  - data:
       description: MCMC traceplots
       filenames:
         - traceplots-model0.pdf

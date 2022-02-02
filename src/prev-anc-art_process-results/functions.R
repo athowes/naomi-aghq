@@ -1,7 +1,7 @@
-draw_boxplots <- function(results, methods) {
+draw_boxplots <- function(results) {
   map(results, "comparison_results") %>%
     bind_rows(.id = "sim_id") %>%
-    pivot_longer(cols = all_of(methods), names_to = "method", values_to = "value") %>%
+    pivot_longer(cols = c("mean", "sd"), names_to = "type", values_to = "value") %>%
     left_join(true_values, by = "parameter") %>%
     mutate(true_value = ifelse(type == "SD", NA, true_value)) %>%
     ggplot(aes(x = method, y = value, fill = method)) +
@@ -9,13 +9,14 @@ draw_boxplots <- function(results, methods) {
       geom_hline(aes(yintercept = true_value), linetype = "dashed") +
       facet_wrap(parameter ~ type, scales = "free", ncol = 2) +
       scale_fill_manual(values = cbpalette) +
-      labs(x = "", y = "Estimate", fill = "Inference method")
+      labs(x = "", y = "Estimate", fill = "Inference method") +
+      theme_minimal()
 }
 
-draw_scatterplots <- function(results, methods) {
+draw_scatterplots <- function(results) {
   df <- map(results, "comparison_results") %>%
     bind_rows(.id = "sim_id") %>%
-    pivot_longer(cols = all_of(methods), names_to = "method", values_to = "value") %>%
+    pivot_longer(cols = c("mean", "sd"), names_to = "type", values_to = "value") %>%
     left_join(true_values, by = "parameter") %>%
     mutate(true_value = ifelse(type == "SD", NA, true_value))
 
@@ -34,7 +35,33 @@ draw_scatterplots <- function(results, methods) {
     geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
     facet_wrap(type ~ parameter) +
     scale_color_manual(values = cbpalette) +
-    labs(x = "Gold standard (tmbstan)", y = "Value", col = "Inference method")
+    labs(x = "Gold standard (tmbstan)", y = "Value", col = "Inference method") +
+    theme_minimal() +
+    theme(
+      legend.position = "bottom"
+    )
+}
+
+draw_ksplots <- function(results) {
+  map(results, "ks_test") %>%
+    bind_rows(.id = "sim_id") %>%
+    mutate(
+      ks = as.numeric(ks),
+      parameter = factor(parameter, levels = unique(.data$parameter))
+    ) %>%
+    select(-method2) %>%
+    pivot_wider(
+      names_from = method1,
+      values_from = ks
+    ) %>%
+    ggplot(aes(x = aghq, y = TMB)) +
+      geom_point() +
+      facet_wrap(~parameter) +
+      xlim(0, 0.5) +
+      ylim(0, 0.5) +
+      geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+      labs(x = "KS(aghq, tmbstan)", y = "KS(TMB, tmbstan)") +
+      theme_minimal()
 }
 
 draw_rhatplot <- function(results) {
@@ -45,6 +72,7 @@ draw_rhatplot <- function(results) {
     ggplot(aes(x = parameter, y = Rhat)) +
     geom_point() +
     geom_hline(yintercept = 1.1, linetype = "dashed") +
-    labs(x = "Parameter") +
+    labs(x = "Parameter")  +
+    theme_minimal() +
     theme(axis.text.x = element_text(angle = 90))
 }

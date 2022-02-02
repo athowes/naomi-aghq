@@ -32,21 +32,27 @@ cbpalette <- c("#56B4E9", "#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00",
 
 pdf("boxplots.pdf", h = 11, w = 8.5)
 
-draw_boxplots(model0, c("tmb", "tmbstan")) + labs(title = "Model 0")
-draw_boxplots(model1, c("tmb", "tmbstan", "aghq")) + labs(title = "Model 1")
-draw_boxplots(model2, c("tmb", "tmbstan", "aghq")) + labs(title = "Model 2")
-draw_boxplots(model3, c("tmb", "tmbstan", "aghq")) + labs(title = "Model 3")
-draw_boxplots(model4, c("tmb", "tmbstan", "aghq")) + labs(title = "Model 4")
+draw_boxplots(model0) + labs(title = "Model 0")
+draw_boxplots(model1) + labs(title = "Model 1")
+draw_boxplots(model2) + labs(title = "Model 2")
+draw_boxplots(model3) + labs(title = "Model 3")
+draw_boxplots(model4) + labs(title = "Model 4")
 
 dev.off()
 
 pdf("scatterplots.pdf", h = 11, w = 8.5)
 
-draw_scatterplots(model0, c("tmb", "tmbstan")) + labs(title = "Model 0")
-draw_scatterplots(model1, c("tmb", "tmbstan", "aghq")) + labs(title = "Model 1")
-draw_scatterplots(model2, c("tmb", "tmbstan", "aghq")) + labs(title = "Model 2")
-draw_scatterplots(model3, c("tmb", "tmbstan", "aghq")) + labs(title = "Model 3")
-draw_scatterplots(model4, c("tmb", "tmbstan", "aghq")) + labs(title = "Model 4")
+draw_scatterplots(model0) + labs(title = "Model 0")
+draw_scatterplots(model1) + labs(title = "Model 1")
+draw_scatterplots(model2) + labs(title = "Model 2")
+draw_scatterplots(model3) + labs(title = "Model 3")
+draw_scatterplots(model4) + labs(title = "Model 4")
+
+dev.off()
+
+pdf("ks-test.pdf", h = 11, w = 8.5)
+
+draw_ksplots(model1) + labs(title = "Model 1")
 
 dev.off()
 
