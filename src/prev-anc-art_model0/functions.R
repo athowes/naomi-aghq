@@ -40,7 +40,22 @@ run_model0 <- function(data) {
 
   df <- bind_rows(tmb, tmbstan)
 
-  out[["comparison_results"]] <- df
+  #' Kolmogorov-Smirnov test
+
+  samples_tmbstan <- as.data.frame(fit)
+
+  samples_tmb <- sample_tmb(sd_out, obj, M = 1000) %>%
+    as.data.frame() %>%
+    inf.utils::replace_duplicate_colnames()
+
+  ks_tmb_tmbstan <- lapply(colnames(samples_tmb), function(col) {
+    ks_result <- inf.utils::ks_test(samples_tmb[, col], samples_tmbstan[, col])
+    c("parameter" = col, "D" = ks_result$D, "l" = ks_result$l)
+  }) %>%
+    bind_rows() %>%
+    mutate(method1 = "TMB", method2 = "tmbstan")
+
+  out[["comparison_results"]] <- ks_tmb_tmbstan
 
   return(out)
 }

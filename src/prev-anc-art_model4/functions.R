@@ -90,13 +90,15 @@ run_model4 <- function(data) {
     inf.utils::replace_duplicate_colnames()
 
   ks_aghq_tmbstan <- lapply(colnames(samples_aghq), function(col) {
-    c("parameter" = col, "ks" = get_ks(samples_aghq[, col], samples_tmbstan[, col]))
+    ks_result <- inf.utils::ks_test(samples_aghq[, col], samples_tmbstan[, col])
+    c("parameter" = col, "D" = ks_result$D, "l" = ks_result$l)
   }) %>%
     bind_rows() %>%
     mutate(method1 = "aghq", method2 = "tmbstan")
 
   ks_tmb_tmbstan <- lapply(colnames(samples_tmb), function(col) {
-    c("parameter" = col, "ks" = get_ks(samples_tmb[, col], samples_tmbstan[, col]))
+    ks_result <- inf.utils::ks_test(samples_tmb[, col], samples_tmbstan[, col])
+    c("parameter" = col, "D" = ks_result$D, "l" = ks_result$l)
   }) %>%
     bind_rows() %>%
     mutate(method1 = "TMB", method2 = "tmbstan")
