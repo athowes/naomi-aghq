@@ -42,17 +42,17 @@ draw_scatterplots <- function(results) {
     )
 }
 
-draw_ksplots <- function(results) {
+draw_ksplots_D <- function(results) {
   map(results, "ks_test") %>%
     bind_rows(.id = "sim_id") %>%
     mutate(
-      ks = as.numeric(ks),
+      D = as.numeric(D),
       parameter = factor(parameter, levels = unique(.data$parameter))
     ) %>%
-    select(-method2) %>%
+    select(-method2, -l) %>%
     pivot_wider(
       names_from = method1,
-      values_from = ks
+      values_from = D
     ) %>%
     ggplot(aes(x = aghq, y = TMB)) +
       geom_point() +
@@ -61,6 +61,22 @@ draw_ksplots <- function(results) {
       ylim(0, 0.5) +
       geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
       labs(x = "KS(aghq, tmbstan)", y = "KS(TMB, tmbstan)") +
+      theme_minimal()
+}
+
+draw_ksplots_l <- function(results) {
+  map(results, "ks_test") %>%
+    bind_rows(.id = "sim_id") %>%
+    mutate(
+      l = as.numeric(l),
+      parameter = factor(parameter, levels = unique(.data$parameter))
+    ) %>%
+    select(-D, -method2) %>%
+    ggplot(aes(y = l, fill = method1)) +
+      geom_boxplot(alpha = 0.7) +
+      facet_wrap(~parameter, scales = "free") +
+      scale_fill_manual(values = cbpalette) +
+      labs(fill = "Method") +
       theme_minimal()
 }
 

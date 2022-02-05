@@ -13,9 +13,10 @@ artefacts:
       filenames:
         - scatterplots.pdf
   - data:
-      description: KS test plots
+      description: KS test plots for D (maximum ECDF difference) and l (location of D)
       filenames:
-        - ks-test.pdf
+        - ks-test-D.pdf
+        - ks-test-l.pdf
   - data:
       description: MCMC traceplots
       filenames:

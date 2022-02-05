@@ -50,12 +50,21 @@ draw_scatterplots(model4) + labs(title = "Model 4")
 
 dev.off()
 
-pdf("ks-test.pdf", h = 11, w = 8.5)
+pdf("ks-test-D.pdf", h = 11, w = 8.5)
 
-draw_ksplots(model1) + labs(title = "Model 1")
-draw_ksplots(model2) + labs(title = "Model 2")
-draw_ksplots(model3) + labs(title = "Model 3")
-draw_ksplots(model4) + labs(title = "Model 4")
+draw_ksplots_D(model1) + labs(title = "Model 1")
+draw_ksplots_D(model2) + labs(title = "Model 2")
+draw_ksplots_D(model3) + labs(title = "Model 3")
+draw_ksplots_D(model4) + labs(title = "Model 4")
+
+dev.off()
+
+pdf("ks-test-l.pdf", h = 11, w = 8.5)
+
+draw_ksplots_l(model1) + labs(title = "Model 1")
+draw_ksplots_l(model2) + labs(title = "Model 2")
+draw_ksplots_l(model3) + labs(title = "Model 3")
+draw_ksplots_l(model4) + labs(title = "Model 4")
 
 dev.off()
 
