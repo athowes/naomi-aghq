@@ -1,0 +1,30 @@
+script: script.R
+
+resources:
+  - 01-07-21-stats-epi-group.Rmd
+  - preamble.tex
+  - citations.bib
+  - naomi_hex.png
+  - results.rds
+
+artefacts:
+  - data:
+      description: Slides
+      filenames:
+        - 01-07-21-stats-epi-group.pdf
+
+packages:
+  - dplyr
+  - ggplot2
+  - TMB
+  - INLA
+  - rmarkdown
+  - bsae
+  - knitr
+  - kableExtra
+
+depends:
+  example_inla-grid:
+    id: latest
+    use:
+      depends/inla-grid.pdf: inla-grid.pdf

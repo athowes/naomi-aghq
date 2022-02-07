@@ -1,0 +1,253 @@
+---
+title: Eventually an introduction to the `aghq` R package
+subtitle: Statistics and Epidemiology Group Meeting
+author: Adam Howes
+institute: Imperial College London
+date: July 2021
+bibliography: citations.bib
+output:
+  beamer_presentation:
+    latex_engine: pdflatex
+    highlight: haddock
+    fig_width: 7 
+    fig_height: 3
+    includes:
+        in_header: preamble.tex
+---
+
+# Motivation I
+
+* People on ART $A_i$ can be used as supplementary data for small-area estimation of HIV prevalence $\rho_i$
+\begin{align*}
+A_i &\sim \text{Bin}(N_i, \rho_i \alpha_i), \\
+y_i &\sim \text{Bin}(m_i, \rho_i), \\
+\text{logit}(\alpha_i) &\sim f(\vartheta_\alpha), \\
+\text{logit}(\rho_i) &\sim g(\vartheta_\rho), \quad i = 1, \ldots, n,
+\end{align*}
+* If $f$ and $g$ are Gaussian then model is almost, but not quite, a latent Gaussian model by the definition of @rue2009approximate
+  * This is due to small non-linearities (multiplying two latent Gaussian fields)
+  * Each observation depends on more than one element of the latent field
+
+# Motivation II
+
+:::::::::::::: {.columns}
+
+::: {.column width=.65}
+
+* Previous slide is a simplified version of the Naomi evidence synthesis model
+* Countries to fit the model using their own data ("in production"?)
+  * Can't run long MCMC on the cluster for weeks, as might be the case if this was one paper
+* Can't use `R-INLA`, require something more flexible
+* Currently using Template Model Builder `TMB` [@kristensen2015tmb]
+
+:::
+
+::: {.column width=.35}
+
+```{r, echo=FALSE, fig.cap="A supermodel", out.width = '65%'}
+knitr::include_graphics("naomi_hex.png")
+```
+
+:::
+
+::::::::::::::
+
+# Aside: common theme I
+
+* Combining flawed (sparse, aggregated) gold standard (measuring the thing we want) data with other correlated (more available, high resolution) data (measuring not exactly what we want)
+* Consistently resulting in models with multiple outcomes (evidence synthesis, multi-output)
+* I think a lot of these are going to be not quite LGMs
+
+# Aside: common theme II
+
+* Examples include
+  * Naomi model: DHS data is "gold standard", supported by ANC data from pregnant women
+  * Sexual risk behaviour model: estimates of FSW population at national level, supported by DHS data
+    * The national-level FSW estimates might be more like "bronze standard"
+    * DHS approximately asks "have you received money or gifts in exchange for sex in past 12 months"
+  * Loa loa prevalence and eyeworm history prevalence model: measuring eyeworm history is a cheap proxy for Loa loa [@amoah2020geostatistical]
+
+# Recap on latent Gaussian models
+
+* Three-stage model
+\begin{alignat*}{2}
+  &\text{(Observations)}     &   \y &\sim p(\y \, | \, \x), \\
+  &\text{(Latent field)}     &   \x &\sim p(\x \, | \, \btheta), \\
+  &\text{(Hyperparameters)}  &   \qquad \btheta &\sim p(\btheta),
+\end{alignat*}
+where $\y = (y_1, \ldots, y_n)$, $\x = (x_1, \ldots, x_n)$, $\btheta = (\theta_1, \ldots, \theta_m)$
+* Interested in learning both $(\btheta, \x)$ from data $\y$
+* Covers most of the models used in spatiotemporal statistics
+
+# Recap on Integrated Nested Laplace Approximation I
+
+* @rue2009approximate or e.g. @blangiardo2015spatial
+* Approximate Bayesian inference for \textcolor{hilit}{latent Gaussian models} (LGMs), which are three-stage models with middle layer
+\begin{equation*}
+  \text{(Latent field)} \qquad  p(\x \, | \, \btheta) = \mathcal{N}(\x  \, | \, \bm{\mu}(\btheta), \bm{Q}(\btheta)^{-1}).
+\end{equation*}
+* `R-INLA` implementation takes advantage of sparsity properties of $\bm{Q}(\btheta)$, i.e. if $\x$ is a Gaussian Markov random field (GMRF)
+
+# Recap on Integrated Nested Laplace Approximation II
+
+* Gives approximate \textcolor{hilit}{posterior marginals} $\{\tilde p(x_i \, | \, \y)\}_{i = 1}^n$ and $\{\tilde p(\theta_j \, | \, \y)\}_{j = 1}^m$
+* To approximate posterior marginals below requires $\tilde p(\btheta \, | \, \y)$ and $\tilde p(x_i \, | \, \btheta, \y)$
+\begin{align}
+  p(x_i \, | \, \y) &= \int p(x_i, \btheta \, | \, \y) \text{d} \btheta = \int p(x_i \, | \, \btheta, \y) p(\btheta \, | \, \y) \text{d}\btheta, \quad i = 1, \dots, n, \label{eq:inla1} \\
+  p(\theta_j \, | \, \y) &= \int p(\btheta \, | \, \y) \text{d}\btheta_{-j} \quad j = 1, \ldots, m. \label{eq:inla2}
+\end{align}
+
+# Recap on Integrated Nested Laplace Approximation III
+
+1) First Laplace approximate hyperparameter posterior
+\begin{equation}
+\tilde p(\btheta \, | \, \y) \propto \frac{p(\y, \x, \btheta)}{\tilde p_G(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \bm{\mu}^\star(\btheta)}  \label{eq:hypermarginal}
+\end{equation}
+which can be marginalised to get $\tilde p(\theta_j \, | \, \y)$
+2) In both \eqref{eq:inla1} and \eqref{eq:inla2} we want to integrate w.r.t. \eqref{eq:hypermarginal}, so choose integration points and weights $\{ \btheta^{(k)}, \Delta^{(k)} \}$
+  * For low $m$ INLA uses a grid-strategy which I illustrate in the next slide
+  * For larger $m$ this becomes too expensive and a CCD design is used
+
+#
+
+```{r message=FALSE, echo=FALSE, fig.cap=paste("An illustration of the INLA grid method for selecting integration points using a toy Gaussian distribution for $\\btheta$. Start at the mode and work outwards along the eigenvectors until the density drops sufficiently low. \\label{fig:grid}")}
+knitr::include_graphics("depends/inla-grid.pdf")
+```
+
+# Recap on Integrated Nested Laplace Approximation IV
+
+3) Choose approximation for $\tilde p(x_i \, | \, \btheta, \y)$
+  * Simplest version [@rue2007approximate] is to marginalise the $p_G(\x \, | \, \btheta, \y)$
+\begin{equation}
+\tilde p(x_i \, | \, \btheta, \y) = \mathcal{N}(x_i \, | \, \mu^\star_i(\btheta), 1 / q^\star_i(\btheta))
+\end{equation}
+  * The above is referred to as "Gaussian" approximation, and confusingly there are two more complex ones called "simplified Laplace" and "Laplace"
+  * You can pick which one in `R-INLA` using the `method` option
+4) Finally use quadrature to get 
+\begin{equation}
+  \tilde p(x_i \, | \, \y) = 
+  \sum_{k = 1}^K \tilde p(x_i \, | \, \btheta^{(k)}, \y) \times \tilde p(\btheta^{(k)} \, | \, \y) \times \Delta^{(k)}
+\end{equation}
+
+# Template Model Builder I
+
+* R package which implements the Laplace approximation for latent variable models using AD (via `CppAD`)
+  * For more about AD see e.g. @griewank2008evaluating
+  * Useful for getting the mode, Hessian
+* Write an objective function $f(\x, \btheta)$ in C++ ("user template")
+    * We select $f(\x, \btheta) = - \log p(\y \, | \, \x, \btheta) p(\x \, | \, \btheta) p(\btheta)$
+
+# Template Model Builder II
+
+```{cpp eval=FALSE}
+#include <TMB.hpp>
+
+template <class Type>
+Type objective_function<Type>::operator()() {
+  // Define data e.g.
+  DATA_VECTOR(y);
+  // Define parameters e.g.
+  PARAMETER(mu);
+  // Calculate negative log-likelihood e.g.
+  nll = Type(0.0);
+  nll -= dnorm(y, mu, 1, true).sum()
+  return(nll);
+}
+```
+
+# Template Model Builder III
+
+* Performs the Laplace approximation $L_f(\btheta) \approx L^\star_f(\btheta)$ and use R to optimise this with respect to $\btheta$ to give $\hat \btheta$ (the central point in Figure \ref{fig:grid})
+  * This is done by specifying the `random` argument to be the parameters that you want to integrate out with a Laplace approximation (the latent field)
+* MAP estimate of $\x$ conditional on $\hat \btheta$
+* Standard errors calculated using the $\delta$-method (a Gaussian assumption)
+
+# Adaptive Gaussian Hermite Quadrature
+
+* Recent work by Alex Stringer and coauthors on AGHQ
+  * `aghq` R package and vignette [@stringer2021implementing]
+  * Theory paper [@bilodeau2021stochastic]
+* Gauss-Hermite quadrature is a way of picking nodes and weights, and is based on the theory of polynomial interpolation
+* The adaptive part means that it uses the location (mode) and curvature (Hessian) of the target (posterior)
+* Use $k$ quadrature points
+  * If $k$ is odd then they include the mode
+  * If $k = 1$ then it's a Laplace approximation
+  * In the vignette $k = 3$ (for each dimension, so $3^m$ total) is chosen quite often
+
+# Epil example I
+
+* Epilepsy example from Section 5.2. of @rue2009approximate (previously from BUGS):
+  * Patients $i = 1, \ldots, 59$ each either assigned treatment $\texttt{Trt}_i = 1$ or placebo $\texttt{Trt}_i = 0$ to help with seizures
+  * Visits to clinics $j = 1, \ldots, 4$ times with $y_{ij}$ the number of seizures of the $i$th person in the two weeks proceeding their $j$th visit to the clinic
+  * Covariates age $\texttt{Age}_i$, baseline seizure counts $\texttt{Base}_i$ and an indicator for the final clinic visit $\texttt{V}_4$
+
+# Epil example II
+
+This is what the model looks like (it's a Poisson GLMM):
+\begin{align*}
+  y_{ij}          &\sim \text{Poisson}(\lambda_{ij}), \\
+  \lambda_{ij}    &= e^{\eta_{ij}}, \\
+  \eta_{ij}       &= \beta_0 + \beta_{\texttt{Base}} \log(\texttt{Baseline}_j / 4) + \beta_{\texttt{Trt}} \texttt{Trt}_i +
+                     \beta_{\texttt{Trt} \times \texttt{Base}} \texttt{Trt}_i \times \log(\texttt{Baseline}_j / 4) \\ 
+                  &+ \beta_{\texttt{Age}} \log(\texttt{Age}_i) + \beta_{\texttt{V}_4} {\texttt{V}_4}_j +
+                     \epsilon_i + \nu_{ij}, \quad i=1:59, \quad j=1:4, \\
+  \beta           &\sim \mathcal{N}(0, 100^2), \quad \forall \beta, \\
+  \epsilon_i      &\sim \mathcal{N}(0, 1/\tau_\epsilon), \\
+  \nu_{ij}        &\sim \mathcal{N}(0, 1/\tau_\nu), \\
+  \tau_\epsilon   &\sim \Gamma(0.001, 0.001), \\
+  \tau_\nu        &\sim \Gamma(0.001, 0.001).
+\end{align*}
+
+# Epil example III
+
+* `aghq` package interfaces really easily with `TMB`!
+* This is the code I used to fit the model with `TMB`
+
+```{r eval=FALSE}
+obj <- MakeADFun(
+  data = dat,
+  parameters = param,
+  # These are the ones integrated out with a Laplace approximation
+  random = c("epsilon", "nu"),
+  DLL = "epil"
+)
+```
+
+# Epil example IV
+
+* Then to fit it with `aghq` it's only a very small modification
+
+```{r eval=FALSE}
+fit <- aghq::marginal_laplace_tmb(
+  obj, 
+  k = 3, 
+  startingvalue = c(param$beta, param$l_tau_epsilon, param$l_tau_nu)
+)
+```
+
+#
+
+```{r echo=FALSE}
+results <- readRDS("comparison-results.rds")
+
+beta_i <- function(i) { c(paste0("beta_", i), paste0("sd(beta_", i, ")")) }
+rownames(results) <- c(sapply(0:5, beta_i))
+
+results %>% 
+  round(digits = 3) %>%
+  kableExtra::kable(format = "latex", booktabs = TRUE, escape = TRUE, align = "c") %>%
+  kable_styling(latex_options = "scale_down")
+```
+
+# Plan
+
+* Test `aghq` for toy Naomi example
+  * Do as above with the Epil example, testing versus a long MCMC run
+  * Sometimes you have to look pretty hard for a node (element of the latent field) where there are differences. In the INLA paper they do this by computing a SKLD and ordering by maximum difference. Probably good to do here as well
+* Extend `aghq` to replicate INLA functionality by adding the more complex versions of $\tilde p(x_i \, | \, \btheta, \y)$ then test that wih Naomi
+  * Håvard Rue philosophy: "do one thing and do it well"
+  * `R-INLA` implementation of INLA based on sparsity of $\bm{Q}(\btheta)$ that doesn't hold up for extended LGMs
+  * @wood2020simplified on how to still do it
+* Try the INLA without `R-INLA` on other almost LGMs and see how far it can be pushed
+
+# References {.allowframebreaks}
