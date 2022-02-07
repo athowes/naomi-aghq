@@ -1,0 +1,11 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: INLA grid integration strategy
+      filenames:
+        - inla-grid.pdf
+
+packages:
+  - dplyr
+  - ggplot2
