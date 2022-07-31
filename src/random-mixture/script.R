@@ -2,5 +2,5 @@
 # orderly::orderly_develop_start("random-mixture")
 # setwd("src/random-mixture")
 
-compile("random-mixture.cpp", flags = "-w")
+compile("random_mixture.cpp", flags = "-w")
 dyn.load(dynlib("random-mixture"))

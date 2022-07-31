@@ -1,0 +1,23 @@
+---
+title: Appendix to "Simplifying Integrated nested Laplace approximation with adaptive Gaussian Hermite quadrature"
+subtitle: |
+  Corresponding author: Adam Howes (`ath19@ic.ac.uk`)
+output:
+  pdf_document:
+    toc: true
+    number_sections: true
+    keep_tex: true
+    includes:
+      in_header: preamble.tex
+bibliography: citations.bib
+---
+
+\newpage
+
+<!-- So that the tables and figures in this appendix are prefixed by "A." -->
+\setcounter{table}{0}  
+\renewcommand{\thetable}{A.\arabic{table}} 
+\setcounter{figure}{0} 
+\renewcommand{\thefigure}{A.\arabic{figure}}
+
+# References {#references .unnumbered}

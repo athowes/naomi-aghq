@@ -1,0 +1,222 @@
+---
+title: Simplifying Integrated nested Laplace approximation with adaptive Gaussian Hermite quadrature
+author:
+  - name: Adam Howes
+    email: ath19@ic.ac.uk
+    affiliation: A
+    corresponding: ath19@ic.ac.uk
+address:
+  - code: A
+    address: Department of Mathematics, Imperial College London
+abstract: |
+  |  **Background:**
+  |
+  |  **Methods:**
+  |
+  |  **Results:**
+  |
+  |  **Conclusions:**
+author_summary: |
+  Author summary
+bibliography: citations.bib
+output:
+  rticles::elsevier_article:
+    number_sections: true
+    includes:
+      in_header: preamble.tex
+---
+
+# Introduction
+
+The `TMB` package \citep{kristensen2016tmb} is gaining popularity in spatial statistics as a flexible alternative to `R-INLA` for fitting latent Gaussian models \citep{osgoodzimmerman2021statistical}.
+
+# Background
+
+## Integrated nested Laplace approximation \label{sec:inla}
+
+Integrated nested Laplace approximation (INLA) \citep{rue2009approximate} is an approximate Bayesian inference method which uses the Laplace approximation and numerical integration.
+INLA is designed for use with latent Gaussian models (LGMs) of the form
+\begin{alignat}{2}
+&\text{(Observations)}     &        y_i &\sim p(y_i \, | \, x_i, \btheta), \quad i = 1, \ldots, n, \label{eq:data} \\
+&\text{(Latent field)}     &        \x &\sim \mathcal{N}(\x \, | \, \mathbf{0}, \mathbf{Q}(\btheta)^{-1}), \label{eq:process} \\
+&\text{(Parameters)}       & \qquad \btheta &\sim p(\btheta), \label{eq:parameters}
+\end{alignat}
+where $\text{dim}(\y) = \text{dim}(\x) = n$ and $\text{dim}(\btheta) = m$, and $m < n$.
+The joint posterior of $(\x, \btheta)$ is given by
+\begin{equation}
+  p(\x, \btheta \, | \, \y) 
+  \propto p(\btheta) |\mathbf{Q}(\btheta)|^{n/2} \exp \left( - \frac{1}{2} \x^\top \mathbf{Q}(\btheta) \x + \sum_{i = 1}^n \log p(y_i \, | \, x_i, \btheta) \right). \label{eq:lgmjointposterior}
+\end{equation}
+Rather than approximating the above full posterior, the INLA method instead approximates the posterior marginals of each latent random variable $x_i$ and parameter $\theta_j$ given by
+\begin{align}
+  p(x_i \, | \, \y) &= \int p(x_i, \btheta \, | \, \y) \text{d} \btheta = \int p(x_i \, | \, \btheta, \y) p(\btheta \, | \, \y) \text{d}\btheta, \quad i = 1, \dots, n, \label{eq:inla1} \\
+  p(\theta_j \, | \, \y) &= \int p(\btheta \, | \, \y) \text{d}\btheta_{-j} \quad j = 1, \ldots, m. \label{eq:inla2}
+\end{align}
+An approximation is made to each of the two quantities, $p(\btheta \, | \, \y)$ and $p(x_i \, | \, \btheta, \y)$, nested inside the above integrals: (i) $p(\btheta \, | \, \y) \approx \tilde p(\btheta \, | \, \y)$ and (ii) $p(x_i \, | \, \btheta, \y) \approx \tilde p(x_i \, | \, \btheta, \y)$, which we discuss in turn.
+
+### Approximation (i) \label{sec:approxi}
+
+The posterior marginal of the parameters $p(\btheta \, | \, \y)$ appears in both Equations \eqref{eq:inla1} and \eqref{eq:inla2}.
+This distribution is approximated by $\tilde p(\btheta \, | \, \y)$ and represented by a set of $K$ integration points $\{ \btheta^{(k)} \}$ and area-weights $\{ \Delta^{(k)} \}$.
+The first step is to rewrite $p(\btheta \, | \, \y)$ as
+\begin{equation}
+  p(\btheta \, | \, \y) 
+  = \frac{p(\x, \btheta \, | \, \y)}{p(\x \, | \, \btheta, \y)}
+  \propto \frac{p(\y, \x, \btheta)}{p(\x \, | \, \btheta, \y)}. \label{eq:hyperpost}
+\end{equation}
+Approximation (i) then uses a Gaussian approximation
+\begin{equation}
+p(\x \, | \, \btheta, \y) \approx p_G(\x \, | \, \btheta, \y) \triangleq \mathcal{N}(\x \, | \, \hat{\bm{\mu}}(\btheta), \hat{\mathbf{Q}}(\btheta)^{-1}) \label{eq:gaussianx}
+\end{equation}
+to the denominator of Equation \ref{eq:hyperpost}.
+This approximation is accurate as the Gaussian prior on the latent field $\x$ makes the posterior distribution
+\begin{equation}
+p(\x \, | \, \btheta, \y) \propto
+\exp \left( - \frac{1}{2} \x^\top \mathbf{Q}(\btheta) \x + \sum_{i = 1}^n \log p(y_i \, | \, x_i, \btheta) \right)
+\end{equation}
+close to being Gaussian since $\y$ is generally not that informative and the observation distribution $p(\y \, | \, \x, \btheta)$ is usually well-behaved \citep{blangiardo2015spatial}.
+<!-- If $\y$ is uninformative about $\x$ then how can we hope for useful inference? Perhaps what the author (Marta) meant is that the Gaussian distribution is sufficiently flexible to accommodate the updates made by $\y$. -->
+
+As $p(\btheta \, | \, \y)$ does not depend on $\x$, any value may be chosen to evaluate the right hand side of Equation \ref{eq:hyperpost}.
+As such, taking $\x = \hat{\bm{\mu}}(\btheta)$, the value where the Gaussian approximation is most accurate, gives the final approximation as
+\begin{equation}
+\tilde p(\btheta \, | \, \y) \propto \frac{p(\y \, | \, \x, \btheta) p(\x \, | \, \btheta) p(\btheta)}{p_G(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat{\bm{\mu}}(\btheta)} = \frac{p(\y, \hat{\bm{\mu}}(\btheta), \btheta)}{\det(\hat{\bm{Q}}(\btheta))^{1/2}}, \label{eq:hypermarginal}
+\end{equation}
+where the final equality is because $p_G(\x \, | \, \btheta, \y)$ is evaluated at its mode $\hat{\bm{\mu}}(\btheta)$.
+
+### Approximation (ii)
+
+Having utilised used the approximation $p(\x \, | \, \btheta, \y) \approx p_G(\x \, | \, \btheta, \y)$ in Section~\ref{sec:approxi}, a natural approach, and that taken by \citet{rue2007approximate}, is to marginalise this distribution directly
+\begin{equation}
+\tilde p(x_i \, | \, \btheta, \y) = \mathcal{N}(x_i \, | \, \hat{\mu}_i(\btheta), 1 / \hat{q}_i(\btheta)),
+\end{equation}
+where the marginal mean $\hat{\mu}_i(\btheta)$ and precision $\hat{q}_i(\btheta)$ are recovered directly from $\hat{\bm{\mu}}(\btheta)$ and $\mathbf{Q}^\star(\btheta)$ respectively.
+Although this approximation is fast, it tends not to be accurate, as it involves evaluating the Gaussian approximation away from its mode.
+As a result, although this method is available in \texttt{R-INLA} it is generally not advised.
+Instead, \citet{rue2009approximate} propose two methods, a Laplace approximation and a simplified version which is less computationally demanding.
+The full Laplace approximation is
+\begin{align}
+  p(x_i \, | \, \btheta, \y) &= p(\x \, | \, \btheta, \y) \times \frac{1}{p(\x_{-i} \, | \, x_i, \btheta, \y)} \\
+  &= \frac{p(\x, \btheta \, | \, \y)}{p(\btheta \, | \, \y)} \times \frac{1}{p(\x_{-i} \, | \, x_i, \btheta, \y)} \\
+  &\propto \frac{p(\x, \btheta \, | \, \y)}{p(\x_{-i} \, | \, x_i, \btheta, \y)} \\
+  &\approx \frac{p(\x, \btheta \, | \, \y)}{p_G(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \hat{\bm{\mu}}_{-i}(x_i, \btheta)} 
+  = \tilde p_{LA}(x_i \, | \, \btheta, \y), \label{eq:laplaceapproximation}
+\end{align}
+where $p_G(\x_{-i} \, | \, x_i, \btheta, \y)$ is the Gaussian approximation to $\x_{-i} \, | \, x_i, \btheta, \y$ and $\hat{\bm{\mu}}_{-i}(x_i, \btheta)$ is its modal configuration.\footnote{This notation is somewhat dangerous as $\hat{\bm{\mu}}(\btheta)$ is the mode of the Gaussian approximation to the full latent field given $\btheta$ and $\hat{\bm{\mu}}_{-i}(x_i, \btheta)$ is not the same as $\hat{\bm{\mu}}_{-i}(\btheta)$.}
+The set of distributions $\{p(\x_{-i} \, | \, x_i, \btheta, \y)\}_{i = 1}^n$ are usually reasonably Gaussian so this approximation tends to work well.
+However, the Gaussian approximation $p_G(\x_{-i} \, | \, x_i, \btheta, \y)$ must be recomputed for each value of $x_i$ and $\btheta$, which is often computationally prohibitive.
+Two modifications to Equation \eqref{eq:laplaceapproximation} are proposed by \citet{rue2009approximate} to reduce the computational cost:
+\begin{enumerate}
+\item
+Avoiding having to find the mode via optimisation by using the approximation $\hat{\bm{\mu}}_{-i}(x_i, \btheta) \approx \mathbb{E}_{p_G(\x \, | \, \btheta, \y)}(\x_{-i} \, | \, x_i)$
+\item
+As only those $x_j$ close to $x_i$ should have an impact on the marginal of $x_i$, then by selecting some subset $R_i(\btheta)$ of nodes $j$ to impact $j$ the matrix which needs to be factorised can be reduced in dimension to be $| R_i(\btheta) | \times | R_i(\btheta) |$ rather than $n \times n$
+\end{enumerate}
+
+### Combining the approximations
+
+## Simplified INLA
+
+# Template Model Builder \label{sec:tmb}
+
+Template Model Builder (TMB) \citep{kristensen2016tmb} is an \textsf{R} package for fitting random effect models, also known as latent variable models, hierarchical models or a host of other names.
+In \texttt{TMB} inference is based upon optimisation of a target function.
+This makes it very flexible, and able to handle non-linear, non-Gaussian random effect models.
+
+The approach of \texttt{TMB} is inspired by the AD Model Builder (ADMB) package \citep{fournier2012ad}.
+The "AD" in ADMB is automatic differentiation, a technique for calculating derivates of functions by repeated application of the chain rule.
+AD is popular in machine learning \citep{baydin2017automatic}, for example as the basis for backpropagation algorithm and is beginning to gain popularity in statistics, including as a part of Stan \citep{carpenter2017stan}.
+\texttt{TMB} uses the derivatives from AD for multiple purposes including calculation of the Hessian used in Gaussian approximations and for numerical optimisation routines.
+
+## Statistical framework
+
+Consider unobserved latent random effects $\x \in \mathbb{R}^n$ and parameters $\btheta \in \mathbb{R}^m$.\footnote{\citet{kristensen2016tmb} use the notation $u$ for random effects and $\theta$ for parameters. We aim for consistency with Section~\ref{sec:inla}.}
+Let $\ell(\x, \btheta) \triangleq - \log p(\y \, | \, \x, \btheta)$ be the negative joint log-likelihood.
+In \texttt{TMB}, the user writes C++ code to evaluate this negative log-likelihood function $\ell$.
+A standard maximum likelihood approach is to optimise
+\begin{equation}
+L_\ell(\btheta) \triangleq \int_{\mathbb{R}^n} p(\y \, | \, \x, \btheta) \text{d}\x = \int_{\mathbb{R}^n} \exp(-\ell(\x, \btheta)) \text{d}\x \label{eq:flikelihood}
+\end{equation}
+with respect to $\btheta$ to find the maximum likelihood estimator (MLE) $\hat \btheta$.
+Taking a superficially more Bayesian approach than above, instead of $\ell$, the user may instead write a function to evaluate the negative joint penalised log-likelihood given by
+\begin{equation}
+f(\x, \btheta) 
+\triangleq - \log p(\y \, | \, \x, \btheta) p(\x, \btheta)
+= \ell(\x, \btheta) - \log p(\x, \btheta),
+\end{equation}
+equivalent up to an additive constant to the negative log-posterior.
+<!-- \begin{equation} -->
+<!-- f(\x, \btheta)  -->
+<!-- = - \log p(\y, \x, \btheta)  -->
+<!-- = - \log p(\x, \btheta \, | \, \y) - C, -->
+<!-- \end{equation} -->
+<!-- where $C = \log p(\y)$ is the log evidence. -->
+Using $f$ in place of $\ell$, then the penalised likelihood is proportional to the posterior marginal of $\btheta$
+\begin{equation}
+L_f(\btheta) 
+\triangleq \int_{\mathbb{R}^n} \exp(-f(\x, \btheta)) \text{d}\x 
+\propto \int_{\mathbb{R}^n} p(\x, \btheta \, | \, \y) \text{d}\x = p(\btheta \, | \, \y). \label{eq:1}
+\end{equation}
+Integrating out the random effects directly, as in Equation~\ref{eq:1} above, is usually intractable because $\x$ is high-dimensional, so \citet[Equation 3]{kristensen2016tmb} use a Laplace approximation $L^\star_f(\btheta)$ based instead upon integrating out a Gaussian approximation to the random effects.
+This Laplace approximation is analogous to the INLA approximation $\tilde p(\btheta \, | \, \y)$ given in Section~\ref{sec:approxi}.
+\begin{equation*}
+f''_{\x\x}(\hat{\bm{\mu}}(\btheta), \btheta) = - \frac{\partial^2}{\partial \x^2} \log p(\y, \x, \btheta) \Big\rvert_{\x = \hat{\bm{\mu}}(\btheta)}
+= - \frac{\partial^2}{\partial \x^2} \log p(\x \, | \, \btheta, \y) \Big\rvert_{\x = \hat{\bm{\mu}}(\btheta)}
+= \hat{\bm{Q}}(\btheta).
+\end{equation*}
+Inference proceeds by optimising $L^\star_f(\btheta)$ via minimisation of
+\begin{equation}
+-\log L^\star_f(\btheta) \propto \frac{1}{2} \log \det (\hat{\bm{Q}}(\btheta)) + f(\hat{\bm{\mu}}(\btheta), \btheta)  \label{eq:nllaplace},
+\end{equation}
+where $\propto$ is used to mean proportional up to an additive constant.
+The parameters of the Gaussian approximation (Equation~\ref{eq:gaussianx}), are found in terms of $f$ via $\hat{\bm{\mu}}(\btheta) = \arg \min_\x f(\x, \btheta)$ and $\hat{\bm{Q}}(\btheta) = f''_{\x\x}(\hat{\bm{\mu}}(\btheta), \btheta)$ and must be recomputed for each value of $\btheta$.
+Obtaining $\hat{\bm{\mu}}(\btheta)$ is known as the inner optimisation step.
+
+# Examples \label{sec:examples}
+
+## The Naomi small-area estimation model
+
+@eaton2019joint specify a joint model linking small-area estimation models of HIV prevalence from household surveys, HIV prevalence from antenatal care clinics, and antiretroviral therapy (ART) coverage from routine health data collection.
+Modelling data from multiple sources concurrently increases statistical power, and may mitigate the biases of any single source giving a more complete picture of the situation as well as prompting investigation into any conflicts.
+
+**Prevalence component**
+  Consider a country partitioned into areas $i = 1, \ldots, n$, with a simple random household survey of $m_i$ people is conducted in each area with $y_i$ HIV positive cases observed.
+Cases may be modelled using a binomial logistic regression model
+\begin{align}
+y_i &\sim \text{Bin}(m_i, \rho_i), \\
+\text{logit}(\rho_i) &\sim \mathcal{N}(\beta_\rho, \sigma_\rho^2)
+\end{align}
+where HIV prevalence $\rho_i$ is modelled by a Gaussian with mean $\beta_\rho$ and standard deviation $\sigma_\rho$.
+
+**ANC component**
+  Routinely collected data from pregnant women attending antenatal care clinics (ANCs) is another important source of information about the HIV epidemic.
+If of $m^\text{ANC}_i$ women, $y^\text{ANC}_i$ are HIV positive, then an analogous binomial logistic regression model
+\begin{align}
+y^\text{ANC}_i &\sim \text{Bin}(m^\text{ANC}_i, \rho^\text{ANC}_i), \\
+\text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho_i) + b_i, \\
+b_i &\sim \mathcal{N}(\beta_b, \sigma_b^2),
+\end{align}
+may be used to describe HIV prevalence amongst the sub-population of women attending ANCs.
+Reflecting the fact that prevalence in ANCs is related but importantly different to prevalence in the general population, bias terms $b_i$ are used to offset ANC prevalence from HIV prevalence.
+
+**ART component**
+  The number of people receiving treatment at district health facilities $A_i$ also provides additional information about HIV prevalence, whereby districts with high prevalence are likely to have a greater number of people receiving treatment.
+ART coverage, defined to be the proportion of PLHIV currently on ART on district $i$, is given by $\alpha_i = A_i / \rho_i N_i$, where $N_i$ is the total population of district $i$ and assumed to be fixed.
+As such, ART coverage may also be modelled using a binomial logistic regression model
+\begin{align}
+A_i &\sim \text{Bin}(N_i, \rho_i \alpha_i), \\
+\text{logit}(\alpha_i) &\sim \mathcal{N}(\beta_\alpha, \sigma_\alpha^2).
+\end{align}
+
+## Supporting information
+
+**Appendix A**: Statistical modelling \newline
+**Appendix B**: Supplementary tables and figures
+
+## Funding
+
+AH was supported by the EPSRC Centre for Doctoral Training in Modern Statistics and Statistical Machine Learning (EP/S023151/1).
+
+## Disclaimer
+
+# References {#references .unnumbered}

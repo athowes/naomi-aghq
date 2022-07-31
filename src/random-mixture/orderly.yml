@@ -1,7 +1,7 @@
 script: script.R
 
 resources:
-  - random-mixture.cpp
+  - random_mixture.cpp
 
 artefacts:
   - data:

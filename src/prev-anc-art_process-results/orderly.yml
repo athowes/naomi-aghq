@@ -47,10 +47,10 @@ packages:
   - aghq
 
 depends:
-  prev-anc-art_model0:
-    id: latest
-    use:
-      depends/results_model0.rds: results.rds
+  # prev-anc-art_model0:
+  #   id: latest
+  #   use:
+  #     depends/results_model0.rds: results.rds
   prev-anc-art_model1:
     id: latest
     use:
@@ -63,7 +63,7 @@ depends:
     id: latest
     use:
       depends/results_model3.rds: results.rds
-  prev-anc-art_model4:
-    id: latest
-    use:
-      depends/results_model4.rds: results.rds
+  # prev-anc-art_model4:
+  #   id: latest
+  #   use:
+  #     depends/results_model4.rds: results.rds
