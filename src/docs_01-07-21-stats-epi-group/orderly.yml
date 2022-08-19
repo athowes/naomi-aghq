@@ -5,7 +5,7 @@ resources:
   - preamble.tex
   - citations.bib
   - naomi_hex.png
-  - results.rds
+  - comparison-results.rds
 
 artefacts:
   - data:
