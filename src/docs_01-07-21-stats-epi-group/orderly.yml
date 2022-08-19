@@ -1,17 +1,17 @@
 script: script.R
 
+artefacts:
+  - data:
+      description: Slides
+      filenames:
+        - 01-07-21-stats-epi-group.pdf
+
 resources:
   - 01-07-21-stats-epi-group.Rmd
   - preamble.tex
   - citations.bib
   - naomi_hex.png
   - comparison-results.rds
-
-artefacts:
-  - data:
-      description: Slides
-      filenames:
-        - 01-07-21-stats-epi-group.pdf
 
 packages:
   - dplyr
