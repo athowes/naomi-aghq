@@ -6,17 +6,14 @@ artefacts:
       filenames:
         - paper.pdf
         - appendix.pdf
-        - tables-figures.pdf
   - data:
       description: Main paper, appendix, and figures and tables .tex
       filenames:
         - paper.tex
         - appendix.tex
-        - tables-figures.tex
 
 resources:
   - paper.Rmd
-  - tables-figures.Rmd
   - appendix.Rmd
   - citations.bib
   - preamble.tex

@@ -5,4 +5,5 @@ src("make/epil.R")
 src("make/prev-anc-art.R")
 
 #' Documentation
+run_commit_push("docs_paper")
 run_commit_push("docs_01-07-21-stats-epi-group")

@@ -15,4 +15,5 @@ archive_to_docs <- function(report) {
   file.copy(from = files_from, to = files_to, overwrite = TRUE)
 }
 
+archive_to_docs("docs_paper")
 archive_to_docs("docs_01-07-21-stats-epi-group")
