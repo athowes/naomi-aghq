@@ -1,6 +1,6 @@
 ## Notebooks
 
-* [eoil](https://athowes.github.io/elgm-inf/epil.html)
+* [epil](https://athowes.github.io/elgm-inf/epil.html)
 
 ## Presentations
 
