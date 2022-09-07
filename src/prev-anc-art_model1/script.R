@@ -8,8 +8,10 @@ sim_data <- readRDS("depends/sim_data.rds")
 compile("model1.cpp")
 dyn.load(dynlib("model1"))
 
-#' Run for each simulated dataset (using head for now for speed)
-results <- map(head(sim_data), run_model1)
+#' Run for each simulated dataset
+#' Just using the first n for now
+n <- 5
+results <- map(head(sim_data, n = n), run_model1)
 
 #' Save to artefact
 saveRDS(results, "results.rds")

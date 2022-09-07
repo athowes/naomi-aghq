@@ -13,8 +13,10 @@ dyn.load(dynlib("model0"))
 #' Need to extend the functionality of inf.utils::sample_tmb to account for this case
 #' Try rerunning this once that is done!
 
-#' Run for each simulated dataset (using head for now for speed)
-results <- map(head(sim_data), run_model0)
+#' Run for each simulated dataset
+#' Just using the first n for now
+n <- 5
+results <- map(head(sim_data, n = n), run_model0)
 
 #' Save to artefact
 saveRDS(results, "results.rds")

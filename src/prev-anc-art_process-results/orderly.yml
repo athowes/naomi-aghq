@@ -5,30 +5,12 @@ sources:
 
 artefacts:
   - data:
-      description: Boxplots
+      description: Prevalence, ANC, ART model
       filenames:
-        - boxplots.pdf
-  - data:
-      description: Scatterplots
-      filenames:
-        - scatterplots.pdf
-  - data:
-      description: KS test plots for D (maximum ECDF difference) and l (location of D)
-      filenames:
-        - ks-test-D.pdf
-        - ks-test-l.pdf
-  - data:
-      description: MCMC traceplots
-      filenames:
-        - traceplots-model0.pdf
-        - traceplots-model1.pdf
-        - traceplots-model2.pdf
-        - traceplots-model3.pdf
-        - traceplots-model4.pdf
-  - data:
-      description: Rhat plots
-      filenames:
-        - rhat.pdf
+        - prev-anc-art.html
+
+resources:
+  - prev-anc-art.Rmd
 
 packages:
   - dplyr
@@ -63,7 +45,7 @@ depends:
     id: latest
     use:
       depends/results_model3.rds: results.rds
-  # prev-anc-art_model4:
-  #   id: latest
-  #   use:
-  #     depends/results_model4.rds: results.rds
+  prev-anc-art_model4:
+    id: latest
+    use:
+      depends/results_model4.rds: results.rds

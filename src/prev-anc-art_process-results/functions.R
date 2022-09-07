@@ -7,10 +7,13 @@ draw_boxplots <- function(results) {
     ggplot(aes(x = method, y = value, fill = method)) +
       geom_boxplot() +
       geom_hline(aes(yintercept = true_value), linetype = "dashed") +
-      facet_wrap(parameter ~ type, scales = "free", ncol = 2) +
+      facet_wrap(~type, scales = "free", ncol = 2) +
       scale_fill_manual(values = cbpalette) +
       labs(x = "", y = "Estimate", fill = "Inference method") +
-      theme_minimal()
+      theme_minimal() +
+      theme(
+        legend.position = "bottom"
+      )
 }
 
 draw_scatterplots <- function(results) {
@@ -61,7 +64,10 @@ draw_ksplots_D <- function(results) {
       ylim(0, 0.5) +
       geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
       labs(x = "KS(aghq, tmbstan)", y = "KS(TMB, tmbstan)") +
-      theme_minimal()
+      theme_minimal() +
+      theme(
+        legend.position = "bottom"
+      )
 }
 
 draw_ksplots_l <- function(results) {
@@ -77,7 +83,10 @@ draw_ksplots_l <- function(results) {
       facet_wrap(~parameter, scales = "free") +
       scale_fill_manual(values = cbpalette) +
       labs(fill = "Method") +
-      theme_minimal()
+      theme_minimal() +
+      theme(
+        legend.position = "bottom"
+      )
 }
 
 draw_rhatplot <- function(results) {
@@ -86,9 +95,12 @@ draw_rhatplot <- function(results) {
     map(tibble::rownames_to_column, var = "parameter") %>%
     bind_rows(.id = "sim_id") %>%
     ggplot(aes(x = parameter, y = Rhat)) +
-    geom_point() +
+    geom_point(alpha = 0.5) +
     geom_hline(yintercept = 1.1, linetype = "dashed") +
     labs(x = "Parameter")  +
     theme_minimal() +
-    theme(axis.text.x = element_text(angle = 90))
+    theme(
+      axis.text.x = element_text(angle = 90),
+      legend.position = "bottom"
+    )
 }
