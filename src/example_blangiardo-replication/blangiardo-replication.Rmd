@@ -1,7 +1,15 @@
 ---
 title: "Blangiardo replication"
-author: "Adam Howes"
-output: html_document
+author:
+- name: Adam Howes
+output:
+  html_document:
+    toc: yes
+    toc_float: true
+    toc_collapsed: true
+    df_print: paged
+    code_folding: show
+    theme: lumen
 ---
 
 Step-by-step example of the INLA method.
