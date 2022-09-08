@@ -2,6 +2,7 @@
 
 * [blangiardo-replication](https://athowes.github.io/elgm-inf/blangiardo-replication.html)
 * [epil](https://athowes.github.io/elgm-inf/epil.html)
+* [inla-grid](https://athowes.github.io/elgm-inf/inla-grid.html)
 * [prev-anc-art](https://athowes.github.io/elgm-inf/prev-anc-art.html)
 
 ## Presentations

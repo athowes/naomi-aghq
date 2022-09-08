@@ -4,7 +4,10 @@ artefacts:
   - data:
       description: INLA grid integration strategy
       filenames:
-        - inla-grid.pdf
+        - inla-grid.html
+
+resources:
+  - inla-grid.Rmd
 
 packages:
   - dplyr
