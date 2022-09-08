@@ -1,5 +1,5 @@
 ---
-title: "Prevalence, ANC, ART model"
+title: "Prevalence, ANC, ART model inference case-study"
 author:
 - name: Adam Howes
 output:
@@ -10,7 +10,88 @@ output:
     df_print: paged
     code_folding: show
     theme: lumen
+bibliography: citations.bib
+abstract: |
+    **Background** The HIV inference group at Imperial routinely uses `TMB` to implement complex spatio-temporal statistical models because the scale and requirement for in-production run-time makes MCMC infeasible, and no suitably flexible implementation of INLA exists. However, inferences obtained from `TMB` are not as accurate as from MCMC or INLA.
+    
+    **Task** We compare inferences produced using tmbstan, `TMB` and `aghq` for a collection of HIV evidence synthesis models based upon the Naomi small-area estimation model.
+    
+    **Findings** 
+    
+    **Next steps**
 ---
+
+## Model description
+
+@eaton2019joint specify a joint model linking small-area estimation models of HIV prevalence from household surveys, HIV prevalence from antenatal care clinics, and antiretroviral therapy (ART) coverage from routine health data collection.
+This model forms the basis of the Naomi small-area estimation model [@eaton2021naomi]. 
+Modelling data from multiple sources concurrently increases statistical power, and may mitigate the biases of any single source giving a more complete picture of the situation, as well as prompting investigation into any data conflicts.
+The model is described by three components, as follows.
+
+### Prevalence component
+
+Consider a country partitioned into areas $i = 1, \ldots, n$.
+A simple random household survey of $m_i$ people is conducted in each area, and $y_i$ HIV positive cases are observed.
+Cases may be modelled using a binomial logistic regression model
+\begin{align}
+y_i &\sim \text{Bin}(m_i, \rho_i), \\
+\text{logit}(\rho_i) &\sim \mathcal{N}(\beta_\rho, \sigma_\rho^2)
+\end{align}
+where HIV prevalence $\rho_i$ is modelled by a Gaussian with mean $\beta_\rho$ and standard deviation $\sigma_\rho$.
+
+### ANC component
+
+Routinely collected data from pregnant women attending antenatal care clinics (ANCs) is another important source of information about the HIV epidemic.
+If, of $m^\text{ANC}_i$ women, $y^\text{ANC}_i$ are HIV positive, then an analogous binomial logistic regression model
+\begin{align}
+y^\text{ANC}_i &\sim \text{Bin}(m^\text{ANC}_i, \rho^\text{ANC}_i), \\
+\text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho_i) + b_i, \\
+b_i &\sim \mathcal{N}(\beta_b, \sigma_b^2),
+\end{align}
+may be used to describe HIV prevalence amongst the sub-population of women attending ANCs.
+Reflecting the fact that prevalence in ANCs is related but importantly different to prevalence in the general population, bias terms $b_i$ are used to offset ANC prevalence from HIV prevalence.
+
+### ART component
+
+The number of people receiving treatment at district health facilities $A_i$ also provides additional information about HIV prevalence.
+Districts with high prevalence are likely to have a greater number of people receiving treatment, and vice versa.
+ART coverage, defined to be the proportion of PLHIV currently on ART on district $i$, is given by $\alpha_i = A_i / \rho_i N_i$, where $N_i$ is the total population of district $i$ and assumed to be fixed.
+As such, ART coverage may also be modelled using a binomial logistic regression model
+\begin{align}
+A_i &\sim \text{Bin}(N_i, \rho_i \alpha_i), \\
+\text{logit}(\alpha_i) &\sim \mathcal{N}(\beta_\alpha, \sigma_\alpha^2).
+\end{align}
+
+## Implementation
+
+We consider five models as described below.
+For each model we write a `TMB` C++ template.
+As well as the standard `TMB` inference approach, this template allows the model to be fit using Stan via `tmbstan` and using adaptive Gaussian Hermite quadrature via `aghq`.
+
+| Model | Report | Components |
+|-------|--------| ---------- |
+| 0 | [`prev-anc-art_model0`](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model0) | Prevalence (no random effects) |
+| 1 | [`prev-anc-art_model1`](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model1) | Prevalence |
+| 2 | [`prev-anc-art_model2`](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model2) | Prevalence, ANC |
+| 3 | [`prev-anc-art_model3`](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model3) | Prevalence, ART |
+| 4 | [`prev-anc-art_model4`](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model4) | Prevalence, ANC, ART |
+
+We perform inference on simulated data from Model 4 generated ([`prev-anc-art_sim`](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_sim)) with the following parameter values:
+
+| Parameter | Value |
+|-----------|-------|
+| $n$              | 30   |
+| $m_i$            | 250  |
+| $\beta_\rho$     | -2.4 |
+| $\sigma_\rho$    | 0.5  |
+| $m^\text{ANC}_i$ | 10^4 |
+| $\beta_b$        | -0.2 |
+| $\sigma_b$       | 0.1  |
+| $N_i$            | 10^5 |
+| $\beta_\alpha$   | 0.7 |
+| $\sigma_\alpha$  | 0.35 |
+
+## Results
 
 ```{r setup, class.source = 'fold-hide'}
 knitr::opts_chunk$set(
@@ -53,11 +134,7 @@ true_values <- data.frame(
 
 Read in results created in reports:
 
-* [Model 0](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model0)
-* [Model 1](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model1)
-* [Model 2](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model2)
-* [Model 3](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model3)
-* [Model 4](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model4)
+
 
 ```{r}
 # model0 <- readRDS("depends/results_model0.rds")
@@ -67,7 +144,7 @@ model3 <- readRDS("depends/results_model3.rds")
 model4 <- readRDS("depends/results_model4.rds")
 ```
 
-## Boxplots
+### Boxplots
 
 ```{r cache=FALSE}
 # draw_boxplots(model0) + labs(title = "Model 0")
@@ -77,9 +154,9 @@ model4 <- readRDS("depends/results_model4.rds")
 # draw_boxplots(model4) + labs(title = "Model 4")
 ```
 
-## Scatterplots
+### Scatterplots
 
-```{r fig.height=10}
+```{r fig.height=15}
 # draw_scatterplots(model0) + labs(title = "Model 0")
 draw_scatterplots(model1) + labs(title = "Model 1")
 draw_scatterplots(model2) + labs(title = "Model 2")
@@ -87,7 +164,7 @@ draw_scatterplots(model3) + labs(title = "Model 3")
 draw_scatterplots(model4) + labs(title = "Model 4")
 ```
 
-## Kolmogorov KS test plots
+### Kolmogorov KS test plots
 
 Take samples from all distributions, then compute maximum ECDF difference $D$ (two-sample Kolmogorov–Smirnov test).
 We assume that `tmbstan` represents the gold-standard, and compare performance of `aghq` and `TMB` via their similarity to this gold-standard.
@@ -106,17 +183,17 @@ Determining if there are patterns in the location of the greatest ECDF differenc
 
 ```{r fig.height=8}
 # draw_ksplots_D(model0) + labs(title = "Model 0")
-draw_ksplots_l(model1) + labs(title = "Model 1")
-draw_ksplots_l(model2) + labs(title = "Model 2")
-draw_ksplots_l(model3) + labs(title = "Model 3")
-draw_ksplots_l(model4) + labs(title = "Model 4")
+# draw_ksplots_l(model1) + labs(title = "Model 1")
+# draw_ksplots_l(model2) + labs(title = "Model 2")
+# draw_ksplots_l(model3) + labs(title = "Model 3")
+# draw_ksplots_l(model4) + labs(title = "Model 4")
 ```
 
-## MCMC diagnostics
+### MCMC diagnostics
 
 When using Markov chain Monte Carlo (MCMC) methods, as we have for `tmbstan`, it's important to assess for convergence.
 
-### Traceplots
+#### Traceplots
 
 One way to do this is via traceplots which visualise the chains over the number of iterations specified.
 
@@ -128,7 +205,7 @@ map(model3, "mcmc_traceplots")
 map(model4, "mcmc_traceplots")
 ```
 
-### R hat
+#### R hat
 
 The $\hat R$ statistic ("R hat") can also be used.
 A value of $\hat R < 1.1$ is typically sufficient.
@@ -140,3 +217,7 @@ draw_rhatplot(model2) + labs(title = "Model 2")
 draw_rhatplot(model3) + labs(title = "Model 3")
 draw_rhatplot(model4) + labs(title = "Model 4")
 ```
+
+## Conclusion
+
+## Bibliography {-}

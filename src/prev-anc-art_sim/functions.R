@@ -4,10 +4,10 @@ simulate_prev_anc_art <- function(n = 30,
                                   tau_phi_prev = 4, #' sigma_phi_prev is 0.5
                                   m_anc = rep(10^4, n),
                                   beta_anc = -0.2,
-                                  tau_b_anc = 100, #' tau_b_anc is 0.1
+                                  tau_b_anc = 100, #' sigma_b_anc is 0.1
                                   N_art = rep(10^5, n),
                                   beta_art = 0.7,
-                                  tau_phi_art = (1 / 0.35)^2) { #' tau_phi_art is 0.1
+                                  tau_phi_art = (1 / 0.35)^2) { #' sigma_phi_art is 0.35
 
   #' Survey prevalence
   eta_prev <- beta_prev + rnorm(n, 0, 1 / sqrt(tau_phi_prev))

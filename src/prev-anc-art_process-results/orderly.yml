@@ -11,6 +11,7 @@ artefacts:
 
 resources:
   - prev-anc-art.Rmd
+  - citations.bib
 
 packages:
   - dplyr
