@@ -1,5 +1,5 @@
 ---
-title: "INLA grid"
+title: "INLA two dimensional grid replication"
 author:
 - name: Adam Howes
 output:
@@ -10,13 +10,15 @@ output:
     df_print: paged
     code_folding: show
     theme: lumen
+abstract: |
+    **Background** The INLA method uses a grid of hyperparameters to integrate over.
+    
+    **Task** We replicate a method for selecting grid vaues as outlined in Rue, Martino and Chopin (2009).
 ---
 
-```{r}
-cbpalette <- multi.utils::cbpalette()
-```
+## A two dimensional MVN
 
-Suppose that $\theta = (\theta_1, \theta_2)$ has a multivariate Gaussian distribution with mean vector $\mu$ and covariance matrix $\Sigma$:
+Suppose that $\theta = (\theta_1, \theta_2)$ has a multivariate Gaussian distribution with mean vector $\mu$ and covariance matrix $\Sigma$ as follows:
 
 ```{r}
 mu <- c(1, 1.5)
@@ -38,7 +40,7 @@ grid <- expand.grid(
 ground_truth <- cbind(grid, pdf = obj(grid))
 
 ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
-  geom_contour(col = cbpalette[1]) +
+  geom_contour(col = multi.utils::cbpalette()[1]) +
   coord_fixed(xlim = c(-2, 5), ylim = c(-2, 5), ratio = 1) +
   theme_minimal()
 ```
@@ -47,7 +49,7 @@ Find the mode via optimisation (the answer is clearly `mu` but to be complete):
 
 ```{r}
 opt <- optim(par = c(0, 0), fn = obj, control = list(fnscale = -1))
-opt
+opt$par
 ```
 
 The Hessian is given by `cov` (should compute this numerically).
@@ -59,14 +61,20 @@ V <- eigen(cov)$vectors #' Eigenvector matrix
 V %*% Lambda %*% t(V) #' Verifying that this is cov
 ```
 
-Create a mapping $\theta(z)$ from the $z$-coordinates to the space of $\theta$:
+## Explore the $z$-coordinates
+
+Create a mapping $\theta(z)$ from the $z$-coordinates to $\theta$-coordinates:
 
 ```{r}
 z_to_theta <- function(z) {
   as.vector(opt$par + V %*% sqrt(Lambda) %*% z)
 }
+```
 
-theta_mode <- z_to_theta(c(0, 0)) # c(0, 0) maps to the mode
+The origin `c(0, 0)` maps to the mode:
+
+```{r}
+theta_mode <- z_to_theta(c(0, 0))
 theta_mode
 
 test_statistic <- function(theta_proposal) {
@@ -129,7 +137,7 @@ d_z <- 0.2
 d_pi <- 2
 ```
 
-Expand the scaffold in $z$-space:
+Expand the scaffold in $z$-coordinates:
 
 ```{r}
 z_grid <- expand.grid(
@@ -138,7 +146,7 @@ z_grid <- expand.grid(
 )
 ```
 
-Map it back to $\theta$-space:
+Map it back to $\theta$-coordinates:
 
 ```{r}
 theta_grid_full <- t(apply(z_grid, 1, z_to_theta)) %>%
@@ -164,11 +172,11 @@ rbind(c(theta_mode[1], theta_mode[2], (theta_mode + V[,1])[1], (theta_mode + V[,
 
 ggplot() +
   geom_point(data = theta_grid, aes(x = theta1, y = theta2), alpha = 0.5) +
-  geom_contour(data = ground_truth, aes(x = theta1, y = theta2, z = pdf), col = cbpalette[1]) +
+  geom_contour(data = ground_truth, aes(x = theta1, y = theta2, z = pdf), col = multi.utils::cbpalette()[1]) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, colour = as.factor(pc)),
                data = segments, size = 1, arrow = arrow(length = unit(0.3, "inches")),
                lineend = "round", linejoin = "round") +
-  scale_colour_manual(values = cbpalette[-1]) +
+  scale_colour_manual(values = multi.utils::cbpalette()[-1]) +
   labs(x = "theta1", y = "theta2") +
   theme_minimal() +
   theme(legend.position = "none")
