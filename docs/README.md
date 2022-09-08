@@ -1,7 +1,8 @@
 ## Notebooks
 
-* [prev-anc-art](https://athowes.github.io/elgm-inf/prev-anc-art.html)
+* [blangiardo-replication](https://athowes.github.io/elgm-inf/blangiardo-replication.html)
 * [epil](https://athowes.github.io/elgm-inf/epil.html)
+* [prev-anc-art](https://athowes.github.io/elgm-inf/prev-anc-art.html)
 
 ## Presentations
 

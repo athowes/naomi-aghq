@@ -1,14 +1,14 @@
 script: script.R
 
-resources:
-  - blangiardo-repliation.Rmd
-  - blangiardo.cpp
-
 artefacts:
   - data:
       description: Replication of the INLA from scratch section in Blangiardo and Cameletti
       filenames:
-        - blangiardo-repliation.html
+        - blangiardo-replication.html
+
+resources:
+  - blangiardo-replication.Rmd
+  - blangiardo.cpp
 
 packages:
   - dplyr
