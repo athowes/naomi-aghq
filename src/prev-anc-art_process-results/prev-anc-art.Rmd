@@ -16,9 +16,9 @@ abstract: |
     
     **Task** We compare inferences produced using tmbstan, `TMB` and `aghq` for a collection of HIV evidence synthesis models based upon the Naomi small-area estimation model.
     
-    **Findings** 
+    **Findings** We find that, treating `tmbstan` as the gold-standard, inference from `TMB` is substantially worse than than from `aghq` .
     
-    **Next steps**
+    **Next steps** Work on presentation of document. Understand performance for different parameters. Understand cause of poor performance.
 ---
 
 ## Model description
@@ -69,7 +69,7 @@ For each model we write a `TMB` C++ template.
 As well as the standard `TMB` inference approach, this template allows the model to be fit using Stan via `tmbstan` and using adaptive Gaussian Hermite quadrature via `aghq`.
 
 | Model | Report | Components |
-|-------|--------| ---------- |
+|:------|:-------|:-----------|
 | 0 | [`prev-anc-art_model0`](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model0) | Prevalence (no random effects) |
 | 1 | [`prev-anc-art_model1`](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model1) | Prevalence |
 | 2 | [`prev-anc-art_model2`](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model2) | Prevalence, ANC |
@@ -79,7 +79,7 @@ As well as the standard `TMB` inference approach, this template allows the model
 We perform inference on simulated data from Model 4 generated ([`prev-anc-art_sim`](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_sim)) with the following parameter values:
 
 | Parameter | Value |
-|-----------|-------|
+|:----------|:------|
 | $n$              | 30   |
 | $m_i$            | 250  |
 | $\beta_\rho$     | -2.4 |
@@ -93,7 +93,7 @@ We perform inference on simulated data from Model 4 generated ([`prev-anc-art_si
 
 ## Results
 
-```{r setup, class.source = 'fold-hide'}
+```{r setup, message=FALSE, class.source = 'fold-hide'}
 knitr::opts_chunk$set(
   cache = TRUE,
   autodep = TRUE,
@@ -146,22 +146,26 @@ model4 <- readRDS("depends/results_model4.rds")
 
 ### Boxplots
 
+Boxplots of the mean and standard deviation for each parameter, where each datapoint is a different simulation replicate.
+
 ```{r cache=FALSE}
-# draw_boxplots(model0) + labs(title = "Model 0")
-# draw_boxplots(model1) + labs(title = "Model 1")
-# draw_boxplots(model2) + labs(title = "Model 2")
-# draw_boxplots(model3) + labs(title = "Model 3")
-# draw_boxplots(model4) + labs(title = "Model 4")
+params <- c("beta_prev", "log_sigma_phi_prev")
+
+draw_boxplots(model1, params = params) + labs(title = "Model 1")
+draw_boxplots(model2, params = params) + labs(title = "Model 2")
+draw_boxplots(model3, params = params) + labs(title = "Model 3")
+draw_boxplots(model4, params = params) + labs(title = "Model 4")
 ```
 
 ### Scatterplots
 
-```{r fig.height=15}
-# draw_scatterplots(model0) + labs(title = "Model 0")
-draw_scatterplots(model1) + labs(title = "Model 1")
-draw_scatterplots(model2) + labs(title = "Model 2")
-draw_scatterplots(model3) + labs(title = "Model 3")
-draw_scatterplots(model4) + labs(title = "Model 4")
+```{r}
+params <- c("beta_prev", "log_sigma_phi_prev")
+
+draw_scatterplots(model1, params = params) + labs(title = "Model 1")
+draw_scatterplots(model2, params = params) + labs(title = "Model 2")
+draw_scatterplots(model3, params = params) + labs(title = "Model 3")
+draw_scatterplots(model4, params = params) + labs(title = "Model 4")
 ```
 
 ### Kolmogorov KS test plots
@@ -171,7 +175,6 @@ We assume that `tmbstan` represents the gold-standard, and compare performance o
 Higher values of $D$ correspond to distributions which are more different.
 
 ```{r fig.height=8}
-# draw_ksplots_D(model0) + labs(title = "Model 0")
 draw_ksplots_D(model1) + labs(title = "Model 1")
 draw_ksplots_D(model2) + labs(title = "Model 2")
 draw_ksplots_D(model3) + labs(title = "Model 3")
@@ -182,7 +185,6 @@ We could also assess $l$, the location of $D$.
 Determining if there are patterns in the location of the greatest ECDF difference could present us with useful insights.
 
 ```{r fig.height=8}
-# draw_ksplots_D(model0) + labs(title = "Model 0")
 # draw_ksplots_l(model1) + labs(title = "Model 1")
 # draw_ksplots_l(model2) + labs(title = "Model 2")
 # draw_ksplots_l(model3) + labs(title = "Model 3")
@@ -198,7 +200,6 @@ When using Markov chain Monte Carlo (MCMC) methods, as we have for `tmbstan`, it
 One way to do this is via traceplots which visualise the chains over the number of iterations specified.
 
 ```{r}
-# map(model0, "mcmc_traceplots")
 map(model1, "mcmc_traceplots")
 map(model2, "mcmc_traceplots")
 map(model3, "mcmc_traceplots")
@@ -211,7 +212,6 @@ The $\hat R$ statistic ("R hat") can also be used.
 A value of $\hat R < 1.1$ is typically sufficient.
 
 ```{r}
-# draw_rhatplot(model0) + labs(title = "Model 0")
 draw_rhatplot(model1) + labs(title = "Model 1")
 draw_rhatplot(model2) + labs(title = "Model 2")
 draw_rhatplot(model3) + labs(title = "Model 3")

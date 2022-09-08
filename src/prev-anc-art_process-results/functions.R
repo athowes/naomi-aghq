@@ -1,12 +1,13 @@
-draw_boxplots <- function(results) {
+draw_boxplots <- function(results, params) {
   map(results, "comparison_results") %>%
     bind_rows(.id = "sim_id") %>%
     pivot_longer(cols = c("mean", "sd"), names_to = "type", values_to = "value") %>%
     left_join(true_values, by = "parameter") %>%
     mutate(true_value = ifelse(type == "SD", NA, true_value)) %>%
+    filter(parameter %in% params) %>%
     ggplot(aes(x = method, y = value, fill = method)) +
       geom_boxplot() +
-      geom_hline(aes(yintercept = true_value), linetype = "dashed") +
+      # geom_hline(aes(yintercept = true_value), linetype = "dashed") +
       facet_wrap(~type, scales = "free", ncol = 2) +
       scale_fill_manual(values = cbpalette) +
       labs(x = "", y = "Estimate", fill = "Inference method") +
@@ -16,7 +17,7 @@ draw_boxplots <- function(results) {
       )
 }
 
-draw_scatterplots <- function(results) {
+draw_scatterplots <- function(results, params) {
   df <- map(results, "comparison_results") %>%
     bind_rows(.id = "sim_id") %>%
     pivot_longer(cols = c("mean", "sd"), names_to = "type", values_to = "value") %>%
@@ -33,7 +34,9 @@ draw_scatterplots <- function(results) {
       by = c("sim_id", "type", "parameter"),
     )
 
-  ggplot(df, aes(x = tmbstan_value, y = value, col = method)) +
+  df %>%
+    filter(parameter %in% params) %>%
+    ggplot(aes(x = tmbstan_value, y = value, col = method)) +
     geom_point() +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
     facet_wrap(type ~ parameter) +
@@ -57,8 +60,9 @@ draw_ksplots_D <- function(results) {
       names_from = method1,
       values_from = D
     ) %>%
+    filter(!is.na(aghq) & !is.na(TMB)) %>%
     ggplot(aes(x = aghq, y = TMB)) +
-      geom_point() +
+      geom_point(alpha = 0.5) +
       facet_wrap(~parameter) +
       xlim(0, 0.5) +
       ylim(0, 0.5) +
