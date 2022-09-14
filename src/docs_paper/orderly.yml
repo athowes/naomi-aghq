@@ -17,6 +17,9 @@ resources:
   - appendix.Rmd
   - citations.bib
   - preamble.tex
+  - imsart-nameyear.bst
+  - imsart.cls
+  - imsart.sty
 
 packages:
   - rmarkdown
