@@ -52,9 +52,50 @@ As such, the inference method used must be suitable to run in production, ruling
 Furthermore, as Naomi falls into the class of extended latent Gaussian models (ELGMs) [@stringer2022fast] it cannot be fit using the integrated nested Laplace approximation (INLA)  method [@rue2009approximate] as implemented by the `R-INLA` \textsf{R} package.
 Instead, inference is conducted using the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb], which implements a variety of empirical Bayes inference, and is gaining popularity in spatial statistics as a flexible alternative to `R-INLA` [@osgoodzimmerman2021statistical].
 
-# Background
+# The Naomi model
 
-## Integrated nested Laplace approximation \label{sec:inla}
+@eaton2019joint specify a joint model linking small-area estimation models of HIV prevalence from household surveys, HIV prevalence from antenatal care clinics, and antiretroviral therapy (ART) coverage from routine health data collection.
+This model forms the basis of the Naomi small-area estimation model [@eaton2021naomi]. 
+Modelling data from multiple sources concurrently increases statistical power, and may mitigate the biases of any single source giving a more complete picture of the situation, as well as prompting investigation into any data conflicts.
+The model is described by three components, as follows.
+
+## Prevalence component
+
+Consider a country partitioned into areas $i = 1, \ldots, n$.
+A simple random household survey of $m_i$ people is conducted in each area, and $y_i$ HIV positive cases are observed.
+Cases may be modelled using a binomial logistic regression model
+\begin{align}
+y_i &\sim \text{Bin}(m_i, \rho_i), \\
+\text{logit}(\rho_i) &\sim \mathcal{N}(\beta_\rho, \sigma_\rho^2)
+\end{align}
+where HIV prevalence $\rho_i$ is modelled by a Gaussian with mean $\beta_\rho$ and standard deviation $\sigma_\rho$.
+
+## ANC component
+
+Routinely collected data from pregnant women attending antenatal care clinics (ANCs) is another important source of information about the HIV epidemic.
+If, of $m^\text{ANC}_i$ women, $y^\text{ANC}_i$ are HIV positive, then an analogous binomial logistic regression model
+\begin{align}
+y^\text{ANC}_i &\sim \text{Bin}(m^\text{ANC}_i, \rho^\text{ANC}_i), \\
+\text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho_i) + b_i, \\
+b_i &\sim \mathcal{N}(\beta_b, \sigma_b^2),
+\end{align}
+may be used to describe HIV prevalence amongst the sub-population of women attending ANCs.
+Reflecting the fact that prevalence in ANCs is related but importantly different to prevalence in the general population, bias terms $b_i$ are used to offset ANC prevalence from HIV prevalence.
+
+## ART component
+
+The number of people receiving treatment at district health facilities $A_i$ also provides additional information about HIV prevalence.
+Districts with high prevalence are likely to have a greater number of people receiving treatment, and vice versa.
+ART coverage, defined to be the proportion of PLHIV currently on ART on district $i$, is given by $\alpha_i = A_i / \rho_i N_i$, where $N_i$ is the total population of district $i$ and assumed to be fixed.
+As such, ART coverage may also be modelled using a binomial logistic regression model
+\begin{align}
+A_i &\sim \text{Bin}(N_i, \rho_i \alpha_i), \\
+\text{logit}(\alpha_i) &\sim \mathcal{N}(\beta_\alpha, \sigma_\alpha^2).
+\end{align}
+
+# Inference
+
+## Integrated nested Laplace approximation\label{sec:inla}
 
 INLA is an approximate Bayesian inference method based on the Laplace approximation and numerical integration.
 INLA is designed for use with latent Gaussian models (LGMs) of the form
@@ -137,18 +178,19 @@ As only those $x_j$ close to $x_i$ should have an impact on the marginal of $x_i
 
 ## Simplified INLA
 
-## Template Model Builder \label{sec:tmb}
+@wood2020simplified propose a "simplified" version of the INLA algorithm.
+
+## Template Model Builder\label{sec:tmb}
 
 `TMB` [@kristensen2016tmb] is an \textsf{R} package for fitting random effect models, also known as latent variable models, hierarchical models or a host of other names.
 In `TMB` inference is based upon optimisation of a target function.
 This makes it very flexible, and able to handle non-linear, non-Gaussian random effect models.
 
-The approach of `TMB` is inspired by the AD Model Builder (ADMB) package [@fournier2012ad].
-The "AD" in ADMB is automatic differentiation, a technique for calculating derivates of functions by repeated application of the chain rule.
-AD is popular in machine learning [@baydin2017automatic], for example as the basis for backpropagation algorithm and is beginning to gain popularity in statistics, including as a part of Stan [@carpenter2017stan].
+The approach of `TMB` is inspired by the AD Model Builder (ADMB) package [@fournier2012ad], where the "AD" stands for automatic differentiation, a technique for calculating derivates of functions by repeated application of the chain rule.
+AD is popular in machine learning [@baydin2017automatic], including as the basis for backpropagation algorithm, and is beginning to gain popularity in statistics, including as a part of Stan [@carpenter2017stan].
 `TMB` uses the derivatives from AD for multiple purposes including calculation of the Hessian used in Gaussian approximations and for numerical optimisation routines.
 
-Consider unobserved latent random effects $\x \in \mathbb{R}^n$ and parameters $\btheta \in \mathbb{R}^m$.\footnote{\citet{kristensen2016tmb] use the notation $u$ for random effects and $\theta$ for parameters. We aim for consistency with Section \ref{sec:inla}.}
+Consider unobserved latent random effects $\x \in \mathbb{R}^n$ and parameters $\btheta \in \mathbb{R}^m$.^[@kristensen2016tmb use the notation $u$ for random effects and $\theta$ for parameters. We aim for consistency with Section \ref{sec:inla}.]
 Let $\ell(\x, \btheta) \triangleq - \log p(\y \, | \, \x, \btheta)$ be the negative joint log-likelihood.
 In `TMB`, the user writes C++ code to evaluate this negative log-likelihood function $\ell$.
 A standard maximum likelihood approach is to optimise
@@ -190,59 +232,14 @@ where $\propto$ is used to mean proportional up to an additive constant.
 The parameters of the Gaussian approximation (Equation \ref{eq:gaussianx}), are found in terms of $f$ via $\hat{\bm{\mu}}(\btheta) = \arg \min_\x f(\x, \btheta)$ and $\hat{\bm{Q}}(\btheta) = f''_{\x\x}(\hat{\bm{\mu}}(\btheta), \btheta)$ and must be recomputed for each value of $\btheta$.
 Obtaining $\hat{\bm{\mu}}(\btheta)$ is known as the inner optimisation step.
 
-# The Naomi small-area estimation model
+# Case-study\label{sec:results}
 
-@eaton2019joint specify a joint model linking small-area estimation models of HIV prevalence from household surveys, HIV prevalence from antenatal care clinics, and antiretroviral therapy (ART) coverage from routine health data collection.
-This model forms the basis of the Naomi small-area estimation model [@eaton2021naomi]. 
-Modelling data from multiple sources concurrently increases statistical power, and may mitigate the biases of any single source giving a more complete picture of the situation, as well as prompting investigation into any data conflicts.
-The model is described by three components, as follows.
+# Discussion\label{sec:conclusions}
 
-### Prevalence component
+# Appendix {#appendix .unnumbered}
 
-Consider a country partitioned into areas $i = 1, \ldots, n$.
-A simple random household survey of $m_i$ people is conducted in each area, and $y_i$ HIV positive cases are observed.
-Cases may be modelled using a binomial logistic regression model
-\begin{align}
-y_i &\sim \text{Bin}(m_i, \rho_i), \\
-\text{logit}(\rho_i) &\sim \mathcal{N}(\beta_\rho, \sigma_\rho^2)
-\end{align}
-where HIV prevalence $\rho_i$ is modelled by a Gaussian with mean $\beta_\rho$ and standard deviation $\sigma_\rho$.
-
-### ANC component
-
-Routinely collected data from pregnant women attending antenatal care clinics (ANCs) is another important source of information about the HIV epidemic.
-If, of $m^\text{ANC}_i$ women, $y^\text{ANC}_i$ are HIV positive, then an analogous binomial logistic regression model
-\begin{align}
-y^\text{ANC}_i &\sim \text{Bin}(m^\text{ANC}_i, \rho^\text{ANC}_i), \\
-\text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho_i) + b_i, \\
-b_i &\sim \mathcal{N}(\beta_b, \sigma_b^2),
-\end{align}
-may be used to describe HIV prevalence amongst the sub-population of women attending ANCs.
-Reflecting the fact that prevalence in ANCs is related but importantly different to prevalence in the general population, bias terms $b_i$ are used to offset ANC prevalence from HIV prevalence.
-
-### ART component
-
-The number of people receiving treatment at district health facilities $A_i$ also provides additional information about HIV prevalence.
-Districts with high prevalence are likely to have a greater number of people receiving treatment, and vice versa.
-ART coverage, defined to be the proportion of PLHIV currently on ART on district $i$, is given by $\alpha_i = A_i / \rho_i N_i$, where $N_i$ is the total population of district $i$ and assumed to be fixed.
-As such, ART coverage may also be modelled using a binomial logistic regression model
-\begin{align}
-A_i &\sim \text{Bin}(N_i, \rho_i \alpha_i), \\
-\text{logit}(\alpha_i) &\sim \mathcal{N}(\beta_\alpha, \sigma_\alpha^2).
-\end{align}
-
-# Results \label{sec:results}
-
-# Conclusions \label{sec:conclusions}
-
-## Supporting information
-
-**Appendix A**: Supporting information
-
-## Funding
+# Acknowledgements {#acknowledgements .unnumbered}
 
 AH was supported by the EPSRC Centre for Doctoral Training in Modern Statistics and Statistical Machine Learning (EP/S023151/1).
-
-## Disclaimer
 
 # References {#references .unnumbered}
