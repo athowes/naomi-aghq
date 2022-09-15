@@ -1,0 +1,31 @@
+script: script.R
+
+resources:
+  - model1.cpp
+  - model1index.cpp
+
+artefacts:
+  - data:
+      description: SINLA development results
+      filenames:
+        - sinla.pdf
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - TMB
+  - tmbstan
+  - aghq
+  - inf.utils
+
+depends:
+  prev-anc-art_sim:
+    id: latest
+    use:
+      depends/sim_data.rds: sim_data.rds
