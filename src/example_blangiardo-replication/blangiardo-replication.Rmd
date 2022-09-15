@@ -10,6 +10,14 @@ output:
     df_print: paged
     code_folding: show
     theme: lumen
+abstract: |
+    **Background** 
+    
+    **Task** 
+    
+    **Findings** 
+    
+    **Next steps**
 ---
 
 Step-by-step example of the INLA method.
@@ -46,7 +54,8 @@ data.frame(index = 1:30, y = y) %>%
   ggplot(aes(x = index, y = y)) +
   geom_point(shape = 4) +
   labs(title = "The data") +
-  geom_hline(yintercept = -3, col = "#666666", lty = "dashed")
+  geom_hline(yintercept = -3, col = "#666666", lty = "dashed") +
+  theme_minimal()
 ```
 
 Parameters of the prior distribution:
@@ -58,7 +67,9 @@ a <- 1.6
 b <- 0.4
 ```
 
-## `R-INLA`
+## Implementation using `R-INLA`
+
+This model is simple to fit using the `R-INlA` software directly:
 
 ```{r}
 formula <- y ~ 1
@@ -66,13 +77,15 @@ dat <- list(y = y)
 
 theta_prior <- list(prec = list(prior = "loggamma", param = c(a, b)))
 
-fit <- inla(formula,
-            data = dat,
-            control.family = list(hyper = theta_prior),
-            control.fixed = list(mean.intercept = x_0, prec.intercept = tau_0))
+fit <- inla(
+  formula,
+  data = dat,
+  control.family = list(hyper = theta_prior),
+  control.fixed = list(mean.intercept = x_0, prec.intercept = tau_0)
+)
 ```
 
-## R implementation
+## Implementation using R
 
 Exact distribution of $x$ given $\theta$:
 
@@ -161,7 +174,8 @@ ggplot(dense_theta) +
   geom_line(aes(x = input, y = output), col = midblue) +
   geom_point(data = blangiardo_theta, aes(x = input, y = output), shape = 4) +
   theme(axis.text.y=element_blank()) +
-  labs(title = "Blangiardo integration points for the hyperparameters")
+  labs(title = "Blangiardo integration points for the hyperparameters") +
+  theme_minimal()
 ```
 
 Optimisation on the log scale (to avoid constrained optimisation):
@@ -241,7 +255,7 @@ ggplot(dense_theta) +
            label = "Now the points are concentrated \n where there is higher density")
 ```
 
-One of the INLA vignettes discusses how the user can set their own integration points--see `browseVignettes(package="INLA")`.
+One of the INLA vignettes discusses how the user can set their own integration points--see `browseVignettes(package = "INLA")`.
 The integration points that INLA uses can be found using `fit$joint.hyper`, which we can add on to the above plot:
 
 ```{r}
@@ -256,8 +270,11 @@ ggplot(dense_theta) +
   geom_point(data = internals_inla_theta, aes(x = input, y = output), shape = 4) +
   theme(axis.text.y=element_blank()) +
   labs(title = "INLA integration points for the hyperparameters") +
-  annotate("text", x = 0.175, y = 5e-41,
-           label = "Now the points are concentrated \n where there is higher density")
+  annotate(
+    "text", x = 0.175, y = 5e-41,
+    label = "Now the points are concentrated \n where there is higher density"
+  ) +
+  theme_minimal()
 ```
 
 We take the set of points defined by `inla_theta` to be our $\{\theta^{(k)}\}$.
@@ -314,9 +331,9 @@ plot(blangiardo_x, nl_post_marginal_x)
 blangiardo_x[[which.min(nl_post_marginal_x)]]
 ```
 
-## `TMB`
+## Implementation in `TMB`
 
-C++ for the negative log joint posterior:
+C++ for the negative log joint posterior is given by:
 
 ```{cpp, code=readLines("blangiardo.cpp"), eval=FALSE}
 ```
@@ -331,20 +348,24 @@ param <- list(x = 0, l_theta = 0)
 `h` with Laplace approximation is a function of $\dim(\theta)$ inputs, integrating out $x$ by specifying `random = c("x")`:
 
 ```{r}
-h <- MakeADFun(data = dat,
-               parameters = param,
-               random = c("x"),
-               DLL = "blangiardo",
-               hessian = TRUE)
+h <- MakeADFun(
+  data = dat,
+  parameters = param,
+  random = c("x"),
+  DLL = "blangiardo",
+  hessian = TRUE
+)
 ```
 
 `f` without Laplace approximation is a function of $\dim(\theta) + \dim(x)$ inputs:
 
 ```{r}
-f <- MakeADFun(data = dat,
-               parameters = param,
-               DLL = "blangiardo",
-               hessian = TRUE)
+f <- MakeADFun(
+  data = dat,
+  parameters = param,
+  DLL = "blangiardo",
+  hessian = TRUE
+)
 ```
 
 Optimisation using `nlminb` and `optim` gets the same results:
@@ -352,18 +373,22 @@ Optimisation using `nlminb` and `optim` gets the same results:
 ```{r}
 its <- 1000
 
-tmb_nlminb <- nlminb(start = h$par,
-                     objective = h$fn,
-                     gradient = h$gr,
-                     control = list(iter.max = its, trace = 0))
+tmb_nlminb <- nlminb(
+  start = h$par,
+  objective = h$fn,
+  gradient = h$gr,
+  control = list(iter.max = its, trace = 0)
+)
 
-tmb_optim <- optim(par = h$par,
-                   fn = h$fn,
-                   gr = h$gn,
-                   method = "Brent",
-                   lower = -100, # Have to specify upper and lower bounds
-                   upper = 100, # when using optimize (1D function)
-                   control = list(maxit = its, trace = 0))
+tmb_optim <- optim(
+  par = h$par,
+  fn = h$fn,
+  gr = h$gn,
+  method = "Brent",
+  lower = -100, # Have to specify upper and lower bounds
+  upper = 100, # when using optimize (1D function)
+  control = list(maxit = its, trace = 0)
+)
 
 c(tmb_optim$par, tmb_nlminb$par) # The same
 
@@ -375,7 +400,8 @@ sd_out <- sdreport(h, par.fixed = tmb_opt$par, getJointPrecision = TRUE)
 The mode and comparison (I started by making the mistake of exponentiating `fit$summary.hyperpar$mode` rather than the internal version--on the log scale, as with R and `TMB`--which, because the transformation is non-linear, is not the same).
 
 ```{r}
-kable_data <- data.frame(c(exp(fit$internal.summary.hyperpar$mode),
+#' For some reason the mode in the INLA result below is NA
+kable_data <- data.frame(c(exp(fit$internal.summary.hyperpar$mean),
                            exp(r_opt$par),
                            exp(tmb_opt$par)))
 
