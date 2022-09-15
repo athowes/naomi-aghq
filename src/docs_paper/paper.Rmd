@@ -20,7 +20,7 @@ affiliation:
     name: Department of Statistics and Actuarial Science, University of Waterloo
     authorsLabels: e2
 abstract: |
-  | Naomi is a spatial evidence synthesis model used by countries in sub-Saharan Africa to produce HIV epidemic indicators. Performing inference for Naomi is challenging because it is an extended latent Gaussian model (ELGM) and not amenable to inference via INLA as described by @rue2009approximate. We combine the simplified INLA approach of @wood2020simplified with adaptive Gaussian hermite quadrature to enable fast and accurate inference for Naomi and other ELGMs. Using data from Malawi, we compare our inference method to other approaches. We provide an easy to use implementation as a part of the `aghq` \textsf{R} package, allowing more flexible use of the INLA method for a broader class of models, including any with a `TMB` template.
+  | Naomi is a spatial evidence synthesis model used by countries in sub-Saharan Africa to produce HIV epidemic indicators. We combine the simplified integrated nested Laplace approximation approach of @wood2020simplified with adaptive Gaussian hermite quadrature to enable fast and accurate inference for Naomi and other extended latent Gaussian models. Using data from Malawi, we compare our inference method to other approaches. We provide an easy to use implementation as a part of the `aghq` \textsf{R} package allowing flexible use of the INLA method for a broader class of models, including any with a `TMB` template.
 keyword-subclass: | 
  \begin{keyword}[class=MSC2020] % It must be define for aap, aop, aos journals. For aoas, sts is not used
  \kwd[Primary ]{00X00}
@@ -45,30 +45,36 @@ output:
 # Introduction
 
 We are motivated by a challenging inference problem in HIV surveillance.
-Accurate estimates of HIV indicators are required to mount effective public health response to the epidemic.
-The Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV prevalence, HIV incidence, and coverage of antiretroviral treatment (ART) at a district-level.
-Software has been developed for the model allowing countries to use their data to generate estimates in a yearly process supported by UNAIDS.
-The inference method used must be fast enough to run in production by country teams, ruling out prohibitively slow Markov chain Monte Carlo approaches.
-Furthermore, as Naomi falls into the class of extended latent Gaussian models (ELGMs) [@stringer2022fast] it cannot be fit using the integrated nested Laplace approximation (INLA)  method [@rue2009approximate] as implemented by the `R-INLA` \textsf{R} package.
-Inference has so far been conducted using the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
-`TMB` implements a type of empirical Bayes, and is gaining popularity in spatial statistics as a flexible alternative to `R-INLA` [@osgoodzimmerman2021statistical].
+Mounting an effective public health response to the epidemic requires accurate, timely and sufficiently fine-scale estimates of HIV indicators.
+No single data source is sufficient to base these estimates on.
+For example, although nationally-representative household surveys are the most reliable data source, in most countries they only occur infrequently.
+As such, the Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV prevalence, HIV incidence, and coverage of antiretroviral treatment (ART) at a district-level.
+Software (\url{https://naomi.unaids.org}) has been developed for Naomi, which allows countries to input their data and generate estimates in a yearly process supported by UNAIDS.
+For this reason, any inference method used must be fast enough to run in production by country teams, ruling out prohibitively slow Markov chain Monte Carlo (MCMC) approaches.
+Inference is currently conducted using the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
+`TMB` implements an empirical Bayes approach, and is gaining popularity in spatial statistics for its speed and flexibility [@osgoodzimmerman2021statistical].
+
+Using simulation we found inferences from `TMB` for the Naomi model to sometimes be inaccurate.
+The `aghq` \textsf{R} package [@stringer2021implementing] for adaptive Gaussian Hermite quadrature (AGHQ), significantly improved performance.
+We develop a new inference methodology combining the simplified integrated nested Laplace approximation (INLA) approach of @wood2020simplified with AGHQ.
+
+<!-- Furthermore, as Naomi falls into the class of extended latent Gaussian models (ELGMs) [@stringer2022fast] it cannot be fit using the integrated nested Laplace approximation (INLA)  method [@rue2009approximate] as implemented by the `R-INLA` \textsf{R} package. -->
 
 # The Naomi model
 
 @eaton2019joint specify a joint model linking small-area estimation models of HIV prevalence from household surveys, HIV prevalence from antenatal care clinics, and antiretroviral therapy (ART) coverage from routine health data collection.
-This model forms the basis of the Naomi small-area estimation model, described more fully in @eaton2021naomi. 
-Modelling data from multiple sources concurrently increases statistical power, and may mitigate the biases of any single source giving a more complete picture, as well as prompting investigation into any data conflicts.
-The model is described by three components as follows.
+This model forms the basis of the Naomi small-area estimation model, described fully in @eaton2021naomi. 
+Modelling data from multiple sources concurrently is attractive as it increases statistical power, mitigates the biases of any single source, and prompts investigation into any data conflicts.
+The model is comprised of three components, described as follows.
 
 ## Household survey component
 
-Consider a country partitioned into areas $i = 1, \ldots, n$.
-A simple random household survey of $m^\text{HS}_i$ people is conducted in each area, and $y^\text{HS}_i$ HIV positive cases are observed.
+Consider a country partitioned into $n$ areas indexed by $i$.
+Suppose a simple random household survey of $m^\text{HS}_i$ people is conducted in each area, and $y^\text{HS}_i$ HIV positive cases are observed.
 Cases may be modelled using a binomial logistic regression model
 \begin{align}
 y^\text{HS}_i &\sim \text{Bin}(m^\text{HS}_i, \rho^\text{HS}_i), \\
-\text{logit}(\rho^\text{HS}_i) &= \phi_i \\
-\phi_i &\sim \mathcal{N}(\beta_\phi, \sigma_\phi^2),
+\text{logit}(\rho^\text{HS}_i) &\sim \mathcal{N}(\beta_\phi, \sigma_\phi^2),
 \end{align}
 where HIV prevalence $\rho^\text{HS}_i$ is modelled by a Gaussian with mean $\beta_\phi$ and standard deviation $\sigma_\phi$.
 
@@ -105,12 +111,11 @@ In this section, we would like to set-up notation for the joint model, helping t
 When introducing LGM and ELGM below, we may refer back to this model as example.
 For example, we can note that each of the components individually might be latent Gaussian (perhaps for the ART component it depends if you consider $\rho^\text{HS}_i$ to be fixed) but when combined they are no longer.
 
-# Deterministic inference methods
+# Fast inference methods
 
 ## Integrated nested Laplace approximation\label{sec:inla}
 
-INLA is an approximate Bayesian inference method based on nested Gaussian approximations and numerical integration.
-INLA is designed for use with latent Gaussian models (LGMs) of the form
+INLA [@rue2009approximate] is an approximate Bayesian inference method based on nested Gaussian approximations and numerical integration, and designed for use with latent Gaussian models (LGMs) of the form
 \begin{alignat}{2}
 &\text{(Observations)}     &        y_i &\sim p(y_i \, | \, x_i, \btheta), \quad i = 1, \ldots, n, \label{eq:data} \\
 &\text{(Latent field)}     &        \x &\sim \mathcal{N}(\x \, | \, \mathbf{0}, \mathbf{Q}(\btheta)^{-1}), \label{eq:process} \\
@@ -174,7 +179,7 @@ The full Laplace approximation is
   p(x_i \, | \, \btheta, \y) &= p(\x \, | \, \btheta, \y) \times \frac{1}{p(\x_{-i} \, | \, x_i, \btheta, \y)} \\
   &= \frac{p(\x, \btheta \, | \, \y)}{p(\btheta \, | \, \y)} \times \frac{1}{p(\x_{-i} \, | \, x_i, \btheta, \y)} \\
   &\propto \frac{p(\x, \btheta \, | \, \y)}{p(\x_{-i} \, | \, x_i, \btheta, \y)} \\
-  &\approx \frac{p(\x, \btheta \, | \, \y)}{p_G(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \hat{\bm{\mu}}_{-i}(x_i, \btheta)} 
+  &\approx \frac{p(\x, \btheta \, | \, \y)}{p_G(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \hat{\bm{\mu}}_{-i}(x_i, \btheta)}
   = \tilde p_{LA}(x_i \, | \, \btheta, \y), \label{eq:laplaceapproximation}
 \end{align}
 where
@@ -254,7 +259,7 @@ where $\propto$ is used to mean proportional up to an additive constant.
 The parameters of the Gaussian approximation (Equation \ref{eq:gaussianx}), are found in terms of $f$ via $\hat{\bm{\mu}}(\btheta) = \arg \min_\x f(\x, \btheta)$ and $\hat{\bm{Q}}(\btheta) = f''_{\x\x}(\hat{\bm{\mu}}(\btheta), \btheta)$ and must be recomputed for each value of $\btheta$.
 Obtaining $\hat{\bm{\mu}}(\btheta)$ is known as the inner optimisation step.
 
-# Case-study\label{sec:results}
+# Application to the Naomi model\label{sec:results}
 
 # Discussion\label{sec:conclusions}
 
