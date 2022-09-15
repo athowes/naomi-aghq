@@ -1,0 +1,18 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Replication of INLA from scratch
+      filenames:
+        - inla-replication.html
+
+resources:
+  - inla-replication.Rmd
+  - blangiardo.cpp
+
+packages:
+  - dplyr
+  - ggplot2
+  - TMB
+  - INLA
+  - rmarkdown

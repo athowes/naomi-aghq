@@ -1,6 +1,6 @@
 src("make/epil.R")
 src("make/prev-anc-art.R")
-run_commit_push("example_blangiardo-replication")
+run_commit_push("example_inla-replication")
 run_commit_push("example_inla-grid")
 run_commit_push("docs_paper")
 run_commit_push("docs_01-07-21-stats-epi-group")
