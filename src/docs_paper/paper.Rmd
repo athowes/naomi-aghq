@@ -20,7 +20,7 @@ affiliation:
     name: Department of Statistics and Actuarial Science, University of Waterloo
     authorsLabels: e2
 abstract: |
-  | Naomi is a spatial evidence synthesis model used by countries in sub-Saharan Africa to produce HIV epidemic indicators. Performing inference for Naomi is challenging because it is an extended latent Gaussian model (ELGM) and not amenable to inference via INLA as described by Rue et al (2009). We combine the simplified INLA approach of Wood (2020) with adaptive Gaussian hermite quadrature to enable inference for ELGMs. Using data from Malawi, we compare our inference method to other approaches. We provide an easy to use implementation as a part of the `aghq` R package, allowing more flexible use of the INLA method for a broader class of models, including any with a TMB template.
+  | Naomi is a spatial evidence synthesis model used by countries in sub-Saharan Africa to produce HIV epidemic indicators. Performing inference for Naomi is challenging because it is an extended latent Gaussian model (ELGM) and not amenable to inference via INLA as described by @rue2009approximate. We combine the simplified INLA approach of @wood2020simplified with adaptive Gaussian hermite quadrature to enable fast and accurate inference for Naomi and other ELGMs. Using data from Malawi, we compare our inference method to other approaches. We provide an easy to use implementation as a part of the `aghq` \textsf{R} package, allowing more flexible use of the INLA method for a broader class of models, including any with a `TMB` template.
 keyword-subclass: | 
  \begin{keyword}[class=MSC2020] % It must be define for aap, aop, aos journals. For aoas, sts is not used
  \kwd[Primary ]{00X00}
@@ -47,57 +47,69 @@ output:
 We are motivated by a challenging inference problem in HIV surveillance.
 Accurate estimates of HIV indicators are required to mount effective public health response to the epidemic.
 The Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV prevalence, HIV incidence, and coverage of antiretroviral treatment (ART) at a district-level.
-Software has been developed for the model allowing countries to use their data to generate estimates in a yearly process supported UNAIDS.
-As such, the inference method used must be suitable to run in production, ruling out prohibitively slow Markov chain Monte Carlo approaches.
+Software has been developed for the model allowing countries to use their data to generate estimates in a yearly process supported by UNAIDS.
+The inference method used must be fast enough to run in production by country teams, ruling out prohibitively slow Markov chain Monte Carlo approaches.
 Furthermore, as Naomi falls into the class of extended latent Gaussian models (ELGMs) [@stringer2022fast] it cannot be fit using the integrated nested Laplace approximation (INLA)  method [@rue2009approximate] as implemented by the `R-INLA` \textsf{R} package.
-Instead, inference is conducted using the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb], which implements a variety of empirical Bayes inference, and is gaining popularity in spatial statistics as a flexible alternative to `R-INLA` [@osgoodzimmerman2021statistical].
+Inference has so far been conducted using the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
+`TMB` implements a type of empirical Bayes, and is gaining popularity in spatial statistics as a flexible alternative to `R-INLA` [@osgoodzimmerman2021statistical].
 
 # The Naomi model
 
 @eaton2019joint specify a joint model linking small-area estimation models of HIV prevalence from household surveys, HIV prevalence from antenatal care clinics, and antiretroviral therapy (ART) coverage from routine health data collection.
-This model forms the basis of the Naomi small-area estimation model [@eaton2021naomi]. 
-Modelling data from multiple sources concurrently increases statistical power, and may mitigate the biases of any single source giving a more complete picture of the situation, as well as prompting investigation into any data conflicts.
-The model is described by three components, as follows.
+This model forms the basis of the Naomi small-area estimation model, described more fully in @eaton2021naomi. 
+Modelling data from multiple sources concurrently increases statistical power, and may mitigate the biases of any single source giving a more complete picture, as well as prompting investigation into any data conflicts.
+The model is described by three components as follows.
 
-## Prevalence component
+## Household survey component
 
 Consider a country partitioned into areas $i = 1, \ldots, n$.
-A simple random household survey of $m_i$ people is conducted in each area, and $y_i$ HIV positive cases are observed.
+A simple random household survey of $m^\text{HS}_i$ people is conducted in each area, and $y^\text{HS}_i$ HIV positive cases are observed.
 Cases may be modelled using a binomial logistic regression model
 \begin{align}
-y_i &\sim \text{Bin}(m_i, \rho_i), \\
-\text{logit}(\rho_i) &\sim \mathcal{N}(\beta_\rho, \sigma_\rho^2)
+y^\text{HS}_i &\sim \text{Bin}(m^\text{HS}_i, \rho^\text{HS}_i), \\
+\text{logit}(\rho^\text{HS}_i) &= \phi_i \\
+\phi_i &\sim \mathcal{N}(\beta_\phi, \sigma_\phi^2),
 \end{align}
-where HIV prevalence $\rho_i$ is modelled by a Gaussian with mean $\beta_\rho$ and standard deviation $\sigma_\rho$.
+where HIV prevalence $\rho^\text{HS}_i$ is modelled by a Gaussian with mean $\beta_\phi$ and standard deviation $\sigma_\phi$.
 
 ## ANC component
 
 Routinely collected data from pregnant women attending antenatal care clinics (ANCs) is another important source of information about the HIV epidemic.
-If, of $m^\text{ANC}_i$ women, $y^\text{ANC}_i$ are HIV positive, then an analogous binomial logistic regression model
+Suppose that of $m^\text{ANC}_i$ women attending ANC, $y^\text{ANC}_i$ are HIV positive.
+Then an analogous binomial logistic regression model
 \begin{align}
 y^\text{ANC}_i &\sim \text{Bin}(m^\text{ANC}_i, \rho^\text{ANC}_i), \\
-\text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho_i) + b_i, \\
+\text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho^\text{HS}_i) + b_i, \\
 b_i &\sim \mathcal{N}(\beta_b, \sigma_b^2),
 \end{align}
 may be used to describe HIV prevalence amongst the sub-population of women attending ANCs.
-Reflecting the fact that prevalence in ANCs is related but importantly different to prevalence in the general population, bias terms $b_i$ are used to offset ANC prevalence from HIV prevalence.
+Reflecting the fact that prevalence in ANCs is related but importantly different to prevalence in the general population, bias terms $b_i$ are used to offset ANC prevalence from HIV prevalence on the logit scale.
 
 ## ART component
 
-The number of people receiving treatment at district health facilities $A_i$ also provides additional information about HIV prevalence.
+The number of people receiving treatment at district health facilities $A_i$ provides further information about HIV prevalence.
 Districts with high prevalence are likely to have a greater number of people receiving treatment, and vice versa.
-ART coverage, defined to be the proportion of PLHIV currently on ART on district $i$, is given by $\alpha_i = A_i / \rho_i N_i$, where $N_i$ is the total population of district $i$ and assumed to be fixed.
+ART coverage, defined to be the proportion of people living with HIV (PLHIV) currently on ART on district $i$, is given by $\alpha_i = A_i / \rho^\text{HS}_i N_i$, where $N_i$ is the total population of district $i$ and assumed to be constant.
 As such, ART coverage may also be modelled using a binomial logistic regression model
 \begin{align}
-A_i &\sim \text{Bin}(N_i, \rho_i \alpha_i), \\
-\text{logit}(\alpha_i) &\sim \mathcal{N}(\beta_\alpha, \sigma_\alpha^2).
+A_i &\sim \text{Bin}(N_i, \rho^\text{HS}_i \alpha_i), \\
+\text{logit}(\alpha_i) &\sim \mathcal{N}(\beta_\alpha, \sigma_\alpha^2),
 \end{align}
+where the proportion of people receiving ART is $\rho^\text{HS}_i \alpha_i$.
+Here we assume no travel between districts to receive treatment.
 
-# Inference
+## Joint model
+
+Let $\y = (\y^\text{HS}, \y^\text{ANC}, \bm{A})$ be the complete response vector.
+In this section, we would like to set-up notation for the joint model, helping to show that it isn't a latent Gaussian model, but is an extended latent Gaussian model.
+When introducing LGM and ELGM below, we may refer back to this model as example.
+For example, we can note that each of the components individually might be latent Gaussian (perhaps for the ART component it depends if you consider $\rho^\text{HS}_i$ to be fixed) but when combined they are no longer.
+
+# Deterministic inference methods
 
 ## Integrated nested Laplace approximation\label{sec:inla}
 
-INLA is an approximate Bayesian inference method based on the Laplace approximation and numerical integration.
+INLA is an approximate Bayesian inference method based on nested Gaussian approximations and numerical integration.
 INLA is designed for use with latent Gaussian models (LGMs) of the form
 \begin{alignat}{2}
 &\text{(Observations)}     &        y_i &\sim p(y_i \, | \, x_i, \btheta), \quad i = 1, \ldots, n, \label{eq:data} \\
@@ -105,7 +117,7 @@ INLA is designed for use with latent Gaussian models (LGMs) of the form
 &\text{(Parameters)}       & \qquad \btheta &\sim p(\btheta), \label{eq:parameters}
 \end{alignat}
 where $\text{dim}(\y) = \text{dim}(\x) = n$ and $\text{dim}(\btheta) = m$, and $m < n$.
-The joint posterior of $(\x, \btheta)$ is given by
+For such models, the joint posterior of $(\x, \btheta)$ is given by
 \begin{equation}
   p(\x, \btheta \, | \, \y) 
   \propto p(\btheta) |\mathbf{Q}(\btheta)|^{n/2} \exp \left( - \frac{1}{2} \x^\top \mathbf{Q}(\btheta) \x + \sum_{i = 1}^n \log p(y_i \, | \, x_i, \btheta) \right). \label{eq:lgmjointposterior}
@@ -115,7 +127,8 @@ Rather than approximating the above full posterior, the INLA method instead appr
   p(x_i \, | \, \y) &= \int p(x_i, \btheta \, | \, \y) \text{d} \btheta = \int p(x_i \, | \, \btheta, \y) p(\btheta \, | \, \y) \text{d}\btheta, \quad i = 1, \dots, n, \label{eq:inla1} \\
   p(\theta_j \, | \, \y) &= \int p(\btheta \, | \, \y) \text{d}\btheta_{-j} \quad j = 1, \ldots, m. \label{eq:inla2}
 \end{align}
-An approximation is made to each of the two quantities, $p(\btheta \, | \, \y)$ and $p(x_i \, | \, \btheta, \y)$, nested inside the above integrals: (i) $p(\btheta \, | \, \y) \approx \tilde p(\btheta \, | \, \y)$ and (ii) $p(x_i \, | \, \btheta, \y) \approx \tilde p(x_i \, | \, \btheta, \y)$, which we discuss in turn below.
+An approximation is made to each of the two quantities, $p(\btheta \, | \, \y)$ and $p(x_i \, | \, \btheta, \y)$, nested inside the above integrals: (i) $p(\btheta \, | \, \y) \approx \tilde p(\btheta \, | \, \y)$ and (ii) $p(x_i \, | \, \btheta, \y) \approx \tilde p(x_i \, | \, \btheta, \y)$.
+We discuss these two approximations in turn below.
 
 ### Approximation (i) \label{sec:approxi}
 
@@ -127,7 +140,7 @@ The first step is to rewrite $p(\btheta \, | \, \y)$ as
   = \frac{p(\x, \btheta \, | \, \y)}{p(\x \, | \, \btheta, \y)}
   \propto \frac{p(\y, \x, \btheta)}{p(\x \, | \, \btheta, \y)}. \label{eq:hyperpost}
 \end{equation}
-Approximation (i) then uses a Gaussian approximation to the denominator of Equation \ref{eq:hyperpost} given by
+Approximation (i) then uses a Gaussian approximation to the denominator given by
 \begin{equation}
 p(\x \, | \, \btheta, \y) \approx p_G(\x \, | \, \btheta, \y) \triangleq \mathcal{N}(\x \, | \, \hat{\bm{\mu}}(\btheta), \hat{\mathbf{Q}}(\btheta)^{-1}). \label{eq:gaussianx}
 \end{equation}
@@ -136,23 +149,24 @@ This approximation is accurate as the Gaussian prior on the latent field $\x$ ma
 p(\x \, | \, \btheta, \y) \propto
 \exp \left( - \frac{1}{2} \x^\top \mathbf{Q}(\btheta) \x + \sum_{i = 1}^n \log p(y_i \, | \, x_i, \btheta) \right),
 \end{equation}
-close to being Gaussian because $\y$ is generally not that informative and the observation distribution $p(\y \, | \, \x, \btheta)$ is usually well-behaved [@blangiardo2015spatial].
+close to being Gaussian because $\y$ tends not to be strongly informative and the observation distribution $p(\y \, | \, \x, \btheta)$ is usually well-behaved [@blangiardo2015spatial].
 <!-- If $\y$ is uninformative about $\x$ then how can we hope for useful inference? Perhaps what the author (Marta) meant is that the Gaussian distribution is sufficiently flexible to accommodate the updates made by $\y$. -->
 As $p(\btheta \, | \, \y)$ does not depend on $\x$, any value may be chosen to evaluate the right hand side of Equation \ref{eq:hyperpost}.
-As such, taking $\x = \hat{\bm{\mu}}(\btheta)$, the value where the Gaussian approximation is most accurate, gives the final approximation as
+Taking $\x = \hat{\bm{\mu}}(\btheta)$, the value where the Gaussian approximation is most accurate, gives the final approximation as
 \begin{equation}
-\tilde p(\btheta \, | \, \y) \propto \frac{p(\y \, | \, \x, \btheta) p(\x \, | \, \btheta) p(\btheta)}{p_G(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat{\bm{\mu}}(\btheta)} = \frac{p(\y, \hat{\bm{\mu}}(\btheta), \btheta)}{\det(\hat{\bm{Q}}(\btheta))^{1/2}}, \label{eq:hypermarginal}
+\tilde p(\btheta \, | \, \y) \propto \frac{p(\y, \x, \btheta)}{p_G(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat{\bm{\mu}}(\btheta)} = \frac{p(\y, \hat{\bm{\mu}}(\btheta), \btheta)}{\det(\hat{\bm{Q}}(\btheta))^{1/2}}, \label{eq:hypermarginal}
 \end{equation}
-where the final equality is because $p_G(\x \, | \, \btheta, \y)$ is evaluated at its mode $\hat{\bm{\mu}}(\btheta)$.
+where the equality is because $p_G(\x \, | \, \btheta, \y)$ is evaluated at its mode $\hat{\bm{\mu}}(\btheta)$.
 
 ### Approximation (ii)
 
+We now move on to the approximation $p(x_i \, | \, \btheta, \y) \approx \tilde p(x_i \, | \, \btheta, \y)$.
 Having used used the Gaussian approximation $p(\x \, | \, \btheta, \y) \approx p_G(\x \, | \, \btheta, \y)$ in Section \ref{sec:approxi} above, a natural approach, and that taken by \citet{rue2007approximate}, is to marginalise this distribution directly to obtain
 \begin{equation}
 \tilde p(x_i \, | \, \btheta, \y) = \mathcal{N}(x_i \, | \, \hat{\mu}_i(\btheta), 1 / \hat{q}_i(\btheta)),
 \end{equation}
-where the marginal mean $\hat{\mu}_i(\btheta)$ and precision $\hat{q}_i(\btheta)$ are recovered directly from $\hat{\bm{\mu}}(\btheta)$ and $\hat{\bm{Q}}(\btheta))$ respectively.
-Although this approximation is fast, it tends not to be accurate, as it involves evaluating the Gaussian approximation away from its mode.
+where the marginal mean $\hat{\mu}_i(\btheta)$ and precision $\hat{q}_i(\btheta)$ are recovered directly from the relevant entries of $\hat{\bm{\mu}}(\btheta)$ and $\hat{\bm{Q}}(\btheta)$ respectively.
+However, although this approximation is fast, it tends not to be accurate, as it involves evaluating the Gaussian approximation away from its mode.
 As a result, although this method is available in \texttt{R-INLA} it is generally not advised.
 Instead, \citet{rue2009approximate} propose two methods, a Laplace approximation and a simplified version which is less computationally demanding.
 The full Laplace approximation is
@@ -163,9 +177,13 @@ The full Laplace approximation is
   &\approx \frac{p(\x, \btheta \, | \, \y)}{p_G(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \hat{\bm{\mu}}_{-i}(x_i, \btheta)} 
   = \tilde p_{LA}(x_i \, | \, \btheta, \y), \label{eq:laplaceapproximation}
 \end{align}
-where $p_G(\x_{-i} \, | \, x_i, \btheta, \y)$ is the Gaussian approximation to $\x_{-i} \, | \, x_i, \btheta, \y$ and $\hat{\bm{\mu}}_{-i}(x_i, \btheta)$ is its modal configuration.\footnote{Note that $\hat{\bm{\mu}}(\btheta)$ is the mode of the Gaussian approximation to the full latent field given $\btheta$ and $\hat{\bm{\mu}}_{-i}(x_i, \btheta)$ is not the same as $\hat{\bm{\mu}}_{-i}(\btheta)$.}
+where
+\begin{equation}
+p_G(\x_{-i} \, | \, x_i, \btheta, \y) = \mathcal{N}(\x_{-i} \, | \, \hat{\bm{\mu}}_{-i}(x_i, \btheta), \hat{\bm{Q}}_{-i}(x_i, \btheta)),
+\end{equation}
+is the Gaussian approximation to $\x_{-i} \, | \, x_i, \btheta, \y$ and $\hat{\bm{\mu}}_{-i}(x_i, \btheta)$ is its modal configuration.\footnote{Note that $\hat{\bm{\mu}}(\btheta)$ is the mode of the Gaussian approximation to the full latent field given $\btheta$ and $\hat{\bm{\mu}}_{-i}(x_i, \btheta)$ is not the same as $\hat{\bm{\mu}}_{-i}(\btheta)$.}
 The set of distributions $\{p(\x_{-i} \, | \, x_i, \btheta, \y)\}_{i = 1}^n$ are usually reasonably Gaussian so this approximation tends to work well.
-However, the Gaussian approximation $p_G(\x_{-i} \, | \, x_i, \btheta, \y)$ must be recomputed for each value of $x_i$ and $\btheta$, which is often computationally prohibitive.
+However, the Gaussian approximation $p_G(\x_{-i} \, | \, x_i, \btheta, \y)$ must be recomputed for each value of $i$, which is often computationally prohibitive.
 Therefore, two modifications to Equation \eqref{eq:laplaceapproximation} are proposed by \citet{rue2009approximate} to reduce the computational cost:
 \begin{enumerate}
 \item
@@ -174,13 +192,17 @@ Avoiding having to find the mode via optimisation by using the approximation $\h
 As only those $x_j$ close to $x_i$ should have an impact on the marginal of $x_i$, then by selecting some subset $R_i(\btheta)$ of nodes $j$ to impact $j$ the matrix which needs to be factorised can be reduced in dimension to be $| R_i(\btheta) | \times | R_i(\btheta) |$ rather than $n \times n$
 \end{enumerate}
 
-### Combining the approximations
+## Simplified INLA and connection to ELGMs
 
-## Simplified INLA
+@wood2020simplified propose a simplified version of the INLA algorithm which relaxes the sparsity assumptions on the latent field required for the modifications to Equation \eqref{eq:laplaceapproximation} to be efficient.
+Doing so facilitates inference for ELGMs [@stringer2022fast] which we define below.
+Informally, ELGMs build on LGMs by allowing each element of the linear predictor $\mu_i$ to depend on any subset of elements from the latent field.
 
-@wood2020simplified propose a "simplified" version of the INLA algorithm.
+## Implementation within `aghq`\label{sec:aghq}
 
-## Template Model Builder\label{sec:tmb}
+### Adaptive Gaussian Hermite quadrature
+
+### Template Model Builder
 
 `TMB` [@kristensen2016tmb] is an \textsf{R} package for fitting random effect models, also known as latent variable models, hierarchical models or a host of other names.
 In `TMB` inference is based upon optimisation of a target function.
