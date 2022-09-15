@@ -1,13 +1,14 @@
 script: script.R
 
 resources:
+  - model1.cpp
   - model1index.cpp
 
 artefacts:
   - data:
       description: SINLA development results
       filenames:
-        - prec.pdf
+        - sinla.pdf
 
 packages:
   - dplyr

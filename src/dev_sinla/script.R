@@ -10,7 +10,7 @@ dyn.load(dynlib("model1index"))
 
 dat <- list(n = data$n, y_prev = data$y_prev, m_prev = data$m_prev)
 
-prepare_index <- function(dat, i) {
+prepare_dat <- function(dat, i) {
   dat[["y_prev_i"]] <- dat$y_prev[i]
   dat[["y_prev_minus_i"]] <- dat$y_prev[-i]
   dat[["m_prev_i"]] <- dat$m_prev[i]
@@ -18,25 +18,24 @@ prepare_index <- function(dat, i) {
   dat[c("n", "y_prev_i", "y_prev_minus_i", "m_prev_i", "m_prev_minus_i")]
 }
 
-#' Starting parameters for TMB are the same for every index of the loop
-param <- list(
-  beta_prev = 0,
-  phi_prev_i = 0,
-  phi_prev_minus_i = rep(0, data$n - 1),
-  log_sigma_phi_prev = 0
-)
-
 #' Loop over doing the Gaussian approximation for every index i
-mean <- list()
-prec <- list()
+template <- list() #' To store obj
 
 for(i in 1:dat$n) {
   dat_i <- prepare_index(dat, i)
 
+  #' Starting parameters for TMB are the same for every index of the loop
+  param_i <- list(
+    beta_prev = 0,
+    phi_prev_i = 0,
+    phi_prev_minus_i = rep(0, data$n - 1),
+    log_sigma_phi_prev = 0
+  )
+
   #' random are integrated out with a Laplace approximation
   obj <- MakeADFun(
-    data = dat1,
-    parameters = param,
+    data = dat_i,
+    parameters = param_i,
     random = "phi_prev_minus_i", # Random effects to be integrated out
     DLL = "model1index"
   )
@@ -56,15 +55,44 @@ for(i in 1:dat$n) {
     getJointPrecision = TRUE
   )
 
-  mean[[i]] <- 1
-  prec[[i]] <- sd_out$jointPrecision
+  template[[i]] <- obj
 }
 
-mean
-prec
+# Create objective function (no Laplace approximation)
+param <- list(
+  beta_prev = 0,
+  phi_prev = rep(0, data$n),
+  log_sigma_phi_prev = 0
+)
 
-pdf("prec.pdf", h = 5, w = 6.25)
+f <- MakeADFun(
+  data = dat,
+  parameters = param,
+  DLL = "model1"
+)
 
-lapply(prec, image)
+#' Evaluate objective function at param
+f$fn(unlist(param))
 
-dev.off()
+transform_param <- function(param) {
+  list(
+    beta_prev = param$beta_prev,
+    phi_prev_i = param$phi_prev[i],
+    phi_prev_minus_i = param$phi_prev[-i],
+    log_sigma_phi_prev = param$log_sigma_phi_prev
+  )
+}
+
+param %>%
+  transform_param() %>%
+  unlist() %>%
+  template[[1]]$fn()
+
+mean <- with(template[[1]]$env, last.par[random])
+Q <- template[[1]]$env$spHess(with(template[[1]]$env, last.par), random = TRUE)
+
+#' Numerator of the LA
+#' TODO
+
+#' Denominator of the LA
+sqrt(det(Q))
