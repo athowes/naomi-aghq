@@ -15,7 +15,7 @@ Type objective_function<Type>::operator()()
   PARAMETER(beta_prev);              // Survey intercept
   PARAMETER(phi_prev_i);             // Survey spatial effect for index i
   PARAMETER_VECTOR(phi_prev_minus_i) // Survey spatial effect for index -i
-    PARAMETER(log_sigma_phi_prev);     // Survey log standard deviation of spatial effects
+  PARAMETER(log_sigma_phi_prev);     // Survey log standard deviation of spatial effects
 
   // Transformed parameters block
   Type sigma_phi_prev = exp(log_sigma_phi_prev);
