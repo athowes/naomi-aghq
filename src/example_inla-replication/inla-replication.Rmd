@@ -65,7 +65,7 @@ There are four stages to replicating the INLA method.
 
 <!-- Taking negative logs (to incorporate $f$) gives -->
 <!-- \begin{equation*} -->
-<!-- - \log p(\btheta \, | \, \y) \sim f(x, \btheta) + \log p(x \, | \, \btheta, \y) -->
+<!-- - \log p(\theta \, | \, y) \sim f(x, \theta) + \log p(x \, | \, \theta, y) -->
 <!-- \end{equation*} -->
 
 Approximate the posterior marginal $p(\theta \, | \, y) \propto L(\theta)$ using the Laplace approximation $L(\theta) \approx L^\star(\theta)$:
@@ -81,7 +81,7 @@ h <- MakeADFun(data = dat, parameters = param, DLL = "model", random = "x")
 
 Therefore, `exp(-h$fn(theta))` is proportional to $\tilde p(\theta \, | \, y)$:
 
-<!-- *Note: Does `TMB` keep the $-\frac{n}{2} \log(2\pi)$ constant here $-\log L^\star_f(\btheta) = -\frac{n}{2} \log(2\pi) + \frac{1}{2} \log \det (Q^\star(\btheta)) + f(\bm{\mu}^\star(\btheta), \btheta)$?* -->
+<!-- *Note: Does `TMB` keep the $-\frac{n}{2} \log(2\pi)$ constant here $-\log L^\star_f(\theta) = -\frac{n}{2} \log(2\pi) + \frac{1}{2} \log \det (Q^\star(\theta)) + f(\mu^\star(\theta), \theta)$?* -->
 
 ## Stage 2: choose $\{\theta_k, \Delta_k\}_{k = 1}^K$
 
@@ -589,15 +589,15 @@ Looks like this part is correct.
 
 ### Getting to the full conditional of $x$ in TMB
 
-Probably going to need $Q^\star(\btheta)$ ($n \times n$ precision matrix) and $\bm{\mu}^\star(\btheta)$ ($n \times 1$ mean vector).
+Probably going to need $Q^\star(\theta)$ ($n \times n$ precision matrix) and $\mu^\star(\theta)$ ($n \times 1$ mean vector).
 For example, the most basic version of the full conditional would be the Gaussian approximation
 \begin{equation}
-\tilde p(x_i \, | \, \btheta, \y) = \mathcal{N}(x_i \, | \, \mu^\star_i(\btheta), 1 / q^\star_i(\btheta)).
+\tilde p(x_i \, | \, \theta, y) = \mathcal{N}(x_i \, | \, \mu^\star_i(\theta), 1 / q^\star_i(\theta)).
 \end{equation}
 
-Precision matrix $Q^\star(\btheta)$ is the Hessian of the negative logarithm of the posterior evaluated at $\bm{\mu}^\star(\btheta)$, having $(i, j)$th entry
+Precision matrix $Q^\star(\theta)$ is the Hessian of the negative logarithm of the posterior evaluated at $\mu^\star(\theta)$, having $(i, j)$th entry
 \begin{equation}
-Q^\star(\btheta)_{i, j} = - \frac{\partial^{2} \log p(x \, | \, \btheta, \y)}{\partial x_{i} \partial x_{j}} \Big\rvert_{x = \bm{\mu}^\star(\btheta)}
+Q^\star(\theta)_{i, j} = - \frac{\partial^{2} \log p(x \, | \, \theta, y)}{\partial x_{i} \partial x_{j}} \Big\rvert_{x = \mu^\star(\theta)}
 \end{equation}
 
 An obvious choice for finding the precision would be `h$he(tmb_opt$par)` but this gives the error "Hessian not yet implemented for models with random effects".
