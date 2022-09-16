@@ -27,7 +27,21 @@ rstan::rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 ```
 
-Section 5.2. of Rue, Martino and Chopin (2009) illustrates the INLA method using an epilepsy example.
+Section 5.2. of Rue, Martino and Chopin (2009) demonstrates the application of \texttt{R-INLA} to a generalised linear mixed model.
+The data, previously included as an example in the OpenBUGs manual, concern the results of a clinical trial for a new epilepsy drug.
+Patients $i = 1, \ldots, 59$ are each either assigned the new drug $\texttt{Trt}_i = 1$ or placebo $\texttt{Trt}_i = 0$.
+Each patient makes four visits the clinic $j = 1, \ldots, 4$.
+The observations $y_{ij}$ give the number of seizures of the $i$th person in the two weeks preceeding their $j$th visit to the clinic.
+The covariates are age $\texttt{Age}_i$, baseline seizure counts $\texttt{Base}_i$ and an indicator for the final clinic visit $\texttt{V}_4$, which are all centered.
+The observations are modelling using a Poisson distribution $y_{ij} \sim \text{Poisson}(e^{\eta_{ij}})$ with linear predictor 
+\begin{align*}
+  \eta_{ij}       &= \beta_0 + \beta_\texttt{Base} \log(\texttt{Baseline}_j / 4) + \beta_\texttt{Trt} \texttt{Trt}_i +
+                     \beta_{\texttt{Trt} \times \texttt{Base}} \texttt{Trt}_i \times \log(\texttt{Baseline}_j / 4) \\ 
+                  &+ \beta_\texttt{Age} \log(\texttt{Age}_i) + \beta_{\texttt{V}_4} {\texttt{V}_4}_j +
+                     \epsilon_i + \nu_{ij}, \quad i=1:59, \quad j=1:4,
+\end{align*}
+where the prior on each of the regression parameters is $\mathcal{N}(0, 100^2)$.
+The random effects are IID $\epsilon_i \sim \mathcal{N}(0, 1/\tau_\epsilon)$ and $\nu_{ij} \sim \mathcal{N}(0, 1/\tau_\nu)$ with precision priors $\tau_\epsilon, \tau_\nu \sim \Gamma(0.001, 0.001)$.
 
 ```{r}
 data(Epil, package = "INLA")
