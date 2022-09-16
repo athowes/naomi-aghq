@@ -1,0 +1,16 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Naomi model workflow example
+      filenames:
+        - naomi.html
+
+resources:
+  - naomi.Rmd
+
+packages:
+  - dplyr
+  - ggplot2
+  - naomi
+  - sf

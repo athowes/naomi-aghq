@@ -1,0 +1,193 @@
+---
+title: "Naomi model workflow"
+author:
+- name: Adam Howes
+output:
+  html_document:
+    toc: yes
+    toc_float: true
+    toc_collapsed: true
+    df_print: paged
+    code_folding: show
+    theme: lumen
+abstract: |
+    **Background** A vignette for the Naomi model is uploaded to the package website.
+    
+    **Task** We run through the vignette manually to (1) develop a better understanding of the model, (2) get experience working with the Malawi data, which we will likely use for our case-study as it is publicly available.
+---
+
+```{r}
+library(naomi)
+library(tidyverse)
+library(sf)
+```
+
+# Naomi vignette
+
+Following vignette [here](https://mrc-ide.github.io/naomi/articles/model-workflow.html).
+
+## Load data inputs
+
+Area hierarchy and boundaries:
+
+```{r}
+area_merged <- read_sf(system.file("extdata/demo_areas.geojson", package = "naomi"))
+
+area_merged %>%
+  filter(area_level == max(area_level)) %>%
+  ggplot() +
+  geom_sf(aes(geometry = geometry)) +
+  theme_minimal()
+```
+
+Population data:
+
+```{r}
+pop_agesex <- read_csv(system.file("extdata/demo_population_agesex.csv", package = "naomi"))
+head(pop_agesex)
+```
+
+Survey data:
+
+```{r}
+survey_hiv_indicators <- read_csv(system.file("extdata/demo_survey_hiv_indicators.csv", package = "naomi"))
+head(survey_hiv_indicators)
+```
+ART programmatic data:
+
+```{r}
+art_number <- read_csv(system.file("extdata/demo_art_number.csv", package = "naomi"))
+head(art_number)
+```
+
+ANC programmatic data:
+
+```{r}
+anc_testing <- read_csv(system.file("extdata/demo_anc_testing.csv", package = "naomi"))
+head(anc_testing)
+```
+
+## Choose model areas and time points
+
+```{r}
+scope <- "MWI"
+level <- 4
+calendar_quarter_t1 <- "CY2016Q1"
+calendar_quarter_t2 <- "CY2018Q3"
+calendar_quarter_t3 <- "CY2019Q4"
+```
+
+```{r}
+prev_survey_ids  <- c("DEMO2016PHIA", "DEMO2015DHS")
+artcov_survey_ids  <- "DEMO2016PHIA"
+vls_survey_ids <- NULL
+recent_survey_ids <- "DEMO2016PHIA"
+
+artnum_calendar_quarter_t1 <- "CY2016Q1"
+artnum_calendar_quarter_t2 <- "CY2018Q3"
+
+anc_clients_year2 <- 2018
+anc_clients_year2_num_months <- 9
+
+anc_prevalence_year1 <- 2016
+anc_prevalence_year2 <- 2018
+
+anc_art_coverage_year1 <- 2016
+anc_art_coverage_year2 <- 2018
+```
+
+## Prepare model inputs
+
+```{r}
+naomi_mf <- naomi_model_frame(
+  area_merged,
+  pop_agesex,
+  spec,
+  scope = scope,
+  level = level,
+  calendar_quarter_t1,
+  calendar_quarter_t2,
+  calendar_quarter_t3
+)
+```
+
+```{r}
+naomi_data <- select_naomi_data(
+  naomi_mf,
+  survey_hiv_indicators,
+  anc_testing,
+  art_number,
+  prev_survey_ids,
+  artcov_survey_ids,
+  recent_survey_ids,
+  vls_survey_ids,
+  artnum_calendar_quarter_t1,
+  artnum_calendar_quarter_t2,
+  anc_prevalence_year1,
+  anc_prevalence_year2,
+  anc_art_coverage_year1,
+  anc_art_coverage_year2
+)
+```
+
+## Fit the TMB model
+
+```{r}
+fit <- fit_tmb(tmb_inputs)
+```
+
+```{r}
+outputs <- output_package(fit, naomi_mf)
+names(outputs)
+```
+
+```{r}
+outputs$indicators %>%
+  dplyr::filter(
+    indicator == "prevalence",  # HIV prevalence
+    age_group == "Y015_049"   # Age group 15-49
+  ) %>%
+  head()
+```
+
+```{r}
+add_output_labels(outputs) %>%
+  dplyr::filter(
+    indicator == "prevalence",  # HIV prevalence
+    age_group == "Y015_049"   # Age group 15-49
+  ) %>%
+  head()
+```
+
+```{r}
+system.time(fit <- sample_tmb(fit))
+```
+
+```{r}
+system.time(outputs <- output_package(fit, naomi_mf))
+
+outputs_calib <- calibrate_outputs(
+  outputs, 
+  naomi_mf,
+  spectrum_plhiv_calibration_level = "national",
+  spectrum_plhiv_calibration_strat = "sex_age_coarse",
+  spectrum_artnum_calibration_level = "national", 
+  spectrum_artnum_calibration_strat = "sex_age_coarse",
+  spectrum_aware_calibration_level = "national", 
+  spectrum_aware_calibration_strat = "sex_age_coarse",
+  spectrum_infections_calibration_level = "national", 
+  spectrum_infections_calibration_strat = "sex_age_coarse"
+)
+
+outputs$indicators %>%
+  dplyr::filter(
+    indicator == "prevalence",  # HIV prevalence
+    age_group == "Y015_049"   # Age group 15-49
+  ) %>%
+  head()
+```
+
+# Using simplified TMB template
+
+Use the same data from above, but fit a model using our simplified Naomi TMB template, rather than the one from the package.
+This may require making some edits to the simplified TMB template, such as allowing non-integer values for survey-weighted cases and sample sizes.
