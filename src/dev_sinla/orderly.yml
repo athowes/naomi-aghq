@@ -1,6 +1,7 @@
 script: script.R
 
 resources:
+  - sinla.Rmd
   - model1.cpp
   - model1index.cpp
 
@@ -8,7 +9,7 @@ artefacts:
   - data:
       description: SINLA development results
       filenames:
-        - sinla.pdf
+        - sinla.html
 
 packages:
   - dplyr
