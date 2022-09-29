@@ -1,5 +1,6 @@
 ## Notebooks
 
+* [aghq](https://athowes.github.io/elgm-inf/aghq.html): following the `aghq` vignettes to explore and understand the package
 * [epil](https://athowes.github.io/elgm-inf/epil.html): comparison of Stan, INLA, TMB, glmmTMB, tmbstan and aghq for the epilepsy example from [Rue, Martino and Chopin (2009)](https://rss.onlinelibrary.wiley.com/doi/10.1111/j.1467-9868.2008.00700.x)
 * [inla-grid](https://athowes.github.io/elgm-inf/inla-grid.html): illustration of how the hyperparameter posterior marginal is explored in the INLA method
 * [inla-replication](https://athowes.github.io/elgm-inf/inla-replication.html): replicating the "INLA from scratch" section of [Spatial and Spatio-temporal Bayesian Models with R-INLA](https://onlinelibrary.wiley.com/doi/book/10.1002/9781118950203) using R and TMB

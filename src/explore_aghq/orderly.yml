@@ -1,0 +1,26 @@
+script: script.R
+
+resources:
+  - aghq.Rmd
+  - disease.cpp
+
+artefacts:
+  - data:
+      description: Working through the aghq package
+      filenames:
+        - aghq.html
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - TMB
+  - tmbstan
+  - aghq
+  - inf.utils
+  - EpiILMCT
