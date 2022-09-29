@@ -5,6 +5,10 @@ artefacts:
       description: INLA grid integration strategy
       filenames:
         - inla-grid.html
+  - data:
+      description: INLA grid integration strategy
+      filenames:
+        - inla-grid.pdf
 
 resources:
   - inla-grid.Rmd

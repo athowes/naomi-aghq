@@ -170,7 +170,7 @@ rbind(c(theta_mode[1], theta_mode[2], (theta_mode + V[,1])[1], (theta_mode + V[,
   as.data.frame() %>%
   rename(x = V1, y = V2, xend = V3, yend = V4, pc = V5) -> segments
 
-ggplot() +
+plot <- ggplot() +
   geom_point(data = theta_grid, aes(x = theta1, y = theta2), alpha = 0.5) +
   geom_contour(data = ground_truth, aes(x = theta1, y = theta2, z = pdf), col = multi.utils::cbpalette()[1]) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, colour = as.factor(pc)),
@@ -180,4 +180,14 @@ ggplot() +
   labs(x = "theta1", y = "theta2") +
   theme_minimal() +
   theme(legend.position = "none")
+
+plot
+```
+
+```{r}
+pdf("inla-grid.pdf", h = 4.5, w = 6.25)
+
+plot
+
+dev.off()
 ```
