@@ -261,6 +261,8 @@ Obtaining $\hat{\bm{\mu}}(\btheta)$ is known as the inner optimisation step.
 
 # Application to the Naomi model\label{sec:results}
 
+The \textsc{R} [@r] code used to implement the model and produce all results we describe is available at `github.com/athowes/naomi-inf`.
+
 # Discussion\label{sec:conclusions}
 
 # Appendix {#appendix .unnumbered}

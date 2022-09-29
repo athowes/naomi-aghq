@@ -12,16 +12,34 @@ output:
     theme: lumen
 abstract: |
   **Background** Wood (2020) simplify the INLA method by approximating latent field posterior marginals using a reduced cost Laplace approximation which does not rely on sparsity assumptions.
+  
   **Task** We implement the method in R making use of Template Model Builder for Gaussian approximations.
 ---
 
 We are interested in efficiently approximating latent field posterior marginals $p(x_i \, | \, \theta, y) \approx \tilde p(x_i \, | \, \theta, y)$ for each index $i$.
 To build up to implementing the simplified INLA approach, we will start with two simpler methods (1) taking the marginal of a joint Gaussian approximation (2) doing a full Laplace approximation.
 
+# Further details on what we would like to achieve
+
+This section is where I am working things out about what we're aiming for.
+It likely won't follow much narrative structure for now.
+
 The AGHQ/ELGM approximation to the joint posterior is
 $$
-\tilde p(x \, | \, y) = \sum_z \tilde p_\text{G}(x \, | \, \theta(z), y) \tilde p_\text{LA}(\theta(z) \, | \, y) w_k(z).
+\tilde p(x \, | \, y) = \sum_z \tilde p_\text{G}(x \, | \, \theta(z), y) \tilde p_\text{LA}(\theta(z) \, | \, y) w_k(z),
 $$
+where $\theta(z) \in \Theta$ and $w_k(z) \in \mathbb{R}$ are quadrature nodes and weights.
+In particular, let
+$$
+\mathcal{Q}(1, k) = \{z_d \in \mathbb{R}: H_k(z_d) = 0\}
+$$
+where $H_k(z_d)$ are the Hermite polynomials for $k \in \mathbb{N}$, and
+$$
+w_k(z_d) = \frac{k!}{H_{k + 1}(z_d)^2 \times \phi(z_d)}, 
+$$
+Define $\mathcal{Q}(d, k) = \mathcal{Q}(1, k)^d$ with nodes $z$, of which there will be $k^d$.
+Then $\theta(z) = \hat \theta + Lz$ where $\hat \theta$ is the mode and $L$ is the lower Cholesky triangle of the curvature such that $LL^\top = H^{-1}$.
+
 This can be evaluated at any point, though in practice we work with it by drawing samples $x \sim p_\text{G}(x \, | \, \theta, y)$ using a method from sampling from a Gaussian given its mean and precision from Rue.
 For the $i$th marginal, we just take the appropriate samples from the joint.
 The approximation is therefore
@@ -33,7 +51,7 @@ where $p_\text{G}(x_i \, | \, \theta, y)$ just takes the $i$th elements of the m
 `aghq::marginal_laplace_tmb` will calculate an object representing $\tilde p(x \, | \, \theta, y)$.
 Then `aghq::sample_marginal` will draw samples from it.
 
-We want to create a new approximation swapping out $\tilde p_\text{G}(x_i \, | \, \theta, y)$ from the above for the simplified INLA approximation
+We want to create a new approximation swapping out $\tilde p_\text{G}(x_i \, | \, \theta, y)$ from the above for the simplified INLA approximation $p_{\text{SINLA}}(x_i \, | \, \theta, y)$ as follows
 $$
 \tilde p(x_i \, | \, \theta, y) = \sum_z \tilde p_{\text{SINLA}}(x_i \, | \, \theta, y) \tilde p_\text{LA}(\theta(z) \, | \, y) w_k(z).
 $$
@@ -58,13 +76,13 @@ dat <- list(n = data$n, y_prev = data$y_prev, m_prev = data$m_prev)
 dat
 ```
 
-We create an objective function `f` (see Appendix for `TMB` template) to evaluate $p(x, \theta, y)$ (without any Laplace approximations!):
+We create an objective function `f` (see Appendix for `TMB` template) to evaluate $- \log p(x, \theta, y)$ (without any Laplace approximations!):
 
 ```{r message=FALSE, warning=FALSE}
 param <- list(
-  beta_prev = 0,
+  beta_prev = -2,
   phi_prev = rep(0, data$n),
-  log_sigma_phi_prev = 0
+  log_sigma_phi_prev = -1
 )
 
 compile("model1.cpp")
@@ -86,6 +104,51 @@ h <- MakeADFun(
   random = "phi_prev",
   DLL = "model1"
 )
+```
+
+Optimise `h`:
+
+```{r}
+its <- 1000
+
+opt <- nlminb(
+  start = h$par,
+  objective = h$fn,
+  gradient = h$gr,
+  control = list(iter.max = its, trace = 0)
+)
+```
+
+Get the parameters of the Gaussian approximation:
+
+```{r}
+mean <- with(h$env, last.par[random])
+length(mean) #' The length is 30
+mean
+
+Q <- h$env$spHess(with(h$env, last.par), random = TRUE)
+dim(Q) #' With dimension [30 x 30]
+image(Q)
+
+input_param <- param
+h$fn(input_param[c("beta_prev", "log_sigma_phi_prev")])
+```
+
+Try to reproduce by input to `f`:
+
+```{r}
+input_param$phi_prev <- mean
+numer <- -1 * f$fn(unlist(input_param))
+numer
+
+denom <- 0.5 * log(det(2 * pi * Q))
+denom
+```
+
+On the negative log-likelihood scale, the number we get is:
+
+```{r}
+-1 * (numer - denom)
 ```
 
 # Full Laplace approximation
@@ -121,8 +184,9 @@ Now loop over doing the Laplace approximation for every index.
 In the call to `MakeADFun` we set `random = "phi_prev_minus_i"` to integrate all of the random effects but that of the particular index.
 
 ```{r message=FALSE, warning=FALSE, results=FALSE}
-#' To store obj
-template <- list() 
+objs <- list()
+means <- list()
+Qs <- list()
 
 for(i in 1:dat$n) {
   dat_i <- prepare_dat(dat, i)
@@ -158,7 +222,13 @@ for(i in 1:dat$n) {
     getJointPrecision = TRUE
   )
 
-  template[[i]] <- obj
+  #' Parameters of the Gaussian approximation
+  mean <- with(obj$env, last.par[random])
+  Q <- obj$env$spHess(with(obj$env, last.par), random = TRUE)
+  
+  objs[[i]] <- obj
+  means[[i]] <- mean
+  Qs[[i]] <- Q
 }
 ```
 
@@ -167,13 +237,11 @@ The mean and precision matrix for the Gaussian approximation $\tilde p_\text{G}(
 
 ```{r message=FALSE, warning=FALSE}
 i <- 1
-obj <- template[[i]]
-
-mean <- with(obj$env, last.par[random])
-length(mean) #' The length is 30 - 1
+obj <- objs[[i]]
+mean <- means[[i]] #' The length is 30 - 1
 mean
 
-Q <- obj$env$spHess(with(obj$env, last.par), random = TRUE)
+Q <- Qs[[i]]
 dim(Q) #' With dimension [(30 - 1) x (30 - 1)]
 image(Q)
 ```
@@ -197,38 +265,38 @@ transformed_param
 obj$fn(transformed_param)
 ```
 
-We can reproduce the output of `obj$fn` using the mean and precision matrix, together with the function `f`.
+We should be able to reproduce the output of `obj$fn` using the mean and precision matrix, together with the function `f`.
 Recall that `f` takes as input the complete $(x, \theta)$ ($y$ is already fixed).
 For example:
 
 ```{r}
+param
 f$fn(unlist(param))
 ```
 
-We update `param` to include $\hat{\mu}_{-i}(x_i, \theta)$:
+We update `param` to include $\hat{\mu}_{-i}(x_i, \theta)$, so that it's only element `r i` of `phi_prev` which remains as before:
 
 ```{r}
 param$phi_prev[-i] <- mean
 param
-
 ```
 
-Such that the numerator of the Laplace approximation is (n.b. I think this is on the log-scale, which is where we will do the calculations):
+The numerator of the Laplace approximation is (n.b. this is on the log-scale, which is where we will do the calculations):
 
 ```{r}
-numer <- f$fn(unlist(param))
+numer <- -1 * f$fn(unlist(param))
 numer
 ```
 
-And the denominator of the Laplace approximation (on the log-scale) is:
+And the denominator of the Laplace approximation (again on the log-scale) is:
 
 ```{r}
-denom <- log(sqrt(det(2 * pi * Q)))
+denom <- 0.5 * log(det(2 * pi * Q))
 denom
 ```
 
 ```{r}
-numer - denom
+-1 * (numer - denom)
 ```
 
 Compare this to the output from `obj`:
