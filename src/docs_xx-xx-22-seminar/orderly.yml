@@ -1,0 +1,29 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Slides
+      filenames:
+        - xx-xx-22-seminar.pdf
+
+resources:
+  - xx-xx-22-seminar.Rmd
+  - preamble.tex
+  - citations.bib
+  - naomi_hex.png
+
+packages:
+  - dplyr
+  - ggplot2
+  - TMB
+  - INLA
+  - rmarkdown
+  - bsae
+  - knitr
+  - kableExtra
+
+depends:
+  example_inla-grid:
+    id: latest
+    use:
+      depends/inla-grid.pdf: inla-grid.pdf
