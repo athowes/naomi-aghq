@@ -16,78 +16,226 @@ abstract: |
   **Task**
 ---
 
-# Basic
+```{r}
+cbpalette <- multi.utils::cbpalette()
+```
+
+# Basic usage
+
+Data:
 
 ```{r}
 set.seed(84343124)
 y <- rpois(10, 5)
 plot(y)
+```
 
+The log-posterior for the model is:
+
+```{r}
 log_post <- function(eta, y) {
   sum(y) * eta - (length(y) + 1) * exp(eta) - sum(lgamma(y + 1)) + eta
 }
+```
 
+Get the first two derivatives too, and put them into a list:
+
+```{r}
 fn <- function(x) log_post(x, y)
 gr <- function(x) numDeriv::grad(fn, x)
 he <- function(x) numDeriv::hessian(fn, x)
 
 ff <- list(fn = fn, gr = gr, he = he)
+```
 
+Use the `aghq` package with `k = 3`:
+
+```{r}
 quad <- aghq::aghq(ff = ff, k = 3, startingvalue = 0)
+```
 
+The result is of class `"aghq"`:
+
+```{r}
 class(quad)
+```
 
+```{r}
 summary(quad)
 plot(quad)
+```
 
-# Containing
+The `quad` object contains:
+
+```{r}
 str(quad)
-# normalized_posterior
+```
+
+The nodes and weights of the posterior are:
+
+```{r}
 quad$normalized_posterior$nodesandweights
+```
+
+The logarithm of the normalising constant (should correspond to `logpost - logpost_normalized`):
+
+```{r}
 quad$normalized_posterior$lognormconst
-# marginals
-# optresults
+```
+
+The mode is as follows, which corresponds to the second node.
+For `k = 3`, and other odd numbers, the mode is included as a node.
+
+```{r}
 quad$optresults$mode
 ```
 
-# Background
+# More detailed background
+
+## One dimensional example
+
+Suppose we have
+$$
+f(x) = \exp(-\frac{x^2}{2}),
+$$
+which we would like to integrate over $\mathbb{R}$, i.e. $\int_{-\infty}^\infty f(x) \text{d}x$.
 
 ```{r}
-
-# Quadrature
-
-# Single dimensional example
 f <- function(x) {
   exp(-(x^2) / 2)  
 }
+```
 
-# Grid for GHQ with 3 points
+```{r}
+plot <- data.frame(x = seq(from = -10, to = 10, by = 0.1)) %>%
+  mutate(
+    y = f(x)
+  ) %>%
+  ggplot(aes(x = x, y = y)) +
+    geom_line() +
+    theme_minimal()
+
+plot
+```
+
+
+Going to do Gauss-Hermite quadrature with `k = 3` points:
+
+```{r}
 gg <- mvQuad::createNIGrid(1, "GHe", 3)
+```
+
+The positions of the nodes and their weights are:
+
+```{r}
+gg$nodes
+gg$weights
+
+#' The scale for weights is a bit silly
+plot +
+  geom_point(
+    data = data.frame(nodes = gg$nodes, weights = gg$weights, y = 0), 
+    aes(x = nodes, y = y, size = weights),
+    col = cbpalette[2]
+  )
+```
+
+We can perform the quadrature using `mvQuad` via:
+
+```{r}
 mvQuad::quadrature(f, gg)
+```
+
+Or more manually via:
+
+```{r}
+sum(f(gg$nodes) * gg$weights)
+
+#' Note: you can also use these functions to get the nodes and weights
+# mvQuad::getNodes(gg)
+# mvQuad::getWeights(gg)
+```
+
+This is surprisingly close to the real answer, which is:
+
+```{r}
 sqrt(2 * pi)
+```
 
-mvQuad::getNodes(gg)
-mvQuad::getWeights(gg)
+## Two dimensional example
 
-# Two dimensional example
+What about in two dimensions?
+
+```{r}
+f <- function(x) {
+  prod(exp(-(x^2) / 2))
+}
+
+df <- expand.grid(
+  x1 = seq(-3, 3, by = 0.1),
+  x2 = seq(-3, 3, by = 0.1)
+)
+
+plot2 <- df %>%
+  rowwise() %>%
+  mutate(
+    y = f(c(x1, x2))
+  ) %>%
+  ggplot(aes(x = x1, y = x2, fill = y)) +
+    geom_tile() +
+    theme_minimal()
+
+plot2
+```
+
+```{r}
+gg2 <- mvQuad::createNIGrid(2, "GHe", 3)
+gg2
+```
+
+The nodes and weights are:
+
+```{r}
+mvQuad::getNodes(gg2)
+mvQuad::getWeights(gg2)
+```
+
+Equivalent to:
+
+```{r}
+expand.grid(mvQuad::getNodes(gg), mvQuad::getNodes(gg))
+cbind(apply(expand.grid(mvQuad::getWeights(gg), mvQuad::getWeights(gg)), 1, prod))
+```
+
+```{r}
+plot2 +
+  geom_point(
+    data = mvQuad::getNodes(gg2) %>%
+            as.data.frame() %>%
+            mutate(weights = mvQuad::getWeights(gg2)), 
+    aes(x = V1, y = V2, size = weights, fill = 1),
+    col = cbpalette[2]
+  )
+```
+
+Do the quadrature using:
+
+```{r}
+#' Need f to be defined like this for some reason
 f <- function(x) {
   apply(x, 1, function(y) prod(exp(-(y^2) / 2)))  
 }
 
-# Still 3 points (per dimension I'd guess)
-gg2 <- mvQuad::createNIGrid(2, "GHe", 3)
-
-mvQuad::getNodes(gg2)
-# which is equivalent to
-expand.grid(mvQuad::getNodes(gg),mvQuad::getNodes(gg))
-
-mvQuad::getWeights(gg2)
-# which is equivalent to
-cbind(apply(expand.grid(mvQuad::getWeights(gg),mvQuad::getWeights(gg)),1,prod))
-
 mvQuad::quadrature(f, gg2)
-2 * pi
+```
 
+As compare with the true answer:
+
+```{r}
+2 * pi
+```
+
+```{r}
 # Gauss Hermite Quadrature
 # Showing that the nodes are zeros of Hermite polynomial
 Hk <- as.function(mpoly::hermite(3, kind = "he"))
