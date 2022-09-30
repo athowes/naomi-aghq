@@ -16,3 +16,7 @@
 
 * [paper](https://athowes.github.io/elgm-inf/paper.pdf): work-in-progress write-up
 * [appendix](https://athowes.github.io/elgm-inf/appendix.pdf): additional material for write-up
+
+## Misc
+
+* [bayescomp](https://athowes.github.io/elgm-inf/bayescomp.html): abstract for BayesComp 2023 

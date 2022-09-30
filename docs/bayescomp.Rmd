@@ -1,0 +1,30 @@
+---
+title: "BayesComp 2023 and Bayesian Inference of Epidemics abstract submission"
+author: "Adam Howes, Imperial College London"
+date: "29th September 2022"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+[BayesComp 2023](https://bayescomp2023.com/) and [Bayesian Inference of Epidemics](https://warwick.ac.uk/fac/sci/statistics/staff/academic-research/corbella/bcepidemics2023).
+
+```{r echo=FALSE}
+title <- "Integrated nested Laplace approximations for extended latent Gaussian models, with application to the Naomi HIV evidence synthesis model"
+abstract <- "Naomi (Eaton et al, 2021) is a spatial evidence synthesis model used by countries in sub-Saharan Africa to produce HIV epidemic indicators. We combine the simplified integrated nested Laplace approximation approach of Wood (2020) with adaptive Gaussian hermite quadrature to enable fast and accurate inference for Naomi and other extended latent Gaussian models. Using data from Malawi, we compare our inference method to other approaches. We provide an easy to use implementation as a part of the `aghq` R package allowing flexible use of the INLA method for a broader class of models, including any with a `TMB` template."
+```
+
+**Title**:
+```{r echo=FALSE, results='asis'}
+cat(title)
+```
+
+Title word count: `r stringr::str_count(title, '\\w+')`.
+
+**Abstract**:
+```{r echo=FALSE, results='asis'}
+cat(abstract)
+```
+
+Abstract word count: `r stringr::str_count(abstract, '\\w+')`/200.
