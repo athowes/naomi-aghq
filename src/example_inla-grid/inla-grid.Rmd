@@ -185,7 +185,7 @@ plot
 ```
 
 ```{r}
-pdf("inla-grid.pdf", h = 4.5, w = 6.25)
+pdf("inla-grid.pdf", h = 4, w = 6.25)
 
 plot
 
