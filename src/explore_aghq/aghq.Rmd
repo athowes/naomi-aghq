@@ -48,7 +48,9 @@ he <- function(x) numDeriv::hessian(fn, x)
 ff <- list(fn = fn, gr = gr, he = he)
 ```
 
-Use the `aghq` package with `k = 3`:
+Use the `aghq` package with `k = 3`.
+Note that all `aghq::aghq::` is doing is normalising the posterior.
+We have already provided the exact posterior to it via `fn$ff`.
 
 ```{r}
 quad <- aghq::aghq(ff = ff, k = 3, startingvalue = 0)
@@ -62,22 +64,39 @@ class(quad)
 
 ```{r}
 summary(quad)
-plot(quad)
 ```
 
-The `quad` object contains:
+We can plot the log marginal posterior for `theta1` in its normalised and unnormalised versions.
+The unnormalised version doesn't require anything from `aghq`.
 
 ```{r}
-str(quad)
+data.frame(
+  theta1 = seq(from = 1, to = 2, by = 0.01)
+) %>%
+  mutate(
+    f_unnormalised = ff$fn(theta1),
+    f_normalised = f_unnormalised - quad$normalized_posterior$lognormconst
+  ) %>%
+  pivot_longer(
+    cols = starts_with("f"),
+    names_sep = "_",
+    names_to = c("function", "normalised")
+  ) %>%
+  ggplot(aes(x = theta1, y = value)) +
+    geom_line() +
+    facet_grid(~normalised) +
+    labs(x = "theta1", y = "log(posterior)") +
+    theme_minimal()
 ```
 
-The nodes and weights of the posterior are:
+The contents of the `quad` object can be viewed using `str(quad)`.
+One part of the contents are the nodes and weights used for quadrature, which are:
 
 ```{r}
 quad$normalized_posterior$nodesandweights
 ```
 
-The logarithm of the normalising constant (should correspond to `logpost - logpost_normalized`):
+The logarithm of the normalising constant (should correspond to `logpost - logpost_normalised`, the difference between the two curves above):
 
 ```{r}
 quad$normalized_posterior$lognormconst
@@ -113,11 +132,11 @@ plot <- data.frame(x = seq(from = -10, to = 10, by = 0.1)) %>%
   ) %>%
   ggplot(aes(x = x, y = y)) +
     geom_line() +
+    labs(x = "x", y = "f(x)") +
     theme_minimal()
 
 plot
 ```
-
 
 Going to do Gauss-Hermite quadrature with `k = 3` points:
 
@@ -131,13 +150,13 @@ The positions of the nodes and their weights are:
 gg$nodes
 gg$weights
 
-#' The scale for weights is a bit silly
 plot +
   geom_point(
     data = data.frame(nodes = gg$nodes, weights = gg$weights, y = 0), 
     aes(x = nodes, y = y, size = weights),
     col = cbpalette[2]
-  )
+  ) +
+  scale_size_continuous(limits = c(1, 2))
 ```
 
 We can perform the quadrature using `mvQuad` via:
@@ -146,17 +165,14 @@ We can perform the quadrature using `mvQuad` via:
 mvQuad::quadrature(f, gg)
 ```
 
-Or more manually via:
+This isn't doing anything fancy, it's just multiplying the values at the nodes by the weights:
 
 ```{r}
 sum(f(gg$nodes) * gg$weights)
-
-#' Note: you can also use these functions to get the nodes and weights
-# mvQuad::getNodes(gg)
-# mvQuad::getWeights(gg)
 ```
 
-This is surprisingly close to the real answer, which is:
+Note that you can also use these functions to get the nodes and weights: `mvQuad::getNodes(gg)`, `mvQuad::getWeights(gg)`.
+The answer we get with `aghq` is exact in this case, as compared with the true answer of $\sqrt {2 \pi}$ because the target function is a log-quadratic:
 
 ```{r}
 sqrt(2 * pi)
@@ -164,7 +180,8 @@ sqrt(2 * pi)
 
 ## Two dimensional example
 
-What about in two dimensions?
+What about a function in two dimensions?
+Take this one, where each marginal is the same as above:
 
 ```{r}
 f <- function(x) {
@@ -188,6 +205,8 @@ plot2 <- df %>%
 plot2
 ```
 
+Let's create a quadrature grid again:
+
 ```{r}
 gg2 <- mvQuad::createNIGrid(2, "GHe", 3)
 gg2
@@ -200,12 +219,14 @@ mvQuad::getNodes(gg2)
 mvQuad::getWeights(gg2)
 ```
 
-Equivalent to:
+This is equivalent to what can be achieved using the `gg` object from the one-dimensional example:
 
 ```{r}
 expand.grid(mvQuad::getNodes(gg), mvQuad::getNodes(gg))
 cbind(apply(expand.grid(mvQuad::getWeights(gg), mvQuad::getWeights(gg)), 1, prod))
 ```
+
+What do these nodes and weights look like on the plot?
 
 ```{r}
 plot2 +
@@ -215,13 +236,15 @@ plot2 +
             mutate(weights = mvQuad::getWeights(gg2)), 
     aes(x = V1, y = V2, size = weights, fill = 1),
     col = cbpalette[2]
-  )
+  ) +
+  labs(col = "f(x1, x2)") +
+  scale_size_continuous(limits = c(2, 4))
 ```
 
-Do the quadrature using:
+Ok! So now let's use `mvQuad` to do the quadrature:
 
 ```{r}
-#' Need f to be defined like this for some reason
+#' Need f to be defined like this for some reason, can probably be fixed
 f <- function(x) {
   apply(x, 1, function(y) prod(exp(-(y^2) / 2)))  
 }
@@ -229,50 +252,86 @@ f <- function(x) {
 mvQuad::quadrature(f, gg2)
 ```
 
-As compare with the true answer:
+Again, in this case the quadrature is exact
 
 ```{r}
 2 * pi
 ```
 
-```{r}
-# Gauss Hermite Quadrature
-# Showing that the nodes are zeros of Hermite polynomial
-Hk <- as.function(mpoly::hermite(3, kind = "he"))
-nn <- mvQuad::getNodes(gg)
-round(Hk(nn))
+See Definition 1 of the [theory paper](https://arxiv.org/pdf/2102.06801.pdf) for more on when the integration will be exact.
 
-# Adaptive: scale the nodes and weights by the mode and curvature
+## Gauss-Hermite Quadrature
+
+Define the Hermite polynomial with $k = 3$ as:
+
+```{r}
+Hk <- as.function(mpoly::hermite(3, kind = "he"))
+
+plot <- data.frame(x = seq(-3, 3, by = 0.1)) %>%
+  mutate(Hkx = Hk(x)) %>%
+  ggplot(aes(x = x, y = Hkx)) +
+    geom_line() + 
+    labs(x = "x", y = "H3(x)") +
+    theme_minimal()
+
+plot
+```
+
+In Gauss-Hermite quadrature, we pick nodes which are zeroes of the Hermite polynomial:
+
+```{r}
+nn <- mvQuad::getNodes(gg)
+
+plot +
+  geom_point(
+    data = data.frame(x = nn, y = Hk(nn)), aes(x = x, y = y),
+    col = cbpalette[2], size = 3
+  )
+```
+
+Note that these nodes are chosen *only* based on the Hermite polynomial.
+The function to be integrated has not played any role in their choice!
+This is probably not a good idea.
+So in adaptive quadrature, the function plays some role in how the points are chosen.
+Specifically in adaptive GHQ it's done by scaling the nodes and weights by the mode and curvature at the mode of the function to be integrated.
+Imagine we have some fake values for the mode `theta_hat` and curvature at the mode `theta_hess` as follows:
+
+```{r}
 theta_hat <- c(2, 3)
 theta_hess <- matrix(c(3, 1, 1, 5), nrow = 2, ncol = 2)
 theta_hess_inv <- solve(theta_hess)
-k <- 3
+```
 
-# Can be rescaled using mvQuad via
+Then the rescaling can be done with `mvQuad` easily via:
+
+```{r}
+k <- 3
 int_grid_software <- mvQuad::createNIGrid(2, "GHe", k)
 mvQuad::rescale(int_grid_software, m = theta_hat, C = theta_hess_inv, dec.type = 2)
-# or manually via
+```
+
+All that is doing manually to the nodes is:
+
+```{r}
 int_grid_manual <- mvQuad::createNIGrid(2, "GHe", k)
 nn_rescaled <- mvQuad::getNodes(int_grid_manual) %*% chol(theta_hess_inv)
 nn_rescaled[, 1] <- nn_rescaled[, 1] + theta_hat[1]
 nn_rescaled[, 2] <- nn_rescaled[, 2] + theta_hat[2]
-# and for the weights
+```
+
+Or to the weights is:
+
+```{r}
 mvQuad::getWeights(int_grid_software)
 ww_rescaled <- mvQuad::getWeights(int_grid_manual) * det(chol(theta_hess_inv))
-
-# k = 1 then ACHQ is a Laplace approximation
 ```
 
 # Tomato disease example
 
+Ok, let's now move on to an example with real data.
+
 ```{r}
-library(TMB)
 data("tswv", package = "EpiILMCT")
-
-precompile()
-compile("disease.cpp")
-dyn.load(dynlib("disease"))
-
 dat <- tswv$tswvsir
 dat$epidat <- dat$epidat[order(dat$epidat[, 4]), ]
 I <- dat$epidat[, 4]
@@ -285,7 +344,17 @@ datlist <- list(
   R = R,
   infected = as.numeric(infected[infected])
 )
+```
 
+```{r}
+precompile()
+compile("disease.cpp")
+dyn.load(dynlib("disease"))
+```
+
+Create the unnormalised negative log posterior using `TMB::MakeADFun` as follows:
+
+```{r}
 ff <- TMB::MakeADFun(
   data = datlist,
   parameters = list(theta1 = 0, theta2 = 0),
@@ -293,22 +362,58 @@ ff <- TMB::MakeADFun(
   ADreport = FALSE,
   silent = TRUE
 )
+```
 
+Perform AGHQ with $k = 7$, starting optimisation from $(0, 0)$:
+
+```{r}
 tm <- Sys.time()
-# c(0, 0) is start and k = 7, ilm = individual-level model (?)
+
 tmp <- capture.output(
-  ilmquadrature <- aghq::aghq(ff, 7, c(0, 0))
+  ilm_quadrature <- aghq::aghq(ff, 7, c(0, 0))
 )
+
 runtime <- difftime(Sys.time(), tm, units = "secs")
+```
 
-summary(ilmquadrature)
+The time this took was:
 
-# compute_moment is the mean (only?)
-ilm_means <- aghq::compute_moment(ilmquadrature$normalized_posterior, function(x) exp(x))
+```{r}
+runtime
+```
+
+Note that as there are $k = 7$ quadrature points per dimension, in total there are $7^2 = 49$:
+
+```{r}
+summary(ilm_quadrature)
+```
+The parameters $\alpha = \exp(\theta_1)$ and $\beta = \exp(\theta_2)$, which we can compute summaries for as follows:
+
+```{r}
+ilm_means <- aghq::compute_moment(ilm_quadrature$normalized_posterior, function(x) exp(x))
 names(ilm_means) <- c("alpha", "beta")
+ilm_means
+```
 
-# q is a vector of numeric values in (0, 1) giving the quantiles you want
+You can calculate other moments using the `ff`, `gg` or `nn` arguments to `aghq::compute_moment`.
+There is also some nuance to the argument `method`, either `reuse` or `correct`.
+`reuse` uses the previously computed AGHQ nodes and weights.
+`correct` recomputes the mode and curvature for the product of $g$ and the posterior; it has convergence proofs, but is a bit slower and can be unstable.
+
+We can also compute quantiles using the function `aghq::compute_quantiles`, where `q` is a vector of numeric values in $(0, 1)$.
+
+```{r}
 my_q <- c(0.025, 0.1, 0.5, 0.9, 0.975)
-exp(aghq::compute_quantiles(ilmquadrature$marginals[[1]], q = my_q)) # alpha
-exp(aghq::compute_quantiles(ilmquadrature$marginals[[2]], q = my_q)) # beta
+```
+
+For $\alpha$:
+
+```{r}
+exp(aghq::compute_quantiles(ilm_quadrature$marginals[[1]], q = my_q))
+```
+
+For $\beta$:
+
+```{r}
+exp(aghq::compute_quantiles(ilm_quadrature$marginals[[2]], q = my_q)) # beta
 ```
