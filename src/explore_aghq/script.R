@@ -3,3 +3,4 @@
 # setwd("src/explore_aghq")
 
 rmarkdown::render("aghq.Rmd")
+rmarkdown::render("walkthrough.Rmd")

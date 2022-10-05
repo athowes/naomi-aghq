@@ -417,3 +417,4 @@ For $\beta$:
 ```{r}
 exp(aghq::compute_quantiles(ilm_quadrature$marginals[[2]], q = my_q)) # beta
 ```
+

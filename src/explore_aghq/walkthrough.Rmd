@@ -1,0 +1,214 @@
+---
+title: "Code walkthrough"
+author:
+- name: Adam Howes
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    df_print: paged
+    code_folding: show
+    theme: lumen
+abstract: |
+  **Background**
+  
+  **Task**
+---
+
+In this section, we will step through some of the functions in `aghq` to make sure we understand them.
+We will use the epilepsy example, explained in more detail in the [`epil`](https://athowes.github.io/elgm-inf/epil.html) notebook.
+
+```{r}
+data(Epil, package = "INLA")
+
+center <- function(x) (x - mean(x))
+
+Epil <- Epil %>%
+  mutate(CTrt    = center(Trt),
+         ClBase4 = center(log(Base/4)),
+         CV4     = center(V4),
+         ClAge   = center(log(Age)),
+         CBT     = center(Trt * log(Base/4)))
+
+N <- 59
+J <- 4
+K <- 6
+X <- model.matrix(formula(~ 1 + CTrt + ClBase4 + CV4 + ClAge + CBT), data = Epil)
+y <- Epil$y
+
+make_epsilon_matrix <- function(N, J) {
+  t(outer(1:N, 1:(N * J), function(r, c) as.numeric((J*(r - 1) < c) & (c <= J*r))))
+}
+
+E <- make_epsilon_matrix(N = 3, J = 2)
+
+dat <- list(N = N, J = J, K = K, X = X, y = y, E = make_epsilon_matrix(N, J))
+
+compile("epil.cpp")
+dyn.load(dynlib("epil"))
+
+param <- list(
+  beta = rep(0, K),
+  epsilon = rep(0, N),
+  nu = rep(0, N * J),
+  l_tau_epsilon = 0,
+  l_tau_nu = 0
+)
+
+obj <- MakeADFun(
+  data = dat,
+  parameters = param,
+  random = c("epsilon", "nu"),
+  DLL = "epil"
+)
+```
+# `aghq::marginal_laplace_tmb`
+
+Start by calling this function, to show where we're trying to end up:
+
+```{r}
+fit <- aghq::marginal_laplace_tmb(
+  obj,
+  k = 2,
+  startingvalue = c(param$beta, param$l_tau_epsilon, param$l_tau_nu)
+)
+
+summary(fit)
+```
+
+And now let's go through line by line.
+These are all of the inputs to the function:
+
+```{r}
+ff <- obj
+k <- 2
+startingvalue <- c(param$beta, param$l_tau_epsilon, param$l_tau_nu)
+transformation <- aghq::default_transformation()
+optresults <- NULL
+basegrid <- NULL
+control <- aghq::default_control_tmb()
+```
+
+```{r}
+#' My guess is that this function just makes sure that the control input is valid
+validate_control(control, type = "tmb")
+
+#' And similarly, this probably makes sure the transformation input is valid
+validate_transformation(transformation)
+
+transformation <- make_transformation(transformation)
+transformation$totheta
+transformation$fromtheta
+transformation$jacobian
+
+#' Get names for the theta parameters from the TMB function template
+#' Note that make.unique will make the names unique by apending sequence numbers to duplicates
+thetanames <- NULL
+if (exists('par', ff)) thetanames <- make.unique(names(ff$par), sep = "")
+thetanames
+
+#' Hessian
+if (control$numhessian) {
+  ff$he <- function(theta) numDeriv::jacobian(ff$gr, theta, method = "Richardson")
+}
+
+#' Now we're going to do the AGHQ
+quad <- aghq(
+  ff = ff,
+  k = k,
+  transformation = transformation,
+  startingvalue = startingvalue,
+  optresults = optresults,
+  basegrid = basegrid,
+  control = control
+)
+
+#' There is an option whereby quad will just return the normalising constant, and if so then tmb_marginal_laplace can also be used
+#' just to return the normalising constant too. Note on this, why use tmb_marginal_laplace in this situation rather than aghq? Since
+#' as far as I understand we're not doing the marginal laplace approximation if control$onlynormconst is TRUE
+if (control$onlynormconst) return(quad)
+
+## Add on the info needed for marginal Laplace ##
+# Add on the quad point modes and curvatures
+
+distinctthetas <- quad$normalized_posterior$nodesandweights[, grep('theta', colnames(quad$normalized_posterior$nodesandweights))]
+distinctthetas
+```
+
+Note that there are `r nrow(distinctthetas)` "distinct thetas" corresponding to $k$, here `r k`, raised to the power `r ncol(distinctthetas)`:
+
+```{r}
+dim(distinctthetas)
+```
+
+```{r}
+#' I think this will just be fixing a case where there is only one theta, and somehow a data.frame isn't created
+if (!is.data.frame(distinctthetas)) distinctthetas <- data.frame(theta1 = distinctthetas)
+
+modesandhessians <- distinctthetas
+
+#' Replacing the theta, theta1, theta2, ... names with the names from TMB
+if (is.null(thetanames)) {
+  thetanames <- colnames(distinctthetas)
+} else {
+  colnames(modesandhessians) <- thetanames
+  colnames(quad$normalized_posterior$nodesandweights)[grep('theta',colnames(quad$normalized_posterior$nodesandweights))] <- thetanames
+}
+
+modesandhessians$mode <- vector(mode = "list", length = nrow(distinctthetas))
+modesandhessians$H <- vector(mode = "list", length = nrow(distinctthetas))
+
+#' There is a loop coming up, which we will step through for i = 1, then let a loop do for i = 2, ...
+i <- 1
+
+#' Get the theta (currently modesandhessians, despite being called modesandhessians, only contains the theta, not any mode or hessian)
+theta <- as.numeric(modesandhessians[i, thetanames])
+theta
+
+#' Set up the mode and hessian of the random effects. This happens when you run the TMB objective with a particular theta
+ff$fn(theta)
+
+#' Now pull the mode and hessian. Have to be careful about scoping
+
+#' So this is the mode, for both random and fixed effects
+mm <- ff$env$last.par
+
+#' These are the indices of the random effects
+ff$env$random
+
+#' We can confirm that for the fixed effects, the "mode" is just the input values theta
+#' (To get the indicies for the fixed effects, we just take the complement of the random effects)
+mm[-ff$env$random]
+theta
+
+#' Set the mode using the relevant indicies of mm
+#' "mode" is a list column
+modesandhessians[i, "mode"] <- list(list(mm[ff$env$random]))
+modesandhessians[i, ]
+
+#' This should be the Hessian evaluated at the mode
+#' The argument random = TRUE set it so that...
+H <- ff$env$spHess(mm, random = TRUE)
+
+#' Alex has the following note on duplicating H here:
+#' "Somehow, TMB puts all evaluations of spHess in the same memory location"
+#' Don't totally understand this
+H <- rlang::duplicate(H)
+
+modesandhessians[i, "H"] <- list(list(H))
+
+for (i in 2:nrow(distinctthetas)) {
+  theta <- as.numeric(modesandhessians[i,thetanames])
+  ff$fn(theta)
+  mm <- ff$env$last.par
+  modesandhessians[i,'mode'] <- list(list(mm[ff$env$random]))
+  H <- ff$env$spHess(mm,random = TRUE)
+  H <- rlang::duplicate(H)
+  modesandhessians[i,'H'] <- list(list(H))
+}
+
+quad$modesandhessians <- modesandhessians
+
+class(quad) <- c("marginallaplace", "aghq")
+```

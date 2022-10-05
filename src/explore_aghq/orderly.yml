@@ -2,13 +2,16 @@ script: script.R
 
 resources:
   - aghq.Rmd
+  - walkthrough.Rmd
   - disease.cpp
+  - epil.cpp
 
 artefacts:
   - data:
       description: Working through the aghq package
       filenames:
         - aghq.html
+        - walkthrough.html
 
 packages:
   - dplyr
