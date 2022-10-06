@@ -11,13 +11,13 @@ output:
     code_folding: show
     theme: lumen
 abstract: |
-  **Background**
+  **Background** The `aghq` package implements adaptive Gaussian Hermite quadrature. It is particularly compatible with the `TMB` package for Laplace approximations.
   
-  **Task**
+  **Task** In preparation for implementing new methods into `aghq`, in this notebook we walkthrough various `aghq` functions. This will improve understanding of (1) the method, and (2) how to manipulate `TMB` objects in R.
 ---
 
-In this section, we will step through some of the functions in `aghq` to make sure we understand them.
-We will use the epilepsy example, explained in more detail in the [`epil`](https://athowes.github.io/elgm-inf/epil.html) notebook.
+We use the epilepsy example, explained in more detail in the [`epil`](https://athowes.github.io/elgm-inf/epil.html) notebook, as example.
+Start by loading and preparing the data, as well as compling the `TMB` template:
 
 ```{r}
 data(Epil, package = "INLA")
@@ -60,20 +60,24 @@ obj <- MakeADFun(
   data = dat,
   parameters = param,
   random = c("epsilon", "nu"),
-  DLL = "epil"
+  DLL = "epil",
+  silent = TRUE
 )
 ```
+
 # `aghq::marginal_laplace_tmb`
 
-Start by calling this function, to show where we're trying to end up:
+We start by calling this function, to show where we're trying to end up:
 
-```{r}
+```{r results='hide'}
 fit <- aghq::marginal_laplace_tmb(
   obj,
   k = 2,
   startingvalue = c(param$beta, param$l_tau_epsilon, param$l_tau_nu)
 )
+```
 
+```{r}
 summary(fit)
 ```
 
@@ -112,7 +116,9 @@ thetanames
 if (control$numhessian) {
   ff$he <- function(theta) numDeriv::jacobian(ff$gr, theta, method = "Richardson")
 }
+```
 
+```{r results='hide'}
 #' Now we're going to do the AGHQ
 quad <- aghq(
   ff = ff,
@@ -123,14 +129,13 @@ quad <- aghq(
   basegrid = basegrid,
   control = control
 )
+```
 
+```{r}
 #' There is an option whereby quad will just return the normalising constant, and if so then tmb_marginal_laplace can also be used
 #' just to return the normalising constant too. Note on this, why use tmb_marginal_laplace in this situation rather than aghq? Since
 #' as far as I understand we're not doing the marginal laplace approximation if control$onlynormconst is TRUE
 if (control$onlynormconst) return(quad)
-
-## Add on the info needed for marginal Laplace ##
-# Add on the quad point modes and curvatures
 
 distinctthetas <- quad$normalized_posterior$nodesandweights[, grep('theta', colnames(quad$normalized_posterior$nodesandweights))]
 distinctthetas
