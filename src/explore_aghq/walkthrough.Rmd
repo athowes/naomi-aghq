@@ -216,4 +216,114 @@ for (i in 2:nrow(distinctthetas)) {
 quad$modesandhessians <- modesandhessians
 
 class(quad) <- c("marginallaplace", "aghq")
+
 ```
+
+# `aghq::sample_marginal`
+
+What we'd like to do is to sample from
+$$
+\begin{align}
+\tilde p(x_i \, | \, y) &= \sum_z \tilde p_\text{G}(x_i \, | \, \theta(z), y) \tilde p_\text{LA}(\theta(z) \, | \, y) w_k(z), \\
+&= \sum_z \tilde p_\text{G}(x_i \, | \, \theta(z), y) \lambda(z)
+\end{align}
+$$
+where $\lambda(z) \in [0, 1]$ are weights such that $\sum_z \lambda(z) = 1$.
+We can do this by
+
+1. Sample $z_j \sim \text{Multinomial}(1, \lambda(z_1), \ldots, \lambda(z_J))$
+2. Given $z_j$ sample from $\tilde p_\text{G}(x \, | \, \theta(z_j), y)$
+3. Take the $i$th entry of $\tilde p_\text{G}(x \, | \, \theta(z_j), y)$ as the sample from $\tilde p_\text{G}(x_i \, | \, \theta(z_j), y)$
+
+Now that we have `quad`, it should be compatible with `sample_marginal`:
+
+```{r}
+#' The number of samples to get
+M <- 10
+
+transformation <- quad$transformation
+interpolation <- "auto"
+
+#' Is this getting mc.cores, and if there isn't a value just setting it to 1 (integer)
+numcores <- getOption("mc.cores", 1L)
+
+#' Length of the random effects
+d <- dim(quad$modesandhessians$H[[1]])[1]
+
+simlist <- quad$modesandhessians
+
+#' Avoid use of parallel computing on Windows
+if (.Platform$OS.type == 'windows') numcores <- 1
+```
+
+The next step is to compute the Cholesky decomposition `L` of the Hessian `H` such that
+$$
+H = LL^\top
+$$
+The reason we want the Cholesky is that we will be using it to same from the joint Gasusian approximation.
+The function `chol` from `base` will compute it for us.
+For example, for the first element:
+
+```{r}
+h <- simlist$H[[1]]
+h <- Matrix::forceSymmetric(h)
+L <- chol(h, perm = FALSE)
+L
+```
+
+Doing this for the list using `lapply`:
+
+```{r}
+simlist$L <- lapply(simlist$H,function(h) chol(Matrix::forceSymmetric(h), perm = FALSE))
+```
+
+There is another version, using the arguments `perm` and `LDL` (which I don't understand) that may be quicker but ultimately will achieve the same thing:
+
+```{r}
+# simlist$L <- lapply(simlist$H, function(h) Matrix::Cholesky(as(Matrix::forceSymmetric(h), "sparseMatrix"), perm = TRUE, LDL = FALSE))
+```
+
+Now let's compute the $\lambda(z)$ weights.
+
+```{r}
+simlist$lambda <- exp(quad$normalized_posterior$nodesandweights$logpost_normalized) * quad$normalized_posterior$nodesandweights$weights
+simlist$lambda
+```
+
+We can check that they do indeed sum to one:
+
+```{r}
+sum(simlist$lambda)
+```
+
+Now let's sample from the multinomial:
+
+```{r eval=FALSE}
+j <- apply(stats::rmultinom(M, 1, simlist$lambda), 2, function(x) which(x == 1))
+j
+
+#' Values are number of samples to draw for each j
+#' In this case they're likely to be all 1, since we're not doing many samples
+tt <- table(j)
+```
+
+Now we construct a big Gaussian mixture matrix.
+The first step is to create a matrix with `d` columns, one for each random effect, and `M` rows, one for each sample, where each value is a standard normal $\mathcal{N}(0, 1)$:
+
+```{r}
+A <- matrix(stats::rnorm(M * d), nrow = M)
+
+#' Now make a list where each element is a row of A, where the index is determined by j
+A_split <- split(A, j)
+
+#' Big Gaussian mixture matrix
+
+#' For each element of the list, create a matrix with d rows (and 1 column? always?)
+Z <- lapply(A_split, matrix , nrow = d)
+```
+
+
+
+
+
+

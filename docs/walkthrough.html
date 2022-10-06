@@ -3040,7 +3040,7 @@ transformation$totheta</code></pre>
 ##     out
 ## }
 ## &lt;bytecode: 0x7f78972c0c18&gt;
-## &lt;environment: 0x7f78c18db5c8&gt;</code></pre>
+## &lt;environment: 0x7f789030a668&gt;</code></pre>
 <pre class="r"><code>#&#39; Get names for the theta parameters from the TMB function template
 #&#39; Note that make.unique will make the names unique by apending sequence numbers to duplicates
 thetanames &lt;- NULL
@@ -3157,6 +3157,126 @@ for (i in 2:nrow(distinctthetas)) {
 quad$modesandhessians &lt;- modesandhessians
 
 class(quad) &lt;- c(&quot;marginallaplace&quot;, &quot;aghq&quot;)</code></pre>
+</div>
+<div id="aghqsample_marginal" class="section level1">
+<h1><code>aghq::sample_marginal</code></h1>
+<p>What we’d like to do is to sample from <span class="math display">\[
+\begin{align}
+\tilde p(x_i \, | \, y) &amp;= \sum_z \tilde p_\text{G}(x_i \, | \,
+\theta(z), y) \tilde p_\text{LA}(\theta(z) \, | \, y) w_k(z), \\
+&amp;= \sum_z \tilde p_\text{G}(x_i \, | \, \theta(z), y) \lambda(z)
+\end{align}
+\]</span> where <span class="math inline">\(\lambda(z) \in [0,
+1]\)</span> are weights such that <span class="math inline">\(\sum_z
+\lambda(z) = 1\)</span>. We can do this by</p>
+<ol style="list-style-type: decimal">
+<li>Sample <span class="math inline">\(z_j \sim \text{Multinomial}(1,
+\lambda(z_1), \ldots, \lambda(z_J))\)</span></li>
+<li>Given <span class="math inline">\(z_j\)</span> sample from <span class="math inline">\(\tilde p_\text{G}(x \, | \, \theta(z_j),
+y)\)</span></li>
+<li>Take the <span class="math inline">\(i\)</span>th entry of <span class="math inline">\(\tilde p_\text{G}(x \, | \, \theta(z_j),
+y)\)</span> as the sample from <span class="math inline">\(\tilde
+p_\text{G}(x_i \, | \, \theta(z_j), y)\)</span></li>
+</ol>
+<p>Now that we have <code>quad</code>, it should be compatible with
+<code>sample_marginal</code>:</p>
+<pre class="r"><code>#&#39; The number of samples to get
+M &lt;- 10
+
+transformation &lt;- quad$transformation
+interpolation &lt;- &quot;auto&quot;
+
+#&#39; Is this getting mc.cores, and if there isn&#39;t a value just setting it to 1 (integer)
+numcores &lt;- getOption(&quot;mc.cores&quot;, 1L)
+
+#&#39; Length of the random effects
+d &lt;- dim(quad$modesandhessians$H[[1]])[1]
+
+simlist &lt;- quad$modesandhessians
+
+#&#39; Avoid use of parallel computing on Windows
+if (.Platform$OS.type == &#39;windows&#39;) numcores &lt;- 1</code></pre>
+<p>The next step is to compute the Cholesky decomposition <code>L</code>
+of the Hessian <code>H</code> such that <span class="math display">\[
+H = LL^\top
+\]</span> The reason we want the Cholesky is that we will be using it to
+same from the joint Gasusian approximation. The function
+<code>chol</code> from <code>base</code> will compute it for us. For
+example, for the first element:</p>
+<pre class="r"><code>h &lt;- simlist$H[[1]]
+h &lt;- Matrix::forceSymmetric(h)
+L &lt;- chol(h, perm = FALSE)
+L</code></pre>
+<pre><code>## 295 x 295 sparse Matrix of class &quot;dtCMatrix&quot;
+##                                                                                                                                                                                                                                             
+## [1,] 4.175814 .        .        .        .        . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 0.9969627 0.8183811 0.8183811 0.721608 .         .         .         .        
+## [2,] .        4.173932 .        .        .        . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .         .         .         .        0.8178211 0.9963606 0.8178211 0.7210789
+## [3,] .        .        3.730687 .        .        . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .         .         .         .        .         .         .         .        
+## [4,] .        .        .        4.017652 .        . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .         .         .         .        .         .         .         .        
+## [5,] .        .        .        .        7.619454 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .         .         .         .        .         .         .         .        
+##                                                                                                                                                                                                
+## [1,] .         .         .         .         .         .         .         .         .        .        .        .        . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ......
+## [2,] .         .         .         .         .         .         .         .         .        .        .        .        . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ......
+## [3,] 0.6608374 0.8230477 0.5230443 0.8053812 .         .         .         .         .        .        .        .        . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ......
+## [4,] .         .         .         .         0.8769562 0.8769562 0.6366786 0.7742805 .        .        .        .        . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ......
+## [5,] .         .         .         .         .         .         .         .         1.228496 2.190027 1.388735 2.362534 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ......
+## 
+##  ..............................
+##  ........suppressing 184 columns and 286 rows in show(); maybe adjust &#39;options(max.print= *, width = *)&#39;
+##  ..............................
+##                                                                                                                                                                                                                                            
+## [292,] . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ......
+## [293,] . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ......
+## [294,] . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ......
+## [295,] . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ......</code></pre>
+<p>Doing this for the list using <code>lapply</code>:</p>
+<pre class="r"><code>simlist$L &lt;- lapply(simlist$H,function(h) chol(Matrix::forceSymmetric(h), perm = FALSE))</code></pre>
+<p>There is another version, using the arguments <code>perm</code> and
+<code>LDL</code> (which I don’t understand) that may be quicker but
+ultimately will achieve the same thing:</p>
+<pre class="r"><code># simlist$L &lt;- lapply(simlist$H, function(h) Matrix::Cholesky(as(Matrix::forceSymmetric(h), &quot;sparseMatrix&quot;), perm = TRUE, LDL = FALSE))</code></pre>
+<p>Now let’s compute the <span class="math inline">\(\lambda(z)\)</span>
+weights.</p>
+<pre class="r"><code>simlist$lambda &lt;- exp(quad$normalized_posterior$nodesandweights$logpost_normalized) * quad$normalized_posterior$nodesandweights$weights
+simlist$lambda</code></pre>
+<pre><code>##   [1] 0.006359709 0.006024268 0.006375453 0.005857861 0.006285794 0.006311227 0.006457565 0.006328236 0.006288827 0.005968777 0.006312620 0.005809573 0.006224133 0.006264230 0.006403767 0.006288344 0.006318998 0.005932730 0.006339706
+##  [20] 0.005782329 0.006219092 0.006167953 0.006381289 0.006187597 0.006248738 0.005878333 0.006277648 0.005735025 0.006157320 0.006121521 0.006327693 0.006148300 0.006509102 0.006196431 0.006259054 0.005782659 0.006320389 0.006354283
+##  [39] 0.006244848 0.006133895 0.006440093 0.006142706 0.006199495 0.005736799 0.006260117 0.006308783 0.006193147 0.006095460 0.006384025 0.006020690 0.006152758 0.005640776 0.006184450 0.006138198 0.006113101 0.005938738 0.006316610
+##  [58] 0.005968761 0.006094579 0.005596281 0.006124665 0.006093632 0.006061882 0.005900986 0.002906828 0.002488744 0.002804173 0.002437460 0.003113658 0.002480143 0.002898691 0.002367071 0.002876502 0.002474885 0.002782678 0.002428467
+##  [77] 0.003069428 0.002461763 0.002868181 0.002356058 0.002825855 0.002417600 0.002715784 0.002366953 0.003060780 0.002415446 0.002829211 0.002297472 0.002799324 0.002405899 0.002697947 0.002359946 0.003019336 0.002398688 0.002801560
+##  [96] 0.002287946 0.002798032 0.002365227 0.002810366 0.002420443 0.003050017 0.002379692 0.002982790 0.002396492 0.002771944 0.002354643 0.002788108 0.002410709 0.003007374 0.002362780 0.002947696 0.002382391 0.002747516 0.002319180
+## [115] 0.002762945 0.002384603 0.003043343 0.002350720 0.002971468 0.002372663 0.002723942 0.002309775 0.002743001 0.002375787 0.003001650 0.002334213 0.002937289 0.002358729 0.005409981 0.004654413 0.005429678 0.004551673 0.005344840
+## [134] 0.004864648 0.005469425 0.004882535 0.005310991 0.004525617 0.005321734 0.004417332 0.005267329 0.004751287 0.005381602 0.004759841 0.005362665 0.004607152 0.005384374 0.004515654 0.005279418 0.004779383 0.005391808 0.004797312
+## [153] 0.005264444 0.004480731 0.005277124 0.004383269 0.005201760 0.004668315 0.005304037 0.004676929 0.005516375 0.004788450 0.005329766 0.004512154 0.005365692 0.004907362 0.005301238 0.004762202 0.005417473 0.004658373 0.005225003
+## [172] 0.004380563 0.005288392 0.004794230 0.005215793 0.004642916 0.005396817 0.004676263 0.005226006 0.004425204 0.005242820 0.004767010 0.005180162 0.004636553 0.005299850 0.004550182 0.005122892 0.004296825 0.005166005 0.004657206
+## [191] 0.005095236 0.004520289 0.001989998 0.001885348 0.001890532 0.001845576 0.002183866 0.001870921 0.001963783 0.001752191 0.001976097 0.001872610 0.001875510 0.001830042 0.002164183 0.001857874 0.001945183 0.001737887 0.001900493
+## [210] 0.001822109 0.001796349 0.001782219 0.002119830 0.001818175 0.001888845 0.001695087 0.001888316 0.001810800 0.001783024 0.001768040 0.002101116 0.001805963 0.001871246 0.001681565 0.001867953 0.001751003 0.001890929 0.001834522
+## [229] 0.002111318 0.001772196 0.002044698 0.001797234 0.001856222 0.001740555 0.001875332 0.001818625 0.002092105 0.001759983 0.002022942 0.001780702 0.001811225 0.001716915 0.001836296 0.001809481 0.002093761 0.001757978 0.002024014
+## [248] 0.001788093 0.001800432 0.001707165 0.001821508 0.001794023 0.002074412 0.001745741 0.002001959 0.001771243</code></pre>
+<p>We can check that they do indeed sum to one:</p>
+<pre class="r"><code>sum(simlist$lambda)</code></pre>
+<pre><code>## [1] 1</code></pre>
+<p>Now let’s sample from the multinomial:</p>
+<pre class="r"><code>j &lt;- apply(stats::rmultinom(M, 1, simlist$lambda), 2, function(x) which(x == 1))
+j
+
+#&#39; Values are number of samples to draw for each j
+#&#39; In this case they&#39;re likely to be all 1, since we&#39;re not doing many samples
+tt &lt;- table(j)</code></pre>
+<p>Now we construct a big Gaussian mixture matrix. The first step is to
+create a matrix with <code>d</code> columns, one for each random effect,
+and <code>M</code> rows, one for each sample, where each value is a
+standard normal <span class="math inline">\(\mathcal{N}(0,
+1)\)</span>:</p>
+<pre class="r"><code>A &lt;- matrix(stats::rnorm(M * d), nrow = M)
+
+#&#39; Now make a list where each element is a row of A, where the index is determined by j
+A_split &lt;- split(A, j)
+
+#&#39; Big Gaussian mixture matrix
+
+#&#39; For each element of the list, create a matrix with d rows (and 1 column? always?)
+Z &lt;- lapply(A_split, matrix , nrow = d)</code></pre>
 </div>
 
 
