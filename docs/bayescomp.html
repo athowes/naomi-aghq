@@ -1648,19 +1648,23 @@ extended latent Gaussian models, with application to the Naomi HIV
 model</p>
 <p>Title word count: 16.</p>
 <p><strong>Abstract</strong>: Naomi (Eaton et al, 2021) is a spatial
-evidence synthesis model used by countries in sub-Saharan Africa to
-produce district-level HIV epidemic indicators. We combine the
-simplified integrated nested Laplace approximation approach of Wood
-(2020) with adaptive Gaussian hermite quadrature to enable fast and
-accurate inference for Naomi and other extended latent Gaussian models.
-Using data from Malawi, we compare our inference method to both a simple
-Gaussian approximation via <code>TMB</code> and to NUTS via
-<code>tmbstan</code>. We provide an easy to use implementation as a part
-of the <code>aghq</code> R package allowing flexible use of the INLA
-method for a broader class of models than <code>R-INLA</code>. Given a
-<code>TMB</code> template, using our method requires minimal additional
-code.</p>
-<p>Abstract word count: 120/200.</p>
+evidence synthesis model used to produce district-level HIV epidemic
+indicators in sub-Saharan Africa. Performing computationally intensive
+inference using simulation-based methods like MCMC is infeasible in this
+setting as the model must be able to be easily run in production by
+countries, using their own data. We propose a new inference method which
+combines the simplified integrated nested Laplace approximation approach
+of Wood (2020) with adaptive Gaussian hermite quadrature to enable fast
+and accurate inference for Naomi and other extended latent Gaussian
+models. Using data from Malawi, we show that our inference method
+obtains substantially more accurate inferences than the simple Gaussian
+approximation obtained via <code>TMB</code>, as compared with
+gold-standard NUTS results obtained via <code>tmbstan</code>. We provide
+an easy to use implementation as a part of the <code>aghq</code> R
+package allowing flexible use of the INLA method for a broader class of
+models than <code>R-INLA</code>. Given a <code>TMB</code> template,
+using our method requires minimal additional code.</p>
+<p>Abstract word count: 168/200.</p>
 
 
 
