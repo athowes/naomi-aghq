@@ -11,7 +11,7 @@
 ## Presentations
 
 * [01-07-21-stats-epi-group](https://athowes.github.io/elgm-inf/01-07-21-stats-epi-group.pdf): [Machine Learning & Global Health Network](https://mlgh.net/) group meeting
-* [xx-10-22-seminar](https://athowes.github.io/elgm-inf/xx-10-22-seminar.pdf): Waterloo [SAS Student Seminar Series](https://uwaterloo.ca/statistics-and-actuarial-science/student-seminar-series)
+* [15-11-22-seminar](https://athowes.github.io/elgm-inf/15-11-22-seminar.pdf): Waterloo [SAS Student Seminar Series](https://uwaterloo.ca/statistics-and-actuarial-science/student-seminar-series)
 
 ## Manuscript
 

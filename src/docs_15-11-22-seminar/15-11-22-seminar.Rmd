@@ -3,7 +3,7 @@ title: Inference methods for extended latent Gaussian models
 subtitle: Waterloo SAS Student Seminar Series
 author: Adam Howes
 institute: Imperial College London
-date: October 2022
+date: November 2022
 bibliography: citations.bib
 output:
   beamer_presentation:

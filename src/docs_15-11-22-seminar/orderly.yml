@@ -4,10 +4,10 @@ artefacts:
   - data:
       description: Slides
       filenames:
-        - xx-10-22-seminar.pdf
+        - 15-11-22-seminar.pdf
 
 resources:
-  - xx-10-22-seminar.Rmd
+  - 15-11-22-seminar.Rmd
   - preamble.tex
   - citations.bib
   - naomi_hex.png
