@@ -287,7 +287,7 @@ Now let's compute the $\lambda(z)$ weights.
 
 ```{r}
 simlist$lambda <- exp(quad$normalized_posterior$nodesandweights$logpost_normalized) * quad$normalized_posterior$nodesandweights$weights
-simlist$lambda
+head(simlist$lambda)
 ```
 
 We can check that they do indeed sum to one:
@@ -298,8 +298,9 @@ sum(simlist$lambda)
 
 Now let's sample from the multinomial:
 
-```{r eval=FALSE}
+```{r}
 j <- apply(stats::rmultinom(M, 1, simlist$lambda), 2, function(x) which(x == 1))
+length(j) #' Should be M
 j
 
 #' Values are number of samples to draw for each j
@@ -320,6 +321,91 @@ A_split <- split(A, j)
 
 #' For each element of the list, create a matrix with d rows (and 1 column? always?)
 Z <- lapply(A_split, matrix , nrow = d)
+str(Z)
+```
+
+In the code there is now a big call to `mapply`, which we are going to break down step-by-step.
+First set the inital values that `function(.x, .y)` will iterate over:
+
+```{r}
+.x <- Z[[1]]
+str(.x)
+
+.y <- names(Z)[[1]]
+str(.y)
+```
+
+Now solve the equation `L %*% .z = .x` for `.z` 
+
+```{r}
+.z <- solve(simlist$L[[as.numeric(.y)]], .x)
+str(.z)
+```
+
+Now add the mode (where the additional manipulation is so that if there are multiple samples from the same `j` then there will be the corresonding number of columns):
+
+```{r}
+.z <- .z + do.call(cbind, rep(list(simlist$mode[[as.numeric(.y)]]), ncol(.x)))
+str(.z)
+```
+
+Do this using a `mapply` call:
+
+```{r}
+samps <- mapply(
+  function(.x, .y) as.numeric(solve(simlist$L[[as.numeric(.y)]], .x)) + do.call(cbind, rep(list(simlist$mode[[as.numeric(.y)]]), ncol(.x))),
+  Z,
+  names(Z),
+  SIMPLIFY = FALSE
+)
+
+#' Order them properly
+#' My guess is that you'd want them to be ordered according to how j was drawn, rather
+#' than being grouped up by the value of lambda
+ord <- numeric(length(j))
+cumtab <- cumsum(c(0, tt))
+cumtab <- cumtab[-length(cumtab)]
+cnt <- numeric(length(unique(j)))
+names(cnt) <- sort(unique(j))
+
+for (i in 1:length(j)) {
+  wc <- which(names(cnt) == j[i])
+  cnt[wc] <- cnt[wc] + 1
+  ord[i] <- cumtab[wc] + cnt[wc]
+}
+
+samps <- Reduce(cbind, samps)
+samps <- samps[, ord]
+samps
+```
+
+```{r}
+#' This is now the length of the fixed effects
+d <- length(quad$optresults$mode)
+
+#' Just so that we can get the names of the theta (fixed effects)
+thetanames <- colnames(quad$normalized_posterior$nodesandweights)[1:d]
+theta <- simlist[j, thetanames]
+
+#' In one dimension, R's indexing is not type consistent
+if (!is.matrix(samps)) {
+  samps <- rbind(samps)
+  rownames(samps) <- NULL
+}
+
+if (!inherits(theta, "data.frame")) theta <- data.frame(theta1 = theta)
+
+out <- list(
+  samps = samps,
+  theta = theta
+)
+
+out$theta
+
+# Add the marginals for theta, with possible transformation
+class(quad) <- "aghq" #' This is preventing sample_marginal.marginallaplace being used
+out$thetasamples <- sample_marginal(quad, M, transformation, interpolation)
+str(out)
 ```
 
 
