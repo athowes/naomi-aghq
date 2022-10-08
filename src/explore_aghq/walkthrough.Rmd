@@ -158,7 +158,7 @@ if (is.null(thetanames)) {
   thetanames <- colnames(distinctthetas)
 } else {
   colnames(modesandhessians) <- thetanames
-  colnames(quad$normalized_posterior$nodesandweights)[grep('theta',colnames(quad$normalized_posterior$nodesandweights))] <- thetanames
+  colnames(quad$normalized_posterior$nodesandweights)[grep('theta', colnames(quad$normalized_posterior$nodesandweights))] <- thetanames
 }
 
 modesandhessians$mode <- vector(mode = "list", length = nrow(distinctthetas))
@@ -219,7 +219,7 @@ class(quad) <- c("marginallaplace", "aghq")
 
 ```
 
-# `aghq::sample_marginal`
+# `aghq::sample_marginal.marginallaplace`
 
 What we'd like to do is to sample from
 $$
@@ -408,8 +408,95 @@ out$thetasamples <- sample_marginal(quad, M, transformation, interpolation)
 str(out)
 ```
 
+# `aghq::sample_marginal.aghq`
 
+Let's have a look at what that call to `sample_marginal.aghq` is doing:
 
+```{r}
+class(quad)
 
+out <- list()
 
+#' If the quadrature object somehow doesn't contain any information about the 
+if (is.null(quad$marginals)) return(out)
 
+str(quad$marginals)
+```
+
+As usual, we're going to start by doing the computation for the first element of `theta` explicitly:
+
+```{r}
+i <- 1
+```
+
+We already have information about each marginal, contained in:
+
+```{r}
+quad$marginals[[i]]
+```
+
+So we can use the function `aghq::compute_quantiles` to, my guess, use the inverse CDF method to sample from the marginal, given input of some $\mathcal{U}(0, 1)$ draws:
+
+```{r}
+unif <- stats::runif(M)
+unif
+
+compute_quantiles(quad$marginals[[i]], unif, interpolation = interpolation, transformation = transformation)
+```
+
+```{r}
+for (i in 1:length(quad$marginals)) {
+  out[[i]] <- unname(compute_quantiles(quad$marginals[[i]], stats::runif(M), interpolation = interpolation, transformation = transformation))
+} 
+
+#' The function doesn't name these yet, but in future it could (and also return a data.frame) via
+d <- length(quad$optresults$mode)
+thetanames <- colnames(quad$normalized_posterior$nodesandweights)[1:d]
+names(out) <- thetanames
+as.data.frame(out)
+```
+
+# `aghq::compute_quantiles.aghq`
+
+Does the `compute_quantiles` function work as we expect it to?
+
+```{r}
+class(quad$marginals[[i]])
+```
+
+The PDF and CDF are computed by `compute_pdf_and_cdf` (as the name suggests, and another layer deep that we can look).
+Code comments note that transformations are not applied at this point, and that it's better to transform the quantiles later:
+
+```{r}
+q <- stats::runif(M)
+
+pdfandcdf <- compute_pdf_and_cdf(quad$marginals[[i]], interpolation = interpolation)
+
+ggplot(pdf_and_cdf, aes(x = theta, y = cdf)) +
+  geom_line() +
+  theme_minimal()
+  
+out <- numeric(length(q))
+increasing <- TRUE
+
+validate_transformation(transformation)
+transformation <- make_transformation(transformation)
+```
+
+For each sample, take the maximum `theta` which still has CDF value less than the quantile desired:
+
+```{r}
+for (i in 1:length(q)) out[i] <- pdfandcdf$theta[max(which(pdfandcdf$cdf < q[i]))]
+
+#' Have to check if it's increasing or decreasing so can reverse order if necessary
+increasing <- transformation$fromtheta(min(out)) <= transformation$fromtheta(max(out))
+for (i in 1:length(out)) out[i] <- transformation$fromtheta(out[i])
+
+if (!increasing) out <- rev(out)
+names(out) <- paste0(as.character(100 * q), "%")
+out
+```
+
+# `compute_pdf_and_cdf`
+
+Going to leave this as a to-do.
