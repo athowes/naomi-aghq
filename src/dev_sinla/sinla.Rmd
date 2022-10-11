@@ -130,7 +130,7 @@ This is same approach used by `method = "gaussian"` in `R-INLA`.
 The Gaussian approximation $p_\text{G}(x \, | \, \theta, y)$ is previously used in computing the Laplace approximation to $p(\theta \, | \, y)$
 $$
 \begin{equation}
-\tilde p(\theta \, | \, y) \propto \frac{p(x, \theta, y)}{p_\text{G}(x \, | \, \theta, y)} \Big\rvert_{x = \hat{\mu}(\theta)} = \frac{p(y, \hat{\mu}(\theta), \theta)}{\det(2 \pi \hat{Q}(\theta))^{1/2}}, (\#eq:pthetagiveny)
+\tilde p(\theta \, | \, y) \propto \frac{p(x, \theta, y)}{p_\text{G}(x \, | \, \theta, y)} \Big\rvert_{x = \hat{\mu}(\theta)} = \frac{p(y, \hat{\mu}(\theta), \theta)}{\det \left(\frac{1}{2 \pi} \hat{Q}(\theta) \right)^{1/2}}, (\#eq:pthetagiveny)
 \end{equation}
 $$
 such that one easy way to calculate it is to use set `random = "x"` in the `TMB` template to integrate the latent field out, then recover the Gaussian approximation from there, as we have done in the function `h` above.
@@ -208,14 +208,15 @@ numer
 Then for the denominator, it should be as follows:
 
 ```{r}
-denom <- 0.5 * log(det(2 * pi * Q))
+denom <- 0.5 * (determinant(Q, logarithm = TRUE)$modulus - (nrow(Q) * log(2 * pi)))
 denom
 ```
 
-On the negative log-likelihood scale, the number we get is:
+Note that we use `determinant` on the log-scale as it is more numerically stable than e.g. `log(det(...))`.
+On the log-likelihood scale, the number we get is:
 
 ```{r}
--1 * (numer - denom)
+numer - denom
 ```
 
 As compared with what we got from `h`.
@@ -223,7 +224,7 @@ They're not the same!
 Something is wrong here:
 
 ```{r}
-h$fn(input_param[c("beta_prev", "log_sigma_phi_prev")])
+-1 * h$fn(input_param[c("beta_prev", "log_sigma_phi_prev")])
 ```
 
 ## $\tilde p(x_i \, | \, y)$
@@ -265,7 +266,7 @@ Another approach we might take is to calculate the full Laplace approximation
 $$
 \begin{align*}
   \tilde p(x_i \, | \, \theta, y) &\propto \frac{p(x, \theta, y)}{p_\text{G}(x_{-i} \, | \, x_i, \theta, y)} \Big\rvert_{x_{-i} = \hat{\mu}_{-i}(x_i, \theta)} \\
-  &= \frac{p(y, x_i, \hat{\mu}_{-i}(x_i, \theta), \theta)}{\det(2 \pi \hat{Q}_{-i}(x_i, \theta))^{1/2}}
+  &= \frac{p(y, x_i, \hat{\mu}_{-i}(x_i, \theta), \theta)}{\det(\frac{1}{2 \pi} \hat{Q}_{-i}(x_i, \theta))^{1/2}}
 \end{align*}
 $$
 This is not practical in some settings as it involves recomputing the Gaussian approximation $p_\text{G}(x_{-i} \, | \, x_i, \theta, y)$ for each value of $(x_i, \theta)$ which can be too computationally expensive.
@@ -369,7 +370,7 @@ transformed_param
 obj$fn(transformed_param)
 ```
 
-# Reproducing output from `obj`
+## Reproducing output from `obj`
 
 As above, we should be able to reproduce the output of `obj$fn` using the mean and precision matrix, together with the function `f`.
 Recall that `f` takes as input the complete $(x, \theta)$ ($y$ is already fixed).
@@ -397,18 +398,18 @@ numer
 And the denominator of the Laplace approximation (again on the log-scale) is:
 
 ```{r}
-denom <- 0.5 * log(det(2 * pi * Q))
+denom <- 0.5 * (determinant(Q, logarithm = TRUE)$modulus - (nrow(Q) * log(2 * pi)))
 denom
 ```
 
 ```{r}
--1 * (numer - denom)
+numer - denom
 ```
 
 Compare this to the output from `obj`:
 
 ```{r}
-obj$fn(transformed_param)
+-1 * obj$fn(transformed_param)
 ```
 
 ## $\tilde p(x_i \, | \, y)$
