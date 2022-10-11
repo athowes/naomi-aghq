@@ -97,26 +97,32 @@ This can be found by minimising `h` using optimisers like `nlminb` or `optim`.
 The steps required are:
 
 1. Locate the mode of $\log p(\theta \, | \, y)$ which is the same as $\text{argmin}_{\theta} (-\log L^\star_f(\theta))$ and can be calculated as above.
-2. Calculate negative Hessian at the mode.
-The solution is likely to use some version of `h$env$spHess` although it's not clear which one.
-3. Test points against the $\delta_z$ condition
+2. Calculate negative Hessian at the mode using e.g. `h$env$spHess`.
+3. Reparameterise in terms of $z$ coordinates along the eigenvectors of the Hessian starting at the mode
+3. Test points at a certain step-size ($\delta_z$) against a condition whereby they must have sufficient posterior density (using a parameter $\delta_{\pi}$)
+
+For a more detailed run through of the grid integration method, see the [INLA two dimensional grid replication](https://athowes.github.io/elgm-inf/inla-grid.html) notebook.
 
 ### Adaptive Gaussian Hermite quadrature
 
+We could also use an adaptive Gauss Hermite quadrature rule.
+See the [Implementing Approximate Bayesian Inference using
+Adaptive Quadrature: the `aghq` Package](https://arxiv.org/pdf/2101.04468.pdf) paper.
 ## Stage 3: get $\tilde p(x_i \, | \, \theta, y)$
 
 ### Gaussian
 
-Obtain marginals of $\tilde p_G(x \, | \, \theta, y)$ from above.
+Obtain marginals of $\tilde p_{\text{G}}(x \, | \, \theta, y)$ from above.
 
 ### Laplace
 
-Compute the Laplace approximation 
+Compute the Laplace approximation $\tilde p_{\text{LA}}(x_i \, | \, \theta, y)$.
 
 ### Simplified Laplace
 
 ## Stage 4: apply quadrature
 
+Combine the Laplace approximation to the hyperparameter posterior from Stage 1, the quadrature nodes and weights from Stage 2, and the chosen posterior latent field marginal approximation from Stage 3 together in one equation:
 \begin{equation}
   \tilde p(x_i \, | \, y) = 
   \sum_{k = 1}^K \tilde p(x_i \, | \, \theta^{(k)}, y) \times \tilde p(\theta^{(k)} \, | \, y) \times \Delta^{(k)}
@@ -124,6 +130,7 @@ Compute the Laplace approximation
 
 # Example 1: Blangiardo
 
+This is the example from the book [Spatial and Spatio-temporal Bayesian Models with `R-INLA`](https://onlinelibrary.wiley.com/doi/book/10.1002/9781118950203).
 Consider the following simple model for i.i.d. observations $y = (y_1, \ldots, y_n)$
 \begin{align}
 y_i \, | \, x, \theta &\sim \mathcal{N}(x, 1/\theta), \\
@@ -149,7 +156,7 @@ The observations (ordered by index, though this has no interpretation) and prior
 ```{r, fig.height=2, fig.cap=""}
 data.frame(index = 1:30, y = y) %>%
   ggplot(aes(x = index, y = y)) +
-  geom_point(shape = 4) +
+  geom_point() +
   geom_hline(yintercept = -3, col = "#666666", lty = "dashed") +
   theme_minimal()
 ```
