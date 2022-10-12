@@ -1659,15 +1659,13 @@ We propose a new inference method which combines the simplified
 integrated nested Laplace approximation approach of Wood (2020) with
 adaptive Gauss-Hermite quadrature to enable fast and accurate inference
 for Naomi and other extended latent Gaussian models. Using data from
-Malawi, we show that the inferences obtained by our method are
-substantially more accurate than the empirical Bayes Gaussian
-approximation approach used currently, as compared with inferences from
-HMC with the No-U-Turn sampler as a gold-standard, where all methods are
-implemented via a common <code>TMB</code> C++ template for the
-log-posterior. By extending the <code>aghq</code> package (Stringer,
-2021) we facilitate flexible and easy use of our method when provided a
-<code>TMB</code> template.</p>
-<p>Abstract word count: 192/200.</p>
+Malawi, our method provides substantially more accurate inferences than
+the empirical Bayes Gaussian approximation approach used currently, and
+is comparable to Hamiltonian Monte Carlo with the No-U-Turn sampler. By
+extending the <code>aghq</code> package (Stringer, 2021) we facilitate
+flexible and easy use of our method when provided a <code>TMB</code> C++
+template for the log-posterior.</p>
+<p>Abstract word count: 173/200.</p>
 
 
 
