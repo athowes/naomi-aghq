@@ -1649,22 +1649,24 @@ model</p>
 <p>Title word count: 16.</p>
 <p><strong>Abstract</strong>: Naomi (Eaton et al, 2021) is a spatial
 evidence synthesis model used to produce district-level HIV epidemic
-indicators in sub-Saharan Africa. Performing computationally intensive
-inference using simulation-based methods like MCMC is infeasible in this
-setting as the model must be able to be easily run in production by
-countries, using their own data. We propose a new inference method which
-combines the simplified integrated nested Laplace approximation approach
-of Wood (2020) with adaptive Gaussian hermite quadrature to enable fast
-and accurate inference for Naomi and other extended latent Gaussian
-models. Using data from Malawi, we show that our inference method
-obtains substantially more accurate inferences than the simple Gaussian
-approximation obtained via <code>TMB</code>, as compared with
-gold-standard NUTS results obtained via <code>tmbstan</code>. We provide
-an easy to use implementation as a part of the <code>aghq</code> R
-package allowing flexible use of the INLA method for a broader class of
-models than <code>R-INLA</code>. Given a <code>TMB</code> template,
-using our method requires minimal additional code.</p>
-<p>Abstract word count: 168/200.</p>
+indicators in sub-Saharan Africa. Multiple outcomes of interest,
+including HIV prevalence, incidence and ART coverage are jointly
+modelled using both household survey data and routinely reported health
+system data. The model is provided as a tool for countries to run using
+their own data. In this setting, computationally intensive inference
+methods like MCMC are unappealing. We propose a new inference method
+which combines the simplified integrated nested Laplace approximation
+approach of Wood (2020) with adaptive Gauss-Hermite quadrature to enable
+fast and accurate inference for Naomi and other extended latent Gaussian
+models. Using data from Malawi, we show that the inferences obtained by
+our method are substantially more accurate than the empirical Bayes
+Gaussian approximation approach currently used, as compared with
+inferences from Hamiltonian Monte Carlo with the No-U-Turn sampler as a
+gold-standard. We implement all methods using a common <code>TMB</code>
+C++ template for the log-posterior. By extending the <code>aghq</code>
+package (Stringer, 2021) we facilitate flexible use of the method with
+only a few lines of code.</p>
+<p>Abstract word count: 190/200.</p>
 
 
 
