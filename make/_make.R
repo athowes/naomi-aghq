@@ -1,5 +1,5 @@
-src("make/epil.R")
 src("make/prev-anc-art.R")
+run_commit_push("epil")
 run_commit_push("example_inla-replication")
 run_commit_push("example_inla-grid")
 run_commit_push("explore_aghq")

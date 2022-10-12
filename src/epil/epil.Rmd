@@ -3,13 +3,17 @@ title: "Epilepsy example"
 author:
 - name: Adam Howes
 output:
-  html_document:
+  bookdown::html_document2:
     toc: yes
-    toc_float: true
-    toc_collapsed: true
+    toc_float: yes
+    toc_collapsed: yes
     df_print: paged
     code_folding: show
     theme: lumen
+abstract: |
+  **Background** Rue, Martino and Chopin (2009) use the epilespy example from the OpenBUGs manual as demonstration.
+  
+  **Task** We implement the epilepsy example in Stan, `R-INLA`, `TMB`, `glmmTMB`, `tmbstan` and `aghq`. We then compare the results of the inference methods.
 ---
 
 ```{r setup, class.source = 'fold-hide'}
@@ -26,6 +30,8 @@ library(tidyverse)
 rstan::rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 ```
+
+# Background
 
 Section 5.2. of Rue, Martino and Chopin (2009) demonstrates the application of \texttt{R-INLA} to a generalised linear mixed model.
 The data, previously included as an example in the OpenBUGs manual, concern the results of a clinical trial for a new epilepsy drug.
@@ -85,7 +91,11 @@ t(E %*% c(1, 2, 3)) # Same as rep(1:3, 2)
 
 Multiplying this matrix $E$ by the vector $\epsilon$ allows it to be directly added to the linear predictor $\eta = \beta X + \nu + E \epsilon$, where $\beta$ is the vector of coefficients and $X$ is the model matrix.
 
+# Inference methods
+
 ## Stan
+
+Hamiltonian Monte Carlo via the No-U-Turn algorithm, with one Markov chain of `iter = 1000` samples, and `warmup = 100` burn-in:
 
 ```{r results='hide'}
 dat <- list(N = N, J = J, K = K, X = X, y = y, E = make_epsilon_matrix(N, J))
@@ -100,16 +110,18 @@ fit1 <- stan(
 )
 ```
 
-## INLA
+## `R-INLA`
 
 Both $\tau_\epsilon$ and $\tau_\nu$ have the same $\Gamma(0.001, 0.001)$ prior.
-In INLA, the precision is internally represented as log-precision, therefore we must set a `loggamma` prior:
+In `R-INLA`, the precision is internally represented as log-precision, therefore we must set a `loggamma` prior:
 
 ```{r}
-tau_prior <- list(prec = list(prior = "loggamma",
-                              param = c(0.001, 0.001),
-                              initial = 1,
-                              fixed = FALSE))
+tau_prior <- list(prec = list(
+  prior = "loggamma",
+  param = c(0.001, 0.001),
+  initial = 1,
+  fixed = FALSE)
+)
 ```
 
 The variable `Epil$rand` is gives the row number for each entry and the variable `Epil$Ind` gives the patient number.
@@ -120,7 +132,11 @@ The usual R formula notation (e.g. `y ~ x1 + x2`) is used for the rest of the li
 formula <- y ~ 1 + CTrt + ClBase4 + CV4 + ClAge + CBT +
   f(rand, model = "iid", hyper = tau_prior) +  # Nu random effect
   f(Ind,  model = "iid", hyper = tau_prior)    # Epsilon random effect
+```
 
+We can use various settings for the strategy, which controls how the latent field posterior marginals are approximated:
+
+```{r}
 epil_inla <- function(strat) {
   inla(formula,
        control.fixed = list(mean = 0, prec = 1/100^2), # Beta prior
@@ -135,7 +151,7 @@ fit3 <- epil_inla(strat = "simplified.laplace")
 fit4 <- epil_inla(strat = "laplace")
 ```
 
-## TMB
+## `TMB`
 
 The objective function `obj$fn` and its gradient `obj$gn` are a function of only the parameters, which in this instance are the six regression coefficients $\beta$ together with the logarithms of $\tau_\epsilon$ and $\tau_\nu$.
 This can be checked with `names(obj$par)`.
@@ -157,21 +173,23 @@ param <- list(
 )
 ```
 
-`random` are integrated out with a Laplace approximation:
+We integrate `random` out with a Laplace approximation:
 
 ```{r}
 obj <- MakeADFun(
   data = dat,
   parameters = param,
   random = c("epsilon", "nu"),
-  DLL = "epil"
+  DLL = "epil",
+  silent = TRUE
 )
 ```
 
 Optimise `obj` using 1000 iterations of the the `nlminb` optimiser, passing in the starting values `start`, objective function `objective` and its derivative `gradient`:
 
-```{r results='hide'}
+```{r}
 its <- 1000 #' May converge before this
+
 opt <- nlminb(
   start = obj$par,
   objective = obj$fn,
@@ -184,51 +202,64 @@ sd_out <- sdreport(
   par.fixed = opt$par,
   getJointPrecision = TRUE
 )
-
-#' Check that TMB and Stan have the same objective function for sanity.
-#' To obtain the TMB negative log-likelihood we call `MakeADFun` as before, but now do not specify any parameters to be integrated out.
-#' For Stan, we create an empty model, then use `rstan::log_prob`.
-
-# tmb_nll <- MakeADFun(data = dat, parameters = param, DLL = "epil") # TMB objective
-# stan_nll <- stan("model/epil.stan", data = dat, chains = 0) # Stan objective
-
-#' Now test the NLL of the initialisation parameters `param`:
-
-# c(
-#   "TMB" = tmb_nll$fn(unlist(param)),
-#   "Stan" = -rstan::log_prob(object = stan_nll, unlist(param))
-# )
-
-#' To be more thorough, we can get all the parameters obtained using the MCMC:
-
-# pars_mat <- as.matrix(fit1)
-# pars_list <- apply(pars_mat, 1, function(x) relist(flesh = x, skeleton = fit1@inits[[1]]))
-# upars_list <- lapply(pars_list, function(x) unconstrain_pars(fit1, x))
-
-#' Just use a few of them
-
-# test_pars <- upars_list[1001:1010]
-# tmb_evals <- sapply(test_pars, tmb_nll$fn)
-# stan_evals <- -sapply(test_pars, FUN = rstan::log_prob, object = stan_nll)
-#
-# data.frame(
-#   "TMB" = tmb_evals,
-#   "Stan" = stan_evals
-# )
-
-#' Note: When there are errors in the C++ template code, usually to do with indexing (unlike Stan, in TMB there is no requirement when defining variables to give them dimensions), calling the `MakeADFun` function tends to crash the R session.
-#' A workaround (courtesy of Kinh) for debugging without crashing the working R session is to use the following (which creates new R sessions which crash in preference to the working R session).
-
-# library(parallel)
-# testrun <- mcparallel({MakeADFun(data = dat,
-#                                  parameters = param,
-#                                  DLL = "epil")})
-# obj <- mccollect(testrun, wait = TRUE, timeout = 0, intermediate = FALSE)
 ```
 
-## glmmTMB
+For completeness, we check here that the objective functions as implemented in Stan and `TMB` are identical.
+To obtain the `TMB` negative log-likelihood we call `MakeADFun` as before, but now do not specify any parameters to be integrated out.
+For Stan, we create an empty model, then use `rstan::log_prob`:
 
-[`glmmTMB`](https://glmmtmb.github.io/glmmTMB/) is an R package written by Ben Bolker and collaborators which allows fitting generalised linear mixed models in TMB without writing the C++ code.
+```{r}
+tmb_nll <- MakeADFun(data = dat, parameters = param, DLL = "epil")
+stan_nll <- stan("epil.stan", data = dat, chains = 0)
+```
+
+Now test the NLL of the initialisation parameters `param`:
+
+```{r}
+c(
+  "TMB" = tmb_nll$fn(unlist(param)),
+  "Stan" = -rstan::log_prob(object = stan_nll, unlist(param))
+)
+```
+
+To be more thorough, we can get all the parameters obtained using the MCMC:
+
+```{r}
+pars_mat <- as.matrix(fit1)
+pars_list <- apply(pars_mat, 1, function(x) relist(flesh = x, skeleton = fit1@inits[[1]]))
+upars_list <- lapply(pars_list, function(x) unconstrain_pars(fit1, x))
+```
+
+Using just a few of them, we can see that there is a difference, but that difference is a constant so doesn't matter:
+
+```{r}
+test_pars <- upars_list[500:510]
+tmb_evals <- sapply(test_pars, tmb_nll$fn)
+stan_evals <- -sapply(test_pars, FUN = rstan::log_prob, object = stan_nll)
+
+data.frame(
+  "TMB" = tmb_evals,
+  "Stan" = stan_evals
+) %>%
+  mutate(Difference = TMB - Stan)
+```
+
+Note: When there are errors in the C++ template code, usually to do with indexing (unlike Stan, in `TMB` there is no requirement when defining variables to give them dimensions), calling the `MakeADFun` function tends to crash the R session.
+A workaround (courtesy of Kinh) for debugging without crashing the working R session is to use the following (which creates new R sessions which crash in preference to the working R session):
+
+```{r eval=FALSE}
+library(parallel)
+
+testrun <- mcparallel({MakeADFun(data = dat,
+                                 parameters = param,
+                                 DLL = "epil")})
+
+obj <- mccollect(testrun, wait = TRUE, timeout = 0, intermediate = FALSE)
+```
+
+## `glmmTMB`
+
+[`glmmTMB`](https://glmmtmb.github.io/glmmTMB/) is an R package written by Ben Bolker and collaborators which allows fitting generalised linear mixed models in `TMB` without writing the C++ code.
 For example, rather than writing `epil.cpp` manually, we could have called the following:
 
 ```{r}
@@ -236,33 +267,39 @@ formula6 <- y ~ 1 + CTrt + ClBase4 + CV4 + ClAge + CBT + (1 | rand) + (1 | Ind)
 fit6 <- glmmTMB(formula6, data = Epil, family = poisson(link = "log"))
 ```
 
-## tmbstan
+This likely isn't the same model, in terms of priors and so on, but it may be close.
 
-[`tmbstan`](https://journals.pl,os.org/plosone/article?id=10.1371/journal.pone.0197954) (Cole Monnahan and Kasper Kristensen) is another helpful TMB package which allows you to pass the same C++ template you use in TMB to Stan in order to perform NUTS (if you have standard C++ code then this can also likely be done using [`stanc`](https://statmodeling.stat.columbia.edu/2017/03/31/running-stan-external-c-code/)).
+## `tmbstan`
+
+[`tmbstan`](https://journals.pl,os.org/plosone/article?id=10.1371/journal.pone.0197954) (Cole Monnahan and Kasper Kristensen) is another helpful `TMB` package which allows you to pass the same C++ template you use in `TMB` to Stan in order to perform NUTS (if you have standard C++ code then this can also likely be done using [`stanc`](https://statmodeling.stat.columbia.edu/2017/03/31/running-stan-external-c-code/)).
 
 ```{r}
-fit7 <- tmbstan(obj = obj, chains = 4)
+fit7 <- tmbstan(obj = obj, chains = 1)
 ```
 
-## aghq
+## `aghq`
 
-[`aghq`](https://arxiv.org/pdf/2101.04468.pdf) is an R package written by Alex Stringer.
-One approach is to use `glmmTMB` to get the TMB template which can be passed the `aghq`.
+[`aghq`](https://arxiv.org/pdf/2101.04468.pdf) is an R package written by Alex Stringer which implements adaptive Gauss-Hermite quadrature.
+One (strange!) approach is to use `glmmTMB` to get the `TMB` template which can be passed the `aghq`.
 
 ```{r}
-# glmm_model_info <- glmmTMB(formula6, data = Epil, family = poisson(link = "log"), doFit = FALSE)
-#
-# glmm_ff <- with(glmm_model_info, {
-#   TMB::MakeADFun(
-#     data = data.tmb,
-#     parameters = parameters,
-#     random = names(parameters)[grep("theta", names(parameters), invert = TRUE)],
-#     DLL = "glmmTMB",
-#     silent = TRUE
-#   )
-# })
-#
-# glmm_quad <- aghq::marginal_laplace_tmb(glmm_ff, k = 3, startingvalue = glmm_ff$par)
+glmm_model_info <- glmmTMB(formula6, data = Epil, family = poisson(link = "log"), doFit = FALSE)
+
+glmm_ff <- with(glmm_model_info, {
+  TMB::MakeADFun(
+    data = data.tmb,
+    parameters = parameters,
+    random = names(parameters)[grep("theta", names(parameters), invert = TRUE)],
+    DLL = "glmmTMB",
+    silent = TRUE
+  )
+})
+```
+
+The parameter `k = 3` determines the number of quadrature points per dimension:
+
+```{r}
+glmm_quad <- aghq::marginal_laplace_tmb(glmm_ff, k = 3, startingvalue = glmm_ff$par)
 ```
 
 Another, more standard, approach is to use the `TMB` template, `obj`, that we already have:
@@ -277,7 +314,9 @@ fit8 <- aghq::marginal_laplace_tmb(
 summary8 <- summary(fit8)
 ```
 
-## Comparison
+# Comparison
+
+## Table
 
 ```{r}
 stan1 <- as.vector(t(summary(fit1)$summary[1:6, c(1, 3)]))
@@ -297,16 +336,23 @@ beta_i <- function(i) { c(paste0("beta_", i), paste0("sd(beta_", i, ")")) }
 rownames(df) <- c(sapply(0:5, beta_i))
 colnames(df) <- c("Stan", "INLA_G", "INLA_SL", "INLA_L", "TMB", "glmmTMB", "tmbstan", "aghq", "type")
 
+kableExtra::kable(df)
+
 saveRDS(df, "comparison-results.rds")
 ```
 
-Assuming tmbstan to be the ground truth, we can do two dimensional plots to check the fit
+## Scatter plot against `tmbstan`
+
+Assuming `tmbstan` to be the ground truth, we can do two dimensional plots to check the fit
 
 ```{r}
 ggplot(df) +
   geom_point(aes(x = tmbstan, y = TMB, col = type)) +
-  geom_abline(intercept = 0, slope = 1, linetype = "dashed", alpha = 0.5)
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", alpha = 0.5) +
+  theme_minimal()
 ```
+
+## Symmetric KL divergence
 
 We use symmetric KL. From the Google group: "... its the symmetric version between the posterior marginal computed using Gaussian approximation and the one use one of the Laplace based ones.".
 For `"gaussian"` the `kld` value is small but non-zero, why?
@@ -315,7 +361,7 @@ For `"gaussian"` the `kld` value is small but non-zero, why?
 head(fit2$summary.random$rand)$kld
 ```
 
-For `laplace` and `"simplified.laplace"`:
+For `laplace` and `"simplified.laplace"` we can look for the random effect with the highest SKLD:
 
 ```{r}
 skld <- function(fit) {
@@ -334,13 +380,23 @@ skld4 <- skld(fit4)
 
 ```{r}
 plot_marginals <- function(random_effect, index) {
-  marginal2 <- fit2$marginals.random[[random_effect]][paste0("index.", index)][[1]]
-  marginal3 <- fit3$marginals.random[[random_effect]][paste0("index.", index)][[1]]
-  marginal4 <- fit4$marginals.random[[random_effect]][paste0("index.", index)][[1]]
+  marginal2 <- fit2$marginals.random[[random_effect]][paste0("index.", index)][[1]] %>%
+    as.data.frame() %>%
+    mutate(method = "G")
 
-  plot(marginal2, type = "l", col = "red")
-  lines(marginal3, col = "green")
-  lines(marginal4, col = "blue")
+  marginal3 <- fit3$marginals.random[[random_effect]][paste0("index.", index)][[1]] %>%
+    as.data.frame() %>%
+    mutate(method = "SL")
+
+  marginal4 <- fit4$marginals.random[[random_effect]][paste0("index.", index)][[1]] %>%
+    as.data.frame() %>%
+    mutate(method = "L")
+
+  marginals <- bind_rows(marginal2, marginal3, marginal4)
+
+  ggplot(marginals, aes(x = x, y = y, group = method, col = method)) +
+    geom_line() +
+    theme_minimal()
 }
 
 plot_marginals("rand", index = skld3$id_rand)
