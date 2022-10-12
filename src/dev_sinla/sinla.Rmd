@@ -192,31 +192,40 @@ f <- MakeADFun(
 )
 ```
 
-```{r}
-input_param <- param
-```
-
-For the `phi_prev` parameters, we want to be using the `mean` that we previously computed, then evaluating everything using `f`.
-We multiply by -1 because `f$fn` gives the negative log-likelihood, and we want just the log-likelihood:
-
-```{r}
-input_param$phi_prev <- mean
-numer <- -1 * f$fn(unlist(input_param))
-numer
-```
-
-Then for the denominator, it should be as follows:
-
-```{r}
-denom <- 0.5 * (determinant(Q, logarithm = TRUE)$modulus - (nrow(Q) * log(2 * pi)))
-denom
-```
-
-Note that we use `determinant` on the log-scale as it is more numerically stable than e.g. `log(det(...))`.
+For the `phi_prev` parameters, we compute their `mean` and `Q` using `h`.
+We then we evaluate everything using `f` to get the numerator.
+We multiply by -1 because `f$fn` gives the negative log-likelihood, and we want just the log-likelihood.
+In the denominator, we use `determinant` on the log-scale as it is more numerically stable than e.g. `log(det(...))`.
 On the log-likelihood scale, the number we get is:
 
 ```{r}
-numer - denom
+calculate_rhs <- function(theta) {
+  #' Calculate mean and Q for those theta
+  #' TMB template remembers what you've called -- spooky
+  h$fn(theta)
+  mm <- h$env$last.par
+  mean <- mm[h$env$random]
+  Q <- h$env$spHess(mm, random = TRUE)
+  
+  #' Append the calculated latent field mean
+  param <- theta
+  param$phi_prev <- as.numeric(mean)
+  param <- param[c("beta_prev", "phi_prev", "log_sigma_phi_prev")]
+  
+  #' Evaluate the log-numerator of the RHS
+  numer <- -1 * f$fn(unlist(param))
+  
+  #' Evaluate the log-denominator of the RHS
+  denom <- 0.5 * (determinant(Q, logarithm = TRUE)$modulus - (nrow(Q) * log(2 * pi)))
+  
+  #' Return their difference
+  numer - denom
+}
+
+theta <- param
+theta$phi_prev <- NULL
+
+calculate_rhs(theta)
 ```
 
 As compared with what we got from `h`.
@@ -224,7 +233,7 @@ They're not the same!
 Something is wrong here:
 
 ```{r}
--1 * h$fn(input_param[c("beta_prev", "log_sigma_phi_prev")])
+-1 * h$fn(input_hyper)
 ```
 
 ## $\tilde p(x_i \, | \, y)$
@@ -368,48 +377,6 @@ transformed_param$phi_prev_minus_i <- NULL #' Remove the integrated out effects
 transformed_param
 
 obj$fn(transformed_param)
-```
-
-## Reproducing output from `obj`
-
-As above, we should be able to reproduce the output of `obj$fn` using the mean and precision matrix, together with the function `f`.
-Recall that `f` takes as input the complete $(x, \theta)$ ($y$ is already fixed).
-For example:
-
-```{r}
-param
-f$fn(unlist(param))
-```
-
-We update `param` to include $\hat{\mu}_{-i}(x_i, \theta)$, so that it's only element `r i` of `phi_prev` which remains as before:
-
-```{r}
-param$phi_prev[-i] <- mean
-param
-```
-
-The numerator of the Laplace approximation is (n.b. this is on the log-scale, which is where we will do the calculations):
-
-```{r}
-numer <- -1 * f$fn(unlist(param))
-numer
-```
-
-And the denominator of the Laplace approximation (again on the log-scale) is:
-
-```{r}
-denom <- 0.5 * (determinant(Q, logarithm = TRUE)$modulus - (nrow(Q) * log(2 * pi)))
-denom
-```
-
-```{r}
-numer - denom
-```
-
-Compare this to the output from `obj`:
-
-```{r}
--1 * obj$fn(transformed_param)
 ```
 
 ## $\tilde p(x_i \, | \, y)$
