@@ -1,8 +1,12 @@
 # elgm-inf
 
-Given a user template `model.cpp` we compare approaches to Bayesian inference including empirical Bayes via [`TMB`](https://kaskr.github.io/adcomp/Introduction.html), adaptive Gaussian-Hermite quadrature via [`aghq`](https://github.com/awstringer1/aghq) and Hamiltonian Monte Carlo via [`tmbstan`](https://github.com/kaskr/tmbstan).
-The motivation for this work is to improve the inference in the [Naomi model for subnational HIV estimates](https://github.com/mrc-ide/naomi).
-This may be done by developing an alternative implementation of the integrated nested Laplace approximation (to [`R-INLA`](https://www.r-inla.org/)) by extending the `aghq` package.
+[Naomi](https://github.com/mrc-ide/naomi) ([Eaton et al, 2021](https://onlinelibrary.wiley.com/doi/10.1002/jia2.25788)) is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa.
+Multiple outcomes of interest, including HIV prevalence, HIV incidence and treatment coverage are jointly modelled using both household survey data and routinely reported health system data.
+The model is provided as a [tool](https://naomi.unaids.org/) for countries to input their data to and generate estimates.
+In this setting, computationally intensive inference methods like MCMC are impractical.
+We propose a new inference method which combines the simplified integrated nested Laplace approximation approach of [Wood (2020)](https://academic.oup.com/biomet/article/107/1/223/5572662) with adaptive Gauss-Hermite quadrature to enable fast and accurate inference for Naomi and other [extended latent Gaussian](https://www.tandfonline.com/doi/full/10.1080/10618600.2022.2099403) models.
+Using data from Malawi, we show that the inferences obtained by our method are substantially more accurate than the empirical Bayes Gaussian approximation approach used currently, as compared with inferences from HMC with the No-U-Turn sampler as a gold-standard, where all methods are implemented via a common [`TMB`](https://kaskr.github.io/adcomp/Introduction.html) C++ template for the log-posterior.
+By extending the [`aghq`](https://github.com/awstringer1/aghq) package (Stringer, 2021) we facilitate flexible and easy use of our method when provided a `TMB` template.
 
 ## R package dependencies
 
