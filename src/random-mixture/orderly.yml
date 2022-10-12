@@ -1,13 +1,14 @@
 script: script.R
 
 resources:
+  - random-mixture.Rmd
   - random_mixture.cpp
 
 artefacts:
   - data:
-      description: Results
+      description: Random mixture notebook
       filenames:
-        - results.rds
+        - random-mixture.html
 
 packages:
   - dplyr

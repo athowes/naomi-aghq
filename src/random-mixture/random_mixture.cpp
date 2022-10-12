@@ -1,4 +1,4 @@
-// random-mixture.cpp
+// random_mixture.cpp
 // From https://github.com/kaskr/laplace_accuracy/blob/master/random_mixture/random_mixture.cpp
 
 #include <TMB.hpp>

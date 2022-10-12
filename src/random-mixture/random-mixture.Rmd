@@ -1,0 +1,22 @@
+---
+title: "Random mixture example"
+author:
+- name: Adam Howes
+output:
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    df_print: paged
+    code_folding: show
+    theme: lumen
+abstract: |
+  **Background** 
+  
+  **Task** 
+---
+
+```{r}
+compile("random_mixture.cpp", flags = "-w")
+dyn.load(dynlib("random_mixture"))
+```
