@@ -1,0 +1,23 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Slides
+      filenames:
+        - 01-04-20-mini.pdf
+
+resources:
+  - 01-04-20-mini.Rmd
+  - preamble.tex
+  - citations.bib
+  - naomi_hex.png
+
+packages:
+  - dplyr
+  - ggplot2
+  - TMB
+  - INLA
+  - rmarkdown
+  - bsae
+  - knitr
+  - kableExtra

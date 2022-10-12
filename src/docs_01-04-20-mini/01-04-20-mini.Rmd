@@ -1,0 +1,158 @@
+---
+title: "Mini-project: Integrated nested Laplace Approximation with Automatic Differentiation"
+author: "Adam Howes"
+date: "April 2020"
+output:
+  beamer_presentation:
+    fig_height: 2.5
+    fig_width: 6
+    highlight: haddock
+    includes:
+      in_header: preamble.tex
+    latex_engine: pdflatex
+  slidy_presentation:
+    highlight: haddock
+institute: Imperial College London
+bibliography: citations.bib
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(kableExtra)
+```
+
+## Motivation
+
+* `R-INLA` [@martins2013bayesian] only works for the particular models which have been implemented
+* Alternative implementation based on automatic differentation (AD) would allow INLA to be used for a \textcolor{hilit}{broader class} of models
+* For example, the HIV inference group at Imperial is working on a model just outside `R-INLA`'s capacity
+
+# What is INLA, why do we want to use it, and why can't we currently?
+
+## Three-stage model
+
+* Want to do Bayesian inference in spatiotemporal statistics
+* \textcolor{hilit}{Three-stage model} covers most of the models used
+\begin{alignat*}{2}
+  &\text{(Observations)}     &   \y &\sim p(\y \, | \, \x), \\
+  &\text{(Latent field)}     &   \x &\sim p(\x \, | \, \btheta), \\
+  &\text{(Hyperparameters)}  &   \qquad \btheta &\sim p(\btheta),
+\end{alignat*}
+where $\y = (y_1, \ldots, y_n)$, $\x = (x_1, \ldots, x_n)$, $\btheta = (\theta_1, \ldots, \theta_m)$
+* Interested in learning \textcolor{hilit}{both} $(\btheta, \x)$ from data $\y$
+
+## Have you tried MCMC?
+
+* Markov chain Monte Carlo is slow for high dimensional correlated parameter spaces
+* We have both of these problems:
+  * If $\x$ represents spatiotemporal location then $\text{dim}(\x) = n$ will be very large 
+  * Tobler's first law of geography "everything is related to everything else, but near things are more related than distant things" $\implies \x$ has lots of correlation structure
+
+## Approximate Bayesian inference
+
+* In applied statistics (at least in health and social science) we fit misspecified models to biased and incomplete data
+* Is inferential exactness (as $n_\text{sim} \to \infty$ for chain of length $n_\text{sim}$) the scientific bottleneck?
+* If not $\implies$ shouldn't be afraid of approximate methods
+    * Approximate Bayesian computation (ABC)
+    * Variational Bayes
+    * \textcolor{hilit}{Integrated nested Laplace approximation} (INLA)
+
+## Integrated nested Laplace approximation (I)
+
+* See @rue2009approximate or @blangiardo2015spatial
+* Approximate Bayesian inference for \textcolor{hilit}{latent Gaussian models} (LGMs), which are three-stage models with middle layer
+\begin{equation*}
+  \text{(Latent field)} \qquad  p(\x \, | \, \btheta) = \mathcal{N}(\x  \, | \, \bm{\mu}(\btheta), \bm{Q}(\btheta)^{-1}).
+\end{equation*}
+* Takes advantage of sparsity properties of $\bm{Q}(\btheta)$, i.e. if $\x$ is a Gaussian Markov random field (GMRF)
+* Gives approximate \textcolor{hilit}{posterior marginals} $\{\tilde p(x_i \, | \, \y)\}_{i = 1}^n$ and $\{\tilde p(\theta_j \, | \, \y)\}_{j = 1}^m$
+
+## Integrated nested Laplace approximation (II)
+
+1) First Laplace approximate hyperparameter posterior
+\begin{equation}
+\tilde p(\btheta \, | \, \y) \propto \frac{p(\y \, | \, \x, \btheta) p(\x \, | \, \btheta) p(\btheta)}{\tilde p_G(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \bm{\mu}^\star(\btheta)}  \label{eq:hypermarginal}
+\end{equation}
+which can be marginalised to get $\tilde p(\theta_j \, | \, \y)$
+2) Choose integration points and weights $\{ \btheta^{(k)}, \Delta^{(k)} \}$ to integrate w.r.t. \eqref{eq:hypermarginal}
+3) Choose approximation for $\tilde p(x_i \, | \, \btheta, \y)$ (simplest version: Gaussian)
+4) Finally use quadrature to get 
+\begin{equation}
+  \tilde p(x_i \, | \, \y) = 
+  \sum_{k = 1}^K \tilde p(x_i \, | \, \btheta^{(k)}, \y) \times \tilde p(\btheta^{(k)} \, | \, \y) \times \Delta^{(k)}
+\end{equation}
+
+## Naomi, evidence synthesis for HIV
+
+:::::::::::::: {.columns}
+
+::: {.column width=.65}
+
+* Combine HIV prevalence $\rho_i$ and ART coverage $\alpha_i$ models together
+* Model is close to, but not, a LGM
+* Small non-linearities e.g. multiplying two latent Gaussian fields 
+\begin{equation*}
+A_i \sim \text{Bin}(\rho_i \alpha_i, N_i),
+\end{equation*}
+where $A_i$ be the number observed on ART and $N_i$ the population
+* Need something more flexible than `R-INLA`
+
+:::
+
+::: {.column width=.35}
+
+```{r, echo=FALSE, fig.cap="Supermodel", out.width = '65%'}
+knitr::include_graphics("naomi_hex.png")
+```
+
+:::
+
+::::::::::::::
+
+# What do we do currently instead?
+
+## Template Model Builder (I)
+
+* Currently we use `TMB` [@tmb]
+* R package which implements the Laplace approximation for latent variable models using AD (via `CppAD`)
+  * For more about AD see e.g. @griewank2008evaluating
+* Write an objective function $f(\x, \btheta)$ in C++ ("user template")
+    * We select $f(\x, \btheta) = - \log p(\y \, | \, \x, \btheta) p(\x \, | \, \btheta) p(\btheta)$
+
+## Template Model Builder (II)
+
+```{cpp eval=FALSE}
+#include <TMB.hpp>
+
+template <class Type>
+Type objective_function<Type>::operator()() {
+  // Define data e.g.
+  DATA_VECTOR(y);
+  // Define parameters e.g.
+  PARAMETER(mu);
+  // Calculate negative log-likelihood e.g.
+  nll = Type(0.0);
+  nll -= dnorm(y, mu, 1, true).sum()
+  return(nll);
+}
+```
+
+## Template Model Builder (III)
+
+* Performs the Laplace approximation $L_f(\btheta) \approx L^\star_f(\btheta)$ (step 1 of INLA) -- use R to optimise this with respect to $\btheta$ to give $\hat \btheta$
+* MAP estimate of $\x$ conditional on $\btheta = \hat \btheta$ (REML? Empirical Bayes?)
+* Standard errors calculated using the $\delta$-method (a Gaussian assumption)
+
+# What do you want to do in the future?
+
+## Aims
+
+* Compare accuracy of `TMB` to `R-INLA`
+* Implement the INLA method using AD via `TMB`
+* Apply new method to models with different degrees of non-linearity
+    * Small degree: Naomi. 
+    * Larger degree: ODE models e.g. SIR or other compartmental models
+
+# Thanks! Questions / comments / corrections?
+
+## References {.allowframebreaks}
