@@ -401,14 +401,16 @@ opt <- nlminb(
 )
 
 #' How many equally spaced points do we want to evaluate the posterior at?
-phi_prev_i_grid_length <- 50
+spacing <- 0.05
+x_grid <- seq(from = 0.5, to = 3.5, by = spacing)
+x_grid_length <- length(x_grid)
 
 df <- opt$par %>%
   t() %>%
   as.data.frame() %>%
-  slice(rep(1:n(), each = phi_prev_i_grid_length)) %>%
+  slice(rep(1:n(), each = x_grid_length)) %>%
   mutate(
-    phi_prev_i = seq(from = 0.5, to = 3.5, length.out = phi_prev_i_grid_length)
+    phi_prev_i = x_grid
   ) %>%
   rowwise() %>%
   mutate(
@@ -435,19 +437,23 @@ $$
 $$
 
 ```{r}
-df <- df %>%
-  mutate(
-    logpost_mean = colMeans(select(., logpost)),
-    logpost_adj = logpost - logpost_mean,
-    post = exp(logpost_adj)
-  )
+safe_exp <- function(x) exp(x - max(x))
+
+trapezoid_rule <- function(x, spacing) {
+  0.5 * spacing * (2 * sum(x) - x[1] - x[2])
+}
+
+df$post <- safe_exp(df$logpost)
+df$post_norm = df$post / trapezoid_rule(df$post, spacing)
 
 plot3 <- plot2 +
-  geom_line(data = df, aes(x = phi_prev_i, y = post), col = cbpalette[5], size = 1)
+  geom_line(data = df, aes(x = phi_prev_i, y = post_norm), col = cbpalette[5], size = 1)
 
-#' Need to normalise this!
 plot3
 ```
+
+So perhaps it's barely better than the Gaussian, but not really getting the real problem here.
+Hypothesis would be that it's because we're doing empirical Bayes, and with more than one hyperparameter grid point we would do better.
 
 # Simplified INLA
 
