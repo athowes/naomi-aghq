@@ -402,3 +402,24 @@ plot_marginals <- function(random_effect, index) {
 plot_marginals("rand", index = skld3$id_rand)
 plot_marginals("Ind", index = skld3$id_Ind)
 ```
+
+# Appendix
+
+## `epil.cpp`
+
+```{cpp, echo=TRUE, eval=FALSE, output.var="ex1", code=readLines('epil.cpp')}
+```
+
+## `epil.stan`
+
+```{cpp, echo=TRUE, eval=FALSE, output.var="ex2", code=readLines('epil.stan')}
+```
+
+# Original computing environment
+
+```{r}
+sessionInfo()
+```
+
+
+
