@@ -120,7 +120,7 @@ plot <- extract(mcmc, pars = "phi_prev[1]") %>%
 plot
 ```
 
-# Marginal of joint Gaussian approximation
+# Marginal of joint Gaussian approximation {#gaussian-marginal}
 
 ## $\tilde p(\theta \, | \, y)$
 
@@ -130,7 +130,7 @@ This is same approach used by `method = "gaussian"` in `R-INLA`.
 The Gaussian approximation $p_\text{G}(x \, | \, \theta, y)$ is previously used in computing the Laplace approximation to $p(\theta \, | \, y)$
 $$
 \begin{equation}
-\tilde p(\theta \, | \, y) \propto \frac{p(x, \theta, y)}{p_\text{G}(x \, | \, \theta, y)} \Big\rvert_{x = \hat{\mu}(\theta)} = \frac{p(y, \hat{\mu}(\theta), \theta)}{\det \left(\frac{1}{2 \pi} \hat{Q}(\theta) \right)^{1/2}}, (\#eq:pthetagiveny)
+\tilde p(\theta \, | \, y) \propto \frac{p(x, \theta, y)}{p_\text{G}(x \, | \, \theta, y)} \Big\rvert_{x = \mu(\theta)} = \frac{p(y, \mu(\theta), \theta)}{\det \left(\frac{1}{2 \pi} Q(\theta) \right)^{1/2}}, (\#eq:pthetagiveny)
 \end{equation}
 $$
 such that one easy way to calculate it is to use set `random = "x"` in the `TMB` template to integrate the latent field out, then recover the Gaussian approximation from there, as we have done in the function `h` above.
@@ -267,15 +267,15 @@ plot2 <- plot +
 plot2
 ```
 
-# Full Laplace approximation
+# Full Laplace approximation {#full-laplace}
 
 ## $\tilde p(x_i \, | \, \theta, y)$
 
 Another approach we might take is to calculate the full Laplace approximation
 $$
 \begin{align*}
-  \tilde p(x_i \, | \, \theta, y) &\propto \frac{p(x, \theta, y)}{p_\text{G}(x_{-i} \, | \, x_i, \theta, y)} \Big\rvert_{x_{-i} = \hat{\mu}_{-i}(x_i, \theta)} \\
-  &= \frac{p(y, x_i, \hat{\mu}_{-i}(x_i, \theta), \theta)}{\det(\frac{1}{2 \pi} \hat{Q}_{-i}(x_i, \theta))^{1/2}}
+  \tilde p(x_i \, | \, \theta, y) &\propto \frac{p(x, \theta, y)}{p_\text{G}(x_{-i} \, | \, x_i, \theta, y)} \Big\rvert_{x_{-i} = \mu_{-i}(x_i, \theta)} (\#eq:pxigiventhetay) \\
+  &= \frac{p(y, x_i, \mu_{-i}(x_i, \theta), \theta)}{\det(\frac{1}{2 \pi} Q_{-i}(x_i, \theta))^{1/2}}
 \end{align*}
 $$
 This is not practical in some settings as it involves recomputing the Gaussian approximation $p_\text{G}(x_{-i} \, | \, x_i, \theta, y)$ for each value of $(x_i, \theta)$ which can be too computationally expensive.
@@ -457,7 +457,52 @@ Hypothesis would be that it's because we're doing empirical Bayes, and with more
 
 # Simplified INLA
 
-This remains to-do!
+First, notational differences between Wood (2019) (former) and here (later) are the following:
+
+* $\beta$ vs. $x$ for random effects
+* $\hat \beta$ vs $\mu (\theta)$ for the random effects which maximise the template
+* $\tilde \beta$ vs $(x_i, \mu(x_i, \theta))$ for the random effects which maximise the template subject to $x_i$ being fixed
+* $H$ vs $Q(\theta)$ for the Hessian / precision matrix of the negative log-likelihood with respect to $x$ at $\mu(\theta)$
+
+In Section \@ref(full-laplace) we directly calculate the Laplace approximation to $\int p(x, y, \theta) \text{d} \theta_{-i}$.
+Following Wood (2019), a cheaper approach would be to "base the denominator of Equation \@ref(eq:pxigiventhetay) on the conditional density implied by ? in which case the Hessian is constant and
+$$
+\mu(x_i, \theta) = \mu(\theta) + \Sigma(\theta)_{-i, i} \Sigma(\theta)^{-1}_{i, i} (x_i - \mu (\theta)_i) (\#eq:wood3)
+$$
+The proposed modification has two parts:
+
+1. Use the numerically exact $\mu(x_i, \theta)$ rather than an approximation (as in simplified Laplace)
+2. An approximation to the required Hessian
+
+## Complete algorithm
+
+In this section we omit dependence on $\theta$ such that: $\mu = \mu(\theta)$, $Q = Q(\theta)$, $\mu(x_i) = \mu(x_i, \theta)$ and $Q(x_i) = Q(x_i, \theta)$.
+
+Want: $\tilde p(x_i \, | \, \theta, y)$
+
+Let $\mathcal{D}_{2j}$ denote a $2j \times 2j$ diagonal matrix with leading diagonal $-1, 1, -1, 1, \ldots$.
+Let $u_0$ be a zero column matrix.
+Let $\Delta_j^i$ denote $\Delta_j$ with an extra zero inserted at element $i$.
+
+1. Compute the Cholesky factor of $Q_0 := Q_{-i, -i}$ by update of the Cholesky factor of $Q$
+2. For each $x_i$ in a grid of evaluation points (how does one chose this grid?) repeat the following steps a-e)
+  a) Use Newton's method with fixed Hessian $Q_{-i, -i}$ to find $\mu(x_i)$ starting from \@ref(eq:wood3)
+  b) Compute a set of $J$ steps $\{\Delta_j\}$
+  c) For $j = 1, \ldots, J - 1$ compute
+  $$
+  q = Q_0 \Delta_j + u_j \mathcal{D}_{2j}u_j^\top \Delta_j
+  $$
+  and
+  $$
+  g = \Delta_x \log p(\mu(x_i) + \Delta_j^i, y, \theta).
+  $$
+  Then compute the matrix
+  $$
+  u_{j + 1} = \{q(\Delta_j^\top j)^{-1/2}, g_{-i}(\Delta_j^\top g_{-i})^{-1/2}, u_j\}.
+  $$
+  d) Compute the determinant approximation...
+  e) Compute $\tilde p(x_i \, | \, \theta, y) = \ldots$
+3. Renormalise $\tilde p(x_i \, | \, \theta, y)$
 
 # Appendix
 
