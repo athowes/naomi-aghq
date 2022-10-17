@@ -11,9 +11,9 @@ output:
     code_folding: show
     theme: lumen
 abstract: |
-  **Background**
+  **Background** `aghq` is an R package which implements adaptive Gauss-Hermite quadrature.
   
-  **Task**
+  **Task** In this notebook, we work through the vignettes for the `aghq` package, adding material as is useful to develop understanding.
 ---
 
 ```{r}

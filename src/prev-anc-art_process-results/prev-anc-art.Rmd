@@ -14,21 +14,21 @@ bibliography: citations.bib
 abstract: |
     **Background** The HIV inference group at Imperial routinely uses `TMB` to implement complex spatio-temporal statistical models because the scale and requirement for in-production run-time makes MCMC infeasible, and no suitably flexible implementation of INLA exists. However, inferences obtained from `TMB` are not as accurate as from MCMC or INLA.
     
-    **Task** We compare inferences produced using tmbstan, `TMB` and `aghq` for a collection of HIV evidence synthesis models based upon the Naomi small-area estimation model.
+    **Task** We compare inferences produced using `tmbstan`, `TMB` and `aghq` for a collection of HIV evidence synthesis models based upon the Naomi small-area estimation model.
     
     **Findings** We find that, treating `tmbstan` as the gold-standard, inference from `TMB` is substantially worse than than from `aghq` .
     
     **Next steps** Work on presentation of document. Understand performance for different parameters. Understand cause of poor performance.
 ---
 
-## Model description
+# Model description
 
 @eaton2019joint specify a joint model linking small-area estimation models of HIV prevalence from household surveys, HIV prevalence from antenatal care clinics, and antiretroviral therapy (ART) coverage from routine health data collection.
 This model forms the basis of the Naomi small-area estimation model [@eaton2021naomi]. 
 Modelling data from multiple sources concurrently increases statistical power, and may mitigate the biases of any single source giving a more complete picture of the situation, as well as prompting investigation into any data conflicts.
 The model is described by three components, as follows.
 
-### Prevalence component
+## Prevalence component
 
 Consider a country partitioned into areas $i = 1, \ldots, n$.
 A simple random household survey of $m_i$ people is conducted in each area, and $y_i$ HIV positive cases are observed.
@@ -39,7 +39,7 @@ y_i &\sim \text{Bin}(m_i, \rho_i), \\
 \end{align}
 where HIV prevalence $\rho_i$ is modelled by a Gaussian with mean $\beta_\rho$ and standard deviation $\sigma_\rho$.
 
-### ANC component
+## ANC component
 
 Routinely collected data from pregnant women attending antenatal care clinics (ANCs) is another important source of information about the HIV epidemic.
 If, of $m^\text{ANC}_i$ women, $y^\text{ANC}_i$ are HIV positive, then an analogous binomial logistic regression model
@@ -51,7 +51,7 @@ b_i &\sim \mathcal{N}(\beta_b, \sigma_b^2),
 may be used to describe HIV prevalence amongst the sub-population of women attending ANCs.
 Reflecting the fact that prevalence in ANCs is related but importantly different to prevalence in the general population, bias terms $b_i$ are used to offset ANC prevalence from HIV prevalence.
 
-### ART component
+## ART component
 
 The number of people receiving treatment at district health facilities $A_i$ also provides additional information about HIV prevalence.
 Districts with high prevalence are likely to have a greater number of people receiving treatment, and vice versa.
@@ -62,11 +62,11 @@ A_i &\sim \text{Bin}(N_i, \rho_i \alpha_i), \\
 \text{logit}(\alpha_i) &\sim \mathcal{N}(\beta_\alpha, \sigma_\alpha^2).
 \end{align}
 
-## Implementation
+# Implementation
 
 We consider five models as described below.
 For each model we write a `TMB` C++ template.
-As well as the standard `TMB` inference approach, this template allows the model to be fit using Stan via `tmbstan` and using adaptive Gaussian Hermite quadrature via `aghq`.
+As well as the standard `TMB` inference approach, this template allows the model to be fit using Stan via `tmbstan` and using adaptive Gauss-Hermite quadrature via `aghq`.
 
 | Model | Report | Components |
 |:------|:-------|:-----------|
@@ -91,7 +91,7 @@ We perform inference on simulated data from Model 4 generated ([`prev-anc-art_si
 | $\beta_\alpha$   | 0.7 |
 | $\sigma_\alpha$  | 0.35 |
 
-## Results
+# Results
 
 ```{r setup, message=FALSE, class.source = 'fold-hide'}
 knitr::opts_chunk$set(
@@ -134,8 +134,6 @@ true_values <- data.frame(
 
 Read in results created in reports:
 
-
-
 ```{r}
 # model0 <- readRDS("depends/results_model0.rds")
 model1 <- readRDS("depends/results_model1.rds")
@@ -144,42 +142,106 @@ model3 <- readRDS("depends/results_model3.rds")
 model4 <- readRDS("depends/results_model4.rds")
 ```
 
-### Boxplots
+## Boxplots {.tabset .tabset-fade}
 
 Boxplots of the mean and standard deviation for each parameter, where each datapoint is a different simulation replicate.
 
-```{r cache=FALSE}
+```{r}
 params <- c("beta_prev", "log_sigma_phi_prev")
+```
 
+### Model 1
+
+```{r cache=FALSE}
 draw_boxplots(model1, params = params) + labs(title = "Model 1")
+```
+
+### Model 2
+
+```{r cache=FALSE}
 draw_boxplots(model2, params = params) + labs(title = "Model 2")
+```
+
+### Model 3
+
+```{r cache=FALSE}
 draw_boxplots(model3, params = params) + labs(title = "Model 3")
+```
+
+### Model 4
+
+```{r cache=FALSE}
 draw_boxplots(model4, params = params) + labs(title = "Model 4")
 ```
 
-### Scatterplots
+##
+
+## Scatterplots {.tabset .tabset-fade}
+
+Scatterplots of posterior summaries (such as mean and standard deviation) where the $x$-axis is the posterior summary as estimated by `tmbstan` and the $y$-axis is the posterior summary as estimated by either `ahgq` or `TMB`.
+We treat `tmbstan` as the gold-standard, so any deviation from the line $y = x$ suggests inaccurate posterior summaries.
 
 ```{r}
 params <- c("beta_prev", "log_sigma_phi_prev")
+```
 
+### Model 1
+
+```{r}
 draw_scatterplots(model1, params = params) + labs(title = "Model 1")
+```
+
+### Model 2
+
+```{r}
 draw_scatterplots(model2, params = params) + labs(title = "Model 2")
+```
+
+### Model 3
+
+```{r}
 draw_scatterplots(model3, params = params) + labs(title = "Model 3")
+```
+
+### Model 4
+
+```{r}
 draw_scatterplots(model4, params = params) + labs(title = "Model 4")
 ```
 
-### Kolmogorov KS test plots
+##
+
+## Kolmogorov KS test plots {.tabset .tabset-fade}
 
 Take samples from all distributions, then compute maximum ECDF difference $D$ (two-sample Kolmogorov–Smirnov test).
-We assume that `tmbstan` represents the gold-standard, and compare performance of `aghq` and `TMB` via their similarity to this gold-standard.
-Higher values of $D$ correspond to distributions which are more different.
+On the $y$-axis we plot $\text{KS}(\texttt{TMB}, \texttt{tmbstan})$ and on the $x$-axis $\text{KS}(\texttt{aghq}, \texttt{tmbstan})$.
+Lower values of $D$ (minimum possible zero) correspond to more similar distributions, and higher values of $D$ correspond to distributions which are more different.
+
+### Model 1
 
 ```{r fig.height=8}
 draw_ksplots_D(model1) + labs(title = "Model 1")
+```
+
+### Model 2
+
+```{r fig.height=8}
 draw_ksplots_D(model2) + labs(title = "Model 2")
+```
+
+### Model 3
+
+```{r fig.height=8}
 draw_ksplots_D(model3) + labs(title = "Model 3")
+```
+
+### Model 4
+
+```{r fig.height=8}
 draw_ksplots_D(model4) + labs(title = "Model 4")
 ```
+
+##
 
 We could also assess $l$, the location of $D$.
 Determining if there are patterns in the location of the greatest ECDF difference could present us with useful insights.
@@ -191,33 +253,77 @@ Determining if there are patterns in the location of the greatest ECDF differenc
 # draw_ksplots_l(model4) + labs(title = "Model 4")
 ```
 
-### MCMC diagnostics
+## MCMC diagnostics
 
 When using Markov chain Monte Carlo (MCMC) methods, as we have for `tmbstan`, it's important to assess for convergence.
 
-#### Traceplots
+### Traceplots {.tabset .tabset-fade}
 
 One way to do this is via traceplots which visualise the chains over the number of iterations specified.
 
+#### Model 1
+
 ```{r}
 map(model1, "mcmc_traceplots")
+```
+
+#### Model 2
+
+```{r}
 map(model2, "mcmc_traceplots")
+```
+
+#### Model 3
+
+```{r}
 map(model3, "mcmc_traceplots")
+```
+
+#### Model 4
+
+```{r}
 map(model4, "mcmc_traceplots")
 ```
 
-#### R hat
+###
+
+### R hat {.tabset .tabset-fade}
 
 The $\hat R$ statistic ("R hat") can also be used.
 A value of $\hat R < 1.1$ is typically sufficient.
 
+#### Model 1
+
 ```{r}
 draw_rhatplot(model1) + labs(title = "Model 1")
+```
+
+#### Model 2
+
+```{r}
 draw_rhatplot(model2) + labs(title = "Model 2")
+```
+
+#### Model 3
+
+```{r}
 draw_rhatplot(model3) + labs(title = "Model 3")
+```
+
+#### Model 4
+
+```{r}
 draw_rhatplot(model4) + labs(title = "Model 4")
 ```
 
-## Conclusion
+###
 
-## Bibliography {-}
+# Conclusion
+
+# Bibliography {-}
+
+# Original computing environment
+
+```{r}
+sessionInfo()
+```
