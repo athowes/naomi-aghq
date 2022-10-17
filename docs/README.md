@@ -7,6 +7,7 @@
 * [inla-replication](https://athowes.github.io/elgm-inf/inla-replication.html): replicating the "INLA from scratch" section of [Spatial and Spatio-temporal Bayesian Models with `R-INLA`](https://onlinelibrary.wiley.com/doi/book/10.1002/9781118950203) using R and `TMB`
 * [sinla](https://athowes.github.io/elgm-inf/sinla.html): implementing approximations for the posterior marginal of the latent field, building to the approach of [Wood (2021)](https://academic.oup.com/biomet/article/107/1/223/5572662)
 * [prev-anc-art](https://athowes.github.io/elgm-inf/prev-anc-art.html): comparison of `tmbstan`, `TMB` and `aghq` for a collection of models based on Joint small-area estimation of HIV prevalence, ART coverage, and HIV incidence (Eaton et al. 2019)
+* [naomi](https://athowes.github.io/elgm-inf/naomi.html): following `naomi` vignettes
 
 ## Presentations
 

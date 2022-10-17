@@ -98,7 +98,7 @@ anc_art_coverage_year2 <- 2018
 
 ## Prepare model inputs
 
-```{r}
+```{r eval=FALSE}
 naomi_mf <- naomi_model_frame(
   area_merged,
   pop_agesex,
@@ -111,7 +111,7 @@ naomi_mf <- naomi_model_frame(
 )
 ```
 
-```{r}
+```{r eval=FALSE}
 naomi_data <- select_naomi_data(
   naomi_mf,
   survey_hiv_indicators,
@@ -132,16 +132,16 @@ naomi_data <- select_naomi_data(
 
 ## Fit the TMB model
 
-```{r}
+```{r eval=FALSE}
 fit <- fit_tmb(tmb_inputs)
 ```
 
-```{r}
+```{r eval=FALSE}
 outputs <- output_package(fit, naomi_mf)
 names(outputs)
 ```
 
-```{r}
+```{r eval=FALSE}
 outputs$indicators %>%
   dplyr::filter(
     indicator == "prevalence",  # HIV prevalence
@@ -150,7 +150,7 @@ outputs$indicators %>%
   head()
 ```
 
-```{r}
+```{r eval=FALSE}
 add_output_labels(outputs) %>%
   dplyr::filter(
     indicator == "prevalence",  # HIV prevalence
@@ -159,11 +159,11 @@ add_output_labels(outputs) %>%
   head()
 ```
 
-```{r}
+```{r eval=FALSE}
 system.time(fit <- sample_tmb(fit))
 ```
 
-```{r}
+```{r eval=FALSE}
 system.time(outputs <- output_package(fit, naomi_mf))
 
 outputs_calib <- calibrate_outputs(
