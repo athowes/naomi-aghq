@@ -65,7 +65,7 @@ At the extreme, you could just compute a Laplace approximation for each marginal
 This would be an accurate approach, but not computationally feasible for large models.
 What we hope to achieve is an approximation which gets to most of the accuracy benefits of the Laplace approximation approach, but without the high computational cost.
 
-# Ground truth
+# Ground truth {#ground-truth}
 
 To provide a ground truth to compare the methods that follow to, we generate "gold-standard" inferences using a relatively long run of MCMC as implemented by `tmbstan`.
 
@@ -131,7 +131,7 @@ Now we will compute Equation \@ref(eq:eq:pxgiveny) taking the marignals of a joi
 This is the approach currently used in the `aghq` package (done implicitly, via sampling).
 This approach is also used by `method = "gaussian"` in `R-INLA`.
 
-## $\tilde p(\theta \, | \, y)$
+## $\tilde p(\theta \, | \, y)$ 
 
 The Gaussian approximation $p_\text{G}(x \, | \, \theta, y)$ is previously used in computing the Laplace approximation to $p(\theta \, | \, y)$
 $$
@@ -240,8 +240,8 @@ As compared with what we got from `h`:
 
 ## $\tilde p(x_i \, | \, y)$
 
-Let's have a go at computing Equation \@ref(eq:pxigiveny) so that we can compare to the posterior distribution from `tmbstan`.
-We simplify matters by considering just one quadrature point, $\hat \theta$, such that the sum over $z$ collapses to:
+Now let's have a go at computing Equation \@ref(eq:pxigiveny) so that we can compare to the posterior distribution from `tmbstan` we obtained in Section \@ref(ground-truth).
+As described above, we simplify matters by considering just one quadrature point, $\hat \theta$, such that the sum over $z$ collapses to:
 $$
 \begin{align}
 \tilde p(x_i \, | \, y) &= \tilde p_\text{G}(x_i \, | \, \hat \theta, y) \tilde p_\text{LA}(\hat \theta \, | \, y) \\
@@ -253,17 +253,19 @@ We can evaluate this for $i = 1$ via:
 ```{r}
 i <- 1
 mean_i <- as.numeric(mean[i])
-var_i <- solve(Q)[ i, i]
+var_i <- solve(Q)[i, i]
 ```
 
 And compare it to our MCMC results as follows:
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 plot2 <- plot +
   stat_function(
-    data = data.frame(x = c(0.5, 3.5)), aes(x), fun = dnorm, n = 101, 
-    args = list(mean = mean_i, sd = sqrt(var_i)), col = cbpalette[2], size = 1) +
-  labs(x = "prev_phi[1]", y = "Posterior") +
+    data = data.frame(x = c(0.5, 3.5)), aes(x, col = "Joint Gaussian marginal"), fun = dnorm, n = 101, 
+    args = list(mean = mean_i, sd = sqrt(var_i)), size = 1
+  ) +
+  labs(x = "prev_phi[1]", y = "Posterior", col = "Approximation") +
+  scale_colour_manual(values = cbpalette) +
   theme_minimal()
 
 plot2
@@ -271,17 +273,21 @@ plot2
 
 # Full Laplace approximation {#full-laplace}
 
+In this section we will continue to use the approximation \@ref(eq:pthetagiveny) for $\tilde p(\theta \, | \, y)$.
+
 ## $\tilde p(x_i \, | \, \theta, y)$
 
-Another approach we might take is to calculate the full Laplace approximation
+For the approximation to the latent field marginal posteriors, another approach we could take is to calculate the full Laplace approximation
 $$
 \begin{align*}
   \tilde p(x_i \, | \, \theta, y) &\propto \frac{p(x, \theta, y)}{p_\text{G}(x_{-i} \, | \, x_i, \theta, y)} \Big\rvert_{x_{-i} = \mu_{-i}(x_i, \theta)} (\#eq:pxigiventhetay) \\
   &= \frac{p(y, x_i, \mu_{-i}(x_i, \theta), \theta)}{\det(\frac{1}{2 \pi} Q_{-i}(x_i, \theta))^{1/2}}
 \end{align*}
 $$
+integrating out $x_{-i}$ with a Gaussian approximation.
 This is not practical in some settings as it involves recomputing the Gaussian approximation $p_\text{G}(x_{-i} \, | \, x_i, \theta, y)$ for each value of $(x_i, \theta)$ which can be too computationally expensive.
-With of a bit of effort, we can implement this in `TMB` by passing in data where elements $i$ and $-i$ of the latent field are named as such (see Appendix for template).
+We will still go through the steps for implementing it here though for demonstration.
+With of a bit of effort, it can be implemented in `TMB` by passing in data where elements $i$ and $-i$ of the latent field are explicitly named (see Appendix for the `TMB` template `model1index.cpp`):
 
 ```{r}
 compile("model1index.cpp")
@@ -300,7 +306,7 @@ prepare_dat <- function(dat, i) {
 }
 ```
 
-Now loop over doing the Laplace approximation for every index.
+Now we can loop over indices $i$ doing the required Laplace approximations.
 In the call to `MakeADFun` we set `random = "phi_prev_minus_i"` to integrate all of the random effects but that of the particular index.
 
 ```{r message=FALSE, warning=FALSE, results=FALSE}
@@ -449,7 +455,7 @@ df$post <- safe_exp(df$logpost)
 df$post_norm = df$post / trapezoid_rule(df$post, spacing)
 
 plot3 <- plot2 +
-  geom_line(data = df, aes(x = phi_prev_i, y = post_norm), col = cbpalette[5], size = 1)
+  geom_line(data = df, aes(x = phi_prev_i, y = post, col = "Laplace"), size = 1)
 
 plot3
 ```
@@ -459,12 +465,12 @@ Hypothesis would be that it's because we're doing empirical Bayes, and with more
 
 # Simplified INLA
 
-First, notational differences between Wood (2019) (former) and here (later) are the following:
-
-* $\beta$ vs. $x$ for random effects
-* $\hat \beta$ vs $\mu (\theta)$ for the random effects which maximise the template
-* $\tilde \beta$ vs $(x_i, \mu(x_i, \theta))$ for the random effects which maximise the template subject to $x_i$ being fixed
-* $H$ vs $Q(\theta)$ for the Hessian / precision matrix of the negative log-likelihood with respect to $x$ at $\mu(\theta)$
+| Description | Here | Wood (2019) notation | Notes |
+|-------------|---------------|----------------------|----------|
+| Random effects | $x$ | $\beta$ | Stringer (2021) use $w$
+| Random effects which maximise (the / some) objective for given $\theta$ | $\mu (\theta)$ | $\hat \beta$ | Wood omits dependence on $\theta$ |
+| Random effects which maximise (the / some) objective for given $\theta$, subject to $x_i$ being fixed | $(x_i, \mu(x_i, \theta))$ | $\tilde \beta$ | We have $\mu(x_i, \theta))$ having dimension $n - 1$ |
+| Hessian / precision matrix of the negative log-likelihood with respect to $x$ at $\mu(\theta)$ | $Q(\theta)$ | $H$ | Unsure if it's preferable to use Hessian or precision notation here |
 
 In Section \@ref(full-laplace) we directly calculate the Laplace approximation to $\int p(x, y, \theta) \text{d} \theta_{-i}$.
 Following Wood (2019), a cheaper approach would be to "base the denominator of Equation \@ref(eq:pxigiventhetay) on the conditional density implied by ? in which case the Hessian is constant and
