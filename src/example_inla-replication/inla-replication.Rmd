@@ -37,7 +37,7 @@ midpink <- "#B3608E"
 Consider a three-stage model
 \begin{alignat}{2}
   &\text{(Observations)}     &   y_i &\sim p(y_i \, | \, x_i, \theta), \quad i \in \mathcal{I}, \\
-  &\text{(Latent field)}     &   x &\sim \mathcal{N}(x \, | \,\mathbf{0},  \mathbf{Q}(\theta)^{-1}), \\
+  &\text{(Latent field)}     &   x &\sim \mathcal{N}(x \, | \, 0,  Q(\theta)^{-1}), \\
   &\text{(Hyperparameters)}  &   \qquad \theta &\sim p(\theta), \label{eq:hyper}
 \end{alignat}
 with posterior
@@ -70,7 +70,7 @@ There are four stages to replicating the INLA method.
 
 Approximate the posterior marginal $p(\theta \, | \, y) \propto L(\theta)$ using the Laplace approximation $L(\theta) \approx L^\star(\theta)$:
 \begin{equation}
-\tilde p(\theta \, | \, y) \propto \frac{p(y \, | \, x, \theta) p(x \, | \, \theta) p(\theta)}{\tilde p_G(x \, | \, \theta, y)} \Big\rvert_{x = \mu^\star(\theta)} \equiv L^\star(\theta)
+\tilde p(\theta \, | \, y) \propto \frac{p(y \, | \, x, \theta) p(x \, | \, \theta) p(\theta)}{\tilde p_G(x \, | \, \theta, y)} \Big\rvert_{x = \mu(\theta)} \equiv L^\star(\theta)
 \end{equation}
 
 Using `TMB` if we integrate out the latent field $x$ using the argument `random = "x"` in `MakeADFun` then the result is the negative log of the Laplace approximation to the marginal likelihood $h(\theta) \equiv - \log L^\star(\theta)$:
@@ -81,7 +81,7 @@ h <- MakeADFun(data = dat, parameters = param, DLL = "model", random = "x")
 
 Therefore, `exp(-h$fn(theta))` is proportional to $\tilde p(\theta \, | \, y)$:
 
-<!-- *Note: Does `TMB` keep the $-\frac{n}{2} \log(2\pi)$ constant here $-\log L^\star_f(\theta) = -\frac{n}{2} \log(2\pi) + \frac{1}{2} \log \det (Q^\star(\theta)) + f(\mu^\star(\theta), \theta)$?* -->
+<!-- *Note: Does `TMB` keep the $-\frac{n}{2} \log(2\pi)$ constant here $-\log L^\star_f(\theta) = -\frac{n}{2} \log(2\pi) + \frac{1}{2} \log \det (Q^\star(\theta)) + f(\mu(\theta), \theta)$?* -->
 
 ## Stage 2: choose $\{\theta_k, \Delta_k\}_{k = 1}^K$
 
@@ -106,9 +106,7 @@ For a more detailed run through of the grid integration method, see the [INLA tw
 ### Adaptive Gaussian Hermite quadrature
 
 We could also use an adaptive Gauss Hermite quadrature rule.
-See the [Implementing Approximate Bayesian Inference using
-Adaptive Quadrature: the `aghq` Package](https://arxiv.org/pdf/2101.04468.pdf) paper.
-## Stage 3: get $\tilde p(x_i \, | \, \theta, y)$
+See the [Implementing Approximate Bayesian Inference using Adaptive Quadrature: the `aghq` Package](https://arxiv.org/pdf/2101.04468.pdf) paper.
 
 ### Gaussian
 
@@ -119,6 +117,8 @@ Obtain marginals of $\tilde p_{\text{G}}(x \, | \, \theta, y)$ from above.
 Compute the Laplace approximation $\tilde p_{\text{LA}}(x_i \, | \, \theta, y)$.
 
 ### Simplified Laplace
+
+This is the key innovation in the 2009 INLA paper.
 
 ## Stage 4: apply quadrature
 
@@ -190,7 +190,7 @@ fit <- inla(
 
 ## Implementation using R
 
-The distribution $p(x \, | \, \theta, y)$ is exact:
+By construction, the distribution $p(x \, | \, \theta, y)$ is exact:
 
 ```{r}
 # Exact distribution of x given theta
@@ -231,11 +231,11 @@ nl_post_marginal_theta <- function(theta, log_input = FALSE) {
 Note that the code above in the section marked `(^)` is very similar to that in `blangiardo.cpp`.
 Recall that the Laplace approximation $\tilde p(\theta \, | \, y)$, which in this instance coincides with the exact posterior, is given by
 \begin{equation}
-\tilde p(\theta \, | \, y) \propto \frac{p(y, \mu^\star(\theta), \theta)}{\det(Q(\theta))^{1/2}}.
+\tilde p(\theta \, | \, y) \propto \frac{p(y, \mu(\theta), \theta)}{\det(Q(\theta))^{1/2}}.
 \end{equation}
 This form can be seen in `(^)`:
 
-* $p(y, \mu^\star(\theta), \theta)$ corresponds to the calls to `dgamma`, `dnorm` and sum of `dnorm` evaluated at $\mu^\star(\theta)$ which here is simply `par$x_n` (for the Normal distribution the mean of the distribution is the same as the mode).
+* $p(y, \mu(\theta), \theta)$ corresponds to the calls to `dgamma`, `dnorm` and sum of `dnorm` evaluated at $\mu(\theta)$ which here is simply `par$x_n` (for the Normal distribution the mean of the distribution is the same as the mode).
 * The logarithm of $1 / \det(Q(\theta))^{1/2}$ when $\theta$ is a scalar is given by `-0.5 * log(par$tau_n)`.
 
 It should be the case that `inner_loop` produces parameter values for the latent field which are those found by `TMB` using the optimisation inner loop (hence the name).
@@ -255,22 +255,31 @@ post_marginal_theta <- function(theta, log_input = FALSE) {
 Simple grids (one dimensional):
 
 ```{r}
-eval_grid <- function(grid = NULL, uniform = FALSE, K = NULL, min = NULL, max = NULL, f) {
+trapezoid_rule <- function(x, spacing) {
+  0.5 * spacing * (2 * sum(x) - x[1] - x[2])
+}
+
+eval_grid <- function(grid = NULL, spacing = NULL, uniform = FALSE, K = NULL, min = NULL, max = NULL, f) {
   if(uniform) {
     grid <- seq(min, max, length.out = K)
+    spacing <- (max - min) / K
   }
   df <- data.frame(input = grid, output = sapply(grid, f))
-  df <- mutate(df, norm_output = output / sum(output))
+  df <- mutate(df, norm_output = output / trapezoid_rule(output, spacing))
   return(df)
 }
 
-blangiardo_theta <- eval_grid(uniform = TRUE,
-                              K = 25, min = 0.001, max = 0.3,
-                              f = post_marginal_theta)
+blangiardo_theta <- eval_grid(
+  uniform = TRUE,
+  K = 25, min = 0.001, max = 0.3,
+  f = post_marginal_theta
+)
 
-dense_theta <- eval_grid(uniform = TRUE,
-                         K = 500, min = 0.001, max = 0.3,
-                         f = post_marginal_theta)
+dense_theta <- eval_grid(
+  uniform = TRUE,
+  K = 500, min = 0.001, max = 0.3,
+  f = post_marginal_theta
+)
 ```
 
 ```{r fig.height = 3, fig.cap = "True posterior marginal of theta (blue line) overlaid with the choice of integration points. This naive grid places too many points in regions of the parameter space without much posterior density."}
@@ -348,7 +357,7 @@ while(condition) {
   }
 }
 
-inla_theta <- eval_grid(exp(points), f = post_marginal_theta)
+inla_theta <- eval_grid(exp(points), f = post_marginal_theta, spacing = delta_z)
 
 ggplot(dense_theta) +
   geom_line(aes(x = input, y = output), col = midblue) +
@@ -375,7 +384,7 @@ internals_inla_theta <- data.frame(
 ggplot(dense_theta) +
   geom_line(aes(x = input, y = output), col = midblue) +
   geom_point(data = internals_inla_theta, aes(x = input, y = output), shape = 4) +
-  theme(axis.text.y=element_blank()) +
+  theme(axis.text.y = element_blank()) +
   labs(title = "INLA integration points for the hyperparameters") +
   theme_minimal()
 ```
@@ -461,7 +470,8 @@ h <- MakeADFun(
   parameters = param,
   random = c("x"),
   DLL = "blangiardo",
-  hessian = TRUE
+  hessian = TRUE,
+  silent = TRUE
 )
 ```
 
@@ -472,7 +482,8 @@ f <- MakeADFun(
   data = dat,
   parameters = param,
   DLL = "blangiardo",
-  hessian = TRUE
+  hessian = TRUE,
+  silent = TRUE
 )
 ```
 
@@ -505,25 +516,21 @@ tmb_opt <- tmb_nlminb
 sd_out <- sdreport(h, par.fixed = tmb_opt$par, getJointPrecision = TRUE)
 ```
 
-The mode and comparison (I started by making the mistake of exponentiating `fit$summary.hyperpar$mode` rather than the internal version--on the log scale, as with R and `TMB`--which, because the transformation is non-linear, is not the same).
+Comparison of the posterior mode and standard deviation of $\log(\theta)$:
 
 ```{r}
-# For some reason the mode in the INLA result below is NA, how to fix this?
-kable_data <- data.frame(c(exp(fit$internal.summary.hyperpar$`0.5quant`),
-                           exp(r_opt$par),
-                           exp(tmb_opt$par)))
+#' For some reason the mode in the INLA result below is NA, how to fix this?
+#' According to Havard, this is a feature not a bug, and he hasn't found a good way to compute the mode yet:
+#' https://groups.google.com/g/r-inla-discussion-group/c/mbSsNO_bydo
+
+kable_data <- data.frame(
+  "Mode" = c(NA, r_opt$par, tmb_opt$par),
+  "Variance" = c(fit$internal.summary.hyperpar$sd^2, sd_out$cov.fixed, NA)
+)
 
 rownames(kable_data) <- c("$\\texttt{R-INLA}$", "R", "$\\texttt{TMB}$")
-colnames(kable_data) <- c("Posterior mode")
 
 kableExtra::kable(kable_data, booktabs = TRUE, escape = FALSE, align = "c")
-```
-
-Compare the variances for $\log(\theta)$:
-
-```{r}
-sd_out$cov.fixed # TMB
-fit$internal.summary.hyperpar$sd^2 # INLA
 ```
 
 Compare $x$:
@@ -536,22 +543,8 @@ plot(fit$marginals.fixed$`(Intercept)`, type = "l")
 abline(v = sd_out$par.random)
 ```
 
-### Is `h$fn` the same as in R?
-
-Testing to see that `h$fn` is the same as `nl_post_marginal_theta` with `log_input = TRUE` up to a constant:
-
-```{r results=FALSE}
-vals <- seq(-5, 0, by = 1)
-
-tmb_vals <- sapply(vals, h$fn) # Replications show it not to be stochastic
-r_vals <- sapply(vals, nl_post_marginal_theta, log_input = TRUE)
-```
-
-```{r}
-rbind(tmb_vals, r_vals, tmb_vals - r_vals)
-```
-
 Could make a version of `h$fn` on the same scale as `post_marginal_theta` for a plot:
+
 ```{r results=FALSE}
 tmb_post_marginal_theta <- function(theta) {
   de_nl(h$fn, x = log(theta))
@@ -569,13 +562,30 @@ tmb_dense_theta <- eval_grid(
 ggplot(dense_theta) +
   geom_line(aes(x = input, y = norm_output), col = midblue) +
   geom_line(data = tmb_dense_theta, aes(x = input, y = norm_output), col = midpink) +
-  theme(axis.text.y=element_blank()) +
+  theme(axis.text.y = element_blank()) +
   annotate("text", x = 0.1, y = 0.01, label = "TMB", col = midpink) +
   annotate("text", x = 0.045, y = 0.012, label = "R", col = midblue) +
   theme_minimal()
 ```
 
-Does `TMB` do the inner optimisation differently?
+### Unit tests {.tabset .tabset-fade}
+
+#### That `h$fn` the same as in R
+
+Testing to see that `h$fn` is the same as `nl_post_marginal_theta` with `log_input = TRUE` up to a constant:
+
+```{r results=FALSE}
+vals <- seq(-5, 0, by = 1)
+
+tmb_vals <- sapply(vals, h$fn) # Replications show it not to be stochastic
+r_vals <- sapply(vals, nl_post_marginal_theta, log_input = TRUE)
+```
+
+```{r}
+rbind(tmb_vals, r_vals, tmb_vals - r_vals)
+```
+
+#### That the inner optimisation is the same
 
 ```{r results=FALSE, message=FALSE}
 get_tmb_inner_optimised_value <- function(l_theta) {
@@ -591,112 +601,114 @@ r_inner <- sapply(exp(vals), function(theta) inner_loop(theta)$x_n)
 ```{r}
 rbind(tmb_inner, r_inner)
 ```
-
+    
 Looks like this part is correct.
 
-### Getting to the full conditional of $x$ in TMB
+###
 
-Probably going to need $Q^\star(\theta)$ ($n \times n$ precision matrix) and $\mu^\star(\theta)$ ($n \times 1$ mean vector).
-For example, the most basic version of the full conditional would be the Gaussian approximation
-\begin{equation}
-\tilde p(x_i \, | \, \theta, y) = \mathcal{N}(x_i \, | \, \mu^\star_i(\theta), 1 / q^\star_i(\theta)).
-\end{equation}
+<!-- ### Getting to the full conditional of $x$ in TMB -->
 
-Precision matrix $Q^\star(\theta)$ is the Hessian of the negative logarithm of the posterior evaluated at $\mu^\star(\theta)$, having $(i, j)$th entry
-\begin{equation}
-Q^\star(\theta)_{i, j} = - \frac{\partial^{2} \log p(x \, | \, \theta, y)}{\partial x_{i} \partial x_{j}} \Big\rvert_{x = \mu^\star(\theta)}
-\end{equation}
+<!-- Probably going to need $Q^\star(\theta)$ ($n \times n$ precision matrix) and $\mu(\theta)$ ($n \times 1$ mean vector). -->
+<!-- For example, the most basic version of the full conditional would be the Gaussian approximation -->
+<!-- \begin{equation} -->
+<!-- \tilde p(x_i \, | \, \theta, y) = \mathcal{N}(x_i \, | \, \mu_i(\theta), 1 / q^\star_i(\theta)). -->
+<!-- \end{equation} -->
 
-An obvious choice for finding the precision would be `h$he(tmb_opt$par)` but this gives the error "Hessian not yet implemented for models with random effects".
-There may be another way to do it using `h$env$spHess()` (some kind of sparse Hessian) but if this is the case then it doesn't make sense to not have `h$he` just call the alternative way.
-This matrix is of the class `dsCMatrix` which is for symmetric, sparse numeric matrices in the compressed column-oriented format.
+<!-- Precision matrix $Q^\star(\theta)$ is the Hessian of the negative logarithm of the posterior evaluated at $\mu(\theta)$, having $(i, j)$th entry -->
+<!-- \begin{equation} -->
+<!-- Q^\star(\theta)_{i, j} = - \frac{\partial^{2} \log p(x \, | \, \theta, y)}{\partial x_{i} \partial x_{j}} \Big\rvert_{x = \mu(\theta)} -->
+<!-- \end{equation} -->
 
-`h$env$spHess` takes two arguments:
-    
-  1. `par` (default `h$env$par`) should be both the hyperparameters and random effects
-  2. `random` (`TRUE` or `FALSE`)
-  
-and the code is given by:
+<!-- An obvious choice for finding the precision would be `h$he(tmb_opt$par)` but this gives the error "Hessian not yet implemented for models with random effects". -->
+<!-- There may be another way to do it using `h$env$spHess()` (some kind of sparse Hessian) but if this is the case then it doesn't make sense to not have `h$he` just call the alternative way. -->
+<!-- This matrix is of the class `dsCMatrix` which is for symmetric, sparse numeric matrices in the compressed column-oriented format. -->
 
-```{r eval=FALSE}
-function(par = obj$env$par, random = FALSE) {
-  if (!random) {
-    Hfull@x[] <- ev(par) # Whats ev?
-    Hfull # H full <=> Full Hessian?
-  }
-  else if (skipFixedEffects) {
-    .Call("setxslot", Hrandom, ev(par), PACKAGE = "TMB")
-  }
-  else {
-    Hfull@x[] <- ev(par)
-    Hfull[r, r]
-  }
-}
-```
+<!-- `h$env$spHess` takes two arguments: -->
 
-Set a range of test parameters `test_pars`:
+<!--   1. `par` (default `h$env$par`) should be both the hyperparameters and random effects -->
+<!--   2. `random` (`TRUE` or `FALSE`) -->
 
-```{r results=FALSE}
-full_pars <- function(input) {
-  setNames(input, c("x", "l_theta"))
-}
+<!-- and the code is given by: -->
 
-par1 <- full_pars(c(0, 0))
-par2 <- full_pars(c(0, -1))
-par3 <- full_pars(c(-1, 0))
+<!-- ```{r eval=FALSE} -->
+<!-- function(par = obj$env$par, random = FALSE) { -->
+<!--   if (!random) { -->
+<!--     Hfull@x[] <- ev(par) # Whats ev? -->
+<!--     Hfull # H full <=> Full Hessian? -->
+<!--   } -->
+<!--   else if (skipFixedEffects) { -->
+<!--     .Call("setxslot", Hrandom, ev(par), PACKAGE = "TMB") -->
+<!--   } -->
+<!--   else { -->
+<!--     Hfull@x[] <- ev(par) -->
+<!--     Hfull[r, r] -->
+<!--   } -->
+<!-- } -->
+<!-- ``` -->
 
-# Doing the inner loop manually
-par4 <- full_pars(c(get_tmb_inner_optimised_value(l_theta = 0), 0))
-par5 <- full_pars(c(get_tmb_inner_optimised_value(l_theta = -1), -1))
+<!-- Set a range of test parameters `test_pars`: -->
 
-test_pars <- list(par1, par2, par3, par4, par5)
-```
+<!-- ```{r results=FALSE} -->
+<!-- full_pars <- function(input) { -->
+<!--   setNames(input, c("x", "l_theta")) -->
+<!-- } -->
 
-```{r}
-lapply(test_pars, h$env$spHess)
-```
+<!-- par1 <- full_pars(c(0, 0)) -->
+<!-- par2 <- full_pars(c(0, -1)) -->
+<!-- par3 <- full_pars(c(-1, 0)) -->
 
-`random = TRUE` seems behave in unpredictable ways e.g. always returning the value calculated last when `random = FALSE` (perhaps only when using `apply` functions and not in other situations, so results here omitted):
+<!-- # Doing the inner loop manually -->
+<!-- par4 <- full_pars(c(get_tmb_inner_optimised_value(l_theta = 0), 0)) -->
+<!-- par5 <- full_pars(c(get_tmb_inner_optimised_value(l_theta = -1), -1)) -->
 
-```{r results=FALSE}
-lapply(test_pars, h$env$spHess, random = TRUE)
-```
+<!-- test_pars <- list(par1, par2, par3, par4, par5) -->
+<!-- ``` -->
 
-1) With `random = FALSE` the number changes as a function of the second argument, `l_theta` (the hyperparameters).
-The Hessian is $2 \times 2$ with a dot ("structural zero") outside entry $(1, 1)$.
-2) With `random = TRUE` the number doesn't change at all and it's now a $1 \times 1$ matrix.
+<!-- ```{r} -->
+<!-- lapply(test_pars, h$env$spHess) -->
+<!-- ``` -->
 
-Utilising the objective function $f$ which simply calculates the negative log posterior as a function of both random effects and hyperparameters:
+<!-- `random = TRUE` seems behave in unpredictable ways e.g. always returning the value calculated last when `random = FALSE` (perhaps only when using `apply` functions and not in other situations, so results here omitted): -->
 
-```{r}
-lapply(test_pars, f$he)
-```
+<!-- ```{r results=FALSE} -->
+<!-- lapply(test_pars, h$env$spHess, random = TRUE) -->
+<!-- ``` -->
 
-This produces the same answers as numerical differentiation of the same function (results omitted for space):
+<!-- 1) With `random = FALSE` the number changes as a function of the second argument, `l_theta` (the hyperparameters). -->
+<!-- The Hessian is $2 \times 2$ with a dot ("structural zero") outside entry $(1, 1)$. -->
+<!-- 2) With `random = TRUE` the number doesn't change at all and it's now a $1 \times 1$ matrix. -->
 
-```{r results=FALSE}
-lapply(test_pars, optimHess, fn = f$fn, gn = f$gn)
-```
+<!-- Utilising the objective function $f$ which simply calculates the negative log posterior as a function of both random effects and hyperparameters: -->
 
-In this situation we know what the precision of $x$'s full conditional is (and its a function of $\theta$!):
+<!-- ```{r} -->
+<!-- lapply(test_pars, f$he) -->
+<!-- ``` -->
 
-```{r}
-sapply(c(exp(0), exp(-1)), function(theta) inner_loop(theta)$tau_n)
-```
+<!-- This produces the same answers as numerical differentiation of the same function (results omitted for space): -->
 
-Could look more at `sdreport` [here](https://github.com/kaskr/adcomp/blob/master/TMB/R/sdreport.R) see how these functions are used there (there are more comments on the Github page than when just looking via R).
+<!-- ```{r results=FALSE} -->
+<!-- lapply(test_pars, optimHess, fn = f$fn, gn = f$gn) -->
+<!-- ``` -->
 
-```{r}
-nl_full_conditional_x <- function(x, theta, log_input = FALSE) {
-  
-  if(log_input == TRUE) {
-    theta <- exp(theta) # Convert from log(theta) to theta
-  }
-  
-  par <- inner_loop(theta)
-  
-  return(-dnorm(x, par$x_n, sqrt(1 / par$tau_n), log = TRUE))
-}
-```
+<!-- In this situation we know what the precision of $x$'s full conditional is (and its a function of $\theta$!): -->
+
+<!-- ```{r} -->
+<!-- sapply(c(exp(0), exp(-1)), function(theta) inner_loop(theta)$tau_n) -->
+<!-- ``` -->
+
+<!-- Could look more at `sdreport` [here](https://github.com/kaskr/adcomp/blob/master/TMB/R/sdreport.R) see how these functions are used there (there are more comments on the Github page than when just looking via R). -->
+
+<!-- ```{r} -->
+<!-- nl_full_conditional_x <- function(x, theta, log_input = FALSE) { -->
+
+<!--   if(log_input == TRUE) { -->
+<!--     theta <- exp(theta) # Convert from log(theta) to theta -->
+<!--   } -->
+
+<!--   par <- inner_loop(theta) -->
+
+<!--   return(-dnorm(x, par$x_n, sqrt(1 / par$tau_n), log = TRUE)) -->
+<!-- } -->
+<!-- ``` -->
 
 # Example 2: Unknown
