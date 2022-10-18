@@ -127,7 +127,7 @@ plot
 
 # Marginal of joint Gaussian approximation {#gaussian-marginal}
 
-Now we will compute Equation \@ref(eq:eq:pxgiveny) taking the marignals of a joint Gaussian approximation $p_\text{G}(x \, | \, \theta, y)$.
+Now we will compute Equation \@ref(eq:pxgiveny) taking the marignals of a joint Gaussian approximation $p_\text{G}(x \, | \, \theta, y)$.
 This is the approach currently used in the `aghq` package (done implicitly, via sampling).
 This approach is also used by `method = "gaussian"` in `R-INLA`.
 
@@ -180,7 +180,8 @@ length(mean) #' The length is 30
 #' Hessian evaluated at the mean (or equivalently mode)
 Q <- h$env$spHess(mm, random = TRUE)
 dim(Q) #' With dimension [30 x 30]
-image(Q)
+
+cowplot::plot_grid(plot(mean), image(Q))
 ```
 
 ## Reproducing output from `h`
@@ -271,6 +272,14 @@ plot2 <- plot +
 plot2
 ```
 
+Take some samples from the posterior marginal:
+
+```{r}
+M <- 1000
+samples_jointgaussianmarginal <- rnorm(M, mean_i, sqrt(var_i)) 
+```
+
+
 # Full Laplace approximation {#full-laplace}
 
 In this section we will continue to use the approximation \@ref(eq:pthetagiveny) for $\tilde p(\theta \, | \, y)$.
@@ -360,12 +369,14 @@ The mean and precision matrix for the Gaussian approximation $\tilde p_\text{G}(
 ```{r message=FALSE, warning=FALSE}
 i <- 1
 obj <- objs[[i]]
+
 mean <- means[[i]] #' The length is 30 - 1
-mean
+length(mean)
 
 Q <- Qs[[i]]
 dim(Q) #' With dimension [(30 - 1) x (30 - 1)]
-image(Q)
+
+cowplot::plot_grid(plot(mean), image(Q))
 ```
 
 `obj$fn` should take as input $(x_i, \theta)$:
@@ -393,7 +404,7 @@ Let's have a go at computing Equation \@ref(eq:pxigiveny) so that we can compare
 We simplify matters by considering just one quadrature point, $\hat \theta$, such that the sum over $z$ collapses to:
 $$
 \begin{align}
-\tilde p(x_i \, | \, y) &= \tilde p_\text{LA}(x_i \, | \, \hat \theta, y) \tilde p_\text{LA}(\hat \theta \, | \, y) \\
+\tilde p(x_i, \hat \theta \, | \, y) &= \tilde p_\text{LA}(x_i \, | \, \hat \theta, y) \tilde p_\text{LA}(\hat \theta \, | \, y) \\
 &\propto \tilde p_\text{LA}(x_i \, | \, \hat \theta, y)
 \end{align}
 $$
@@ -432,9 +443,47 @@ ggplot(df, aes(x = phi_prev_i, y = logpost)) +
   labs(x = "phi_prev[1]", "log(posterior)")
 ```
 
-What we've got here is the unnormalised log-posterior?
+What we've got here is the unnormalised log-posterior.
 How can we go from that to a normalised posterior?
 Going to do trapezoid rule here, but AGHQ would work better (even with a low number of points) because the function is close to being Gaussian.
+
+### Method 1: Safe exponential then trapezoid rule
+
+The safe exponential function computes $\exp(x - \text{max}(x))$.
+
+```{r}
+safe_exp <- function(x) exp(x - max(x))
+```
+
+A simple way to write the trapezoid rule is as follows:
+
+```{r eval=FALSE}
+trapezoid_rule <- function(x, spacing) {
+  0.5 * spacing * (2 * sum(x) - x[1] - x[2])
+}
+```
+
+It can also be defined like this, which is more convenient for thinking about it like other quadrature rules based on weights:
+
+```{r}
+trapezoid_rule <- function(x, spacing) {
+  w <- rep(spacing, length(x))
+  w[1] <- w[1] / 2
+  w[length(x)] <- w[length(x)] / 2
+  sum(w * x)
+}
+```
+
+```{r}
+df$post <- safe_exp(df$logpost)
+norm_trapezoid <- trapezoid_rule(df$post, spacing = spacing)
+df$post_norm <- df$post / norm_trapezoid
+```
+
+### Method 2: logSumExp to calculate the log normalising constant
+
+What about with another method?
+We can calculate the logarithm of the normalising constant directly, then just subtract it from the log-posterior:
 
 $$
 \begin{align}
@@ -444,29 +493,47 @@ $$
 \end{align}
 $$
 
-```{r}
-safe_exp <- function(x) exp(x - max(x))
+The `matrixStats::logSumExp` function computes $\text{LSE}(x) = \log(\exp(x_1) + \cdots + \exp(x_n))$ in a computationally stable way.
+Another way to compute the trapezoid rule, taking input on the log-scale, is as follows:
 
-trapezoid_rule <- function(x, spacing) {
-  0.5 * spacing * (2 * sum(x) - x[1] - x[2])
+```{r}
+trapezoid_rule_log <- function(x, spacing) {
+  w <- rep(spacing, length(x))
+  w[1] <- w[1] / 2
+  w[length(x)] <- w[length(x)] / 2
+  matrixStats::logSumExp(log(w) + x)
 }
 
-df$post <- safe_exp(df$logpost)
-df$post_norm = df$post / trapezoid_rule(df$post, spacing)
+norm_trapezoid_log <- trapezoid_rule_log(df$logpost, spacing)
+df$post_norm_alt <- exp(df$logpost - norm_trapezoid_log)
 
 plot3 <- plot2 +
-  geom_line(data = df, aes(x = phi_prev_i, y = post, col = "Laplace"), size = 1)
+  geom_line(data = df, aes(x = phi_prev_i, y = post_norm, col = "Laplace"), size = 1)
 
 plot3
 ```
 
+The two ways of calculating the normalised posterior are the same up to numerical error:
+
+```{r}
+max(df$post_norm - df$post_norm_alt)
+```
+
+## Comparison
+
+```{r}
+samples_tmbstan <- extract(mcmc, pars = "phi_prev[1]")[[1]]
+ks_jointgaussianmarginal_tmbstan <- inf.utils::ks_test(samples_tmbstan, samples_jointgaussianmarginal)
+```
+
+...
 So perhaps it's barely better than the Gaussian, but not really getting the real problem here.
 Hypothesis would be that it's because we're doing empirical Bayes, and with more than one hyperparameter grid point we would do better.
 
 # Simplified INLA
 
 | Description | Here | Wood (2019) notation | Notes |
-|-------------|---------------|----------------------|----------|
+|-------------|:--------------:|:--------------------:|:---------|
 | Random effects | $x$ | $\beta$ | Stringer (2021) use $w$
 | Random effects which maximise (the / some) objective for given $\theta$ | $\mu (\theta)$ | $\hat \beta$ | Wood omits dependence on $\theta$ |
 | Random effects which maximise (the / some) objective for given $\theta$, subject to $x_i$ being fixed | $(x_i, \mu(x_i, \theta))$ | $\tilde \beta$ | We have $\mu(x_i, \theta))$ having dimension $n - 1$ |
@@ -522,4 +589,10 @@ Let $\Delta_j^i$ denote $\Delta_j$ with an extra zero inserted at element $i$.
 ## `model1index.cpp`
 
 ```{cpp, echo=TRUE, eval=FALSE, output.var="ex", code=readLines('model1index.cpp')}
+```
+
+# Original computing environment
+
+```{r}
+sessionInfo()
 ```
