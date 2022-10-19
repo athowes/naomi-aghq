@@ -181,12 +181,19 @@ length(mean) #' The length is 30
 Q <- h$env$spHess(mm, random = TRUE)
 dim(Q) #' With dimension [30 x 30]
 
-cowplot::plot_grid(plot(mean), image(Q))
+cowplot::plot_grid(plot(mean), image(Q), nrow = 1)
 ```
 
-## Reproducing output from `h`
+## Additional checks {.tabset .tabset-fade}
 
-As a check, we would like to reproduce `h` using the right hand side of Equation \@ref(eq:pthetagiveny).
+### Description
+
+These tabs contain additional sanity checks used to build understanding.
+Feel free to skip them.
+
+### Reproducing output from `h`
+
+We would like to reproduce `h` using the right hand side of Equation \@ref(eq:pthetagiveny).
 To do this, we start by creating an objective function `f` (see Appendix for the `TMB` template) to evaluate $- \log p(x, \theta, y)$ (without any Laplace approximations!).
 This is what we will be using for the numerator of Equation \@ref(eq:pthetagiveny):
 
@@ -238,6 +245,8 @@ As compared with what we got from `h`:
 ```{r}
 -1 * h$fn(unlist(theta))
 ```
+
+###
 
 ## $\tilde p(x_i \, | \, y)$
 
@@ -398,7 +407,7 @@ transformed_param
 obj$fn(transformed_param)
 ```
 
-## $\tilde p(x_i \, | \, y)$
+## $\tilde p(x_i \, | \, y)$ {.tabset .tabset-fade}
 
 Let's have a go at computing Equation \@ref(eq:pxigiveny) so that we can compare to the posterior distribution from `tmbstan`.
 We simplify matters by considering just one quadrature point, $\hat \theta$, such that the sum over $z$ collapses to:
@@ -447,7 +456,7 @@ What we've got here is the unnormalised log-posterior.
 How can we go from that to a normalised posterior?
 Going to do trapezoid rule here, but AGHQ would work better (even with a low number of points) because the function is close to being Gaussian.
 
-### Method 1: Safe exponential then trapezoid rule
+### Safe exponential then trapezoid rule
 
 The safe exponential function computes $\exp(x - \text{max}(x))$.
 
@@ -480,7 +489,7 @@ norm_trapezoid <- trapezoid_rule(df$post, spacing = spacing)
 df$post_norm <- df$post / norm_trapezoid
 ```
 
-### Method 2: logSumExp to calculate the log normalising constant
+### `logSumExp` to calculate the log normalising constant
 
 What about with another method?
 We can calculate the logarithm of the normalising constant directly, then just subtract it from the log-posterior:
@@ -506,17 +515,23 @@ trapezoid_rule_log <- function(x, spacing) {
 
 norm_trapezoid_log <- trapezoid_rule_log(df$logpost, spacing)
 df$post_norm_alt <- exp(df$logpost - norm_trapezoid_log)
+```
 
+###
+
+The two ways of calculating the normalised posterior above are the same up to numerical error:
+
+```{r}
+max(abs(df$post_norm - df$post_norm_alt))
+```
+
+We now add our Laplace approximation to the existing joint Gaussian marginal and MCMC results:
+
+```{r}
 plot3 <- plot2 +
   geom_line(data = df, aes(x = phi_prev_i, y = post_norm, col = "Laplace"), size = 1)
 
 plot3
-```
-
-The two ways of calculating the normalised posterior are the same up to numerical error:
-
-```{r}
-max(df$post_norm - df$post_norm_alt)
 ```
 
 ## Comparison
@@ -526,9 +541,7 @@ samples_tmbstan <- extract(mcmc, pars = "phi_prev[1]")[[1]]
 ks_jointgaussianmarginal_tmbstan <- inf.utils::ks_test(samples_tmbstan, samples_jointgaussianmarginal)
 ```
 
-...
-So perhaps it's barely better than the Gaussian, but not really getting the real problem here.
-Hypothesis would be that it's because we're doing empirical Bayes, and with more than one hyperparameter grid point we would do better.
+One thing to take into account is that we're doing empirical Bayes, and things might be improved by using more integration points.
 
 # Simplified INLA
 
