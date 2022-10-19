@@ -281,13 +281,11 @@ We can compare it to our MCMC results as follows:
 plot_pdf2 <- plot_pdf +
   stat_function(
     data = data.frame(x = c(0.5, 3.5)), aes(x, col = "Joint Gaussian marginal"), fun = dnorm, n = 101, 
-    args = list(mean = mean_i, sd = sqrt(var_i)), size = 1
+    args = list(mean = mean_i, sd = sqrt(var_i))
   ) +
   labs(x = "prev_phi[1]", y = "Posterior", col = "Approximation") +
   scale_colour_manual(values = cbpalette) +
   theme_minimal()
-
-plot_pdf2
 
 M <- 1000
 samples_jointgaussianmarginal <- rnorm(M, mean_i, sqrt(var_i)) 
@@ -555,9 +553,7 @@ We now add our Laplace approximation to the existing joint Gaussian marginal and
 
 ```{r message=FALSE, warning=FALSE}
 plot_pdf3 <- plot_pdf2 +
-  geom_line(data = df, aes(x = phi_prev_i, y = post_norm, col = "Laplace"), size = 1)
-
-plot_pdf3
+  geom_line(data = df, aes(x = phi_prev_i, y = post_norm, col = "Laplace"))
 
 df$ecdf <- cumsum(df$post_norm) * c(0, diff(df$phi_prev_i))
 
@@ -565,8 +561,6 @@ plot_cdf3 <- plot_cdf2 +
   geom_line(
     data = df, aes(x = phi_prev_i, y = ecdf), col = cbpalette[2]
   )
-
-plot_cdf3
 
 cowplot::plot_grid(plot_cdf3, plot_pdf3, rel_widths = c(1, 1.5))
 ```
@@ -579,8 +573,8 @@ samples_laplace <- approxfun(df$ecdf, df$phi_prev_i)(runif(M))
 ks_laplace_tmbstan <- inf.utils::ks_test(samples_tmbstan, samples_laplace)
 
 kable_data <- data.frame(
-  "KS Distance" = c(ks_jointgaussianmarginal_tmbstan$D, ks_laplace_tmbstan$D),
-  "KS Location" = c(ks_jointgaussianmarginal_tmbstan$l, ks_laplace_tmbstan$l)
+  "Distance" = c(ks_jointgaussianmarginal_tmbstan$D, ks_laplace_tmbstan$D),
+  "Location" = c(ks_jointgaussianmarginal_tmbstan$l, ks_laplace_tmbstan$l)
 )
 
 rownames(kable_data) <- c("$\\text{KS}(\\texttt{tmbstan}, \\texttt{jointgaussianmarginal})$", "$\\text{KS}(\\texttt{tmbstan}, \\texttt{laplace})$")
@@ -589,13 +583,6 @@ kableExtra::kable(kable_data, booktabs = TRUE, escape = FALSE, align = "c")
 ```
 
 # Simplified INLA
-
-| Description | Here | Wood (2019) notation | Notes |
-|-------------|:--------------:|:--------------------:|:---------|
-| Random effects | $x$ | $\beta$ | Stringer (2021) use $w$
-| Random effects which maximise (the / some) objective for given $\theta$ | $\mu (\theta)$ | $\hat \beta$ | Wood omits dependence on $\theta$ |
-| Random effects which maximise (the / some) objective for given $\theta$, subject to $x_i$ being fixed | $(x_i, \mu(x_i, \theta))$ | $\tilde \beta$ | We have $\mu(x_i, \theta))$ having dimension $n - 1$ |
-| Hessian / precision matrix of the negative log-likelihood with respect to $x$ at $\mu(\theta)$ | $Q(\theta)$ | $H$ | Unsure if it's preferable to use Hessian or precision notation here |
 
 In Section \@ref(full-laplace) we directly calculate the Laplace approximation to $\int p(x, y, \theta) \text{d} \theta_{-i}$.
 Following Wood (2019), a cheaper approach would be to "base the denominator of Equation \@ref(eq:pxigiventhetay) on the conditional density implied by ? in which case the Hessian is constant and
@@ -638,6 +625,15 @@ Let $\Delta_j^i$ denote $\Delta_j$ with an extra zero inserted at element $i$.
 3. Renormalise $\tilde p(x_i \, | \, \theta, y)$
 
 # Appendix {#appendix}
+
+## Comparison of notation
+
+| Description | Here | Wood (2019) notation | Notes |
+|-------------|:--------------:|:--------------------:|:---------|
+| Random effects | $x$ | $\beta$ | Stringer (2021) use $w$
+| Random effects which maximise (the / some) objective for given $\theta$ | $\mu (\theta)$ | $\hat \beta$ | Wood omits dependence on $\theta$ |
+| Random effects which maximise (the / some) objective for given $\theta$, subject to $x_i$ being fixed | $(x_i, \mu(x_i, \theta))$ | $\tilde \beta$ | We have $\mu(x_i, \theta))$ having dimension $n - 1$ |
+| Hessian / precision matrix of the negative log-likelihood with respect to $x$ at $\mu(\theta)$ | $Q(\theta)$ | $H$ | Unsure if it's preferable to use Hessian or precision notation here |
 
 ## `model1.cpp`
 
