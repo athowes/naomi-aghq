@@ -541,6 +541,13 @@ Check that this method correctly computes the normalising constant for a density
 abs(trapezoid_rule_log(dnorm(seq(-10, 10, by = 0.1), log = TRUE), spacing = 0.1) - log(1)) < 10E-6
 ```
 
+### Calculating $p_\text{LA}(\hat \theta \, | \, y)$ with `aghq`
+
+```{r}
+# h$he <- function(theta) numDeriv::jacobian(h$gr, theta, method = "Richardson")
+# quad <- aghq::aghq(ff = h, k = 1, startingvalue = h$par)
+```
+
 ## Comparison
 
 The two ways of calculating the normalised posterior above are the same up to numerical error:
@@ -585,14 +592,18 @@ kableExtra::kable(kable_data, booktabs = TRUE, escape = FALSE, align = "c")
 # Simplified INLA
 
 In Section \@ref(full-laplace) we directly calculate the Laplace approximation to $\int p(x, y, \theta) \text{d} \theta_{-i}$.
-Following Wood (2019), a cheaper approach would be to "base the denominator of Equation \@ref(eq:pxigiventhetay) on the conditional density implied by ? in which case the Hessian is constant and
+Suppose that
 $$
-\mu(x_i, \theta) = \mu(\theta) + \Sigma(\theta)_{-i, i} \Sigma(\theta)^{-1}_{i, i} (x_i - \mu (\theta)_i) (\#eq:wood3)
+x \sim \mathcal{N}(\mu(\theta), Q(\theta)^{-1})
 $$
-The proposed modification has two parts:
-
-1. Use the numerically exact $\mu(x_i, \theta)$ rather than an approximation (as in simplified Laplace)
-2. An approximation to the required Hessian
+then by the conditional distributions of a multivariate Gaussian distribution $x_{-i} \, | \, x_i$ is Gaussian with mean
+$$
+\mu(\theta)_{-i} + \Sigma(\theta)_{-i, i} \Sigma(\theta)^{-1}_{i, i} (x_i - \mu (\theta)_i) (\#eq:conditionalmean)
+$$
+and precision matrix
+$$
+Q(\theta)_{-i, -i}
+$$
 
 ## Complete algorithm
 
@@ -606,7 +617,7 @@ Let $\Delta_j^i$ denote $\Delta_j$ with an extra zero inserted at element $i$.
 
 1. Compute the Cholesky factor of $Q_0 := Q_{-i, -i}$ by update of the Cholesky factor of $Q$
 2. For each $x_i$ in a grid of evaluation points (how does one chose this grid?) repeat the following steps a-e)
-  a) Use Newton's method with fixed Hessian $Q_{-i, -i}$ to find $\mu(x_i)$ starting from \@ref(eq:wood3)
+  a) Use Newton's method with fixed Hessian $Q_{-i, -i}$ to find $\mu(x_i)$ starting from \@ref(eq:conditionalmean)
   b) Compute a set of $J$ steps $\{\Delta_j\}$
   c) For $j = 1, \ldots, J - 1$ compute
   $$
@@ -628,9 +639,9 @@ Let $\Delta_j^i$ denote $\Delta_j$ with an extra zero inserted at element $i$.
 
 ## Comparison of notation
 
-| Description | Here | Wood (2019) notation | Notes |
-|-------------|:--------------:|:--------------------:|:---------|
-| Random effects | $x$ | $\beta$ | Stringer (2021) use $w$
+| Description | Here          | Wood (2019) notation | Notes    |
+|:------------|:--------------|:---------------------|:---------|
+| Random effects | $x$        | $\beta$              | Stringer (2021) use $w$
 | Random effects which maximise (the / some) objective for given $\theta$ | $\mu (\theta)$ | $\hat \beta$ | Wood omits dependence on $\theta$ |
 | Random effects which maximise (the / some) objective for given $\theta$, subject to $x_i$ being fixed | $(x_i, \mu(x_i, \theta))$ | $\tilde \beta$ | We have $\mu(x_i, \theta))$ having dimension $n - 1$ |
 | Hessian / precision matrix of the negative log-likelihood with respect to $x$ at $\mu(\theta)$ | $Q(\theta)$ | $H$ | Unsure if it's preferable to use Hessian or precision notation here |
