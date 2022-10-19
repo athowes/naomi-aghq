@@ -117,14 +117,23 @@ mcmc <- tmbstan::tmbstan(h, chains = 4, iter = 5000, refresh = 0)
 The posterior marginal $p(\phi_1 \, | \, y)$ can be examined by extracting the corresponding Markov chains, and plotting a histogram of the draws:
 
 ```{r message=FALSE, warning=FALSE}
-plot <- extract(mcmc, pars = "phi_prev[1]") %>%
-  as.data.frame() %>%
-  ggplot(aes(x = phi_prev.1.)) +
+samples_tmbstan <- extract(mcmc, pars = "phi_prev[1]")[[1]]
+
+plot_pdf <- ggplot(data.frame(x = samples_tmbstan), aes(x = x)) +
     geom_histogram(aes(y = ..density..), alpha = 0.8, fill = cbpalette[7]) +
     theme_minimal() +
-    labs(x = "phi_prev[1]", y = "Posterior")
+    labs(x = "phi_prev[1]", y = "Posterior PDF")
 
-plot
+ecdf_tmbstan <- ecdf(samples_tmbstan)
+grid <- seq(min(samples_tmbstan), max(samples_tmbstan), by = 0.1)
+
+plot_cdf <- data.frame(x = grid, y = ecdf_tmbstan(grid)) %>%
+  ggplot(aes(x = x, y = y)) +
+    geom_line(col = cbpalette[7]) +
+    theme_minimal() +
+    labs(x = "phi_prev[1]", y = "Posterior CDF")
+
+cowplot::plot_grid(plot_cdf, plot_pdf)
 ```
 
 # Marginal of joint Gaussian approximation {#gaussian-marginal}
@@ -182,8 +191,6 @@ length(mean) #' The length is 30
 #' Hessian evaluated at the mean (or equivalently mode)
 Q <- h$env$spHess(mm, random = TRUE)
 dim(Q) #' With dimension [30 x 30]
-
-cowplot::plot_grid(plot(mean), image(Q), nrow = 1)
 ```
 
 ## Additional checks {.tabset .tabset-fade}
@@ -258,6 +265,7 @@ $$
 &\propto \tilde p_\text{G}(x_i \, | \, \hat \theta, y)
 \end{align}
 $$
+
 We can evaluate this for $i = 1$ via:
 
 ```{r}
@@ -266,10 +274,11 @@ mean_i <- as.numeric(mean[i])
 var_i <- solve(Q)[i, i]
 ```
 
-And compare it to our MCMC results as follows:
+Because this is a Gaussian distribution, we do not have do normalise it (as would usually be the case) because we know it's a density.
+We can compare it to our MCMC results as follows:
 
 ```{r message=FALSE, warning=FALSE}
-plot2 <- plot +
+plot_pdf2 <- plot_pdf +
   stat_function(
     data = data.frame(x = c(0.5, 3.5)), aes(x, col = "Joint Gaussian marginal"), fun = dnorm, n = 101, 
     args = list(mean = mean_i, sd = sqrt(var_i)), size = 1
@@ -278,16 +287,29 @@ plot2 <- plot +
   scale_colour_manual(values = cbpalette) +
   theme_minimal()
 
-plot2
-```
+plot_pdf2
 
-Take some samples from the posterior marginal:
-
-```{r}
 M <- 1000
 samples_jointgaussianmarginal <- rnorm(M, mean_i, sqrt(var_i)) 
+
+ecdf_jointgaussianmarginal <- ecdf(samples_jointgaussianmarginal)
+grid <- seq(min(samples_jointgaussianmarginal), max(samples_jointgaussianmarginal), by = 0.1)
+
+plot_cdf2 <- plot_cdf +
+  geom_line(
+    data = data.frame(x = grid, y = ecdf_jointgaussianmarginal(grid)),
+    aes(x = x, y = y), col = cbpalette[1]
+  )
+
+cowplot::plot_grid(plot_cdf2, plot_pdf2, rel_widths = c(1, 1.5))
 ```
 
+```{r}
+ks_jointgaussianmarginal_tmbstan <- inf.utils::ks_test(samples_tmbstan, samples_jointgaussianmarginal)
+ks_jointgaussianmarginal_tmbstan
+```
+
+The maximum difference between the two ECDFS is `r ks_jointgaussianmarginal_tmbstan$D` which occurs at the point `r ks_jointgaussianmarginal_tmbstan$l`.
 
 # Full Laplace approximation {#full-laplace}
 
@@ -332,16 +354,18 @@ objs <- list()
 means <- list()
 Qs <- list()
 
+#' Starting parameters for TMB are the same for every index of the loop so it's more efficient to put them outside
+param_i <- list(
+  beta_prev = 0,
+  phi_prev_i = 0,
+  phi_prev_minus_i = rep(0, data$n - 1),
+  log_sigma_phi_prev = 0
+)
+
+its <- 1000
+
 for(i in 1:dat$n) {
   dat_i <- prepare_dat(dat, i)
-
-  #' Starting parameters for TMB are the same for every index of the loop
-  param_i <- list(
-    beta_prev = 0,
-    phi_prev_i = 0,
-    phi_prev_minus_i = rep(0, data$n - 1),
-    log_sigma_phi_prev = 0
-  )
 
   #' random are integrated out with a Laplace approximation
   obj <- MakeADFun(
@@ -351,8 +375,6 @@ for(i in 1:dat$n) {
     DLL = "model1index",
     silent = TRUE
   )
-
-  its <- 1000
 
   opt <- nlminb(
     start = obj$par,
@@ -384,11 +406,9 @@ length(mean)
 
 Q <- Qs[[i]]
 dim(Q) #' With dimension [(30 - 1) x (30 - 1)]
-
-cowplot::plot_grid(plot(mean), image(Q))
 ```
 
-`obj$fn` should take as input $(x_i, \theta)$:
+We check here that `obj$fn` indeed takes as input $(x_i, \theta)$:
 
 ```{r}
 transform_param <- function(param) {
@@ -445,15 +465,9 @@ df <- opt$par %>%
     #' Note here: it's crucial that the arguments are in the right order!
     logpost = -obj$fn(c(beta_prev, phi_prev_i, log_sigma_phi_prev))
   )
-
-ggplot(df, aes(x = phi_prev_i, y = logpost)) +
-  geom_line() +
-  theme_minimal() +
-  labs(x = "phi_prev[1]", "log(posterior)")
 ```
 
-What we've got here is the unnormalised log-posterior.
-How can we go from that to a normalised posterior?
+We've compuating the unnormalised log-posterior -- how can we go from that to a normalised posterior?
 Going to do trapezoid rule here, but AGHQ would work better (even with a low number of points) because the function is close to being Gaussian.
 
 ### Safe exponential then trapezoid rule {-}
@@ -489,6 +503,12 @@ norm_trapezoid <- trapezoid_rule(df$post, spacing = spacing)
 df$post_norm <- df$post / norm_trapezoid
 ```
 
+Check that this method correctly computes the normalising constant for a density (which is known to integrate to one):
+
+```{r}
+abs(trapezoid_rule(dnorm(seq(-10, 10, by = 0.1)), spacing = 0.1) - 1) < 10E-6
+```
+
 ### `logSumExp` to calculate the log normalising constant {-}
 
 What about with another method?
@@ -517,29 +537,56 @@ norm_trapezoid_log <- trapezoid_rule_log(df$logpost, spacing)
 df$post_norm_alt <- exp(df$logpost - norm_trapezoid_log)
 ```
 
+Check that this method correctly computes the normalising constant for a density (which is known to integrate to one):
+
+```{r}
+abs(trapezoid_rule_log(dnorm(seq(-10, 10, by = 0.1), log = TRUE), spacing = 0.1) - log(1)) < 10E-6
+```
+
 ## Comparison
 
 The two ways of calculating the normalised posterior above are the same up to numerical error:
 
 ```{r}
-max(abs(df$post_norm - df$post_norm_alt))
+max(abs(df$post_norm - df$post_norm_alt)) < 10E-6
 ```
 
 We now add our Laplace approximation to the existing joint Gaussian marginal and MCMC results:
 
 ```{r message=FALSE, warning=FALSE}
-plot3 <- plot2 +
+plot_pdf3 <- plot_pdf2 +
   geom_line(data = df, aes(x = phi_prev_i, y = post_norm, col = "Laplace"), size = 1)
 
-plot3
+plot_pdf3
+
+df$ecdf <- cumsum(df$post_norm) * c(0, diff(df$phi_prev_i))
+
+plot_cdf3 <- plot_cdf2 +
+  geom_line(
+    data = df, aes(x = phi_prev_i, y = ecdf), col = cbpalette[2]
+  )
+
+plot_cdf3
+
+cowplot::plot_grid(plot_cdf3, plot_pdf3, rel_widths = c(1, 1.5))
 ```
+
+We use the inverse CDF method to sample from the Laplace marginal, then we can calculate the KS statistic:
 
 ```{r}
-samples_tmbstan <- extract(mcmc, pars = "phi_prev[1]")[[1]]
-ks_jointgaussianmarginal_tmbstan <- inf.utils::ks_test(samples_tmbstan, samples_jointgaussianmarginal)
-```
+samples_laplace <- approxfun(df$ecdf, df$phi_prev_i)(runif(M))
 
-One thing to take into account is that we're doing empirical Bayes, and things might be improved by using more integration points.
+ks_laplace_tmbstan <- inf.utils::ks_test(samples_tmbstan, samples_laplace)
+
+kable_data <- data.frame(
+  "KS Distance" = c(ks_jointgaussianmarginal_tmbstan$D, ks_laplace_tmbstan$D),
+  "KS Location" = c(ks_jointgaussianmarginal_tmbstan$l, ks_laplace_tmbstan$l)
+)
+
+rownames(kable_data) <- c("$\\text{KS}(\\texttt{tmbstan}, \\texttt{jointgaussianmarginal})$", "$\\text{KS}(\\texttt{tmbstan}, \\texttt{laplace})$")
+
+kableExtra::kable(kable_data, booktabs = TRUE, escape = FALSE, align = "c")
+```
 
 # Simplified INLA
 
