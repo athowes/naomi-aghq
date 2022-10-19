@@ -1,0 +1,69 @@
+---
+title: Explaining approximate deterministic inference methods
+subtitle: HIV Inference Lab Group Meeting
+author: Adam Howes
+institute: Imperial College London
+date: December 2022
+bibliography: citations.bib
+output:
+  beamer_presentation:
+    latex_engine: pdflatex
+    highlight: haddock
+    fig_width: 7 
+    fig_height: 3
+    includes:
+        in_header: preamble.tex
+---
+
+# Bayes
+
+* As a statistical modeller, our whole job (approximately) is to construct a generative model for data $y$ using parameters $\vartheta$
+* This is the joint distribution $p(y, \vartheta) = p(y \, | \, \vartheta) p(\vartheta)$
+* What we actually want is the posterior $p(\vartheta \, | \, y)$ which is **just**
+$$
+p(\vartheta \, | \, y) = \frac{p(y, \vartheta)}{p(y)} = \frac{p(y \, | \, \vartheta) p(\vartheta)}{p(y)}
+$$
+* The **core problem** of Bayesian inference is that we can't compute $p(y)$
+$$
+p(y) = \int p(y, \vartheta) \text{d} \vartheta
+$$
+
+# How might you do it?
+
+* Usually if you wanted to integrate something, you could use numerical integration methods
+* It doesn't work when $\text{dim}(\vartheta)$ gets even moderately sized
+
+# Notation set-up
+
+* Previously I had all of the parameters under the symbol $\vartheta$
+* What if we split them up as being $\vartheta = (x, \theta)$
+
+| Names for $x$ | Names for $\theta$ |
+|---------------|--------------------|
+| Latent variables, random effects, latent field | Hyperparameters, fixed effects 
+
+# Spatio-temporal statistics
+
+* There is nothing inherently special about spatio-temporal statistics
+* We have observations indexed by space $s \in \mathcal{S}$ and time $t \in \mathcal{T}$
+* Usually we associate parameters to spatio-temporal locations as well as observations
+* This ends up with us having something like $\{x_{s, t}\}$
+
+# What's important about this?
+
+1. There might be **a lot** of spatio-temporal locations, so $\text{dim}(x)$ might be pretty big!
+ * If you have 100 districts and 10 years, that's already $100 \times 10 = 1000$ parameters
+2. Perhaps we're willing to make assumptions about how things vary over space-time
+
+<!-- As you get more data, the posterior approaches a Gaussian -->
+
+# Latent Gaussian models
+
+\begin{alignat*}{2}
+  &\text{(Observations)}     &   y &\sim p(y \, | \, x, \theta), \\
+  &\text{(Latent field)}     &   x &\sim \mathcal{N}(x  \, | \, \mu(\theta), Q(\theta)^{-1}), \\
+  &\text{(Hyperparameters)}  &   \qquad \theta &\sim p(\theta),
+\end{alignat*}
+where $y = (y_1, \ldots, y_n)$, $x = (x_1, \ldots, x_n)$, $\theta = (\theta_1, \ldots, \theta_m)$
+
+# References {.allowframebreaks}
