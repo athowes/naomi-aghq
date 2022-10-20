@@ -544,8 +544,9 @@ abs(trapezoid_rule_log(dnorm(seq(-10, 10, by = 0.1), log = TRUE), spacing = 0.1)
 ### Calculating $p_\text{LA}(\hat \theta \, | \, y)$ with `aghq`
 
 ```{r}
-# h$he <- function(theta) numDeriv::jacobian(h$gr, theta, method = "Richardson")
-# quad <- aghq::aghq(ff = h, k = 1, startingvalue = h$par)
+h$he <- function(theta) numDeriv::jacobian(h$gr, theta, method = "Richardson")
+quad <- aghq::aghq(ff = h, k = 3, startingvalue = c(0, 0), control = aghq::default_control_tmb())
+quad$normalized_posterior$lognormconst
 ```
 
 ## Comparison
@@ -602,7 +603,7 @@ $$
 $$
 and precision matrix
 $$
-Q(\theta)_{-i, -i}
+Q(\theta)_{-i, -i} (\#eq:conditionalprecision)
 $$
 
 ## Complete algorithm
