@@ -428,15 +428,16 @@ obj$fn(transformed_param)
 ## $\tilde p(x_i \, | \, y)$ {.tabset .tabset-fade}
 
 Let's have a go at computing Equation \@ref(eq:pxigiveny) so that we can compare to the posterior distribution from `tmbstan`.
-We simplify matters by considering just one quadrature point, $\hat \theta$, such that the sum over $z$ collapses to:
+We simplify matters by considering just one quadrature point, $\hat \theta$, such that the sum over $z$ collapses to^[Note that I'm uncertain if $\hat \theta$ (a constant) should still be included in the LHS of this.]:
 $$
 \begin{align}
-\tilde p(x_i, \hat \theta \, | \, y) &= \tilde p_\text{LA}(x_i \, | \, \hat \theta, y) \tilde p_\text{LA}(\hat \theta \, | \, y) \\
+\tilde p(x_i \, | \, y) &= \tilde p_\text{LA}(x_i \, | \, \hat \theta, y) \tilde p_\text{LA}(\hat \theta \, | \, y) \\
 &\propto \tilde p_\text{LA}(x_i \, | \, \hat \theta, y)
 \end{align}
 $$
 
-Start by getting $\hat \theta$:
+We're always going to need $\hat \theta$.
+We have calculated it before, but we will get it fresh here (because of questionable programming practices whereby objects are overwritten):
 
 ```{r}
 opt <- nlminb(
@@ -446,29 +447,31 @@ opt <- nlminb(
   control = list(iter.max = its, trace = 0)
 )
 
-#' How many equally spaced points do we want to evaluate the posterior at?
+opt$par
+```
+
+Now, a basic way we could approach this is to define a grid of points that we would like to evaluate the posterior at.
+We can then create a dataframe where each row contains the values `opt$par` for $\theta$ and a grid value for $x_i$.
+Each row can then be passed into `-obj$fn()` to calculate the log-posterior.
+Note that it's crucial the arguments are in the right order when we pass them to `obj$fn()` -- this has caused headaches!
+
+```{r}
 spacing <- 0.05
 x_grid <- seq(from = 0.5, to = 3.5, by = spacing)
 x_grid_length <- length(x_grid)
 
-df <- opt$par %>%
-  t() %>%
+df <- t(opt$par) %>%
   as.data.frame() %>%
   slice(rep(1:n(), each = x_grid_length)) %>%
-  mutate(
-    phi_prev_i = x_grid
-  ) %>%
+  mutate(phi_prev_i = x_grid) %>%
   rowwise() %>%
-  mutate(
-    #' Note here: it's crucial that the arguments are in the right order!
-    logpost = -obj$fn(c(beta_prev, phi_prev_i, log_sigma_phi_prev))
-  )
+  mutate(logpost = -obj$fn(c(beta_prev, phi_prev_i, log_sigma_phi_prev)))
 ```
 
-We've compuating the unnormalised log-posterior -- how can we go from that to a normalised posterior?
-Going to do trapezoid rule here, but AGHQ would work better (even with a low number of points) because the function is close to being Gaussian.
+We've computed the unnormalised log-posterior -- how can we go from that to a normalised posterior?
+Given these grid of points, we can do the trapezoid rule here.
 
-### Safe exponential then trapezoid rule {-}
+### Safe exponential trapezoid rule {-}
 
 The safe exponential function computes $\exp(x - \text{max}(x))$.
 
@@ -507,7 +510,7 @@ Check that this method correctly computes the normalising constant for a density
 abs(trapezoid_rule(dnorm(seq(-10, 10, by = 0.1)), spacing = 0.1) - 1) < 10E-6
 ```
 
-### `logSumExp` to calculate the log normalising constant {-}
+### `logSumExp` trapezoid rule {-}
 
 What about with another method?
 We can calculate the logarithm of the normalising constant directly, then just subtract it from the log-posterior:
@@ -541,21 +544,95 @@ Check that this method correctly computes the normalising constant for a density
 abs(trapezoid_rule_log(dnorm(seq(-10, 10, by = 0.1), log = TRUE), spacing = 0.1) - log(1)) < 10E-6
 ```
 
-### Calculating $p_\text{LA}(\hat \theta \, | \, y)$ with `aghq`
-
-```{r}
-h$he <- function(theta) numDeriv::jacobian(h$gr, theta, method = "Richardson")
-quad <- aghq::aghq(ff = h, k = 3, startingvalue = c(0, 0), control = aghq::default_control_tmb())
-quad$normalized_posterior$lognormconst
-```
-
-## Comparison
+## Normalisation with `aghq`
 
 The two ways of calculating the normalised posterior above are the same up to numerical error:
 
 ```{r}
 max(abs(df$post_norm - df$post_norm_alt)) < 10E-6
 ```
+
+So how might we approach this in a more sophisticated way?
+We could do the normalisation directly in `aghq`!
+
+We could normalise $\tilde p_\text{LA}(\theta, y)$.
+Note that sometimes we have been calling this $\tilde p_\text{LA}(\theta \, | \, y)$ because they are equivalent up to a constant of proportionality.
+Define
+$$
+\tilde p_\text{AQ}(\theta \, | \, y) = \frac{\tilde p_\text{LA}(\theta, y)}{\tilde p_\text{AQ}(y)}
+$$
+or on a log-scale
+$$
+\log \tilde p_\text{AQ}(\theta \, | \, y) = \log \tilde p_\text{LA}(\theta, y) - \log \tilde p_\text{AQ}(y)
+$$
+
+First we have to add a numerical Hessian that's missing from `h`:
+
+```{r}
+h$he <- function(theta) numDeriv::jacobian(h$gr, theta, method = "Richardson")
+```
+
+Now we can obtain $\log \tilde p_\text{AQ}(y)$:
+
+```{r}
+quad <- aghq::aghq(ff = h, k = 3, startingvalue = c(0, 0), control = aghq::default_control_tmb())
+quad$normalized_posterior$lognormconst
+```
+
+Remember that `h` is the negative log-likelihood, so we want to add the normalising constant rather than subtract it:
+
+```{r}
+h_norm <- function(theta) h$fn(theta) - quad$normalized_posterior$lognormconst
+```
+
+Now we can put this into
+$$
+\tilde p(x_i, \hat \theta \, | \, y) = \tilde p_\text{LA}(x_i \, | \, \hat \theta, y) \tilde p_\text{AQ}(\hat \theta \, | \, y)
+$$
+
+But perhaps there is no reason to, because we will just have to normalise it again, so why do it twice?
+Let's just try to normalise it directly.
+What we need to do is create a function in `TMB` where we fix some of the inputs to the function.
+This can be done using the `map` argument of `MakeADFun`.
+You set each parameter to `factor(NA)` that you want to be fixed, then they will retain the value you input in `parameters`:
+
+```{r}
+obj$par %>% names()
+
+map_fixed_theta <- list(beta_prev = factor(NA), log_sigma_phi_prev = factor(NA))
+
+param_i_fixed_theta <- param_i
+
+theta_names <- names(opt$par)
+for(theta in theta_names) {
+  param_i_fixed_theta[[theta]] <- opt$par[[theta]]
+}
+
+dat_i <- prepare_dat(dat, i)
+
+obj_fixed_theta <- MakeADFun(
+  data = dat_i,
+  parameters = param_i_fixed_theta,
+  random = "phi_prev_minus_i",
+  DLL = "model1index",
+  silent = TRUE,
+  map = map_fixed_theta
+)
+```
+
+Now we can normalise this function $p_\text{LA}(x_i, \theta = \hat \theta, y)$ using `aghq`:
+
+```{r}
+quad <- aghq::aghq(ff = obj_fixed_theta, k = 3, startingvalue = 0, control = aghq::default_control_tmb())
+```
+
+The value of the normalising constant is (approximately) the same as we get using our trapezoid rule:
+
+```{r}
+abs(quad$normalized_posterior$lognormconst - norm_trapezoid_log) < 10E-3
+```
+
+## Comparison
 
 We now add our Laplace approximation to the existing joint Gaussian marginal and MCMC results:
 
