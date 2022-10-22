@@ -1,0 +1,50 @@
+---
+title: "`TMB`"
+author: "Adam Howes, Imperial College London"
+output:
+  pdf_document: default
+header-includes:
+  \usepackage{bm}
+---
+
+Consider unobserved latent random effects $\mathbf{x} \in \mathbb{R}^n$ and parameters $\bm{\theta} \in \mathbb{R}^m$.^[Kristensen (2016) use the notation $u$ for random effects and $\theta$ for parameters. We aim for consistency with Section \ref{sec:inla}.]
+Let $\ell(\mathbf{x}, \bm{\theta}) \triangleq - \log p(\mathbf{y} \, | \, \mathbf{x}, \bm{\theta})$ be the negative joint log-likelihood.
+In `TMB`, the user writes C++ code to evaluate this negative log-likelihood function $\ell$.
+A standard maximum likelihood approach is to optimise
+\begin{equation}
+L_\ell(\bm{\theta}) \triangleq \int_{\mathbb{R}^n} p(\mathbf{y} \, | \, \mathbf{x}, \bm{\theta}) \text{d}\mathbf{x} = \int_{\mathbb{R}^n} \exp(-\ell(\mathbf{x}, \bm{\theta})) \text{d}\mathbf{x} \label{eq:flikelihood}
+\end{equation}
+with respect to $\bm{\theta}$ to find the maximum likelihood estimator (MLE) $\hat{\bm{\theta}}$.
+Taking a superficially more Bayesian approach than above, instead of $\ell$, the user may instead write a function to evaluate the negative joint penalised log-likelihood given by
+\begin{equation}
+f(\mathbf{x}, \bm{\theta}) 
+\triangleq - \log p(\mathbf{y} \, | \, \mathbf{x}, \bm{\theta}) p(\mathbf{x}, \bm{\theta})
+= \ell(\mathbf{x}, \bm{\theta}) - \log p(\mathbf{x}, \bm{\theta}),
+\end{equation}
+equivalent up to an additive constant to the negative log-posterior.
+\begin{equation}
+f(\mathbf{x}, \bm{\theta})
+= - \log p(\mathbf{y}, \mathbf{x}, \bm{\theta})
+= - \log p(\mathbf{x}, \bm{\theta} \, | \, \mathbf{y}) - C,
+\end{equation}
+where $C = \log p(\mathbf{y})$ is the log evidence.
+Using $f$ in place of $\ell$, then the penalised likelihood is proportional to the posterior marginal of $\bm{\theta}$
+\begin{equation}
+L_f(\bm{\theta}) 
+\triangleq \int_{\mathbb{R}^n} \exp(-f(\mathbf{x}, \bm{\theta})) \text{d}\mathbf{x} 
+\propto \int_{\mathbb{R}^n} p(\mathbf{x}, \bm{\theta} \, | \, \mathbf{y}) \text{d}\mathbf{x} = p(\bm{\theta} \, | \, \mathbf{y}). \label{eq:1}
+\end{equation}
+Integrating out the random effects directly, as in Equation \ref{eq:1} above, is usually intractable because $\mathbf{x}$ is high-dimensional, so Kristensen (2016, Equation 3) use a Laplace approximation $L^\star_f(\bm{\theta})$ based instead upon integrating out a Gaussian approximation to the random effects.
+This Laplace approximation is analogous to the INLA approximation $\tilde p(\bm{\theta} \, | \, \mathbf{y})$.
+\begin{equation*}
+f''_{\mathbf{x}\mathbf{x}}(\hat{\bm{\mu}}(\bm{\theta}), \bm{\theta}) = - \frac{\partial^2}{\partial \mathbf{x}^2} \log p(\mathbf{y}, \mathbf{x}, \bm{\theta}) \Big\rvert_{\mathbf{x} = \hat{\bm{\mu}}(\bm{\theta})}
+= - \frac{\partial^2}{\partial \mathbf{x}^2} \log p(\mathbf{x} \, | \, \bm{\theta}, \mathbf{y}) \Big\rvert_{\mathbf{x} = \hat{\bm{\mu}}(\bm{\theta})}
+= \hat{\bm{Q}}(\bm{\theta}).
+\end{equation*}
+Inference proceeds by optimising $L^\star_f(\bm{\theta})$ via minimisation of
+\begin{equation}
+-\log L^\star_f(\bm{\theta}) \propto \frac{1}{2} \log \det (\hat{\bm{Q}}(\bm{\theta})) + f(\hat{\bm{\mu}}(\bm{\theta}), \bm{\theta})  \label{eq:nllaplace},
+\end{equation}
+where $\propto$ is used to mean proportional up to an additive constant.
+The parameters of the Gaussian approximation, are found in terms of $f$ via $\hat{\bm{\mu}}(\bm{\theta}) = \arg \min_\mathbf{x} f(\mathbf{x}, \bm{\theta})$ and $\hat{\bm{Q}}(\bm{\theta}) = f''_{\mathbf{x}\mathbf{x}}(\hat{\bm{\mu}}(\bm{\theta}), \bm{\theta})$ and must be recomputed for each value of $\bm{\theta}$.
+Obtaining $\hat{\bm{\mu}}(\bm{\theta})$ is known as the inner optimisation step.

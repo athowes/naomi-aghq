@@ -22,4 +22,5 @@
 
 ## Misc
 
-* [bayescomp](https://athowes.github.io/elgm-inf/bayescomp.html): abstract for BayesComp 2023 
+* [bayescomp](https://athowes.github.io/elgm-inf/bayescomp.html): abstract for BayesComp 2023
+* [`TMB`](https://athowes.github.io/elgm-inf/tmb.pdf): note about what `TMB` is doing
