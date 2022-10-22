@@ -1,17 +1,28 @@
 ---
-title: Simplified integrated nested Laplace approximation for extended latent Gaussian models
+title: Integrated nested Laplace approximations for extended latent Gaussian models
 author:
   - name: Adam 
     surname: Howes
     email: ath19@ic.ac.uk
     label: e1
     addressLabel: A
-    sepNext: "," # use "," or \and; the last author not need this field
+    sepNext: ","
   - name: Alex
     surname: Stringer
     email: alex.stringer@uwaterloo.ca
     label: e2
     addressLabel: B
+  - name: Seth R.
+    surname: Flaxman
+    email: seth.flaxman@cs.ox.ac.uk
+    label: e3
+    addressLabel: C
+    sepNext: ","
+  - name: Jeffrey W.
+    surname: Eaton
+    email: jeffrey.eaton@imperial.ac.uk
+    label: e4
+    addressLabel: D
 affiliation:
   - label: A
     name: Department of Mathematics, Imperial College London
@@ -19,8 +30,14 @@ affiliation:
   - label: B
     name: Department of Statistics and Actuarial Science, University of Waterloo
     authorsLabels: e2
+  - label: C
+    name: Department of Computer Science, University of Oxford
+    authorsLabels: e3
+  - label: D
+    name: MRC Centre for Global Infectious Disease Analysis, School of Public Health, Imperial College London
+    authorsLabels: e4
 abstract: |
-  | Naomi is a spatial evidence synthesis model used by countries in sub-Saharan Africa to produce HIV epidemic indicators. We combine the simplified integrated nested Laplace approximation approach of @wood2020simplified with adaptive Gaussian hermite quadrature to enable fast and accurate inference for Naomi and other extended latent Gaussian models. Using data from Malawi, we compare our inference method to other approaches. We provide an easy to use implementation as a part of the `aghq` \textsf{R} package allowing flexible use of the INLA method for a broader class of models, including any with a `TMB` template.
+  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of interest, including HIV prevalence, HIV incidence and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. We propose a new inference method which combines the simplified integrated nested Laplace approximation approach of @wood2020simplified with adaptive Gauss-Hermite quadrature to enable fast and accurate inference for Naomi and other extended latent Gaussian models. Using data from Malawi, our method provides substantially more accurate inferences than the empirical Bayes Gaussian approximation approach used currently, and is comparable to Hamiltonian Monte Carlo with the No-U-Turn sampler. By extending the \texttt{aghq} \textsc{R} package we facilitate flexible and easy use of our method when provided a \texttt{TMB} C++ template for the model's log-posterior.
 keyword-subclass: | 
  \begin{keyword}[class=MSC2020] % It must be define for aap, aop, aos journals. For aoas, sts is not used
  \kwd[Primary ]{00X00}
@@ -44,21 +61,30 @@ output:
 
 # Introduction
 
-We are motivated by a challenging inference problem in HIV surveillance.
-Mounting an effective public health response to the epidemic requires accurate, timely and sufficiently fine-scale estimates of HIV indicators.
+Mounting an effective public health response to the HIV epidemic requires accurate, timely and sufficiently fine-scale estimates of HIV indicators.
 No single data source is sufficient to base these estimates on.
-For example, although nationally-representative household surveys are the most reliable data source, in most countries they only occur infrequently.
-As such, the Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV prevalence, HIV incidence, and coverage of antiretroviral treatment (ART) at a district-level.
+Although nationally-representative household surveys are the most reliable data source, in most countries they only occur infrequently.
+Other data sources, such as routine health surveillance of antenatal care clinics, are more timely but from a biased sample of the population.
+To remedy these challenges, the Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV prevalence, HIV incidence, and coverage of antiretroviral treatment (ART) at a district-level.
 Software (\url{https://naomi.unaids.org}) has been developed for Naomi, which allows countries to input their data and generate estimates in a yearly process supported by UNAIDS.
-For this reason, any inference method used must be fast enough to run in production by country teams, ruling out prohibitively slow Markov chain Monte Carlo (MCMC) approaches.
-Inference is currently conducted using the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
-`TMB` implements an empirical Bayes approach, and is gaining popularity in spatial statistics for its speed and flexibility [@osgoodzimmerman2021statistical].
 
-Using simulation we found inferences from `TMB` for the Naomi model to sometimes be inaccurate.
-The `aghq` \textsf{R} package [@stringer2021implementing] for adaptive Gaussian Hermite quadrature (AGHQ), significantly improved performance.
-We develop a new inference methodology combining the simplified integrated nested Laplace approximation (INLA) approach of @wood2020simplified with AGHQ.
+The model is complex and presents a challenging inference problem.
+Any approach must be fast enough to run in production by country teams, ruling out prohibitively slow Markov chain Monte Carlo (MCMC).
+Currently, inference is currently conducted using an empirical Bayes approach, with a Gaussian approximation to the latent field, via the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
+Owing to its speed and flexibility, `TMB` is more broadly becoming a popular package in spatial statistics [@osgoodzimmerman2021statistical].
+In `TMB`, inference is based on optimisation of a C++ template function, with the option available to use a Laplace approximation to integrate out any subset of the function arguments.
+Taking inspiration from the AD Model Builder (ADMB) package [@fournier2012ad], `TMB` uses automatic differentiation [@baydin2017automatic] to calculate the derivatives required for numerical optimisation routines and the Laplace approximation.
+Although this approach has favorable computational properties, we have found the inferences generated for the Naomi model to sometimes be inaccurate.
+To obtain fast, accruate inferences for the Naomi model we develop a new inference methodology which combines the simplified integrated nested Laplace approximation (INLA) approach of @wood2020simplified with adaptive Gauss-Hermite quadrature (AGHQ).
 
-<!-- Furthermore, as Naomi falls into the class of extended latent Gaussian models (ELGMs) [@stringer2022fast] it cannot be fit using the integrated nested Laplace approximation (INLA)  method [@rue2009approximate] as implemented by the `R-INLA` \textsf{R} package. -->
+INLA [@rue2009approximate] is an approach to approximate Bayesian inference based on nested Laplace approximations and numerical quadrature, and implemented in the `R-INLA` \textsc{R} package.
+The central innovation is a way to approximate accurate latent field posterior marginals without explicitly computing the full Laplace approximation for each element.
+Simplified INLA [@wood2020simplified] extends INLA by relaxing the sparsity assumptions on the latent field required for this approximation to be accurate.
+Doing so facilitates inference for extended latent Gaussian models (ELGMs) [@stringer2022fast], which build on latent Gaussian models (LGMs) by allowing each element of the linear predictor $\mu_i$ to depend on any subset of elements from the latent field.
+
+AGHQ is a quadrature rule based on the theory of polynomial interpolation which adapts to the integrand based on the Hessian at the mode.
+@bilodeau2021stochastic provide theoretical results.
+The method is implementing in the `aghq` \textsf{R} package [@stringer2021implementing].
 
 # The Naomi model
 
@@ -115,7 +141,7 @@ For example, we can note that each of the components individually might be laten
 
 ## Integrated nested Laplace approximation\label{sec:inla}
 
-INLA [@rue2009approximate] is an approximate Bayesian inference method based on nested Gaussian approximations and numerical integration, and designed for use with latent Gaussian models (LGMs) of the form
+INLA is designed for use with latent Gaussian models (LGMs) of the form
 \begin{alignat}{2}
 &\text{(Observations)}     &        y_i &\sim p(y_i \, | \, x_i, \btheta), \quad i = 1, \ldots, n, \label{eq:data} \\
 &\text{(Latent field)}     &        \x &\sim \mathcal{N}(\x \, | \, \mathbf{0}, \mathbf{Q}(\btheta)^{-1}), \label{eq:process} \\
@@ -166,14 +192,13 @@ where the equality is because $p_G(\x \, | \, \btheta, \y)$ is evaluated at its 
 ### Approximation (ii)
 
 We now move on to the approximation $p(x_i \, | \, \btheta, \y) \approx \tilde p(x_i \, | \, \btheta, \y)$.
-Having used used the Gaussian approximation $p(\x \, | \, \btheta, \y) \approx p_G(\x \, | \, \btheta, \y)$ in Section \ref{sec:approxi} above, a natural approach, and that taken by \citet{rue2007approximate}, is to marginalise this distribution directly to obtain
+Having used used the Gaussian approximation $p(\x \, | \, \btheta, \y) \approx p_G(\x \, | \, \btheta, \y)$ in Section \ref{sec:approxi} above, a natural approach, and that taken by [@rue2007approximate], is to marginalise this distribution directly to obtain
 \begin{equation}
 \tilde p(x_i \, | \, \btheta, \y) = \mathcal{N}(x_i \, | \, \hat{\mu}_i(\btheta), 1 / \hat{q}_i(\btheta)),
 \end{equation}
 where the marginal mean $\hat{\mu}_i(\btheta)$ and precision $\hat{q}_i(\btheta)$ are recovered directly from the relevant entries of $\hat{\bm{\mu}}(\btheta)$ and $\hat{\bm{Q}}(\btheta)$ respectively.
-However, although this approximation is fast, it tends not to be accurate, as it involves evaluating the Gaussian approximation away from its mode.
-As a result, although this method is available in \texttt{R-INLA} it is generally not advised.
-Instead, \citet{rue2009approximate} propose two methods, a Laplace approximation and a simplified version which is less computationally demanding.
+However, although this approximation is fast, it tends not to be accurate, as it involves evaluating the Gaussian approximation away from its mode, so is generally not advised.
+Instead, [@rue2009approximate] propose two methods, a Laplace approximation and a simplified version which is less computationally demanding.
 The full Laplace approximation is
 \begin{align}
   p(x_i \, | \, \btheta, \y) &= p(\x \, | \, \btheta, \y) \times \frac{1}{p(\x_{-i} \, | \, x_i, \btheta, \y)} \\
@@ -189,7 +214,7 @@ p_G(\x_{-i} \, | \, x_i, \btheta, \y) = \mathcal{N}(\x_{-i} \, | \, \hat{\bm{\mu
 is the Gaussian approximation to $\x_{-i} \, | \, x_i, \btheta, \y$ and $\hat{\bm{\mu}}_{-i}(x_i, \btheta)$ is its modal configuration.\footnote{Note that $\hat{\bm{\mu}}(\btheta)$ is the mode of the Gaussian approximation to the full latent field given $\btheta$ and $\hat{\bm{\mu}}_{-i}(x_i, \btheta)$ is not the same as $\hat{\bm{\mu}}_{-i}(\btheta)$.}
 The set of distributions $\{p(\x_{-i} \, | \, x_i, \btheta, \y)\}_{i = 1}^n$ are usually reasonably Gaussian so this approximation tends to work well.
 However, the Gaussian approximation $p_G(\x_{-i} \, | \, x_i, \btheta, \y)$ must be recomputed for each value of $i$, which is often computationally prohibitive.
-Therefore, two modifications to Equation \eqref{eq:laplaceapproximation} are proposed by \citet{rue2009approximate} to reduce the computational cost:
+Therefore, two modifications to Equation \eqref{eq:laplaceapproximation} are proposed by [@rue2009approximate] to reduce the computational cost:
 \begin{enumerate}
 \item
 Avoiding having to find the mode via optimisation by using the approximation $\hat{\bm{\mu}}_{-i}(x_i, \btheta) \approx \mathbb{E}_{p_G(\x \, | \, \btheta, \y)}(\x_{-i} \, | \, x_i)$
@@ -197,71 +222,10 @@ Avoiding having to find the mode via optimisation by using the approximation $\h
 As only those $x_j$ close to $x_i$ should have an impact on the marginal of $x_i$, then by selecting some subset $R_i(\btheta)$ of nodes $j$ to impact $j$ the matrix which needs to be factorised can be reduced in dimension to be $| R_i(\btheta) | \times | R_i(\btheta) |$ rather than $n \times n$
 \end{enumerate}
 
-## Simplified INLA and connection to ELGMs
-
-@wood2020simplified propose a simplified version of the INLA algorithm which relaxes the sparsity assumptions on the latent field required for the modifications to Equation \eqref{eq:laplaceapproximation} to be efficient.
-Doing so facilitates inference for ELGMs [@stringer2022fast] which we define below.
-Informally, ELGMs build on LGMs by allowing each element of the linear predictor $\mu_i$ to depend on any subset of elements from the latent field.
-
-## Implementation within `aghq`\label{sec:aghq}
-
-### Adaptive Gaussian Hermite quadrature
-
-### Template Model Builder
-
-`TMB` [@kristensen2016tmb] is an \textsf{R} package for fitting random effect models, also known as latent variable models, hierarchical models or a host of other names.
-In `TMB` inference is based upon optimisation of a target function.
-This makes it very flexible, and able to handle non-linear, non-Gaussian random effect models.
-
-The approach of `TMB` is inspired by the AD Model Builder (ADMB) package [@fournier2012ad], where the "AD" stands for automatic differentiation, a technique for calculating derivates of functions by repeated application of the chain rule.
-AD is popular in machine learning [@baydin2017automatic], including as the basis for backpropagation algorithm, and is beginning to gain popularity in statistics, including as a part of Stan [@carpenter2017stan].
-`TMB` uses the derivatives from AD for multiple purposes including calculation of the Hessian used in Gaussian approximations and for numerical optimisation routines.
-
-Consider unobserved latent random effects $\x \in \mathbb{R}^n$ and parameters $\btheta \in \mathbb{R}^m$.^[@kristensen2016tmb use the notation $u$ for random effects and $\theta$ for parameters. We aim for consistency with Section \ref{sec:inla}.]
-Let $\ell(\x, \btheta) \triangleq - \log p(\y \, | \, \x, \btheta)$ be the negative joint log-likelihood.
-In `TMB`, the user writes C++ code to evaluate this negative log-likelihood function $\ell$.
-A standard maximum likelihood approach is to optimise
-\begin{equation}
-L_\ell(\btheta) \triangleq \int_{\mathbb{R}^n} p(\y \, | \, \x, \btheta) \text{d}\x = \int_{\mathbb{R}^n} \exp(-\ell(\x, \btheta)) \text{d}\x \label{eq:flikelihood}
-\end{equation}
-with respect to $\btheta$ to find the maximum likelihood estimator (MLE) $\hat \btheta$.
-Taking a superficially more Bayesian approach than above, instead of $\ell$, the user may instead write a function to evaluate the negative joint penalised log-likelihood given by
-\begin{equation}
-f(\x, \btheta) 
-\triangleq - \log p(\y \, | \, \x, \btheta) p(\x, \btheta)
-= \ell(\x, \btheta) - \log p(\x, \btheta),
-\end{equation}
-equivalent up to an additive constant to the negative log-posterior.
-<!-- \begin{equation} -->
-<!-- f(\x, \btheta)  -->
-<!-- = - \log p(\y, \x, \btheta)  -->
-<!-- = - \log p(\x, \btheta \, | \, \y) - C, -->
-<!-- \end{equation} -->
-<!-- where $C = \log p(\y)$ is the log evidence. -->
-Using $f$ in place of $\ell$, then the penalised likelihood is proportional to the posterior marginal of $\btheta$
-\begin{equation}
-L_f(\btheta) 
-\triangleq \int_{\mathbb{R}^n} \exp(-f(\x, \btheta)) \text{d}\x 
-\propto \int_{\mathbb{R}^n} p(\x, \btheta \, | \, \y) \text{d}\x = p(\btheta \, | \, \y). \label{eq:1}
-\end{equation}
-Integrating out the random effects directly, as in Equation \ref{eq:1} above, is usually intractable because $\x$ is high-dimensional, so \citet[Equation 3]{kristensen2016tmb} use a Laplace approximation $L^\star_f(\btheta)$ based instead upon integrating out a Gaussian approximation to the random effects.
-This Laplace approximation is analogous to the INLA approximation $\tilde p(\btheta \, | \, \y)$ given in Section \ref{sec:approxi}.
-\begin{equation*}
-f''_{\x\x}(\hat{\bm{\mu}}(\btheta), \btheta) = - \frac{\partial^2}{\partial \x^2} \log p(\y, \x, \btheta) \Big\rvert_{\x = \hat{\bm{\mu}}(\btheta)}
-= - \frac{\partial^2}{\partial \x^2} \log p(\x \, | \, \btheta, \y) \Big\rvert_{\x = \hat{\bm{\mu}}(\btheta)}
-= \hat{\bm{Q}}(\btheta).
-\end{equation*}
-Inference proceeds by optimising $L^\star_f(\btheta)$ via minimisation of
-\begin{equation}
--\log L^\star_f(\btheta) \propto \frac{1}{2} \log \det (\hat{\bm{Q}}(\btheta)) + f(\hat{\bm{\mu}}(\btheta), \btheta)  \label{eq:nllaplace},
-\end{equation}
-where $\propto$ is used to mean proportional up to an additive constant.
-The parameters of the Gaussian approximation (Equation \ref{eq:gaussianx}), are found in terms of $f$ via $\hat{\bm{\mu}}(\btheta) = \arg \min_\x f(\x, \btheta)$ and $\hat{\bm{Q}}(\btheta) = f''_{\x\x}(\hat{\bm{\mu}}(\btheta), \btheta)$ and must be recomputed for each value of $\btheta$.
-Obtaining $\hat{\bm{\mu}}(\btheta)$ is known as the inner optimisation step.
-
 # Application to the Naomi model\label{sec:results}
 
-The \textsc{R} [@r] code used to implement the model and produce all results we describe is available at `github.com/athowes/naomi-inf`.
+The \textsc{R} [@r] code used to implement the model and produce all results we describe is available at `github.com/athowes/elgm-inf`.
+The inference method is available in versions 0.5.0. onwards of the `aghq` package.
 
 # Discussion\label{sec:conclusions}
 
