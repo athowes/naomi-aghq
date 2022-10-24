@@ -157,7 +157,7 @@ Let's optimise `h` to obtain estimates $\hat \theta$ which maximise $\tilde p(\t
 ```{r}
 its <- 1000
 
-opt <- nlminb(
+opt_theta <- nlminb(
   start = h$par,
   objective = h$fn,
   gradient = h$gr,
@@ -165,18 +165,18 @@ opt <- nlminb(
 )
 ```
 
-The values `opt$par` below correspond to $\hat \theta$:
+The values `opt_theta$par` below correspond to $\hat \theta$:
 
 ```{r}
-opt$par
+opt_theta$par
 ```
 
-We can also look at the parameters -- that is, mean vector and precision matrix -- of the Gaussian approximation at the mode `opt$par` above.
+We can also look at the parameters -- that is, mean vector and precision matrix -- of the Gaussian approximation at the mode `opt_theta$par` above.
 Note that in `aghq`, what we would do is create a quadrature grid, then get the mean vector and precision matrix for each value of the quadrature grid over $\theta$.
 By just sticking to the mode of $\theta$, we are effectively doing `aghq` with $k = 1$ in each dimension, i.e. one grid point, corresponding to empirical Bayes type of inference.
 
 ```{r}
-#' Notice that last.par contains opt$par as the fixed effects
+#' Notice that last.par contains opt_theta$par as the fixed effects
 #' It's the last.par because the last thing we've done with the template is the optimsation
 #' This seems a pretty shakey way to go about things, but here we are...
 mm <- h$env$last.par
@@ -313,7 +313,9 @@ The maximum difference between the two ECDFS is `r ks_jointgaussianmarginal_tmbs
 
 In this section we will continue to use the approximation \@ref(eq:pthetagiveny) for $\tilde p(\theta \, | \, y)$.
 
-## $\tilde p(x_i \, | \, \theta, y)$
+## For one index $i$
+
+### $\tilde p(x_i \, | \, \theta, y)$
 
 For the approximation to the latent field marginal posteriors, another approach we could take is to calculate the full Laplace approximation
 $$
@@ -344,15 +346,12 @@ prepare_dat <- function(dat, i) {
 }
 ```
 
-Now we can loop over indices $i$ doing the required Laplace approximations.
+Let's consider the first marginal, that is $\tilde p_\text{LA}(x_1 \, | \, \theta, y)$.
 In the call to `MakeADFun` we set `random = "phi_prev_minus_i"` to integrate all of the random effects but that of the particular index.
 
 ```{r message=FALSE, warning=FALSE, results=FALSE}
-objs <- list()
-means <- list()
-Qs <- list()
+i <- 1
 
-#' Starting parameters for TMB are the same for every index of the loop so it's more efficient to put them outside
 param_i <- list(
   beta_prev = 0,
   phi_prev_i = 0,
@@ -360,49 +359,33 @@ param_i <- list(
   log_sigma_phi_prev = 0
 )
 
-its <- 1000
+dat_i <- prepare_dat(dat, i)
 
-for(i in 1:dat$n) {
-  dat_i <- prepare_dat(dat, i)
+#' random are integrated out with a Laplace approximation
+obj <- MakeADFun(
+  data = dat_i,
+  parameters = param_i,
+  random = "phi_prev_minus_i",
+  DLL = "model1index",
+  silent = TRUE
+)
 
-  #' random are integrated out with a Laplace approximation
-  obj <- MakeADFun(
-    data = dat_i,
-    parameters = param_i,
-    random = "phi_prev_minus_i",
-    DLL = "model1index",
-    silent = TRUE
-  )
-
-  opt <- nlminb(
-    start = obj$par,
-    objective = obj$fn,
-    gradient = obj$gr,
-    control = list(iter.max = its, trace = 0)
-  )
-
-  #' Parameters of the Gaussian approximation
-  mm <- obj$env$last.par
-  mean <- mm[obj$env$random]
-  Q <- obj$env$spHess(mm, random = TRUE)
-
-  objs[[i]] <- obj
-  means[[i]] <- mean
-  Qs[[i]] <- Q
-}
+opt <- nlminb(
+  start = obj$par,
+  objective = obj$fn,
+  gradient = obj$gr,
+  control = list(iter.max = its, trace = 0)
+)
 ```
 
-Let's consider the first marginal, that is $\tilde p_\text{LA}(x_1 \, | \, \theta, y)$.
 The mean and precision matrix for the Gaussian approximation $\tilde p_\text{G}(x_{-i} \, | \, x_i, \theta, y)$ are:
 
-```{r message=FALSE, warning=FALSE}
-i <- 1
-obj <- objs[[i]]
+```{r}
+mm <- obj$env$last.par
+mean <- mm[obj$env$random]
+length(mean) #' The length is 30 - 1
 
-mean <- means[[i]] #' The length is 30 - 1
-length(mean)
-
-Q <- Qs[[i]]
+Q <- obj$env$spHess(mm, random = TRUE)
 dim(Q) #' With dimension [(30 - 1) x (30 - 1)]
 ```
 
@@ -425,7 +408,7 @@ transformed_param
 obj$fn(transformed_param)
 ```
 
-## $\tilde p(x_i \, | \, y)$ {.tabset .tabset-fade}
+### $\tilde p(x_i \, | \, y)$ {.tabset .tabset-fade}
 
 Let's have a go at computing Equation \@ref(eq:pxigiveny) so that we can compare to the posterior distribution from `tmbstan`.
 We simplify matters by considering just one quadrature point, $\hat \theta$, such that the sum over $z$ collapses to^[Note that I'm uncertain if $\hat \theta$ (a constant) should still be included in the LHS of this.]:
@@ -436,22 +419,8 @@ $$
 \end{align}
 $$
 
-We're always going to need $\hat \theta$.
-We have calculated it before, but we will get it fresh here (because of questionable programming practices whereby objects are overwritten):
-
-```{r}
-opt <- nlminb(
-  start = h$par,
-  objective = h$fn,
-  gradient = h$gr,
-  control = list(iter.max = its, trace = 0)
-)
-
-opt$par
-```
-
-Now, a basic way we could approach this is to define a grid of points that we would like to evaluate the posterior at.
-We can then create a dataframe where each row contains the values `opt$par` for $\theta$ and a grid value for $x_i$.
+A basic way we could approach this is to define a grid of points that we would like to evaluate the posterior at.
+We can then create a dataframe where each row contains the values `opt_theta$par` for $\theta$ and a grid value for $x_i$.
 Each row can then be passed into `-obj$fn()` to calculate the log-posterior.
 Note that it's crucial the arguments are in the right order when we pass them to `obj$fn()` -- this has caused headaches!
 
@@ -460,7 +429,7 @@ spacing <- 0.05
 x_grid <- seq(from = 0.5, to = 3.5, by = spacing)
 x_grid_length <- length(x_grid)
 
-df <- t(opt$par) %>%
+df <- t(opt_theta$par) %>%
   as.data.frame() %>%
   slice(rep(1:n(), each = x_grid_length)) %>%
   mutate(phi_prev_i = x_grid) %>%
@@ -471,7 +440,7 @@ df <- t(opt$par) %>%
 We've computed the unnormalised log-posterior -- how can we go from that to a normalised posterior?
 Given these grid of points, we can do the trapezoid rule here.
 
-### Safe exponential trapezoid rule {-}
+#### Safe exponential trapezoid rule {-}
 
 The safe exponential function computes $\exp(x - \text{max}(x))$.
 
@@ -510,7 +479,7 @@ Check that this method correctly computes the normalising constant for a density
 abs(trapezoid_rule(dnorm(seq(-10, 10, by = 0.1)), spacing = 0.1) - 1) < 10E-6
 ```
 
-### `logSumExp` trapezoid rule {-}
+#### `logSumExp` trapezoid rule {-}
 
 What about with another method?
 We can calculate the logarithm of the normalising constant directly, then just subtract it from the log-posterior:
@@ -544,7 +513,7 @@ Check that this method correctly computes the normalising constant for a density
 abs(trapezoid_rule_log(dnorm(seq(-10, 10, by = 0.1), log = TRUE), spacing = 0.1) - log(1)) < 10E-6
 ```
 
-## Normalisation with `aghq`
+### Normalisation with `aghq`
 
 The two ways of calculating the normalised posterior above are the same up to numerical error:
 
@@ -555,7 +524,7 @@ max(abs(df$post_norm - df$post_norm_alt)) < 10E-6
 So how might we approach this in a more sophisticated way?
 We could do the normalisation directly in `aghq`!
 
-We could normalise $\tilde p_\text{LA}(\theta, y)$.
+We could start by normalising $\tilde p_\text{LA}(\theta, y)$.
 Note that sometimes we have been calling this $\tilde p_\text{LA}(\theta \, | \, y)$ because they are equivalent up to a constant of proportionality.
 Define
 $$
@@ -603,9 +572,9 @@ map_fixed_theta <- list(beta_prev = factor(NA), log_sigma_phi_prev = factor(NA))
 
 param_i_fixed_theta <- param_i
 
-theta_names <- names(opt$par)
+theta_names <- names(opt_theta$par)
 for(theta in theta_names) {
-  param_i_fixed_theta[[theta]] <- opt$par[[theta]]
+  param_i_fixed_theta[[theta]] <- opt_theta$par[[theta]]
 }
 
 dat_i <- prepare_dat(dat, i)
@@ -632,7 +601,7 @@ The value of the normalising constant is (approximately) the same as we get usin
 abs(quad$normalized_posterior$lognormconst - norm_trapezoid_log) < 10E-3
 ```
 
-## Comparison
+### Comparison
 
 We now add our Laplace approximation to the existing joint Gaussian marginal and MCMC results:
 
@@ -667,6 +636,76 @@ rownames(kable_data) <- c("$\\text{KS}(\\texttt{tmbstan}, \\texttt{jointgaussian
 kableExtra::kable(kable_data, booktabs = TRUE, escape = FALSE, align = "c")
 ```
 
+## Looping over index $i$
+
+So we've done the approximation for the first index $i = 1$!
+Now let's try computing $\tilde p(x_i \, | \, y)$ for every index $i$, using a for-loop to generate the required Laplace approximations, and tidying up and condensing the code used:
+
+```{r}
+xi_laplace_marginal <- function(i) {
+  dat_i <- prepare_dat(dat, i)
+  map_fixed_theta <- list(beta_prev = factor(NA), log_sigma_phi_prev = factor(NA))
+  param_i_fixed_theta <- list(beta_prev = 0, phi_prev_i = 0, phi_prev_minus_i = rep(0, data$n - 1), log_sigma_phi_prev = 0)
+  for(theta in names(opt_theta$par)) param_i_fixed_theta[[theta]] <- opt_theta$par[[theta]]
+  obj_fixed_theta <- MakeADFun(data = dat_i, parameters = param_i_fixed_theta, random = "phi_prev_minus_i", DLL = "model1index", silent = TRUE, map = map_fixed_theta)
+  quad <- aghq::aghq(ff = obj_fixed_theta, k = 3, startingvalue = 0, control = aghq::default_control_tmb())
+  pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad)[[1]]
+  return(pdf_and_cdf)
+}
+
+out <- lapply(1:dat$n, xi_laplace_marginal)
+
+laplace_df <- bind_rows(out, .id = "index") %>%
+  mutate(index = as.numeric(index))
+```
+
+Let's also get everything we need for the joint Gaussian marginal for each index:
+
+```{r}
+mm <- h$env$last.par
+mean <- mm[h$env$random]
+Q <- h$env$spHess(mm, random = TRUE)
+Sigma <- solve(Q)
+
+gaussian_df <- lapply(1:length(mean), function(i) {
+  x <- seq(-5, 5, length.out = 1000)
+  mean_i <- as.numeric(mean[i])
+  sd_i <- as.numeric(sqrt(Sigma[i, i]))
+  data.frame(index = i, x = x, pdf = dnorm(x, mean = mean_i, sd = sd_i))
+}) %>%
+  bind_rows()
+```
+
+## Comparison
+
+```{r}
+samples_tmbstan <- extract(mcmc, pars = "phi_prev") %>%
+  as.data.frame() %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "index",
+    names_prefix = "phi_prev.",
+    names_transform = as.integer
+  )
+
+plot <- ggplot(samples_tmbstan, aes(x = value)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.8, fill = cbpalette[7]) +
+  facet_wrap(~index) +
+  theme_minimal() +
+  labs(x = "phi_prev", y = "Posterior PDF")
+
+plot2 <- plot +
+  geom_line(data = gaussian_df, aes(x = x, y = pdf), col = cbpalette[1])
+```
+
+
+```{r}
+plot3 <- plot2 +
+  geom_line(data = laplace_df, aes(x = theta, y = pdf), col = cbpalette[2])
+
+plot3
+```
+
 # Simplified INLA
 
 In Section \@ref(full-laplace) we directly calculate the Laplace approximation to $\int p(x, y, \theta) \text{d} \theta_{-i}$.
@@ -698,8 +737,8 @@ D2j(3)
 ```
 
 Let $u_0$ be a zero column matrix.
-I am guessing that this means $u_j$ is a $j$ column matrix.
-It's not specified what dimension it is too, but since it's multiplied by $\mathcal{D}_{2j}$ presumably it must be of length $2j$.
+I am guessing that this means $u_j$ is a column matrix containing $j$ as each entry.
+It's not specified what dimension $u_0$ or $u_j$ should be, but since the algorithm contains producing by $\mathcal{D}_{2j}$ presumably their lengths must be $2j$.
 
 ```{r}
 uj <- function(j) {
@@ -709,12 +748,13 @@ uj <- function(j) {
 uj(3)
 ```
 
-```{r}
-D2j(3) %*% uj(3)
-```
+The algorithm contains $u_j \mathcal{D}_{2j} u_j^\top$.
+If $u_j$ is a column matrix of dimension $\text{length}(u_j) \times 1$ then it's not going to be conformable with a $2j \times 2j$ matrix.
+Is it actually a row matrix of dimension $1 \times \text{length}(u_j)$?
+And $\text{length}(u_j) = 2j$ as discussed above?
 
 Let $\Delta_j^i$ denote $\Delta_j$ with an extra zero inserted at element $i$.
-Note that it hasn't been defined what $\Delta_j$ is yet.
+But it hasn't been defined what $\Delta_j$ is yet.
 
 ## Step 1: Compute the Cholesky factor
 
@@ -748,15 +788,17 @@ x_grid <- seq(from = 0.5, to = 3.5, by = spacing)
 
 ### a)
 
-Use Newton's method with fixed Hessian $Q_{-i, -i}$ to find $\mu(x_i)$ starting from \@ref(eq:conditionalmean):
+Use Newton's method with fixed Hessian $Q_{-i, -i}$ to find $\mu(x_i)$ starting from \@ref(eq:conditionalmean).
+We start by computing the conditional mean for the first grid point:
 
 ```{r}
-#' Conditional mean for the first grid point
 Sigma <- solve(Q)
 conditional_mean <- mean[-i] + Sigma[-i, i] * Sigma[i, i]^{-1} * (x_grid[1] - mean[i])
 ```
 
-Note: for this model the latent field is IID, so the conditional mean is the same as the mean.
+Note that for this model the latent field is IID, so the conditional mean is the same as the mean.
+Now we use Newton's method to find $\mu(x_i)$.
+This requires some function $f(\mu(x_i), \ldots) = 0$.
 
 ### b)
 
@@ -767,6 +809,10 @@ J <- 1
 ```
 
 ### c)
+
+```{r}
+j <- 1
+```
 
 For $j = 1, \ldots, J - 1$ compute
 $$
