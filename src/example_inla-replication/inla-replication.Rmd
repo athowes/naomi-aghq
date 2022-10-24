@@ -11,7 +11,7 @@ output:
     code_folding: show
     theme: lumen
 abstract: |
-    | We demonstrate a step-by-step example of the INLA method implemented in R and TMB.
+    | We demonstrate a step-by-step example of the INLA method implemented in R and `TMB`.
 ---
 
 ```{r setup, message=FALSE, warning=FALSE, class.source = 'fold-hide'}
@@ -40,7 +40,7 @@ Consider a three-stage model
   &\text{(Latent field)}     &   x &\sim \mathcal{N}(x \, | \, 0,  Q(\theta)^{-1}), \\
   &\text{(Hyperparameters)}  &   \qquad \theta &\sim p(\theta), \label{eq:hyper}
 \end{alignat}
-with posterior
+with posterior distribution
 \begin{equation}
   p(x, \theta \, | \, y) \propto p(y, x, \theta) = p(y \, | \, x, \theta) p(x \, | \, \theta) p(\theta).
 \end{equation}
@@ -73,7 +73,7 @@ Approximate the posterior marginal $p(\theta \, | \, y) \propto L(\theta)$ using
 \tilde p(\theta \, | \, y) \propto \frac{p(y \, | \, x, \theta) p(x \, | \, \theta) p(\theta)}{\tilde p_G(x \, | \, \theta, y)} \Big\rvert_{x = \mu(\theta)} \equiv L^\star(\theta)
 \end{equation}
 
-Using `TMB` if we integrate out the latent field $x$ using the argument `random = "x"` in `MakeADFun` then the result is the negative log of the Laplace approximation to the marginal likelihood $h(\theta) \equiv - \log L^\star(\theta)$:
+Using `TMB` if we integrate out a Gaussian approximation to the latent field $x$ using the argument `random = "x"` in `MakeADFun` then the result is the negative log of the Laplace approximation to the marginal likelihood $h(\theta) \equiv - \log L^\star(\theta)$:
 
 ```{r eval=FALSE}
 h <- MakeADFun(data = dat, parameters = param, DLL = "model", random = "x")
@@ -89,28 +89,34 @@ Integration points $\{\theta_k\}$ with weights $\sum_{k = 1}^K \Delta_k = 1$.
 
 ### Empirical Bayes
 
-$K = 1$ with integration point $\text{argmin}_{\theta} (-\log L^\star_f(\theta))$.
+$K = 1$ with integration point $\hat \theta = \text{argmin}_{\theta} (-\log L^\star_f(\theta))$.
 This can be found by minimising `h` using optimisers like `nlminb` or `optim`.
+Sometimes methods like this are referred to as "[Empirical Bayes](https://en.wikipedia.org/wiki/Empirical_Bayes_method)" where the hyperparameters are estimated with a fixed point estimate.
 
-### INLA grid
+### `R-INLA` grid method
 
-The steps required are:
+Instead of just taking a single point, we might want to explore the posterior approximation to $p(\theta \, | \, y)$ more fully.
+In `R-INLA` a few choices are available as to how to do this, including the grid integration strategy as follows:
 
 1. Locate the mode of $\log p(\theta \, | \, y)$ which is the same as $\text{argmin}_{\theta} (-\log L^\star_f(\theta))$ and can be calculated as above.
-2. Calculate negative Hessian at the mode using e.g. `h$env$spHess`.
+2. Calculate negative Hessian at the mode (this could be done in `TMB` using h$env$spHess`)
 3. Reparameterise in terms of $z$ coordinates along the eigenvectors of the Hessian starting at the mode
-3. Test points at a certain step-size ($\delta_z$) against a condition whereby they must have sufficient posterior density (using a parameter $\delta_{\pi}$)
+4. Test points at a certain step-size ($\delta_z$) against a condition whereby they must have sufficient posterior density (using a parameter $\delta_{\pi}$)
 
+Under this approach, all weights would be equal $\Delta_k = 1 / K$.
 For a more detailed run through of the grid integration method, see the [INLA two dimensional grid replication](https://athowes.github.io/elgm-inf/inla-grid.html) notebook.
 
-### Adaptive Gaussian Hermite quadrature
+### Adaptive Gauss-Hermite quadrature
 
-We could also use an adaptive Gauss Hermite quadrature rule.
+We could also use an adaptive Gauss-Hermite quadrature (AGHQ) rule.
 See the [Implementing Approximate Bayesian Inference using Adaptive Quadrature: the `aghq` Package](https://arxiv.org/pdf/2101.04468.pdf) paper.
+AGHQ is attractive because it is automatic, works well for integrating densities close to being Gaussian.
+
+## Stage 3: get $\tilde p(x_i \, | \, \theta, y)$
 
 ### Gaussian
 
-Obtain marginals of $\tilde p_{\text{G}}(x \, | \, \theta, y)$ from above.
+The simplest approach would be to directly obtain the marginals of $\tilde p_{\text{G}}(x \, | \, \theta, y)$ from above.
 
 ### Laplace
 
@@ -372,7 +378,7 @@ ggplot(dense_theta) +
 ```
 
 One of the INLA vignettes discusses how the user can set their own integration points -- see `browseVignettes(package = "INLA")`.
-The integration points that `R-INLA` uses can be found using `fit$joint.hyper`, which we can add on to the above plot for interest:
+The integration points that `R-INLA` uses can be found using `fit$joint.hyper`:
 
 ```{r}
 internals_inla_theta <- data.frame(
@@ -380,13 +386,7 @@ internals_inla_theta <- data.frame(
   output = exp(fit$joint.hyper$`Log posterior density`)
 )
 
-# Different normalising constant?
-ggplot(dense_theta) +
-  geom_line(aes(x = input, y = output), col = midblue) +
-  geom_point(data = internals_inla_theta, aes(x = input, y = output), shape = 4) +
-  theme(axis.text.y = element_blank()) +
-  labs(title = "INLA integration points for the hyperparameters") +
-  theme_minimal()
+internals_inla_theta$input
 ```
 
 We take the set of points defined by `inla_theta` to be our $\{\theta^{(k)}\}$.
@@ -413,7 +413,10 @@ but how should the range of $x$ be chosen?
 Blangiardo use a naive grid for demonstration:
 
 ```{r}
-blangiardo_x <- seq(-8, 5, length.out = 50)
+x_start <- -8
+x_end <- 5
+x_out <- 50
+blangiardo_x <- seq(x_start, x_end, length.out = x_out)
 ```
 
 Modify `nl_joint_post` to accept and return vectors using the base R function `Vectorize`, then apply the outer product:
@@ -440,12 +443,36 @@ reshape2::melt(nl_joint_post) %>%
     theme(legend.position = "none")
 ```
 
-Following the book:
+Calculating the log posterior by integrating over the hyperparameters for each value of $x$:
 
 ```{r}
-nl_post_marginal_x <- rowSums(nl_joint_post)
-plot(blangiardo_x, nl_post_marginal_x)
-blangiardo_x[[which.min(nl_post_marginal_x)]]
+K <- length(points)
+nl_post_marginal_x <- rowSums(nl_joint_post) / K
+
+df <- data.frame(
+  x = blangiardo_x,
+  log_post = -1 * nl_post_marginal_x
+)
+
+ggplot(df, aes(x = x, y = log_post)) +
+  geom_line() +
+  theme_minimal() +
+  labs(x = "x", y = "log(Posterior)")
+```
+
+Try normalising:
+
+```{r}
+x_spacing <- (x_end - x_start) / x_out
+safe_exp <- function(x) exp(x - max(x))
+df$post <- safe_exp(df$log_post)
+norm <- trapezoid_rule(df$post, x_spacing)
+df$norm_post <- df$post / norm
+
+ggplot(df, aes(x = x, y = norm_post)) +
+  geom_line() +
+  theme_minimal() +
+  labs(x = "x", y = "Posterior")
 ```
 
 ## Implementation in `TMB`
@@ -533,7 +560,7 @@ rownames(kable_data) <- c("$\\texttt{R-INLA}$", "R", "$\\texttt{TMB}$")
 kableExtra::kable(kable_data, booktabs = TRUE, escape = FALSE, align = "c")
 ```
 
-Compare $x$:
+What about for $x$:
 
 ```{r}
 sd_out$par.random # TMB
