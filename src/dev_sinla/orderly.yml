@@ -2,14 +2,19 @@ script: script.R
 
 resources:
   - sinla.Rmd
+  - sinla.R
   - model1.cpp
   - model1index.cpp
 
 artefacts:
   - data:
-      description: SINLA development results
+      description: SINLA development notebook
       filenames:
         - sinla.html
+  - data:
+      description: SINLA development plots
+      filenames:
+        - densities.pdf
 
 packages:
   - dplyr

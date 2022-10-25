@@ -2,4 +2,8 @@
 # orderly::orderly_develop_start("dev_sinla")
 # setwd("src/dev_sinla")
 
+#' Create notebook
 rmarkdown::render("sinla.Rmd")
+
+#' Run stand-alone script
+source("sinla.R")

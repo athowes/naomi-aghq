@@ -269,6 +269,12 @@ $$
 We can evaluate this for $i = 1$ via:
 
 ```{r}
+#' Making sure the mean and Q used here are correct (preventing and shady TMB behaviour)
+h$fn(opt_theta)
+mm <- h$env$last.par
+mean <- mm[h$env$random]
+Q <- h$env$spHess(mm, random = TRUE)
+
 i <- 1
 mean_i <- as.numeric(mean[i])
 var_i <- solve(Q)[i, i]
