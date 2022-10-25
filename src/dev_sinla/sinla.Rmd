@@ -294,14 +294,14 @@ plot_pdf2 <- plot_pdf +
   theme_minimal()
 
 M <- 1000
-samples_jointgaussianmarginal <- rnorm(M, mean_i, sqrt(var_i)) 
+samples_gaussian <- rnorm(M, mean_i, sqrt(var_i)) 
 
-ecdf_jointgaussianmarginal <- ecdf(samples_jointgaussianmarginal)
-grid <- seq(min(samples_jointgaussianmarginal), max(samples_jointgaussianmarginal), by = 0.1)
+ecdf_gaussian <- ecdf(samples_gaussian)
+grid <- seq(min(samples_gaussian), max(samples_gaussian), by = 0.1)
 
 plot_cdf2 <- plot_cdf +
   geom_line(
-    data = data.frame(x = grid, y = ecdf_jointgaussianmarginal(grid)),
+    data = data.frame(x = grid, y = ecdf_gaussian(grid)),
     aes(x = x, y = y), col = cbpalette[1]
   )
 
@@ -309,11 +309,11 @@ cowplot::plot_grid(plot_cdf2, plot_pdf2, rel_widths = c(1, 1.5))
 ```
 
 ```{r}
-ks_jointgaussianmarginal_tmbstan <- inf.utils::ks_test(samples_tmbstan, samples_jointgaussianmarginal)
-ks_jointgaussianmarginal_tmbstan
+ks_gaussian_tmbstan <- inf.utils::ks_test(samples_tmbstan, samples_gaussian)
+ks_gaussian_tmbstan
 ```
 
-The maximum difference between the two ECDFS is `r ks_jointgaussianmarginal_tmbstan$D` which occurs at the point `r ks_jointgaussianmarginal_tmbstan$l`.
+The maximum difference between the two ECDFS is `r ks_gaussian_tmbstan$D` which occurs at the point `r ks_gaussian_tmbstan$l`.
 
 # Full Laplace approximation {#full-laplace}
 
@@ -633,11 +633,11 @@ samples_laplace <- approxfun(df$ecdf, df$phi_prev_i)(runif(M))
 ks_laplace_tmbstan <- inf.utils::ks_test(samples_tmbstan, samples_laplace)
 
 kable_data <- data.frame(
-  "Distance" = c(ks_jointgaussianmarginal_tmbstan$D, ks_laplace_tmbstan$D),
-  "Location" = c(ks_jointgaussianmarginal_tmbstan$l, ks_laplace_tmbstan$l)
+  "Distance" = c(ks_gaussian_tmbstan$D, ks_laplace_tmbstan$D),
+  "Location" = c(ks_gaussian_tmbstan$l, ks_laplace_tmbstan$l)
 )
 
-rownames(kable_data) <- c("$\\text{KS}(\\texttt{tmbstan}, \\texttt{jointgaussianmarginal})$", "$\\text{KS}(\\texttt{tmbstan}, \\texttt{laplace})$")
+rownames(kable_data) <- c("$\\text{KS}(\\texttt{tmbstan}, \\texttt{gaussian})$", "$\\text{KS}(\\texttt{tmbstan}, \\texttt{laplace})$")
 
 kableExtra::kable(kable_data, booktabs = TRUE, escape = FALSE, align = "c")
 ```
@@ -659,10 +659,17 @@ xi_laplace_marginal <- function(i) {
   return(pdf_and_cdf)
 }
 
-out <- lapply(1:dat$n, xi_laplace_marginal)
-
-laplace_df <- bind_rows(out, .id = "index") %>%
+laplace_df <- lapply(1:dat$n, xi_laplace_marginal) %>%
+  bind_rows(.id = "index") %>%
   mutate(index = as.numeric(index))
+
+M <- 1000
+
+samples_laplace <- lapply(1:1:dat$n, function(i) {
+  samples <- approxfun(laplace_df$cdf, laplace_df$theta)(runif(M))
+  data.frame("value" = samples)
+}) %>%
+  bind_rows(.id = "index")
 ```
 
 Let's also get everything we need for the joint Gaussian marginal for each index:
@@ -673,13 +680,21 @@ mean <- mm[h$env$random]
 Q <- h$env$spHess(mm, random = TRUE)
 Sigma <- solve(Q)
 
-gaussian_df <- lapply(1:length(mean), function(i) {
+gaussian_df <- lapply(1:dat$n, function(i) {
   x <- seq(-5, 5, length.out = 1000)
   mean_i <- as.numeric(mean[i])
   sd_i <- as.numeric(sqrt(Sigma[i, i]))
   data.frame(index = i, x = x, pdf = dnorm(x, mean = mean_i, sd = sd_i))
 }) %>%
   bind_rows()
+
+samples_gaussian <- lapply(1:dat$n, function(i) {
+  mean_i <- as.numeric(mean[i])
+  sd_i <- as.numeric(sqrt(Sigma[i, i]))
+  samples <- rnorm(M, mean_i, sd_i)
+  data.frame("value" = samples)
+}) %>%
+  bind_rows(.id = "index")
 ```
 
 ## Comparison
@@ -711,6 +726,44 @@ plot3 <- plot2 +
 
 plot3
 ```
+
+### KS test
+
+```{r}
+ks_gaussian_tmbstan <- lapply(1:length(mean), function(i) {
+  samples_gaussian_i <- filter(samples_gaussian, index == i)$value
+  samples_tmbstan_i <- filter(samples_tmbstan, index == i)$value
+  inf.utils::ks_test(samples_gaussian_i, samples_tmbstan_i)
+})
+
+ks_laplace_tmbstan <- lapply(1:length(mean), function(i) {
+  samples_laplace_i <- filter(samples_laplace, index == i)$value
+  samples_tmbstan_i <- filter(samples_tmbstan, index == i)$value
+  inf.utils::ks_test(samples_laplace_i, samples_tmbstan_i)
+})
+
+
+ks_results <- bind_rows(
+  bind_rows(ks_gaussian_tmbstan, .id = "index") %>%
+    mutate(type = "gaussian"),
+  bind_rows(ks_laplace_tmbstan, .id = "index") %>%
+    mutate(type = "laplace")
+)
+
+ks_results %>%
+  select(index, D, type) %>%
+  pivot_wider(
+    names_from = type,
+    values_from = D
+  ) %>%
+  ggplot(aes(x = laplace, y = gaussian)) +
+    geom_point(alpha = 0.5) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+    lims(x = c(0, 1), y = c(0, 1)) +
+    labs(x = "KS(laplace, tmbstan)", y = "KS(gaussian, tmbstan)") +
+    theme_minimal()
+```
+
 
 # Simplified INLA
 
