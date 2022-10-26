@@ -665,8 +665,9 @@ laplace_df <- lapply(1:dat$n, xi_laplace_marginal) %>%
 
 M <- 1000
 
-samples_laplace <- lapply(1:1:dat$n, function(i) {
-  samples <- approxfun(x = laplace_df$cdf, y = laplace_df$theta, ties = "ordered")(runif(M))
+samples_laplace <- lapply(1:dat$n, function(i) {
+  laplace_df_i <- filter(laplace_df, index == i)
+  samples <- approxfun(x = laplace_df_i$cdf, y = laplace_df_i$theta, ties = "ordered")(runif(M))
   data.frame("value" = samples)
 }) %>%
   bind_rows(.id = "index")
@@ -741,7 +742,6 @@ ks_laplace_tmbstan <- lapply(1:length(mean), function(i) {
   samples_tmbstan_i <- filter(samples_tmbstan, index == i)$value
   inf.utils::ks_test(samples_laplace_i, samples_tmbstan_i)
 })
-
 
 ks_results <- bind_rows(
   bind_rows(ks_gaussian_tmbstan, .id = "index") %>%

@@ -25,7 +25,7 @@ h <- MakeADFun(
 )
 
 #' 1: MCMC
-mcmc <- tmbstan::tmbstan(h, chains = 4, iter = 5000, refresh = 0)
+mcmc <- tmbstan::tmbstan(h, chains = 4, iter = 1000, refresh = 0)
 
 samples_tmbstan <- extract(mcmc, pars = "phi_prev") %>%
   as.data.frame() %>%
@@ -51,13 +51,29 @@ mean <- mm[h$env$random]
 Q <- h$env$spHess(mm, random = TRUE)
 Sigma <- solve(Q)
 
-gaussian_df <- lapply(1:length(mean), function(i) {
-  x <- seq(-5, 5, length.out = 1000)
+fine_grid <- seq(-5, 5, length.out = 1000)
+
+gaussian_df <- lapply(1:dat$n, function(i) {
   mean_i <- as.numeric(mean[i])
   sd_i <- as.numeric(sqrt(Sigma[i, i]))
-  data.frame(index = i, x = x, pdf = dnorm(x, mean = mean_i, sd = sd_i))
+  data.frame(
+    index = i,
+    x = fine_grid,
+    pdf = dnorm(fine_grid, mean = mean_i, sd = sd_i),
+    cdf = pnorm(fine_grid, mean = mean_i, sd = sd_i)
+  )
 }) %>%
   bind_rows()
+
+M <- 1000
+
+samples_gaussian <- lapply(1:dat$n, function(i) {
+  mean_i <- as.numeric(mean[i])
+  sd_i <- as.numeric(sqrt(Sigma[i, i]))
+  samples <- rnorm(M, mean_i, sd_i)
+  data.frame("value" = samples)
+}) %>%
+  bind_rows(.id = "index")
 
 #' 3: Laplace
 
@@ -72,7 +88,7 @@ prepare_dat <- function(dat, i) {
 compile("model1index.cpp")
 dyn.load(dynlib("model1index"))
 
-xi_laplace_marginal <- function(i, opt_theta) {
+xi_laplace_marginal <- function(i, opt_theta, finegrid) {
   dat_i <- prepare_dat(dat, i)
   map_fixed_theta <- list(beta_prev = factor(NA), log_sigma_phi_prev = factor(NA))
 
@@ -101,14 +117,21 @@ xi_laplace_marginal <- function(i, opt_theta) {
     control = aghq::default_control_tmb()
   )
 
-  pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad)[[1]]
+  pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad, finegrid = finegrid)[[1]]
 
   return(pdf_and_cdf)
 }
 
-laplace_df <- lapply(1:dat$n, xi_laplace_marginal, opt_theta = opt_theta) %>%
+laplace_df <- lapply(1:dat$n, xi_laplace_marginal, opt_theta = opt_theta, finegrid = fine_grid) %>%
   bind_rows(.id = "index") %>%
   mutate(index = as.numeric(index))
+
+samples_laplace <- lapply(1:dat$n, function(i) {
+  laplace_df_i <- filter(laplace_df, index == i)
+  samples <- approxfun(x = laplace_df_i$cdf, y = laplace_df_i$theta, ties = "ordered")(runif(M))
+  data.frame("value" = samples)
+}) %>%
+  bind_rows(.id = "index")
 
 #' Outputs
 
@@ -123,3 +146,62 @@ ggplot(samples_tmbstan, aes(x = value)) +
   labs(x = "phi_prev", y = "Posterior PDF")
 
 dev.off()
+
+pdf("distributions.pdf", h = 8, w = 6.25)
+
+ecdf_tmbstan <- lapply(1:dat$n, function(i) {
+  samples_i <- filter(samples_tmbstan, index == i)$value
+  ecdf_i <- stats::ecdf(samples_i)
+  data.frame(index = i, x = fine_grid, y = ecdf_i(fine_grid))
+}) %>%
+  bind_rows()
+
+ggplot(ecdf_tmbstan, aes(x = x, y = y)) +
+  geom_line(col = cbpalette[7]) +
+  geom_line(data = gaussian_df, aes(x = x, y = cdf), col = cbpalette[1], alpha = 0.8) +
+  geom_line(data = laplace_df, aes(x = theta, y = cdf), col = cbpalette[2], alpha = 0.8) +
+  facet_wrap(~index) +
+  theme_minimal() +
+  labs(x = "phi_prev", y = "Posterior CDF")
+
+dev.off()
+
+ks_gaussian_tmbstan <- lapply(1:length(mean), function(i) {
+  samples_gaussian_i <- filter(samples_gaussian, index == i)$value
+  samples_tmbstan_i <- filter(samples_tmbstan, index == i)$value
+  inf.utils::ks_test(samples_gaussian_i, samples_tmbstan_i)
+})
+
+ks_laplace_tmbstan <- lapply(1:length(mean), function(i) {
+  samples_laplace_i <- filter(samples_laplace, index == i)$value
+  samples_tmbstan_i <- filter(samples_tmbstan, index == i)$value
+  inf.utils::ks_test(samples_laplace_i, samples_tmbstan_i)
+})
+
+ks_results <- bind_rows(
+  bind_rows(ks_gaussian_tmbstan, .id = "index") %>%
+    mutate(type = "gaussian"),
+  bind_rows(ks_laplace_tmbstan, .id = "index") %>%
+    mutate(type = "laplace")
+)
+
+pdf("ks-test.pdf", h = 6, w = 6.25)
+
+ks_results %>%
+  select(index, D, type) %>%
+  pivot_wider(
+    names_from = type,
+    values_from = D
+  ) %>%
+  ggplot(aes(x = laplace, y = gaussian)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  lims(x = c(0, 0.5), y = c(0, 0.5)) +
+  labs(x = "KS(laplace, tmbstan)", y = "KS(gaussian, tmbstan)") +
+  theme_minimal()
+
+dev.off()
+
+ks_results %>%
+  group_by(type) %>%
+  summarise(mean_D = mean(D))
