@@ -108,7 +108,8 @@ h <- MakeADFun(
 ```
 
 It is simple to fit the model using MCMC via the `tmbstan` package.
-We use 4 `chains` each of 5000 `iter`:
+We use 4 `chains` each of 5000 `iter`.
+Note that although `h` is passed to `tmbstan::tmbstan`, the Laplace approximation is disabled by setting `laplace = FALSE` by default (useful to know in case it's ever of interest to sample from the Laplace approximation).
 
 ```{r}
 mcmc <- tmbstan::tmbstan(h, chains = 4, iter = 5000, refresh = 0)
@@ -185,12 +186,14 @@ mm <- h$env$last.par
 h$env$random
 
 #' Note that I'm calling this mean, but because it's a Gaussian the mean is the same as the mode
-mean <- mm[h$env$random]
-length(mean) #' The length is 30
+x_mean <- mm[h$env$random]
+x_mean <- rlang::duplicate(x_mean) #' Insurance...
+length(x_mean) #' The length is 30
 
 #' Hessian evaluated at the mean (or equivalently mode)
-Q <- h$env$spHess(mm, random = TRUE)
-dim(Q) #' With dimension [30 x 30]
+x_Q <- h$env$spHess(mm, random = TRUE)
+x_Q <- rlang::duplicate(x_Q)
+dim(x_Q) #' With dimension [30 x 30]
 ```
 
 ## Additional checks {.tabset .tabset-fade}
@@ -269,15 +272,9 @@ $$
 We can evaluate this for $i = 1$ via:
 
 ```{r}
-#' Making sure the mean and Q used here are correct (preventing and shady TMB behaviour)
-h$fn(opt_theta)
-mm <- h$env$last.par
-mean <- mm[h$env$random]
-Q <- h$env$spHess(mm, random = TRUE)
-
 i <- 1
-mean_i <- as.numeric(mean[i])
-var_i <- solve(Q)[i, i]
+mean_i <- as.numeric(x_mean[i])
+var_i <- solve(x_Q)[i, i]
 ```
 
 Because this is a Gaussian distribution, we do not have do normalise it (as would usually be the case) because we know it's a density.
@@ -387,12 +384,16 @@ opt <- nlminb(
 The mean and precision matrix for the Gaussian approximation $\tilde p_\text{G}(x_{-i} \, | \, x_i, \theta, y)$ are:
 
 ```{r}
-mm <- obj$env$last.par
-mean <- mm[obj$env$random]
-length(mean) #' The length is 30 - 1
+get_mean_and_Q <- function(obj) {
+  mm <- obj$env$last.par
+  mean <- mm[obj$env$random]
+  mean <- rlang::duplicate(mean)
+  Q <- obj$env$spHess(mm, random = TRUE)
+  Q <- rlang::duplicate(Q)
+  return(list(mean = mean, Q = Q))
+}
 
-Q <- obj$env$spHess(mm, random = TRUE)
-dim(Q) #' With dimension [(30 - 1) x (30 - 1)]
+xminusi <- get_mean_and_Q(obj)
 ```
 
 We check here that `obj$fn` indeed takes as input $(x_i, \theta)$:
@@ -651,11 +652,28 @@ Now let's try computing $\tilde p(x_i \, | \, y)$ for every index $i$, using a f
 xi_laplace_marginal <- function(i) {
   dat_i <- prepare_dat(dat, i)
   map_fixed_theta <- list(beta_prev = factor(NA), log_sigma_phi_prev = factor(NA))
-  param_i_fixed_theta <- list(beta_prev = 0, phi_prev_i = 0, phi_prev_minus_i = rep(0, data$n - 1), log_sigma_phi_prev = 0)
+  
+  param_i_fixed_theta <- list(
+    beta_prev = 0, 
+    phi_prev_i = 0, 
+    phi_prev_minus_i = rep(0, data$n - 1), 
+    log_sigma_phi_prev = 0
+  )
+  
   for(theta in names(opt_theta$par)) param_i_fixed_theta[[theta]] <- opt_theta$par[[theta]]
-  obj_fixed_theta <- MakeADFun(data = dat_i, parameters = param_i_fixed_theta, random = "phi_prev_minus_i", DLL = "model1index", silent = TRUE, map = map_fixed_theta)
+  
+  obj_fixed_theta <- MakeADFun(
+    data = dat_i,
+    parameters = param_i_fixed_theta,
+    random = "phi_prev_minus_i",
+    DLL = "model1index",
+    silent = TRUE,
+    map = map_fixed_theta
+  )
+  
   quad <- aghq::aghq(ff = obj_fixed_theta, k = 3, startingvalue = 0, control = aghq::default_control_tmb())
   pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad)[[1]]
+  
   return(pdf_and_cdf)
 }
 
