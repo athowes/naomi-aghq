@@ -1,5 +1,8 @@
 script: script.R
 
+sources:
+  - functions.R
+
 resources:
   - sinla.Rmd
   - model1.cpp
@@ -11,11 +14,11 @@ artefacts:
       filenames:
         - sinla.html
   - data:
-      description: SINLA development plots
+      description: Experiment plots
       filenames:
-        - densities.pdf
-        - distributions.pdf
-        - ks-test.pdf
+        - densities-m250.pdf
+        - distributions-m250.pdf
+        - ks-test-m250.pdf
 
 packages:
   - dplyr
@@ -36,3 +39,6 @@ depends:
     id: latest
     use:
       depends/sim_data.rds: sim_data.rds
+      depends/sim_data_m1.rds: sim_data_m1.rds
+      depends/sim_data_m10.rds: sim_data_m10.rds
+      depends/sim_data_m100.rds: sim_data_m100.rds
