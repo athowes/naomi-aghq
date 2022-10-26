@@ -1,5 +1,5 @@
 run_analysis <- function(sim_data, analysis_name) {
-  data <- sim_data[[1]]
+  data <- sim_data[[2]]
   dat <- list(n = data$n, y_prev = data$y_prev, m_prev = data$m_prev)
 
   compile("model1.cpp")
@@ -20,7 +20,7 @@ run_analysis <- function(sim_data, analysis_name) {
   )
 
   #' 1: MCMC
-  mcmc <- tmbstan::tmbstan(h, chains = 4, iter = 1000, refresh = 0)
+  mcmc <- tmbstan::tmbstan(h, chains = 4, iter = 4000, refresh = 0)
 
   samples_tmbstan <- extract(mcmc, pars = "phi_prev") %>%
     as.data.frame() %>%
@@ -130,19 +130,15 @@ run_analysis <- function(sim_data, analysis_name) {
 
   #' Outputs
 
-  pdf(paste0("densities-", analysis_name, ".pdf"), h = 8, w = 6.25)
+  pdf(paste0("plots-", analysis_name, ".pdf"), h = 8, w = 6.25)
 
   print(ggplot(samples_tmbstan, aes(x = value)) +
-    geom_histogram(aes(y = ..density..), alpha = 0.8, fill = cbpalette[7]) +
-    geom_line(data = gaussian_df, aes(x = x, y = pdf), col = cbpalette[1], alpha = 0.8) +
-    geom_line(data = laplace_df, aes(x = theta, y = pdf), col = cbpalette[2], alpha = 0.8) +
-    facet_wrap(~index) +
-    theme_minimal() +
-    labs(x = "phi_prev", y = "Posterior PDF"))
-
-  dev.off()
-
-  pdf(paste0("distributions-", analysis_name, ".pdf"), h = 8, w = 6.25)
+          geom_histogram(aes(y = ..density..), alpha = 0.8, fill = cbpalette[7]) +
+          geom_line(data = gaussian_df, aes(x = x, y = pdf), col = cbpalette[1], alpha = 0.8) +
+          geom_line(data = laplace_df, aes(x = theta, y = pdf), col = cbpalette[2], alpha = 0.8) +
+          facet_wrap(~index) +
+          theme_minimal() +
+          labs(x = "phi_prev", y = "Posterior PDF"))
 
   ecdf_tmbstan <- lapply(1:dat$n, function(i) {
     samples_i <- filter(samples_tmbstan, index == i)$value
@@ -158,8 +154,6 @@ run_analysis <- function(sim_data, analysis_name) {
     facet_wrap(~index) +
     theme_minimal() +
     labs(x = "phi_prev", y = "Posterior CDF"))
-
-  dev.off()
 
   ks_gaussian_tmbstan <- lapply(1:length(mean), function(i) {
     samples_gaussian_i <- filter(samples_gaussian, index == i)$value
@@ -179,8 +173,6 @@ run_analysis <- function(sim_data, analysis_name) {
     bind_rows(ks_laplace_tmbstan, .id = "index") %>%
       mutate(type = "laplace")
   )
-
-  pdf(paste0("ks-test-", analysis_name, ".pdf"), h = 6, w = 6.25)
 
   print(ks_results %>%
     select(index, D, type) %>%

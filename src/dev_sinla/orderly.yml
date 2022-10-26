@@ -16,9 +16,10 @@ artefacts:
   - data:
       description: Experiment plots
       filenames:
-        - densities-m250.pdf
-        - distributions-m250.pdf
-        - ks-test-m250.pdf
+        - plots-m1.pdf
+        - plots-m10.pdf
+        - plots-m100.pdf
+        - plots-m250.pdf
 
 packages:
   - dplyr

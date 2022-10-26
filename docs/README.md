@@ -9,6 +9,15 @@
 * [prev-anc-art](https://athowes.github.io/elgm-inf/prev-anc-art.html): comparison of `tmbstan`, `TMB` and `aghq` for a collection of models based on Joint small-area estimation of HIV prevalence, ART coverage, and HIV incidence (Eaton et al. 2019)
 * [naomi](https://athowes.github.io/elgm-inf/naomi.html): following `naomi` vignettes
 
+## Experiments
+
+| `TMB` template | $m$   | Results    |
+|:---------------|:----- |:-----------|
+| `model1.cpp`   | 1     | [Plots](https://athowes.github.io/elgm-inf/plots-m1.pdf) |
+| `model1.cpp`   | 10    | [Plots](https://athowes.github.io/elgm-inf/plots-m1.pdf) |
+| `model1.cpp`   | 100   | [Plots](https://athowes.github.io/elgm-inf/plots-m1.pdf) |
+| `model1.cpp`   | 250   | [Plots](https://athowes.github.io/elgm-inf/plots-m1.pdf) |
+
 ## Presentations
 
 * [01-04-20-mini](https://athowes.github.io/elgm-inf/01-04-20-mini): three month CDT mini-project

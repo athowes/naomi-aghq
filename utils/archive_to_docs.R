@@ -1,9 +1,10 @@
 #' Set the working directory to the project root
 setwd(rprojroot::find_rstudio_root_file())
 
-archive_to_docs <- function(report) {
+#' @param i Index of the artefacts to get
+archive_to_docs <- function(report, i = 1) {
   #' Artefacts to be moved
-  filenames <- yaml::read_yaml(file.path(paste0("src/", report, "/orderly.yml")))$artefacts[[1]]$data$filenames
+  filenames <- yaml::read_yaml(file.path(paste0("src/", report, "/orderly.yml")))$artefacts[[i]]$data$filenames
 
   #' Latest version in archive
   latest <- orderly::orderly_latest(report)
@@ -24,5 +25,6 @@ archive_to_docs("prev-anc-art_process-results")
 archive_to_docs("example_inla-replication")
 archive_to_docs("example_inla-grid")
 archive_to_docs("dev_sinla")
+archive_to_docs("dev_sinla", i = 2)
 archive_to_docs("explore_aghq")
 archive_to_docs("example_naomi")

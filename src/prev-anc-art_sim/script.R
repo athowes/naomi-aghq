@@ -10,7 +10,8 @@ sim_data <- replicate(N_sim, simulate_prev_anc_art(), simplify = FALSE)
 saveRDS(sim_data, "sim_data.rds")
 
 #' Add versions of data with different values of m
+n <- 30
 m_settings <- c(1, 10, 100)
 for(m in m_settings){
-  saveRDS(replicate(N_sim, simulate_prev_anc_art(m_prev = m), simplify = FALSE), paste0("sim_data_m", m, ".rds"))
+  saveRDS(replicate(N_sim, simulate_prev_anc_art(m_prev = rep(m, n)), simplify = FALSE), paste0("sim_data_m", m, ".rds"))
 }
