@@ -8,6 +8,9 @@ artefacts:
       description: Simulation data
       filenames:
         - sim_data.rds
+        - sim_data_m1.rds
+        - sim_data_m10.rds
+        - sim_data_m100.rds
 
 packages:
   - dplyr
