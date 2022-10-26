@@ -11,12 +11,12 @@
 
 ## Experiments
 
-| `TMB` template | $m$   | Results    |
+| `TMB` template | Sample size parameter | Results    |
 |:---------------|:----- |:-----------|
 | `model1.cpp`   | 1     | [Plots](https://athowes.github.io/elgm-inf/plots-m1.pdf) |
-| `model1.cpp`   | 10    | [Plots](https://athowes.github.io/elgm-inf/plots-m1.pdf) |
-| `model1.cpp`   | 100   | [Plots](https://athowes.github.io/elgm-inf/plots-m1.pdf) |
-| `model1.cpp`   | 250   | [Plots](https://athowes.github.io/elgm-inf/plots-m1.pdf) |
+| `model1.cpp`   | 10    | [Plots](https://athowes.github.io/elgm-inf/plots-m10.pdf) |
+| `model1.cpp`   | 100   | [Plots](https://athowes.github.io/elgm-inf/plots-m100.pdf) |
+| `model1.cpp`   | 250   | [Plots](https://athowes.github.io/elgm-inf/plots-m250.pdf) |
 
 ## Presentations
 
