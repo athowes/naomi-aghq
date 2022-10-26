@@ -694,22 +694,19 @@ samples_laplace <- lapply(1:dat$n, function(i) {
 Let's also get everything we need for the joint Gaussian marginal for each index:
 
 ```{r}
-mm <- h$env$last.par
-mean <- mm[h$env$random]
-Q <- h$env$spHess(mm, random = TRUE)
-Sigma <- solve(Q)
+x_Sigma <- solve(x_Q)
 
 gaussian_df <- lapply(1:dat$n, function(i) {
   x <- seq(-5, 5, length.out = 1000)
-  mean_i <- as.numeric(mean[i])
-  sd_i <- as.numeric(sqrt(Sigma[i, i]))
+  mean_i <- as.numeric(x_mean[i])
+  sd_i <- as.numeric(sqrt(x_Sigma[i, i]))
   data.frame(index = i, x = x, pdf = dnorm(x, mean = mean_i, sd = sd_i))
 }) %>%
   bind_rows()
 
 samples_gaussian <- lapply(1:dat$n, function(i) {
-  mean_i <- as.numeric(mean[i])
-  sd_i <- as.numeric(sqrt(Sigma[i, i]))
+  mean_i <- as.numeric(x_mean[i])
+  sd_i <- as.numeric(sqrt(x_Sigma[i, i]))
   samples <- rnorm(M, mean_i, sd_i)
   data.frame("value" = samples)
 }) %>%

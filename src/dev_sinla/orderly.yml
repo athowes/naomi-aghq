@@ -2,7 +2,6 @@ script: script.R
 
 resources:
   - sinla.Rmd
-  - sinla.R
   - model1.cpp
   - model1index.cpp
 
