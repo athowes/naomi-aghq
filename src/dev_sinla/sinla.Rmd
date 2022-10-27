@@ -433,7 +433,7 @@ Note that it's crucial the arguments are in the right order when we pass them to
 
 ```{r}
 spacing <- 0.05
-x_grid <- seq(from = 0.5, to = 3.5, by = spacing)
+x_grid <- seq(from = -5, to = 5, by = spacing)
 x_grid_length <- length(x_grid)
 
 df <- t(opt_theta$par) %>%
@@ -780,6 +780,23 @@ ks_results %>%
 ```
 
 
+# Extension beyond empirical Bayes
+
+In Sections \@ref(gaussian-marginal) and \@ref(full-laplace) when calculating $\tilde p(x_i \, | \, y)$ we fixed $\theta = \hat \theta$ ($K = 1$, empirical Bayes) rather than integrating $\theta$ out ($K > 1$).
+In this section we will use `ahgq` to integrate over $\theta$.
+
+## Marginal of joint Gaussian approximation
+
+```{r}
+#' To-do
+```
+
+## Full Laplace approximation
+
+```{r}
+#' To-do
+```
+
 # Simplified INLA
 
 In Section \@ref(full-laplace) we directly calculate the Laplace approximation to $\int p(x, y, \theta) \text{d} \theta_{-i}$.
@@ -856,8 +873,7 @@ sum(abs((L0 %*% t(L0)) - Q0)) < 10E-9
 For each $x_i$ in a grid of evaluation points (how does one chose this grid?) repeat the following:
 
 ```{r}
-spacing <- 0.05
-x_grid <- seq(from = 0.5, to = 3.5, by = spacing)
+x_grid
 ```
 
 ### a)

@@ -11,7 +11,7 @@
 
 ## Experiments
 
-| `TMB` template | Sample size parameter | Results    |
+| `TMB` template | Sample size parameter | Results  |
 |:---------------|:----- |:-----------|
 | `model1.cpp`   | 1     | [Plots](https://athowes.github.io/elgm-inf/plots-m1.pdf) |
 | `model1.cpp`   | 10    | [Plots](https://athowes.github.io/elgm-inf/plots-m10.pdf) |
