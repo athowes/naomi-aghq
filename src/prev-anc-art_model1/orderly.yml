@@ -5,6 +5,7 @@ sources:
 
 resources:
   - model1.cpp
+  - model1_icar.cpp
 
 artefacts:
   - data:
