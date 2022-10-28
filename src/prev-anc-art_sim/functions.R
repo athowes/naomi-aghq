@@ -1,4 +1,4 @@
-simulate_prev_anc_art <- function(n = 30,
+simulate_prev_anc_art <- function(n = 36,
                                   m_prev = rep(250, n),
                                   beta_prev = -2.4,
                                   tau_phi_prev = 4, #' sigma_phi_prev is 0.5
