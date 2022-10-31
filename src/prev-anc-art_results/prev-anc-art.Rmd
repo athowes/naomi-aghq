@@ -28,39 +28,42 @@ This model forms the basis of the Naomi small-area estimation model [@eaton2021n
 Modelling data from multiple sources concurrently increases statistical power, and may mitigate the biases of any single source giving a more complete picture of the situation, as well as prompting investigation into any data conflicts.
 The model is described by three components, as follows.
 
-## Prevalence component
+## Household survey component
 
-Consider a country partitioned into areas $i = 1, \ldots, n$.
-A simple random household survey of $m_i$ people is conducted in each area, and $y_i$ HIV positive cases are observed.
+Consider a country partitioned into $n$ areas indexed by $i$.
+Suppose a simple random household survey of $m^\text{HS}_i$ people is conducted in each area, and $y^\text{HS}_i$ HIV positive cases are observed.
 Cases may be modelled using a binomial logistic regression model
 \begin{align}
-y_i &\sim \text{Bin}(m_i, \rho_i), \\
-\text{logit}(\rho_i) &\sim \mathcal{N}(\beta_\rho, \sigma_\rho^2)
+y^\text{HS}_i &\sim \text{Bin}(m^\text{HS}_i, \rho^\text{HS}_i), \\
+\text{logit}(\rho^\text{HS}_i) &\sim \mathcal{N}(\beta_\phi, \sigma_\phi^2),
 \end{align}
-where HIV prevalence $\rho_i$ is modelled by a Gaussian with mean $\beta_\rho$ and standard deviation $\sigma_\rho$.
+where HIV prevalence $\rho^\text{HS}_i$ is modelled by a Gaussian with mean $\beta_\phi$ and standard deviation $\sigma_\phi$.
 
 ## ANC component
 
 Routinely collected data from pregnant women attending antenatal care clinics (ANCs) is another important source of information about the HIV epidemic.
-If, of $m^\text{ANC}_i$ women, $y^\text{ANC}_i$ are HIV positive, then an analogous binomial logistic regression model
+Suppose that of $m^\text{ANC}_i$ women attending ANC, $y^\text{ANC}_i$ are HIV positive.
+Then an analogous binomial logistic regression model
 \begin{align}
 y^\text{ANC}_i &\sim \text{Bin}(m^\text{ANC}_i, \rho^\text{ANC}_i), \\
-\text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho_i) + b_i, \\
+\text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho^\text{HS}_i) + b_i, \\
 b_i &\sim \mathcal{N}(\beta_b, \sigma_b^2),
 \end{align}
 may be used to describe HIV prevalence amongst the sub-population of women attending ANCs.
-Reflecting the fact that prevalence in ANCs is related but importantly different to prevalence in the general population, bias terms $b_i$ are used to offset ANC prevalence from HIV prevalence.
+Reflecting the fact that prevalence in ANCs is related but importantly different to prevalence in the general population, bias terms $b_i$ are used to offset ANC prevalence from HIV prevalence on the logit scale.
 
 ## ART component
 
-The number of people receiving treatment at district health facilities $A_i$ also provides additional information about HIV prevalence.
+The number of people receiving treatment at district health facilities $A_i$ provides further information about HIV prevalence.
 Districts with high prevalence are likely to have a greater number of people receiving treatment, and vice versa.
-ART coverage, defined to be the proportion of PLHIV currently on ART on district $i$, is given by $\alpha_i = A_i / \rho_i N_i$, where $N_i$ is the total population of district $i$ and assumed to be fixed.
+ART coverage, defined to be the proportion of people living with HIV (PLHIV) currently on ART on district $i$, is given by $\alpha_i = A_i / \rho^\text{HS}_i N_i$, where $N_i$ is the total population of district $i$ and assumed to be constant.
 As such, ART coverage may also be modelled using a binomial logistic regression model
 \begin{align}
-A_i &\sim \text{Bin}(N_i, \rho_i \alpha_i), \\
-\text{logit}(\alpha_i) &\sim \mathcal{N}(\beta_\alpha, \sigma_\alpha^2).
+A_i &\sim \text{Bin}(N_i, \rho^\text{HS}_i \alpha_i), \\
+\text{logit}(\alpha_i) &\sim \mathcal{N}(\beta_\alpha, \sigma_\alpha^2),
 \end{align}
+where the proportion of people receiving ART is $\rho^\text{HS}_i \alpha_i$.
+Here we assume no travel between districts to receive treatment.
 
 # Implementation
 
@@ -80,7 +83,7 @@ We perform inference on simulated data from Model 4 generated ([`prev-anc-art_si
 
 | Parameter | Value |
 |:----------|:------|
-| $n$              | 30   |
+| $n$              | 36   |
 | $m_i$            | 250  |
 | $\beta_\rho$     | -2.4 |
 | $\sigma_\rho$    | 0.5  |
@@ -145,6 +148,7 @@ model4 <- readRDS("depends/results_model4.rds")
 ## Boxplots {.tabset .tabset-fade}
 
 Boxplots of the mean and standard deviation for each parameter, where each datapoint is a different simulation replicate.
+For now we will just focus on a subset of the parameters, as it is challenging to nicely present plots for very large numbers of parameters.
 
 ```{r}
 params <- c("beta_prev", "log_sigma_phi_prev")
