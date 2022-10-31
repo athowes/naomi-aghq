@@ -2,6 +2,7 @@ script: script.R
 
 resources:
   - posterior-comparison.Rmd
+  - citations.bib
 
 artefacts:
   - data:

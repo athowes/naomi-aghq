@@ -10,11 +10,27 @@ output:
     df_print: paged
     code_folding: show
     theme: lumen
+bibliography: citations.bib
 abstract: |
   **Background** Multiple approaches for conducting approximate Bayesian inference exist.
   
   **Task** We compare methods for assessing the accuracy of posterior distribution. These methods include marginal KS tests, simulation based calibration and maximum mean discrepancy.
 ---
+
+# Background
+
+There are lots of ways you can compare posterior distributions.
+
+The simplest is to compare point estimates (such as the mean or mode) or moments (such as the variance).
+In some sense, it's the least we should expect from any good approximate Bayesian inference method to be able to recover these summaries.
+
+More challenging is to match the distribution everywhere.
+One way to assess this is the Kolmogorov-Smirnov (KS) distance, which gives the maximum distance between two empirical cumulative distribution functions (ECDFs).
+It is directly interpretable: a value of 0.05 means that no matter where you compute a tail probability, you're never more than 5% away.
+
+A downside of the KS distance is that it only captures marginal distributions.
+This, in some way, favors methods like INLA where we directly approximate marginals.
+A further challenge would be to assess agreement between joint distributions, rather than only marginals.
 
 # Data
 
@@ -27,9 +43,68 @@ samples_laplace <- samples$laplace
 
 # KS tests
 
+Compute the empirical CDFs, and look for the maximum distance between them.
+
 # Simulation-based calibration
 
+SBC [@talts2018validating] is a corrected version of @cook2006validation.
+Consider the performance of an algorithm over the entire Bayesian joint distribution.
+Generate $(\tilde \theta, \tilde y)$ via $\tilde \theta \sim p(\theta)$ then $\tilde y \sim p(y \, | \, \tilde \theta)$.
+Let the data averaged posterior (DAP) be
+$$
+p(\theta) = \int p(y \, | \, \tilde \theta) p(\tilde \theta, \tilde y) \text{d} \tilde \theta \text{d} \tilde y (\#eq:dap)
+$$
+For any model, the average of any exact posterior expectation with respect to data generated from the Bayesian joint distribution reduces to the corresponding prior expectation.
+Any discrepancy between the DAP and the prior indicates some error in the analysis (either implementation or algorithmic).
+
+Consider a sequence of samples from the Bayesian joint distribution
+$$
+\tilde \theta \sim p(\theta) \\
+\tilde y \sim p(y \, | \, \tilde \theta) \\
+\{\theta_1, \ldots, \theta_L \} \sim p(\theta \, | \, \tilde y)
+$$
+Equation \@ref(eq:dap) implies that $\tilde \theta$ and $\{\theta_1, \ldots, \theta_L \}$ should both be distributed according to the prior.
+Consequently, for any one-dimensional random variable $f: \Theta \to \mathbb{R}$ the rank statistic of the prior sample relative to the posterior sample
+$$
+r(\{f(\theta_1), \ldots, f(\theta_L) \}, f(\tilde \theta)) = \sum_{l = 1}^L \mathbb{I}[f(\theta_l) < f(\tilde \theta)] \in [0, L]
+$$
+will be distributed uniformly across the integers $[0, L]$.
+I assume we can use histograms and ECDF difference plots to assess this, and perhaps there will be some additional discussion about how to interpret deviations from uniformity.
+
+# Pareto smoothed importance sampling
+
+Say that we have draws $(\theta_1, \ldots, \theta_S)$ from a proposal distribution $q(\theta)$, then we can estimate $\mathbb{E}_p[h(\theta)]$ by
+$$
+\frac{\sum_{s = 1}^S h(\theta_s) w_s}{\sum_{s = 1}^S w_s}.
+$$
+When $w_s = 1$ then this is the direct Monte Carlo estimate, when $w_s = r_s = p(\theta_s, y) / q(\theta)$ then this is importance sampling (IS).
+The finite sample performance of IS contains information about how close the proposal distribution is to the target distribution (the true posterior distribution of interest).
+
+Pareto smoothed importance sampling (PSIS) [@vehtari2015pareto, @yao2018yes] can improve the estimates from IS by stabilising the importance ratios.
+Let
+$$
+p(y \, | \, \mu, \sigma, k) =
+\begin{cases}
+\frac{1}{\sigma} \left( 1 + k \left( \frac{y - \mu}{\sigma} \right) \right)^{- \frac{1}{k} - 1}, \quad k \neq 0 \\
+\frac{1}{\sigma} \exp \left( \frac{y - \mu}{\sigma} \right), \quad k = 0
+\end{cases}
+$$
+be the generalised Pareto distribution with shape parameter $k$ and location-scale parameter $(\mu, \tau)$.
+In PSIS this distribution is fit to the $M$ largest samples of $r_s$ where $M = \min (S/5, 3\sqrt{S})$ (heuristic).
+The fitted value $\hat k$ is reported, and these $M$ largest $r_s$ are replaced by their expected value under the Pareto distribution.
+All weights are truncated by the raw weight maximum $\max(r_s)$
+
+Can be thought of as a Bayesian version of IS with a prior on the largest importance ratios.
+Comment: this is interesting, but seems somewhat suspicious to  me as to why the Bayesian prior would only apply to the largest ratios.
+I suppose you could claim that we have genuine prior information that the weights shouldn't be that big.
+
+This procedure is claimed to provide better estimates than plain IS or truncated weights IS.
+But it can also be used as a diagnostic.
+
 # Maximum mean discrepancy
+
+See [these](http://wittawat.com/assets/talks/ml_meetup_bkk2018.pdf) slides by Wittawat Jitkrittum.
+Seth suggests starting with MMD with Gaussian kernel and median heuristic to pick length-scale.
 
 # Original computing environment
 
