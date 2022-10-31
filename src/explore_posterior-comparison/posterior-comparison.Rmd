@@ -18,6 +18,13 @@ abstract: |
 
 # Data
 
+```{r}
+samples <- readRDS("depends/samples-m250.rds")
+samples_mcmc <- samples$mcmc
+samples_gaussian <- samples$gaussian
+samples_laplace <- samples$laplace
+```
+
 # KS tests
 
 # Simulation-based calibration

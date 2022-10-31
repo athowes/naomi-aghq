@@ -20,6 +20,13 @@ artefacts:
         - plots-m10.pdf
         - plots-m100.pdf
         - plots-m250.pdf
+  - data:
+      description: Posterior samples
+      filenames:
+        - samples-m1.rds
+        - samples-m10.rds
+        - samples-m100.rds
+        - samples-m250.rds
 
 packages:
   - dplyr

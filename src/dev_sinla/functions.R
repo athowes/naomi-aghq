@@ -192,4 +192,9 @@ run_analysis <- function(sim_data, analysis_name) {
   ks_results %>%
     group_by(type) %>%
     summarise(mean_D = mean(D))
+
+  saveRDS(
+    list("mcmc" = samples_tmbstan, "gaussian" = samples_gaussian, "laplace" = samples_laplace),
+    paste0("samples-", analysis_name, ".rds")
+  )
 }
