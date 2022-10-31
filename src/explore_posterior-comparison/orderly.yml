@@ -1,0 +1,24 @@
+script: script.R
+
+resources:
+  - posterior-comparison.Rmd
+
+artefacts:
+  - data:
+      description: Posterior comparison notebook
+      filenames:
+        - posterior-comparison.html
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - TMB
+  - tmbstan
+  - aghq
+  - inf.utils

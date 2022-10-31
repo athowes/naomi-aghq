@@ -1,0 +1,31 @@
+---
+title: "Posterior comparison methods"
+author:
+- name: Adam Howes
+output:
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    df_print: paged
+    code_folding: show
+    theme: lumen
+abstract: |
+  **Background** Multiple approaches for conducting approximate Bayesian inference exist.
+  
+  **Task** We compare methods for assessing the accuracy of posterior distribution. These methods include marginal KS tests, simulation based calibration and maximum mean discrepancy.
+---
+
+# Data
+
+# KS tests
+
+# Simulation-based calibration
+
+# Maximum mean discrepancy
+
+# Original computing environment
+
+```{r}
+sessionInfo()
+```
