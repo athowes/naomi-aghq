@@ -106,8 +106,10 @@ But it can also be used as a diagnostic.
 See [these](http://wittawat.com/assets/talks/ml_meetup_bkk2018.pdf) slides by Wittawat Jitkrittum.
 Seth suggests starting with MMD with Gaussian kernel and median heuristic to pick length-scale.
 
-# Original computing environment
+# Original computing environment {-}
 
 ```{r}
 sessionInfo()
 ```
+
+# Bibliography {-}
