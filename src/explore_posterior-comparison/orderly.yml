@@ -29,7 +29,7 @@ depends:
   dev_sinla:
     id: latest
     use:
-      depends/samples-m1.rds: samples-m1.rds
-      depends/samples-m10.rds: samples-m10.rds
-      depends/samples-m100.rds: samples-m100.rds
-      depends/samples-m250.rds: samples-m250.rds
+      depends/model1-samples-m1.rds: model1-samples-m1.rds
+      depends/model1-samples-m10.rds: model1-samples-m10.rds
+      depends/model1-samples-m100.rds: model1-samples-m100.rds
+      depends/model1-samples-m250.rds: model1-samples-m250.rds

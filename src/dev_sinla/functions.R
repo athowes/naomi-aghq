@@ -1,4 +1,4 @@
-run_analysis <- function(sim_data, analysis_name) {
+run_analysis_model1 <- function(sim_data, analysis_name) {
   data <- sim_data[[2]]
   dat <- list(n = data$n, y_prev = data$y_prev, m_prev = data$m_prev)
 
@@ -130,7 +130,7 @@ run_analysis <- function(sim_data, analysis_name) {
 
   #' Outputs
 
-  pdf(paste0("plots-", analysis_name, ".pdf"), h = 8, w = 6.25)
+  pdf(paste0("model1-plots-", analysis_name, ".pdf"), h = 8, w = 6.25)
 
   print(ggplot(samples_tmbstan, aes(x = value)) +
           geom_histogram(aes(y = ..density..), alpha = 0.8, fill = cbpalette[7]) +
@@ -195,6 +195,10 @@ run_analysis <- function(sim_data, analysis_name) {
 
   saveRDS(
     list("mcmc" = samples_tmbstan, "gaussian" = samples_gaussian, "laplace" = samples_laplace),
-    paste0("samples-", analysis_name, ".rds")
+    paste0("model1-samples-", analysis_name, ".rds")
   )
+}
+
+run_analysis_model1_icar <- function(sim_data, analysis_name) {
+  #' To write...
 }

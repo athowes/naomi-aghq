@@ -7,6 +7,9 @@ resources:
   - sinla.Rmd
   - model1.cpp
   - model1_index.cpp
+  - model1_icar.cpp
+  - model1_icar_index.cpp
+  - icar.R
 
 artefacts:
   - data:
@@ -16,17 +19,25 @@ artefacts:
   - data:
       description: Experiment plots
       filenames:
-        - plots-m1.pdf
-        - plots-m10.pdf
-        - plots-m100.pdf
-        - plots-m250.pdf
+        - model1-plots-m1.pdf
+        - model1-plots-m10.pdf
+        - model1-plots-m100.pdf
+        - model1-plots-m250.pdf
+        # - model1-icar-plots-m1.pdf
+        # - model1-icar-plots-m10.pdf
+        # - model1-icar-plots-m100.pdf
+        # - model1-icar-plots-m250.pdf
   - data:
       description: Posterior samples
       filenames:
-        - samples-m1.rds
-        - samples-m10.rds
-        - samples-m100.rds
-        - samples-m250.rds
+        - model1-samples-m1.rds
+        - model1-samples-m10.rds
+        - model1-samples-m100.rds
+        - model1-samples-m250.rds
+        # - model1-icar-samples-m1.rds
+        # - model1-icar-samples-m10.rds
+        # - model1-icar-samples-m100.rds
+        # - model1-icar-samples-m250.rds
 
 packages:
   - dplyr

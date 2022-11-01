@@ -37,7 +37,7 @@ A further challenge would be to assess agreement between joint distributions, ra
 Throughout this notebook we will use exemplar data from the report [`dev_sinla`](https://github.com/athowes/elgm-inf/tree/master/src/dev_sinla).
 
 ```{r}
-samples <- readRDS("depends/samples-m250.rds")
+samples <- readRDS("depends/model1-samples-m250.rds")
 samples_mcmc <- samples$mcmc
 samples_gaussian <- samples$gaussian
 samples_laplace <- samples$laplace
