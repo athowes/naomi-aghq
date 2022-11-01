@@ -13,6 +13,7 @@ artefacts:
 resources:
   - epil.Rmd
   - epil.cpp
+  - epil_index.cpp
   - epil.stan
   - citations.bib
 
