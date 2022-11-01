@@ -333,11 +333,11 @@ We will still go through the steps for implementing it here though for demonstra
 With of a bit of effort, it can be implemented in `TMB` by passing in data where elements $i$ and $-i$ of the latent field are explicitly named (see Appendix \@ref(appendix) for the `TMB` code):
 
 ```{r}
-compile("model1index.cpp")
-dyn.load(dynlib("model1index"))
+compile("model1_index.cpp")
+dyn.load(dynlib("model1_index"))
 ```
 
-The `prepare_dat` function takes `dat` and makes it compatible with `model1index` for particular choice of marginal `i`.
+The `prepare_dat` function takes `dat` and makes it compatible with `model1_index` for particular choice of marginal `i`.
 
 ```{r}
 prepare_dat <- function(dat, i) {
@@ -369,7 +369,7 @@ obj <- MakeADFun(
   data = dat_i,
   parameters = param_i,
   random = "phi_prev_minus_i",
-  DLL = "model1index",
+  DLL = "model1_index",
   silent = TRUE
 )
 
@@ -590,7 +590,7 @@ obj_fixed_theta <- MakeADFun(
   data = dat_i,
   parameters = param_i_fixed_theta,
   random = "phi_prev_minus_i",
-  DLL = "model1index",
+  DLL = "model1_index",
   silent = TRUE,
   map = map_fixed_theta
 )
@@ -666,7 +666,7 @@ xi_laplace_marginal <- function(i) {
     data = dat_i,
     parameters = param_i_fixed_theta,
     random = "phi_prev_minus_i",
-    DLL = "model1index",
+    DLL = "model1_index",
     silent = TRUE,
     map = map_fixed_theta
   )
@@ -948,9 +948,9 @@ Renormalise $\tilde p(x_i \, | \, \theta, y)$.
 ```{cpp, echo=TRUE, eval=FALSE, output.var="ex", code=readLines('model1.cpp')}
 ```
 
-## `model1index.cpp`
+## `model1_index.cpp`
 
-```{cpp, echo=TRUE, eval=FALSE, output.var="ex", code=readLines('model1index.cpp')}
+```{cpp, echo=TRUE, eval=FALSE, output.var="ex", code=readLines('model1_index.cpp')}
 ```
 
 # Original computing environment

@@ -6,7 +6,7 @@ sources:
 resources:
   - sinla.Rmd
   - model1.cpp
-  - model1index.cpp
+  - model1_index.cpp
 
 artefacts:
   - data:

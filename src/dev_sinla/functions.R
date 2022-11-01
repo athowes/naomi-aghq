@@ -80,8 +80,8 @@ run_analysis <- function(sim_data, analysis_name) {
     dat[c("n", "y_prev_i", "y_prev_minus_i", "m_prev_i", "m_prev_minus_i")]
   }
 
-  compile("model1index.cpp")
-  dyn.load(dynlib("model1index"))
+  compile("model1_index.cpp")
+  dyn.load(dynlib("model1_index"))
 
   xi_laplace_marginal <- function(i, opt_theta, finegrid) {
     dat_i <- prepare_dat(dat, i)
@@ -100,7 +100,7 @@ run_analysis <- function(sim_data, analysis_name) {
       data = dat_i,
       parameters = param_i_fixed_theta,
       random = "phi_prev_minus_i",
-      DLL = "model1index",
+      DLL = "model1_index",
       silent = TRUE,
       map = map_fixed_theta
     )
