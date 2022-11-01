@@ -3,6 +3,7 @@ script: script.R
 resources:
   - posterior-comparison.Rmd
   - citations.bib
+  - sbc-talts.rdata
 
 artefacts:
   - data:

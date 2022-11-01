@@ -2935,6 +2935,7 @@ A further challenge would be to assess agreement between joint distributions, ra
 </div>
 <div id="data" class="section level1" number="2">
 <h1><span class="header-section-number">2</span> Data</h1>
+<p>Throughout this notebook we will use exemplar data from the report <a href="https://github.com/athowes/elgm-inf/tree/master/src/dev_sinla"><code>dev_sinla</code></a>.</p>
 <pre class="r"><code>samples &lt;- readRDS(&quot;depends/samples-m250.rds&quot;)
 samples_mcmc &lt;- samples$mcmc
 samples_gaussian &lt;- samples$gaussian
@@ -2968,6 +2969,13 @@ r(\{f(\theta_1), \ldots, f(\theta_L) \}, f(\tilde \theta)) = \sum_{l = 1}^L \mat
 \]</span>
 will be distributed uniformly across the integers <span class="math inline">\([0, L]\)</span>.
 I assume we can use histograms and ECDF difference plots to assess this, and perhaps there will be some additional discussion about how to interpret deviations from uniformity.</p>
+<div id="example-from-talts-et-al." class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> Example from Talts et al.</h2>
+<p>Let’s have a go at running the <code>R-INLA</code> section from <span class="citation">Talts et al. (2018)</span> as described in the GitHub repository <code>seantalts/simulation-based-calibration</code>.</p>
+<pre class="r"><code>load(&quot;sbc-talts.rdata&quot;)
+
+#&#39; To-do...</code></pre>
+</div>
 </div>
 <div id="pareto-smoothed-importance-sampling" class="section level1" number="5">
 <h1><span class="header-section-number">5</span> Pareto smoothed importance sampling</h1>
@@ -2995,6 +3003,7 @@ Comment: this is interesting, but seems somewhat suspicious to me as to why the 
 I suppose you could claim that we have genuine prior information that the weights shouldn’t be that big.</p>
 <p>This procedure is claimed to provide better estimates than plain IS or truncated weights IS.
 But it can also be used as a diagnostic.</p>
+<p>The <code>psis</code> function in the <code>loo</code> package takes as input some collection of importance ratios on the log scale as <code>log_ratios</code>.</p>
 </div>
 <div id="maximum-mean-discrepancy" class="section level1" number="6">
 <h1><span class="header-section-number">6</span> Maximum mean discrepancy</h1>
@@ -3018,21 +3027,19 @@ Seth suggests starting with MMD with Gaussian kernel and median heuristic to pic
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-##  [1] multi.utils_0.1.0    inf.utils_0.1.0      aghq_0.4.0           tmbstan_1.0.4        rstan_2.21.5         StanHeaders_2.21.0-7 TMB_1.9.1            Matrix_1.5-1        
-##  [9] stringr_1.4.0        purrr_0.3.4          tidyr_1.2.0          readr_2.1.2          ggplot2_3.3.6        forcats_0.5.1        dplyr_1.0.9         
+##  [1] inf.utils_0.1.0      aghq_0.4.0           tmbstan_1.0.4        rstan_2.21.5         StanHeaders_2.21.0-7 TMB_1.9.1            stringr_1.4.0        purrr_0.3.4         
+##  [9] tidyr_1.2.0          readr_2.1.2          Matrix_1.5-1         multi.utils_0.1.0    forcats_0.5.1        ggplot2_3.3.6        dplyr_1.0.9          rmarkdown_2.14      
 ## 
 ## loaded via a namespace (and not attached):
-##  [1] matrixStats_0.62.0  bit64_4.0.5         rprojroot_2.0.3     numDeriv_2016.8-1.1 tools_4.2.0         bslib_0.3.1         utf8_1.2.2          R6_2.5.1           
-##  [9] DBI_1.1.2           colorspace_2.0-3    withr_2.5.0         tidyselect_1.1.2    gridExtra_2.3       prettyunits_1.1.1   processx_3.5.3      mvQuad_1.0-6       
-## [17] bit_4.0.4           compiler_4.2.0      orthopolynom_1.0-6  cli_3.3.0           bookdown_0.26       sass_0.4.1          scales_1.2.0        callr_3.7.0        
-## [25] askpass_1.1         partitions_1.10-7   digest_0.6.29       rmarkdown_2.14      pkgconfig_2.0.3     htmltools_0.5.2     fastmap_1.1.0       rlang_1.0.2        
-## [33] rstudioapi_0.13     RSQLite_2.2.14      jquerylib_0.1.4     generics_0.1.2      jsonlite_1.8.0      inline_0.3.19       magrittr_2.0.3      polynom_1.4-1      
-## [41] loo_2.5.1           Rcpp_1.0.8.3        munsell_0.5.0       fansi_1.0.3         lifecycle_1.0.1     stringi_1.7.6       yaml_2.3.5          mathjaxr_1.6-0     
-## [49] pkgbuild_1.3.1      plyr_1.8.7          blob_1.2.3          grid_4.2.0          parallel_4.2.0      crayon_1.5.1        lattice_0.20-45     hms_1.1.1          
-## [57] knitr_1.39          ps_1.7.0            pillar_1.7.0        uuid_1.1-0          codetools_0.2-18    stats4_4.2.0        glue_1.6.2          evaluate_0.15      
-## [65] data.table_1.14.2   RcppParallel_5.1.5  vctrs_0.4.1         tzdb_0.3.0          Rdpack_2.3          ids_1.0.1           gtable_0.3.0        openssl_2.0.1      
-## [73] assertthat_0.2.1    cachem_1.0.6        xfun_0.31           rbibutils_2.2.8     tibble_3.1.7        memoise_2.0.1       orderly_1.4.3       mpoly_1.1.1        
-## [81] gmp_0.6-6           statmod_1.4.36      ellipsis_0.3.2</code></pre>
+##  [1] sass_0.4.1         bit64_4.0.5        jsonlite_1.8.0     ids_1.0.1          bslib_0.3.1        RcppParallel_5.1.5 assertthat_0.2.1   askpass_1.1        stats4_4.2.0      
+## [10] blob_1.2.3         yaml_2.3.5         pillar_1.7.0       RSQLite_2.2.14     lattice_0.20-45    glue_1.6.2         uuid_1.1-0         digest_0.6.29      promises_1.2.0.1  
+## [19] colorspace_2.0-3   websocket_1.4.1    htmltools_0.5.2    httpuv_1.6.5       pkgconfig_2.0.3    servr_0.24         bookdown_0.26      scales_1.2.0       processx_3.5.3    
+## [28] later_1.3.0        tzdb_0.3.0         tibble_3.1.7       openssl_2.0.1      generics_0.1.2     ellipsis_0.3.2     cachem_1.0.6       withr_2.5.0        cli_3.3.0         
+## [37] magrittr_2.0.3     crayon_1.5.1       mime_0.12          pagedown_0.18      memoise_2.0.1      evaluate_0.15      ps_1.7.0           fansi_1.0.3        pkgbuild_1.3.1    
+## [46] tools_4.2.0        loo_2.5.1          posterdown_1.0     prettyunits_1.1.1  hms_1.1.1          matrixStats_0.62.0 lifecycle_1.0.1    munsell_0.5.0      callr_3.7.0       
+## [55] compiler_4.2.0     jquerylib_0.1.4    rlang_1.0.2        grid_4.2.0         rstudioapi_0.13    orderly_1.4.3      codetools_0.2-18   gtable_0.3.0       inline_0.3.19     
+## [64] DBI_1.1.2          R6_2.5.1           gridExtra_2.3      knitr_1.39         fastmap_1.1.0      bit_4.0.4          utf8_1.2.2         rprojroot_2.0.3    stringi_1.7.6     
+## [73] parallel_4.2.0     Rcpp_1.0.8.3       vctrs_0.4.1        tidyselect_1.1.2   xfun_0.31</code></pre>
 </div>
 <div id="bibliography" class="section level1 unnumbered">
 <h1>Bibliography</h1>

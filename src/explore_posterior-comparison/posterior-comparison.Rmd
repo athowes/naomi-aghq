@@ -34,6 +34,8 @@ A further challenge would be to assess agreement between joint distributions, ra
 
 # Data
 
+Throughout this notebook we will use exemplar data from the report [`dev_sinla`](https://github.com/athowes/elgm-inf/tree/master/src/dev_sinla).
+
 ```{r}
 samples <- readRDS("depends/samples-m250.rds")
 samples_mcmc <- samples$mcmc
@@ -71,6 +73,16 @@ $$
 will be distributed uniformly across the integers $[0, L]$.
 I assume we can use histograms and ECDF difference plots to assess this, and perhaps there will be some additional discussion about how to interpret deviations from uniformity.
 
+## Example from Talts et al.
+
+Let's have a go at running the `R-INLA` section from @talts2018validating as described in the GitHub repository `seantalts/simulation-based-calibration`.
+
+```{r}
+load("sbc-talts.rdata")
+
+#' To-do...
+```
+
 # Pareto smoothed importance sampling
 
 Say that we have draws $(\theta_1, \ldots, \theta_S)$ from a proposal distribution $q(\theta)$, then we can estimate $\mathbb{E}_p[h(\theta)]$ by
@@ -100,6 +112,8 @@ I suppose you could claim that we have genuine prior information that the weight
 
 This procedure is claimed to provide better estimates than plain IS or truncated weights IS.
 But it can also be used as a diagnostic.
+
+The `psis` function in the `loo` package takes as input some collection of importance ratios on the log scale as `log_ratios`.
 
 # Maximum mean discrepancy
 
