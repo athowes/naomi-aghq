@@ -1,0 +1,19 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Poster for BayesComp 2023
+      filenames:
+        - bayescomp-poster.html
+        - bayescomp-poster.pdf
+
+resources:
+  - bayescomp-poster.Rmd
+  - citations.bib
+  - IMP_ML_W_N.png
+
+packages:
+  - rmarkdown
+  - dplyr
+  - ggplot2
+  - forcats

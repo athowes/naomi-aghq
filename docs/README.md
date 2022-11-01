@@ -25,6 +25,10 @@
 * [01-07-21-stats-epi-group](https://athowes.github.io/elgm-inf/01-07-21-stats-epi-group.pdf): [Machine Learning & Global Health Network](https://mlgh.net/) group meeting
 * [15-11-22-seminar](https://athowes.github.io/elgm-inf/15-11-22-seminar.pdf): Waterloo [SAS Student Seminar Series](https://uwaterloo.ca/statistics-and-actuarial-science/student-seminar-series)
 
+## Posters
+
+* [bayescomp-poster](https://athowes.github.io/elgm-inf/bayescomp-poster.pdf): for BayesComp 2023
+
 ## Manuscript
 
 * [paper](https://athowes.github.io/elgm-inf/paper.pdf): work-in-progress write-up

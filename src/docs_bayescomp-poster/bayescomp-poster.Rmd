@@ -1,0 +1,78 @@
+---
+main_topsize: 0.2
+main_bottomsize: 0.075
+poster_height: "48in"
+poster_width: "36in"
+font_family: "Open Sans"
+# Essentials
+title: Integrated nested Laplace approximations for extended latent Gaussian models, with application to the Naomi HIV model
+author:
+  - name: '**Adam Howes**'
+    affil: 1, 2
+    main: true
+    twitter: adamhowes
+    email: ath19@ic.ac.uk
+  - name: "Alex Stringer"
+    affil: 3
+  - name: "Seth R. Flaxman"
+    affil: 4
+  - name: "Jeffrey W. Eaton"
+    affil: 2
+affiliation:
+  - num: 1
+    address: Department of Mathematics, Imperial College London
+  - num: 2
+    address: MRC Centre for Global Infectious Disease Analysis, School of Public Health, Imperial College London
+  - num: 3
+    address: Department of Statistics and Actuarial Science, University of Waterloo
+  - num: 4
+    address: Department of Computer Science, University of Oxford
+main_findings:
+  - "Combining **simplified INLA**, automatic differentiation and **adaptive Gauss-Hermite quadrature** for fast and accurate inference in a challenging, real-world problem"
+logoleft_name: "IMP_ML_W_N.png"
+# logoright_name: "UNAIDS-reverse-EN.gif"
+# Style & formatting
+column_numbers: 3
+title_textsize: "60px"
+author_textsize: "1.17em"
+authorextra_textsize: "35px"
+affiliation_textsize: "25px"
+affiliation_textcol: '#00000080'
+caption_fontsize: "20px"
+# Main
+main_fontfamily: "Open Sans"
+# Poster body options
+primary_colour: '#38761C'
+secondary_colour: '#3b77D8'
+accent_colour: "#5d19c4"
+body_bgcol: "#ffffff"
+body_textsize: "40px"
+body_textcol: "#000000"
+reference_textsize: "25px"
+sectitle_textsize: "40px"
+# Standard options
+bibliography: citations.bib
+output: 
+  posterdown::posterdown_betterport:
+    self_contained: false
+    pandoc_args: --mathjax
+    highlight: espresso
+    number_sections: false
+---
+
+<!-- Using LaTeX to create spacing -->
+$$\\[0.15in]$$
+
+## The Naomi model
+
+## Inference procedure
+
+## Comparison
+
+## Conclusions
+
+<font size="6"> **Funding** AH was supported by the EPSRC and Bill & Melinda Gates Foundation. This research was supported by the MRC Centre for Global Infectious Disease Analysis. </font>
+
+## References
+
+<div id="refs" class="references"></div>
