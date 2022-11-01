@@ -24,12 +24,12 @@ h <- MakeADFun(
   data = dat,
   parameters = param,
   random = "phi_prev",
-  DLL = "model1",
+  DLL = "model1_icar",
   silent = TRUE
 )
 
 #' 1: MCMC
-mcmc <- tmbstan::tmbstan(h, chains = 4, iter = 4000, refresh = 0)
+mcmc <- tmbstan::tmbstan(h, chains = 4, iter = 1000, refresh = 0)
 
 samples_tmbstan <- extract(mcmc, pars = "phi_prev") %>%
   as.data.frame() %>%

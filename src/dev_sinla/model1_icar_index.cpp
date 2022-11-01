@@ -25,7 +25,7 @@ Type objective_function<Type>::operator()()
   vector<Type> phi_prev(n);
   int k = 0;
   for (int j = 0; j < n; j++) {
-    if (j == i) {
+    if (j + 1 == i) { // +1 because C++ does zero-indexing
       phi_prev(j) = phi_prev_i;
     } else {
       phi_prev(j) = phi_prev_minus_i(k);
