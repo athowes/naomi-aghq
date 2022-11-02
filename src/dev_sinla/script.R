@@ -20,7 +20,7 @@ run_analysis_model1(sim_data_m100, "m100")
 run_analysis_model1(sim_data_m250, "m250")
 
 #' ICAR random effects
-# run_analysis_model1_icar(sim_data_m1, "m1")
-# run_analysis_model1_icar(sim_data_m10, "m10")
-# run_analysis_model1_icar(sim_data_m100, "m100")
-# run_analysis_model1_icar(sim_data_m250, "m250")
+run_analysis_model1_icar(sim_data_m1, "m1")
+run_analysis_model1_icar(sim_data_m10, "m10")
+run_analysis_model1_icar(sim_data_m100, "m100")
+run_analysis_model1_icar(sim_data_m250, "m250")

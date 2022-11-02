@@ -9,7 +9,6 @@ resources:
   - model1_index.cpp
   - model1_icar.cpp
   - model1_icar_index.cpp
-  - icar.R
 
 artefacts:
   - data:
@@ -23,10 +22,10 @@ artefacts:
         - model1-plots-m10.pdf
         - model1-plots-m100.pdf
         - model1-plots-m250.pdf
-        # - model1-icar-plots-m1.pdf
-        # - model1-icar-plots-m10.pdf
-        # - model1-icar-plots-m100.pdf
-        # - model1-icar-plots-m250.pdf
+        - model1-icar-plots-m1.pdf
+        - model1-icar-plots-m10.pdf
+        - model1-icar-plots-m100.pdf
+        - model1-icar-plots-m250.pdf
   - data:
       description: Posterior samples
       filenames:
@@ -34,10 +33,10 @@ artefacts:
         - model1-samples-m10.rds
         - model1-samples-m100.rds
         - model1-samples-m250.rds
-        # - model1-icar-samples-m1.rds
-        # - model1-icar-samples-m10.rds
-        # - model1-icar-samples-m100.rds
-        # - model1-icar-samples-m250.rds
+        - model1-icar-samples-m1.rds
+        - model1-icar-samples-m10.rds
+        - model1-icar-samples-m100.rds
+        - model1-icar-samples-m250.rds
 
 packages:
   - dplyr

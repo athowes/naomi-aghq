@@ -12,12 +12,16 @@
 
 ## Experiments
 
-| `TMB` template | Sample size parameter | Results  |
-|:---------------|:----- |:-----------|
-| `model1.cpp`   | 1     | [Plots](https://athowes.github.io/elgm-inf/model1-plots-m1.pdf) |
-| `model1.cpp`   | 10    | [Plots](https://athowes.github.io/elgm-inf/model1-plots-m10.pdf) |
-| `model1.cpp`   | 100   | [Plots](https://athowes.github.io/elgm-inf/model1-plots-m100.pdf) |
-| `model1.cpp`   | 250   | [Plots](https://athowes.github.io/elgm-inf/model1-plots-m250.pdf) |
+| `TMB` template      | Sample size parameter | Results  |
+|:--------------------|:----- |:-----------|
+| `model1.cpp`        | 1     | [Plots](https://athowes.github.io/elgm-inf/model1-plots-m1.pdf) |
+| `model1.cpp`        | 10    | [Plots](https://athowes.github.io/elgm-inf/model1-plots-m10.pdf) |
+| `model1.cpp`        | 100   | [Plots](https://athowes.github.io/elgm-inf/model1-plots-m100.pdf) |
+| `model1.cpp`        | 250   | [Plots](https://athowes.github.io/elgm-inf/model1-plots-m250.pdf) |
+| `model1_icar.cpp`   | 1     | [Plots](https://athowes.github.io/elgm-inf/model1-icar-plots-m1.pdf) |
+| `model1_icar.cpp`   | 10    | [Plots](https://athowes.github.io/elgm-inf/model1-icar-plots-m10.pdf) |
+| `model1_icar.cpp`   | 100   | [Plots](https://athowes.github.io/elgm-inf/model1-icar-plots-m100.pdf) |
+| `model1_icar.cpp`   | 250   | [Plots](https://athowes.github.io/elgm-inf/model1-icar-plots-m250.pdf) |
 
 ## Presentations
 
