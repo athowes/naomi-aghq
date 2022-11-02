@@ -27,8 +27,8 @@ output:
 
 # A simple small-area model for prevalence
 
-* Consider areas $i = 1, \ldots, n$
-* Simple random sample household-survey taken in each area, with sample sizes $m^\text{HS}_i$
+* Consider small-areas $i = 1, \ldots, n$
+* Simple random sample household-survey in each area, with sample sizes $m^\text{HS}_i$
 * The number of people testing positive is $y^\text{HS}_i$
 * Then we can use a binomial logistic regression of the form:
 \begin{align*}
@@ -111,10 +111,8 @@ knitr::include_graphics("naomi_hex.png")
 
 # Template Model Builder
 
-* So what is `TMB`?
 * R package which implements the Laplace approximation for latent variable models using automatic differentiation (via `CppAD`)
-  * For more about AD see e.g. @griewank2008evaluating
-  * Useful for getting the mode, Hessian
+  * For more about AD see e.g. @griewank2008evaluating. It's useful for getting the mode, Hessian
 * Write an objective function $f(\x, \btheta)$ in C++ ("user template")
     * We select $f(\x, \btheta) = - \log p(\y \, | \, \x, \btheta) p(\x \, | \, \btheta) p(\btheta)$
 
@@ -145,7 +143,7 @@ Type objective_function<Type>::operator()() {
 
 # Integrated Nested Laplace Approximation
 
-* Suggested reading: the paper [@rue2009approximate] or a book e.g. @blangiardo2015spatial
+* Suggested reading: the paper @rue2009approximate or a book e.g. @blangiardo2015spatial
 * Approximate Bayesian inference for \textcolor{hilit}{latent Gaussian models} (LGMs), which recall are three-stage models with middle layer
 \begin{equation*}
   \text{(Latent field)} \qquad  p(\x \, | \, \btheta) = \mathcal{N}(\x  \, | \, \bm{\mu}(\btheta), \bm{Q}(\btheta)^{-1}).
@@ -173,9 +171,13 @@ which can be marginalised to get $\tilde p(\theta_j \, | \, \y)$
 # Integrated Nested Laplace Approximation
 
 2) In both \eqref{eq:inla1} and \eqref{eq:inla2} we want to integrate w.r.t. \eqref{eq:hypermarginal}, so choose integration points and weights $\{ \btheta^{(k)}, \Delta^{(k)} \}$
-  * For low $m$ `R-INLA` uses a grid-strategy (illustrated in the next slide)
-  * For larger $m$ this becomes too expensive and `R-INLA` uses a CCD design is used
+  * For low $m$ `R-INLA` uses a grid-strategy
+  * For larger $m$ this becomes too expensive and `R-INLA` uses a CCD design
   * Other approaches, like adaptive Gaussian Hermite quadrature (AGHQ) have recently been shown to have theoretical guarantees [@bilodeau2021stochastic] and may be preferable
+
+# Grid strategy
+
+* To write...
 
 #
 
@@ -185,13 +187,26 @@ knitr::include_graphics("depends/inla-grid.pdf")
 
 # Adaptive Gaussian Hermite Quadrature
 
-* `aghq` R package and vignette [@stringer2021implementing]
 * Gauss-Hermite quadrature is a way of picking nodes and weights, and is based on the theory of polynomial interpolation
-* The adaptive part means that it uses the location (mode) and curvature (Hessian) of the target (posterior)
-* Use $k$ quadrature points
-  * If $k$ is odd then they include the mode
+* The adaptive part means that it uses the location (mode) and curvature (Hessian) of the target (posterior) to automatically choose the node locations
+  * No manual tuning!
+* Works particularly well when the integrand is pretty Gaussian
+* Supposing you use $k$ quadrature points, then
   * If $k = 1$ then it's a Laplace approximation
   * In the vignette $k = 3$ (for each dimension, so $3^m$ total) is chosen quite often
+* Implemented in the `aghq` R package. See vignette @stringer2021implementing
+
+#
+
+```{r message=FALSE, echo=FALSE, out.height="200px", fig.cap=paste("One dimensional example of AGHQ. \\label{fig:aghq-1d}")}
+knitr::include_graphics("depends/aghq-1d.pdf")
+```
+
+#
+
+```{r message=FALSE, echo=FALSE, out.height="200px", fig.cap=paste("Two dimensional example of AGHQ. \\label{fig:aghq-2d}")}
+knitr::include_graphics("depends/aghq-2d.pdf")
+```
 
 # Integrated Nested Laplace Approximation
 

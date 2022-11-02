@@ -27,3 +27,8 @@ depends:
     id: latest
     use:
       depends/inla-grid.pdf: inla-grid.pdf
+  explore_aghq:
+    id: latest
+    use:
+      depends/aghq-1d.pdf: aghq-1d.pdf
+      depends/aghq-2d.pdf: aghq-2d.pdf
