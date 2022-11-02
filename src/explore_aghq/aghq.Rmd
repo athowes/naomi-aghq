@@ -131,7 +131,7 @@ plot <- data.frame(x = seq(from = -10, to = 10, by = 0.1)) %>%
     y = f(x)
   ) %>%
   ggplot(aes(x = x, y = y)) +
-    geom_line() +
+    geom_line(col = cbpalette[1]) +
     labs(x = "x", y = "f(x)") +
     theme_minimal()
 
@@ -150,13 +150,17 @@ The positions of the nodes and their weights are:
 gg$nodes
 gg$weights
 
-plot +
+plot <- plot +
   geom_point(
     data = data.frame(nodes = gg$nodes, weights = gg$weights, y = 0), 
-    aes(x = nodes, y = y, size = weights),
-    col = cbpalette[2]
+    aes(x = nodes, y = y, size = weights), alpha = 0.5
   ) +
+  labs(size = "Weight") +
   scale_size_continuous(limits = c(1, 2))
+
+plot
+
+ggsave(filename = "aghq-1d.pdf", plot = plot, height = 4, width = 6.25)
 ```
 
 We can perform the quadrature using `mvQuad` via:
@@ -198,8 +202,8 @@ plot2 <- df %>%
   mutate(
     y = f(c(x1, x2))
   ) %>%
-  ggplot(aes(x = x1, y = x2, fill = y)) +
-    geom_tile() +
+  ggplot() +
+    geom_contour(aes(x = x1, y = x2, z = y), col = multi.utils::cbpalette()[1]) +
     theme_minimal()
 
 plot2
@@ -229,16 +233,20 @@ cbind(apply(expand.grid(mvQuad::getWeights(gg), mvQuad::getWeights(gg)), 1, prod
 What do these nodes and weights look like on the plot?
 
 ```{r}
-plot2 +
+plot2 <- plot2 +
   geom_point(
     data = mvQuad::getNodes(gg2) %>%
             as.data.frame() %>%
             mutate(weights = mvQuad::getWeights(gg2)), 
-    aes(x = V1, y = V2, size = weights, fill = 1),
-    col = cbpalette[2]
+    aes(x = V1, y = V2, size = weights),
+    alpha = 0.5
   ) +
-  labs(col = "f(x1, x2)") +
+  labs(col = "f(x1, x2)", size = "Weight") +
   scale_size_continuous(limits = c(2, 4))
+
+plot2
+
+ggsave(filename = "aghq-2d.pdf", plot = plot, height = 4, width = 6.25)
 ```
 
 Ok! So now let's use `mvQuad` to do the quadrature:

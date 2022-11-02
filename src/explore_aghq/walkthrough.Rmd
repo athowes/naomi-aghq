@@ -470,7 +470,7 @@ Code comments note that transformations are not applied at this point, and that 
 ```{r}
 q <- stats::runif(M)
 
-pdfandcdf <- compute_pdf_and_cdf(quad$marginals[[i]], interpolation = interpolation)
+pdf_and_cdf <- compute_pdf_and_cdf(quad$marginals[[i]], interpolation = interpolation)
 
 ggplot(pdf_and_cdf, aes(x = theta, y = cdf)) +
   geom_line() +
@@ -486,7 +486,7 @@ transformation <- make_transformation(transformation)
 For each sample, take the maximum `theta` which still has CDF value less than the quantile desired:
 
 ```{r}
-for (i in 1:length(q)) out[i] <- pdfandcdf$theta[max(which(pdfandcdf$cdf < q[i]))]
+for (i in 1:length(q)) out[i] <- pdf_and_cdf$theta[max(which(pdf_and_cdf$cdf < q[i]))]
 
 #' Have to check if it's increasing or decreasing so can reverse order if necessary
 increasing <- transformation$fromtheta(min(out)) <= transformation$fromtheta(max(out))

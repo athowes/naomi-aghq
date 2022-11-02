@@ -12,6 +12,11 @@ artefacts:
       filenames:
         - aghq.html
         - walkthrough.html
+  - data:
+      description: Example AGHQ plots
+      filenames:
+        - aghq-1d.pdf
+        - aghq-2d.pdf
 
 packages:
   - dplyr
