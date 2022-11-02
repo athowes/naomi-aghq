@@ -47,6 +47,47 @@ samples_laplace <- samples$laplace
 
 Compute the empirical CDFs, and look for the maximum distance between them.
 
+```{r}
+n <- length(unique(samples_mcmc$index))
+
+ks_gaussian_mcmc <- lapply(1:n, function(i) {
+  samples_gaussian_i <- filter(samples_gaussian, index == i)$value
+  samples_mcmc_i <- filter(samples_mcmc, index == i)$value
+  inf.utils::ks_test(samples_gaussian_i, samples_mcmc_i)
+})
+
+ks_laplace_mcmc <- lapply(1:n, function(i) {
+  samples_laplace_i <- filter(samples_laplace, index == i)$value
+  samples_mcmc_i <- filter(samples_mcmc, index == i)$value
+  inf.utils::ks_test(samples_laplace_i, samples_mcmc_i)
+})
+
+ks_results <- bind_rows(
+  bind_rows(ks_gaussian_mcmc, .id = "index") %>%
+    mutate(type = "gaussian"),
+  bind_rows(ks_laplace_mcmc, .id = "index") %>%
+    mutate(type = "laplace")
+)
+
+ks_results %>%
+  select(index, D, type) %>%
+  pivot_wider(
+    names_from = type,
+    values_from = D
+  ) %>%
+  ggplot(aes(x = laplace, y = gaussian)) +
+    geom_point(alpha = 0.5) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+    lims(x = c(0, 1), y = c(0, 1)) +
+    labs(x = "KS(laplace, mcmc)", y = "KS(gaussian, mcmc)") +
+    theme_minimal()
+
+ks_results %>%
+  group_by(type) %>%
+  summarise(mean = mean(D)) %>%
+  kable()
+```
+
 # Simulation-based calibration
 
 SBC [@talts2018validating] is a corrected version of @cook2006validation.
