@@ -34,7 +34,9 @@ options(mc.cores = parallel::detectCores())
 
 # Background
 
-Section 5.2. of @rue2009approximate demonstrates the application of \texttt{R-INLA} to a generalised linear mixed model.
+## Model description
+
+Section 5.2. of @rue2009approximate demonstrates the application of `R-INLA` to a generalised linear mixed model.
 The data, previously included as an example in the OpenBUGs manual, concern the results of a clinical trial for a new epilepsy drug.
 Patients $i = 1, \ldots, 59$ are each either assigned the new drug $\texttt{Trt}_i = 1$ or placebo $\texttt{Trt}_i = 0$.
 Each patient makes four visits the clinic $j = 1, \ldots, 4$.
@@ -50,12 +52,16 @@ The observations are modelling using a Poisson distribution $y_{ij} \sim \text{P
 where the prior on each of the regression parameters is $\mathcal{N}(0, 100^2)$.
 The random effects are IID $\epsilon_i \sim \mathcal{N}(0, 1/\tau_\epsilon)$ and $\nu_{ij} \sim \mathcal{N}(0, 1/\tau_\nu)$ with precision priors $\tau_\epsilon, \tau_\nu \sim \Gamma(0.001, 0.001)$.
 
+## Data preparation
+
+The data is available within `R-INLA` as follows:
+
 ```{r}
 data(Epil, package = "INLA")
 head(Epil)
 ```
 
-Start by centering the covariates:
+We modify `Epil` by centering all of the covariates:
 
 ```{r}
 center <- function(x) (x - mean(x))
@@ -68,7 +74,7 @@ Epil <- Epil %>%
          CBT     = center(Trt * log(Base/4)))
 ```
 
-Implement the model based upon a response variable of length $N \times J$ and a model matrix with $K$ predictors (including the intercept term):
+Implement the model based upon a response variable of length $N \times J$, where $N$ is the number of patients and $J$ is the number of visits to the clinic, and a model matrix with $K$ predictors (including the intercept term):
 
 ```{r}
 N <- 59
@@ -78,13 +84,17 @@ X <- model.matrix(formula(~ 1 + CTrt + ClBase4 + CV4 + ClAge + CBT), data = Epil
 y <- Epil$y
 ```
 
-For the individual specific random effect $\epsilon_i$ we use a transformation matrix $\bm{E}$ which repeats elements of vector of length `N` each `J` times, for example:
+For the individual specific random effect $\epsilon_i$ we use a transformation matrix `E` which repeats elements of vector of length `N` each `J` times.
 
 ```{r}
 make_epsilon_matrix <- function(N, J) {
   t(outer(1:N, 1:(N * J), function(r, c) as.numeric((J*(r - 1) < c) & (c <= J*r))))
 }
+```
 
+For example, with $N = 3$ and $J = 2$:
+
+```{r}
 E <- make_epsilon_matrix(N = 3, J = 2)
 E
 t(E %*% c(1, 2, 3)) # Same as rep(1:3, 2)
@@ -94,9 +104,11 @@ Multiplying this matrix $E$ by the vector $\epsilon$ allows it to be directly ad
 
 # Inference methods
 
+We consider a range of inference methods, described below.
+
 ## Stan
 
-Hamiltonian Monte Carlo via the No-U-Turn algorithm, with one Markov chain of `iter = 1000` samples, and `warmup = 100` burn-in:
+First, Hamiltonian Monte Carlo via the No-U-Turn algorithm, with four Markov chains of `iter = 1000` samples, and `warmup = 100` burn-in:
 
 ```{r results='hide'}
 dat <- list(N = N, J = J, K = K, X = X, y = y, E = make_epsilon_matrix(N, J))
@@ -104,7 +116,7 @@ dat <- list(N = N, J = J, K = K, X = X, y = y, E = make_epsilon_matrix(N, J))
 fit1 <- stan(
   "epil.stan",
   data = dat,
-  chains = 1,
+  chains = 4,
   warmup = 100,
   iter = 1000,
   control = list(adapt_delta = 0.95)
@@ -126,21 +138,21 @@ tau_prior <- list(prec = list(
 ```
 
 The variable `Epil$rand` is gives the row number for each entry and the variable `Epil$Ind` gives the patient number.
-These variables can be used to define the random effects $\nu_{ij}$ and $\epsilon_i$ in INLA as follows.
+These variables can be used to define the IID random effects $\nu_{ij}$ and $\epsilon_i$ in `R-INLA` as follows.
 The usual R formula notation (e.g. `y ~ x1 + x2`) is used for the rest of the linear predictor.
 
 ```{r}
 formula <- y ~ 1 + CTrt + ClBase4 + CV4 + ClAge + CBT +
-  f(rand, model = "iid", hyper = tau_prior) +  # Nu random effect
-  f(Ind,  model = "iid", hyper = tau_prior)    # Epsilon random effect
+  f(rand, model = "iid", hyper = tau_prior) +  #' Nu random effect
+  f(Ind,  model = "iid", hyper = tau_prior)    #' Epsilon random effect
 ```
 
-We can use various settings for the strategy, which controls how the latent field posterior marginals are approximated:
+We can use various settings for the strategy, which controls the approximation used for the latent field posterior marginals:
 
 ```{r}
 epil_inla <- function(strat) {
   inla(formula,
-       control.fixed = list(mean = 0, prec = 1/100^2), # Beta prior
+       control.fixed = list(mean = 0, prec = 1 / 100^2), #' Beta prior
        family = "poisson",
        data = Epil,
        control.inla = list(strategy = strat),
@@ -174,7 +186,7 @@ param <- list(
 )
 ```
 
-We integrate `random` out with a Laplace approximation:
+We integrate `random` out, which here corresponds to `c("epsilon", "nu")`, with a Laplace approximation:
 
 ```{r}
 obj <- MakeADFun(
@@ -205,7 +217,9 @@ sd_out <- sdreport(
 )
 ```
 
-For completeness, we check here that the objective functions as implemented in Stan and `TMB` are identical.
+### Check `TMB` objective is the same as Stan
+
+For completeness, we check here that the objective functions as implemented in `TMB` and Stan are identical.
 To obtain the `TMB` negative log-likelihood we call `MakeADFun` as before, but now do not specify any parameters to be integrated out.
 For Stan, we create an empty model, then use `rstan::log_prob`:
 
@@ -242,7 +256,8 @@ data.frame(
   "TMB" = tmb_evals,
   "Stan" = stan_evals
 ) %>%
-  mutate(Difference = TMB - Stan)
+  mutate(Difference = TMB - Stan) %>%
+  pull(Difference)
 ```
 
 Note: When there are errors in the C++ template code, usually to do with indexing (unlike Stan, in `TMB` there is no requirement when defining variables to give them dimensions), calling the `MakeADFun` function tends to crash the R session.
@@ -260,28 +275,29 @@ obj <- mccollect(testrun, wait = TRUE, timeout = 0, intermediate = FALSE)
 
 ## `glmmTMB`
 
-[`glmmTMB`](https://glmmtmb.github.io/glmmTMB/) is an R package written by Ben Bolker and collaborators which allows fitting generalised linear mixed models in `TMB` without writing the C++ code.
-For example, rather than writing `epil.cpp` manually, we could have called the following:
+[`glmmTMB`](https://glmmtmb.github.io/glmmTMB/) is an R package written by Ben Bolker and collaborators which allows fitting generalised linear mixed models in `TMB` without writing the C++ code manually as we have in `epil.cpp`.
+For example, rather than writing `epil.cpp`, we could have called the following:
 
 ```{r}
 formula6 <- y ~ 1 + CTrt + ClBase4 + CV4 + ClAge + CBT + (1 | rand) + (1 | Ind)
 fit6 <- glmmTMB(formula6, data = Epil, family = poisson(link = "log"))
 ```
 
-This likely isn't the same model, in terms of priors and so on, but it may be close.
+This won't be exactly the same model, in terms of priors and so on, but it may be close.
 
 ## `tmbstan`
 
 [`tmbstan`](https://journals.pl,os.org/plosone/article?id=10.1371/journal.pone.0197954) (Cole Monnahan and Kasper Kristensen) is another helpful `TMB` package which allows you to pass the same C++ template you use in `TMB` to Stan in order to perform NUTS (if you have standard C++ code then this can also likely be done using [`stanc`](https://statmodeling.stat.columbia.edu/2017/03/31/running-stan-external-c-code/)).
 
 ```{r}
-fit7 <- tmbstan(obj = obj, chains = 1)
+fit7 <- tmbstan(obj = obj, chains = 4)
 ```
 
 ## `aghq`
 
 [`aghq`](https://arxiv.org/pdf/2101.04468.pdf) is an R package written by Alex Stringer which implements adaptive Gauss-Hermite quadrature.
-One (strange!) approach is to use `glmmTMB` to get the `TMB` template which can be passed the `aghq`.
+It also works smoothly with `TMB` templates.
+One (odd!) approach would be to use `glmmTMB` to get the `TMB` template which can be passed the `aghq`.
 
 ```{r}
 glmm_model_info <- glmmTMB(formula6, data = Epil, family = poisson(link = "log"), doFit = FALSE)
@@ -308,7 +324,7 @@ Another, more standard, approach is to use the `TMB` template, `obj`, that we al
 ```{r results='hide'}
 fit8 <- aghq::marginal_laplace_tmb(
   obj,
-  k = 2,
+  k = 3,
   startingvalue = c(param$beta, param$l_tau_epsilon, param$l_tau_nu)
 )
 
@@ -335,11 +351,35 @@ df <- cbind(stan1, inla2, inla3, inla4, tmb5, glmmtmb6, tmbstan7, aghq8) %>%
 
 beta_i <- function(i) { c(paste0("beta_", i), paste0("sd(beta_", i, ")")) }
 rownames(df) <- c(sapply(0:5, beta_i))
-colnames(df) <- c("Stan", "INLA_G", "INLA_SL", "INLA_L", "TMB", "glmmTMB", "tmbstan", "aghq", "type")
+colnames(df) <- c("Stan", "R-INLA_G", "R-INLA_SL", "R-INLA_L", "TMB", "glmmTMB", "tmbstan", "aghq", "type")
 
-kableExtra::kable(df)
+df %>%
+  select(-type) %>%
+  kableExtra::kable()
 
 saveRDS(df, "comparison-results.rds")
+```
+
+## Focus on $\beta_0$
+
+```{r}
+plot_pdf <- ggplot(data.frame(x = rstan::extract(fit1, pars = "beta[1]")[[1]]), aes(x = x)) +
+    geom_histogram(aes(y = ..density..), alpha = 0.8, fill = cbpalette[7], bins = 60) +
+    theme_minimal() +
+    labs(x = "beta[1]", y = "Posterior PDF")
+
+beta0_inla_marginals <- bind_rows(
+  data.frame(fit2$marginals.fixed$`(Intercept)`) %>%
+    mutate(method = "G"),
+  data.frame(fit3$marginals.fixed$`(Intercept)`) %>%
+    mutate(method = "SL"),
+  data.frame(fit4$marginals.fixed$`(Intercept)`) %>%
+    mutate(method = "L")
+)
+
+plot_pdf +
+  geom_line(data = beta0_inla_marginals, aes(x = x, y = y, col = method)) +
+  scale_color_manual(values = cbpalette)
 ```
 
 ## Scatter plot against `tmbstan`
@@ -397,6 +437,7 @@ plot_marginals <- function(random_effect, index) {
 
   ggplot(marginals, aes(x = x, y = y, group = method, col = method)) +
     geom_line() +
+    scale_color_manual(values = cbpalette)
     theme_minimal()
 }
 
