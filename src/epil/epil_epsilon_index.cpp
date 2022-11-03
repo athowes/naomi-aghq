@@ -1,4 +1,4 @@
-// epil_index.cpp
+// epil_epsilon_index.cpp
 
 #include <TMB.hpp>
 
@@ -6,7 +6,6 @@ template <class Type>
 Type objective_function<Type>::operator()()
 {
   // Data block
-  DATA_INTEGER(toggle) // 0 corresponds to epsilon, 1 to nu
   DATA_INTEGER(i); // Index i
   DATA_INTEGER(N);
   DATA_INTEGER(J);
@@ -18,43 +17,19 @@ Type objective_function<Type>::operator()()
   // Parameter block
   PARAMETER_VECTOR(beta);
 
-  // If toggle == 0 then set-up minus i for nu
-  if(toggle == 0) {
-    PARAMETER_VECTOR(epsilon);
+  PARAMETER_VECTOR(nu);
 
-    PARAMETER(nu_i);
-    PARAMETER_VECTOR(nu_minus_i);
+  PARAMETER(epsilon_i);
+  PARAMETER_VECTOR(epsilon_minus_i);
 
-    vector<Type> nu(N * J);
-    int k = 0;
-    for (int j = 0; j < N * J; j++) {
-      if (j + 1 == i) {
-        nu(j) = nu_i;
-      } else {
-        nu(j) = nu_minus_i(k);
-        k++;
-      }
-    }
-
-  }
-
-  // If toggle == 1 then set-up minus i for epsilon
-  if(toggle == 1) {
-
-    PARAMETER_VECTOR(nu);
-
-    PARAMETER(epsilon_i);
-    PARAMETER_VECTOR(epsilon_minus_i);
-
-    vector<Type> epsilon(N);
-    int k = 0;
-    for (int j = 0; j < N; j++) {
-      if (j + 1 == i) {
-        epsilon(j) = epsilon_i;
-      } else {
-        epsilon(j) = epsilon_minus_i(k);
-        k++;
-      }
+  vector<Type> epsilon(N);
+  int k = 0;
+  for (int j = 0; j < N; j++) {
+    if (j + 1 == i) {
+      epsilon(j) = epsilon_i;
+    } else {
+      epsilon(j) = epsilon_minus_i(k);
+      k++;
     }
   }
 

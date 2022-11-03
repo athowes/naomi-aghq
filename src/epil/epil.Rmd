@@ -331,6 +331,20 @@ fit8 <- aghq::marginal_laplace_tmb(
 summary8 <- summary(fit8)
 ```
 
+## Custom Laplace method with `aghq`
+
+```{r}
+#' Currently failing to compile
+# compile("epil_index.cpp")
+# dyn.load(dynlib("epil_index"))
+
+compile("epil_epsilon_index.cpp")
+dyn.load(dynlib("epil_epsilon_index"))
+
+compile("epil_nu_index.cpp")
+dyn.load(dynlib("epil_nu_index"))
+```
+
 # Comparison
 
 ## Table
