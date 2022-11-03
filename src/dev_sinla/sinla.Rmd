@@ -934,6 +934,11 @@ Renormalise $\tilde p(x_i \, | \, \theta, y)$.
 
 # Appendix {#appendix}
 
+## Resources
+
+* [INLA and other approaches to GAMs](https://www.maths.ed.ac.uk/~swood34/inla-etc.pdf)
+* [mgcv::ginla](https://github.com/cran/mgcv/blob/d9fe307c8ed1f8f1ed436c85e4ac415c1febeef4/R/inla.r)
+
 ## Comparison of notation
 
 | Description | Here          | Wood (2019) notation | Notes    |
