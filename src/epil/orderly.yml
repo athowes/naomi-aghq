@@ -14,6 +14,8 @@ resources:
   - epil.Rmd
   - epil.cpp
   - epil_index.cpp
+  - epil_nu_index.cpp
+  - epil_epsilon_index.cpp
   - epil.stan
   - citations.bib
 

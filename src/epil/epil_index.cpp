@@ -18,14 +18,16 @@ Type objective_function<Type>::operator()()
   // Parameter block
   PARAMETER_VECTOR(beta);
 
+  PARAMETER_VECTOR(epsilon);
+  PARAMETER_VECTOR(nu);
+
   // If toggle == 0 then set-up minus i for nu
   if(toggle == 0) {
-    PARAMETER_VECTOR(epsilon);
 
     PARAMETER(nu_i);
     PARAMETER_VECTOR(nu_minus_i);
 
-    vector<Type> nu(N * J);
+    // vector<Type> nu(N * J);
     int k = 0;
     for (int j = 0; j < N * J; j++) {
       if (j + 1 == i) {
@@ -41,12 +43,10 @@ Type objective_function<Type>::operator()()
   // If toggle == 1 then set-up minus i for epsilon
   if(toggle == 1) {
 
-    PARAMETER_VECTOR(nu);
-
     PARAMETER(epsilon_i);
     PARAMETER_VECTOR(epsilon_minus_i);
 
-    vector<Type> epsilon(N);
+    // vector<Type> epsilon(N);
     int k = 0;
     for (int j = 0; j < N; j++) {
       if (j + 1 == i) {
