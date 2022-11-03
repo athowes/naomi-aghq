@@ -290,7 +290,7 @@ This won't be exactly the same model, in terms of priors and so on, but it may b
 [`tmbstan`](https://journals.pl,os.org/plosone/article?id=10.1371/journal.pone.0197954) (Cole Monnahan and Kasper Kristensen) is another helpful `TMB` package which allows you to pass the same C++ template you use in `TMB` to Stan in order to perform NUTS (if you have standard C++ code then this can also likely be done using [`stanc`](https://statmodeling.stat.columbia.edu/2017/03/31/running-stan-external-c-code/)).
 
 ```{r}
-fit7 <- tmbstan(obj = obj, chains = 4)
+fit7 <- tmbstan(obj = obj, chains = 4, refresh = 0)
 ```
 
 ## `aghq`
@@ -336,12 +336,89 @@ summary8 <- summary(fit8)
 ```{r}
 compile("epil_index.cpp")
 dyn.load(dynlib("epil_index"))
+```
 
-compile("epil_epsilon_index.cpp")
-dyn.load(dynlib("epil_epsilon_index"))
+We're going to use a data structure to pass to `epil_index`.
+A `toggle` value of `0` corresponds to `nu` and a toggle value of `1` corresponds to `epsilon`:
 
-compile("epil_nu_index.cpp")
-dyn.load(dynlib("epil_nu_index"))
+```{r}
+index_controller <- data.frame(
+  "toggle" = c(rep(0, dat$N * dat$J),  rep(1, dat$N)),
+  "i" = c(1:(dat$N * dat$J), 1:dat$N)
+)
+```
+
+We have already obtained the MAP estimate $\hat \theta$ in the `TMB` section above that we can use in our empirical Bayes procedure.
+
+```{r}
+opt_theta <- opt
+```
+
+Eventually create function of the form:
+
+```{r}
+xi_laplace_marginal <- function(i, opt_theta, finegrid) {
+  #' To fill
+}
+```
+
+Start with `i = 1` for the first marginal:
+
+```{r}
+i <- 1
+
+#' I don't know if this is the right grid for this application...
+fine_grid <- seq(-5, 5, length.out = 1000)
+
+dat$toggle <- index_controller[i, "toggle"]
+dat$i <- index_controller[i, "i"]
+
+theta_names <- unique(names(opt_theta$par))
+map_fixed_theta <- list()
+param_fixed_theta <- param
+
+for(theta in theta_names) {
+  map_fixed_theta[[theta]] <- factor(NA)
+  param[[theta]] <- opt_theta$par[[theta]]
+}
+
+#' Prepare the initialisation parameters if it's nu that we're toggling
+if(dat$toggle == 0) {
+  param_fixed_theta[["nu_i"]] <- param_fixed_theta$nu[i]
+  param_fixed_theta[["nu_minus_i"]] <- param_fixed_theta$nu[-i]
+  # param_fixed_theta$nu <- NULL
+}
+
+#' Or if it's epsilon that we're toggling
+if(dat$toggle == 1) {
+  param_fixed_theta[["epsilon_i"]] <- param_fixed_theta$epsilon[i]
+  param_fixed_theta[["epsilon_minus_i"]] <- param_fixed_theta$epsilon[-i]
+  # param_fixed_theta$epsilon <- NULL
+}
+
+get_random <- function(dat) {
+  if(dat$toggle == 0) return(c("nu_minus_i", "epsilon"))
+  if(dat$toggle == 1) return(c("nu", "epsilon_minus_i"))
+}
+
+obj_fixed_theta <- MakeADFun(
+  data = dat,
+  parameters = param_fixed_theta,
+  random = get_random(dat),
+  DLL = "epil_index",
+  silent = TRUE,
+  map = map_fixed_theta
+)
+  
+quad <- aghq::aghq(
+  ff = obj_fixed_theta,
+  k = 3,
+  startingvalue = 0,
+  control = aghq::default_control_tmb()
+)
+
+pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad, finegrid = finegrid)[[1]]
+
 ```
 
 # Comparison
