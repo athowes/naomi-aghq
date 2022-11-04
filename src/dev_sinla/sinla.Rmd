@@ -558,7 +558,7 @@ quad$normalized_posterior$lognormconst
 Remember that `h` is the negative log-likelihood, so we want to add the normalising constant rather than subtract it:
 
 ```{r}
-h_norm <- function(theta) h$fn(theta) - quad$normalized_posterior$lognormconst
+h_norm <- function(theta) h$fn(theta) + quad$normalized_posterior$lognormconst
 ```
 
 Now we can put this into
@@ -779,7 +779,6 @@ ks_results %>%
     theme_minimal()
 ```
 
-
 # Extension beyond empirical Bayes
 
 In Sections \@ref(gaussian-marginal) and \@ref(full-laplace) when calculating $\tilde p(x_i \, | \, y)$ we fixed $\theta = \hat \theta$ ($K = 1$, empirical Bayes) rather than integrating $\theta$ out ($K > 1$).
@@ -787,9 +786,75 @@ In this section we will use `ahgq` to integrate over $\theta$.
 
 ## Marginal of joint Gaussian approximation
 
+We're going to start by normalising $\tilde p_\text{LA}(\theta, y)$.
+Remember that we did this above in the empirical Bayes case, but found that it wasn't strictly necessary. 
+
 ```{r}
-#' To-do
+h$he <- function(theta) numDeriv::jacobian(h$gr, theta, method = "Richardson")
+quad <- aghq::aghq(ff = h, k = 3, startingvalue = c(0, 0), control = aghq::default_control_tmb())
+quad$normalized_posterior$lognormconst
+h_norm <- function(theta) h$fn(theta) + quad$normalized_posterior$lognormconst
 ```
+
+We can get the mode and Hessian of the random effects at each quadrature point as follows:
+
+```{r}
+distinctthetas <- quad$normalized_posterior$nodesandweights[, grep('theta', colnames(quad$normalized_posterior$nodesandweights))]
+modesandhessians <- distinctthetas
+thetanames <- make.unique(names(h$par), sep = "")
+colnames(modesandhessians) <- thetanames
+
+modesandhessians$mode <- vector(mode = "list", length = nrow(distinctthetas))
+modesandhessians$H <- vector(mode = "list", length = nrow(distinctthetas))
+
+for(i in 1:nrow(distinctthetas)) {
+  theta <- as.numeric(modesandhessians[i, thetanames])
+  h$fn(theta)
+  mm <- h$env$last.par
+  modesandhessians[i, "mode"] <- list(list(mm[h$env$random]))
+  H <- h$env$spHess(mm, random = TRUE)
+  H <- rlang::duplicate(H)
+  modesandhessians[i, "H"] <- list(list(H))
+}
+
+modesandhessians$weights <- quad$normalized_posterior$nodesandweights$weights
+```
+
+Now we want to evaluate
+$$
+\tilde p(x_i \, | \, y) &= \sum_z \tilde p_\text{G}(x_i \, | \, \theta(z), y) \tilde p_\text{LA}(\theta(z) \, | \, y) w_k(z).
+$$
+To start with, let's evaluate this for the first value of $z$ (actually I don't really know what $z$ runs over, but this is just the first weight):
+
+```{r}
+x_test_value <- 0
+
+z <- 1
+i <- 1
+
+#' This is the weight, w_k(z)
+modesandhessians$weights[z]
+
+#' This is the normalised Laplace approximation to log(p(theta | y))
+theta <- as.numeric(modesandhessians[z, thetanames])
+- h_norm(theta)
+
+#' This is the normalised Gaussian approximation to log(p(x_i | theta, y))
+#' Let's say that we're doing i = 1 (corresponding to x_i)
+mean_i <- as.numeric(modesandhessians$mode[[z]][i])
+Sigma <- solve(modesandhessians$H[[z]])
+sd_i <- as.numeric(sqrt(Sigma[i, i]))
+
+dnorm(x_test_value, mean = mean_i, sd = sd_i, log = TRUE)
+
+#' So the value we would compute, on the log scale, is
+dnorm(x_test_value, mean = mean_i, sd = sd_i, log = TRUE) + (- h_norm(theta)) + log(modesandhessians$weights[z])
+```
+
+Remember that we're dealing with the logarithm versions, so let's exp-sum-log for the part inside the sum:
+$$
+\exp \left( \log\tilde p_\text{G}(x_i \, | \, \theta(z), y) + \log \tilde p_\text{LA}(\theta(z) \, | \, y) + \log w_k(z) \right)
+$$
 
 ## Full Laplace approximation
 
