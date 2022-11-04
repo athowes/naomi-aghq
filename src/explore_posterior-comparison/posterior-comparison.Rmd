@@ -85,7 +85,7 @@ ks_results %>%
 ks_results %>%
   group_by(type) %>%
   summarise(mean = mean(D)) %>%
-  kable()
+  knitr::kable()
 ```
 
 # Simulation-based calibration
@@ -114,6 +114,27 @@ $$
 will be distributed uniformly across the integers $[0, L]$.
 I assume we can use histograms and ECDF difference plots to assess this, and perhaps there will be some additional discussion about how to interpret deviations from uniformity.
 
+## Intuition
+
+There are two procedures you could use to generate samples from the joint distribution.
+Firstly, you could sample from the prior on $\theta$ first:
+$$
+\tilde \theta_1 \sim p(\theta) \\
+\tilde y_1 \sim p(y \, | \, \tilde \theta_1) \\
+\implies (\tilde \theta_1, \tilde y_1) \sim p(\theta, y)
+$$
+Secondly, you could sample from the "prior" on $y$ first:
+$$
+\tilde y_2 \sim p(y) \\
+\tilde \theta_2 \sim p(\theta \, | \, \tilde y_2) \\
+\implies (\tilde \theta_2, \tilde y_2) \sim p(\theta, y)
+$$
+Both will generate samples from the joint distribution $p(\theta, y)$.
+This implies that if you look at the draws from procedure one $\{ \tilde \theta_1\}$ and the draws from procedure two $\{ \tilde \theta_2\}$ then they have the same distribution.
+
+Importantly, **procedure two involves computing a posterior distribution**, and therefore the samples will only be the same if the Bayesian inference procedure is exact.
+It's this fact which SBC uses to create a procedure for checking implementation and accuracy of a given approximate Bayesian inference method.
+
 ## Example from Talts et al.
 
 Let's have a go at running the `R-INLA` section from @talts2018validating as described in the GitHub repository `seantalts/simulation-based-calibration`.
@@ -123,6 +144,49 @@ load("sbc-talts.rdata")
 
 #' To-do...
 ```
+
+## Example from Stan manual
+
+Consider the model:
+
+$$
+y_i \sim \mathcal{N}(\mu, \sigma^2) \\
+\mu \sim \mathcal{N}(0 , 1) \\
+\sigma \sim \text{lognormal}(0, 1)
+$$
+
+Want `M` samples.
+
+```{r}
+M <- 1000
+
+n_chains <- 4
+n_iter <- 2000
+
+fit <- rstan::stan(file = "sbc.stan", iter = n_iter, chains = n_chains, refresh = 0)
+```
+
+Check that all ESS are greater than `M`:
+
+```{r}
+all(summary(fit)$summary[, "n_eff"] > M)
+```
+
+Extract samples and thin down to just `M`:
+
+```{r}
+samples <- extract(fit)
+samples <- lapply(samples, function(sample) sample[1:M * floor(length(sample) / M)])
+```
+
+So, the quantiles (you probably want to be more careful about ranks than I'm being here) of the simulated data within the posterior are:
+
+```{r}
+sum(samples$mu_lt_sim) / length(samples$mu_lt_sim)
+sum(samples$sigma_lt_sim) / length(samples$sigma_lt_sim)
+```
+
+These should be $\mathcal{U}(0, 1)$, so by repeating this process many times (it looks like it's a quite costly procedure!) we can assess whether this is in fact true.
 
 # Pareto smoothed importance sampling
 

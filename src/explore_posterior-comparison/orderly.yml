@@ -4,6 +4,7 @@ resources:
   - posterior-comparison.Rmd
   - citations.bib
   - sbc-talts.rdata
+  - sbc.stan
 
 artefacts:
   - data:
