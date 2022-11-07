@@ -348,14 +348,6 @@ We have already obtained the MAP estimate $\hat \theta$ in the `TMB` section abo
 opt_theta <- opt
 ```
 
-Eventually create function of the form:
-
-```{r}
-xi_laplace_marginal_nu <- function(i, opt_theta, finegrid) {
-  #' To fill
-}
-```
-
 Start with `i = 1` for the first marginal:
 
 ```{r}
@@ -456,8 +448,8 @@ map_fixed_theta <- list()
 param_fixed_theta <- param
 
 for(theta in theta_names) {
-  map_fixed_theta[[theta]] <- factor(NA)
-  param[[theta]] <- opt_theta$par[[theta]]
+  map_fixed_theta[[theta]] <- rep(factor(NA), length(param[[theta]]))
+  param_fixed_theta[[theta]] <- opt_theta$par[names(opt_theta$par) == theta]
 }
 
 #' Prepare the initialisation parameters if it's nu that we're toggling
@@ -479,23 +471,28 @@ get_random <- function(dat) {
   if(dat$toggle == 1) return(c("nu", "epsilon_minus_i"))
 }
 
-# obj_fixed_theta <- MakeADFun(
-#   data = dat,
-#   parameters = param_fixed_theta,
-#   random = get_random(dat),
-#   DLL = "epil_index",
-#   silent = TRUE,
-#   map = map_fixed_theta
-# )
-#   
+obj_fixed_theta <- MakeADFun(
+ data = dat,
+ parameters = param_fixed_theta,
+ random = get_random(dat),
+ DLL = "epil_index",
+ silent = TRUE,
+ map = map_fixed_theta
+)
+
 # quad <- aghq::aghq(
 #   ff = obj_fixed_theta,
 #   k = 3,
 #   startingvalue = 0,
 #   control = aghq::default_control_tmb()
 # )
+#  
+# pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad, finegrid = fine_grid)[[1]]
 # 
-# pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad, finegrid = finegrid)[[1]]
+# ggplot(pdf_and_cdf, aes(x = theta, y = pdf)) +
+#   geom_line() +
+#   theme_minimal() +
+#   labs(x = "nu[1]", y = "Posterior")
 ```
 
 # Comparison
