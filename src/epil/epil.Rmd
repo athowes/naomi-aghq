@@ -471,17 +471,19 @@ for(theta in theta_names) {
 }
 
 #' Prepare the initialisation parameters if it's nu that we're toggling
+#' We fix the nu parameter to zero, as we're using nu_i and nu_minus_i
 if(dat$toggle == 0) {
   param_fixed_theta[["nu_i"]] <- param_fixed_theta$nu[i]
   param_fixed_theta[["nu_minus_i"]] <- param_fixed_theta$nu[-i]
-  # param_fixed_theta$nu <- NULL
+  map_fixed_theta[["nu"]] <- rep(factor(NA), length(param[["nu"]]))
 }
 
 #' Or if it's epsilon that we're toggling
+#' We fix the epsilon parameter to zero, as we're using epsilon_i and epsilon_minus_i
 if(dat$toggle == 1) {
   param_fixed_theta[["epsilon_i"]] <- param_fixed_theta$epsilon[i]
   param_fixed_theta[["epsilon_minus_i"]] <- param_fixed_theta$epsilon[-i]
-  # param_fixed_theta$epsilon <- NULL
+  map_fixed_theta[["epsilon"]] <- rep(factor(NA), length(param[["epsilon"]]))
 }
 
 get_random <- function(dat) {
@@ -498,19 +500,19 @@ obj_fixed_theta <- MakeADFun(
  map = map_fixed_theta
 )
 
-# quad <- aghq::aghq(
-#   ff = obj_fixed_theta,
-#   k = 3,
-#   startingvalue = 0,
-#   control = aghq::default_control_tmb()
-# )
-#  
-# pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad, finegrid = fine_grid)[[1]]
-# 
-# ggplot(pdf_and_cdf, aes(x = theta, y = pdf)) +
-#   geom_line() +
-#   theme_minimal() +
-#   labs(x = "nu[1]", y = "Posterior")
+quad <- aghq::aghq(
+  ff = obj_fixed_theta,
+  k = 3,
+  startingvalue = 0,
+  control = aghq::default_control_tmb()
+)
+
+pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad, finegrid = fine_grid)[[1]]
+
+ggplot(pdf_and_cdf, aes(x = theta, y = pdf)) +
+  geom_line() +
+  theme_minimal() +
+  labs(x = "nu[1]", y = "Posterior")
 ```
 
 # Comparison
