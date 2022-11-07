@@ -822,39 +822,88 @@ modesandhessians$weights <- quad$normalized_posterior$nodesandweights$weights
 
 Now we want to evaluate
 $$
-\tilde p(x_i \, | \, y) &= \sum_z \tilde p_\text{G}(x_i \, | \, \theta(z), y) \tilde p_\text{LA}(\theta(z) \, | \, y) w_k(z).
+\tilde p(x_i \, | \, y) = \sum_z \tilde p_\text{G}(x_i \, | \, \theta(z), y) \tilde p_\text{LA}(\theta(z) \, | \, y) w_k(z).
 $$
-To start with, let's evaluate this for the first value of $z$ (actually I don't really know what $z$ runs over, but this is just the first weight):
+
+If you wanted to evaluate this to obtain each marginal then it would be something like (pseudo-code):
+
+```{r eval=FALSE}
+for(i in 1:n) {
+  for(x in x_vals) {
+    for(z in z_vals) {
+      #' ...
+    }
+  }
+}
+```
+
+To start with, let's evaluate this for `i = 1`, `x = x_test_value` and the first value of `z` (actually I don't really know what $z$ runs over, but this is just the first weight):
 
 ```{r}
 x_test_value <- 0
-
 z <- 1
 i <- 1
+```
 
-#' This is the weight, w_k(z)
+The weight $w_k(z)$ is:
+
+```{r}
 modesandhessians$weights[z]
+```
 
-#' This is the normalised Laplace approximation to log(p(theta | y))
+The normalised Laplace approximation $\tilde p_\text{LA}(\theta(z) \, | \, y)$ is:
+
+```{r}
 theta <- as.numeric(modesandhessians[z, thetanames])
 - h_norm(theta)
+```
 
-#' This is the normalised Gaussian approximation to log(p(x_i | theta, y))
-#' Let's say that we're doing i = 1 (corresponding to x_i)
+The normalised Gaussian approximation $p_\text{G}(x_i \, | \, \theta(z), y)$ on the log-scale is:
+
+```{r}
 mean_i <- as.numeric(modesandhessians$mode[[z]][i])
 Sigma <- solve(modesandhessians$H[[z]])
 sd_i <- as.numeric(sqrt(Sigma[i, i]))
 
 dnorm(x_test_value, mean = mean_i, sd = sd_i, log = TRUE)
+```
 
-#' So the value we would compute, on the log scale, is
+So, putting it together, the value we would compute on the log-scale is as follows:
+
+```{r}
 dnorm(x_test_value, mean = mean_i, sd = sd_i, log = TRUE) + (- h_norm(theta)) + log(modesandhessians$weights[z])
 ```
 
-Remember that we're dealing with the logarithm versions, so let's exp-sum-log for the part inside the sum:
+To obtain the unlogged version we can use:
 $$
 \exp \left( \log\tilde p_\text{G}(x_i \, | \, \theta(z), y) + \log \tilde p_\text{LA}(\theta(z) \, | \, y) + \log w_k(z) \right)
 $$
+
+```{r}
+exp(dnorm(x_test_value, mean = mean_i, sd = sd_i, log = TRUE) + (- h_norm(theta)) + log(modesandhessians$weights[z]))
+```
+
+Great -- now let's put it together and sum over `z` so that we can obtain the probability for our `x_test_value` in marginal `i`.
+We won't worry about inefficient R for loops for the time being.
+
+```{r}
+pdf <- 0
+
+for(z in 1:length(modesandhessians$weights)) {
+  theta <- as.numeric(modesandhessians[z, thetanames])
+  mean_i <- as.numeric(modesandhessians$mode[[z]][i])
+  Sigma <- solve(modesandhessians$H[[z]])
+  sd_i <- as.numeric(sqrt(Sigma[i, i]))
+  pdf <- pdf + exp(dnorm(x_test_value, mean = mean_i, sd = sd_i, log = TRUE) + (- h_norm(theta)) + log(modesandhessians$weights[z]))
+}
+
+pdf
+```
+
+Using a `fine_grid` set of values for `x_vals` for each `i` might be overly computationally expensive.
+Instead what we can do is perform another separate AGHQ to select a set of `x_vals`.
+To do this with the `aghq` R package, we could create a `TMB` template to evaluate $\tilde p(x_i \, | \, y)$, but I imagine this might be too annoying.
+Instead, we could create the `ff` object (with components `ff$fn`, `ff$gn` `ff$hn`) in R directly.
 
 ## Full Laplace approximation
 
