@@ -401,24 +401,23 @@ get_random <- function(dat) {
   if(dat$toggle == 1) return(c("nu", "epsilon_minus_i"))
 }
 
-obj_fixed_theta <- MakeADFun(
-  data = dat,
-  parameters = param_fixed_theta,
-  random = get_random(dat),
-  DLL = "epil_index",
-  silent = TRUE,
-  map = map_fixed_theta
-)
-  
-quad <- aghq::aghq(
-  ff = obj_fixed_theta,
-  k = 3,
-  startingvalue = 0,
-  control = aghq::default_control_tmb()
-)
-
-pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad, finegrid = finegrid)[[1]]
-
+# obj_fixed_theta <- MakeADFun(
+#   data = dat,
+#   parameters = param_fixed_theta,
+#   random = get_random(dat),
+#   DLL = "epil_index",
+#   silent = TRUE,
+#   map = map_fixed_theta
+# )
+#   
+# quad <- aghq::aghq(
+#   ff = obj_fixed_theta,
+#   k = 3,
+#   startingvalue = 0,
+#   control = aghq::default_control_tmb()
+# )
+# 
+# pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad, finegrid = finegrid)[[1]]
 ```
 
 # Comparison

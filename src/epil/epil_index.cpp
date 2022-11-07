@@ -6,7 +6,7 @@ template <class Type>
 Type objective_function<Type>::operator()()
 {
   // Data block
-  DATA_INTEGER(toggle) // 0 corresponds to epsilon, 1 to nu
+  DATA_INTEGER(toggle) // 0 corresponds to nu, 1 to epsilon
   DATA_INTEGER(i); // Index i
   DATA_INTEGER(N);
   DATA_INTEGER(J);
@@ -37,7 +37,6 @@ Type objective_function<Type>::operator()()
         k++;
       }
     }
-
   }
 
   // If toggle == 1 then set-up minus i for epsilon
