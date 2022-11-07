@@ -333,6 +333,84 @@ summary8 <- summary(fit8)
 
 ## Custom Laplace method with `aghq`
 
+### Using multiple C++ template
+
+Let's just starting by trying to get the Laplace marginals for $\nu$:
+
+```{r}
+compile("epil_nu_index.cpp")
+dyn.load(dynlib("epil_nu_index"))
+```
+
+We have already obtained the MAP estimate $\hat \theta$ in the `TMB` section above that we can use in our empirical Bayes procedure.
+
+```{r}
+opt_theta <- opt
+```
+
+Eventually create function of the form:
+
+```{r}
+xi_laplace_marginal_nu <- function(i, opt_theta, finegrid) {
+  #' To fill
+}
+```
+
+Start with `i = 1` for the first marginal:
+
+```{r}
+i <- 1
+
+#' I don't know if this is the right grid for this application...
+fine_grid <- seq(-5, 5, length.out = 1000)
+
+dat$i <- i
+
+theta_names <- unique(names(opt_theta$par))
+map_fixed_theta <- list()
+
+param_fixed_theta <- param
+
+for(theta in theta_names) {
+  map_fixed_theta[[theta]] <- rep(factor(NA), length(param[[theta]]))
+  param_fixed_theta[[theta]] <- opt_theta$par[names(opt_theta$par) == theta]
+}
+
+#' Prepare the initialisation parameters
+param_fixed_theta[["nu_i"]] <- param_fixed_theta$nu[i]
+param_fixed_theta[["nu_minus_i"]] <- param_fixed_theta$nu[-i]
+param_fixed_theta[["nu"]] <- NULL
+
+#' Might need this here if you're getting crashes
+# f <- parallel::mcparallel({})
+# x <- parallel::mccollect(f) 
+
+obj_fixed_theta <- MakeADFun(
+  data = dat,
+  parameters = param_fixed_theta,
+  random = c("nu_minus_i", "epsilon"),
+  DLL = "epil_nu_index",
+  silent = TRUE,
+  map = map_fixed_theta
+)
+
+quad <- aghq::aghq(
+  ff = obj_fixed_theta,
+  k = 3,
+  startingvalue = 0,
+  control = aghq::default_control_tmb()
+)
+
+pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad, finegrid = fine_grid)[[1]]
+
+ggplot(pdf_and_cdf, aes(x = theta, y = pdf)) +
+  geom_line() +
+  theme_minimal() +
+  labs(x = "nu[1]", y = "Posterior")
+```
+
+### Using one C++ template
+
 ```{r}
 compile("epil_index.cpp")
 dyn.load(dynlib("epil_index"))

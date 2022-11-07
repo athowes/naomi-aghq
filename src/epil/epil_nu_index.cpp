@@ -24,8 +24,8 @@ Type objective_function<Type>::operator()()
 
   vector<Type> nu(N * J);
   int k = 0;
-  for (int j = 0; j < N * J; j++) {
-    if (j + 1 == i) {
+  for (int j = 0; j < (N * J); j++) {
+    if (j + 1 == i) { // +1 because C++ does zero-indexing
       nu(j) = nu_i;
     } else {
       nu(j) = nu_minus_i(k);
