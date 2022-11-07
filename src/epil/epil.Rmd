@@ -348,57 +348,75 @@ We have already obtained the MAP estimate $\hat \theta$ in the `TMB` section abo
 opt_theta <- opt
 ```
 
-Start with `i = 1` for the first marginal:
+Create a function to get the Laplace marginal for the $i$th element of $\nu$:
 
 ```{r}
-i <- 1
+xi_laplace_marginal_nu <- function(i, opt_theta, finegrid) {
+  dat$i <- i
+  
+  theta_names <- unique(names(opt_theta$par))
+  map_fixed_theta <- list()
 
-#' I don't know if this is the right grid for this application...
+  param_fixed_theta <- param
+
+  for(theta in theta_names) {
+    map_fixed_theta[[theta]] <- rep(factor(NA), length(param[[theta]]))
+    param_fixed_theta[[theta]] <- opt_theta$par[names(opt_theta$par) == theta]
+  }
+
+  #' Prepare the initialisation parameters
+  param_fixed_theta[["nu_i"]] <- param_fixed_theta$nu[i]
+  param_fixed_theta[["nu_minus_i"]] <- param_fixed_theta$nu[-i]
+  param_fixed_theta[["nu"]] <- NULL
+
+  #' Might need this here if you're getting crashes
+  # f <- parallel::mcparallel({})
+  # x <- parallel::mccollect(f) 
+
+  obj_fixed_theta <- MakeADFun(
+    data = dat,
+    parameters = param_fixed_theta,
+    random = c("nu_minus_i", "epsilon"),
+    DLL = "epil_nu_index",
+    silent = TRUE,
+    map = map_fixed_theta
+  )
+
+  quad <- aghq::aghq(
+    ff = obj_fixed_theta,
+    k = 3,
+    startingvalue = 0,
+    control = aghq::default_control_tmb()
+  )
+
+  pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad, finegrid = fine_grid)[[1]]
+  
+  return(pdf_and_cdf)
+}
+```
+
+Now we can compute the Laplace marginal for all `r dat$N * dat$J` indices of $\nu$:
+
+```{r}
 fine_grid <- seq(-5, 5, length.out = 1000)
 
-dat$i <- i
+laplace_nu <- lapply(1:(dat$N * dat$J), xi_laplace_marginal_nu, opt_theta = opt_theta, finegrid = fine_grid) %>%
+  bind_rows(.id = "index") %>%
+  mutate(index = as.numeric(index))
+```
 
-theta_names <- unique(names(opt_theta$par))
-map_fixed_theta <- list()
+There are too many marginals to plot them all, so here's a random subset of size nine:
 
-param_fixed_theta <- param
+```{r}
+nine_random_indices <- sample(1:(dat$N * dat$J), size = 9)
 
-for(theta in theta_names) {
-  map_fixed_theta[[theta]] <- rep(factor(NA), length(param[[theta]]))
-  param_fixed_theta[[theta]] <- opt_theta$par[names(opt_theta$par) == theta]
-}
-
-#' Prepare the initialisation parameters
-param_fixed_theta[["nu_i"]] <- param_fixed_theta$nu[i]
-param_fixed_theta[["nu_minus_i"]] <- param_fixed_theta$nu[-i]
-param_fixed_theta[["nu"]] <- NULL
-
-#' Might need this here if you're getting crashes
-# f <- parallel::mcparallel({})
-# x <- parallel::mccollect(f) 
-
-obj_fixed_theta <- MakeADFun(
-  data = dat,
-  parameters = param_fixed_theta,
-  random = c("nu_minus_i", "epsilon"),
-  DLL = "epil_nu_index",
-  silent = TRUE,
-  map = map_fixed_theta
-)
-
-quad <- aghq::aghq(
-  ff = obj_fixed_theta,
-  k = 3,
-  startingvalue = 0,
-  control = aghq::default_control_tmb()
-)
-
-pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad, finegrid = fine_grid)[[1]]
-
-ggplot(pdf_and_cdf, aes(x = theta, y = pdf)) +
+laplace_nu %>%
+  filter(index %in% nine_random_indices) %>%
+  ggplot(aes(x = theta, y = pdf)) +
   geom_line() +
+  facet_wrap(~index) +
   theme_minimal() +
-  labs(x = "nu[1]", y = "Posterior")
+  labs(x = "nu", y = "Posterior")
 ```
 
 ### Using one C++ template
