@@ -110,7 +110,7 @@ We consider a range of inference methods, described below.
 
 First, Hamiltonian Monte Carlo via the No-U-Turn algorithm, with four Markov chains of `iter = 1000` samples, and `warmup = 100` burn-in:
 
-```{r results='hide'}
+```{r}
 dat <- list(N = N, J = J, K = K, X = X, y = y, E = make_epsilon_matrix(N, J))
 
 fit1 <- stan(
@@ -119,7 +119,8 @@ fit1 <- stan(
   chains = 4,
   warmup = 100,
   iter = 1000,
-  control = list(adapt_delta = 0.95)
+  control = list(adapt_delta = 0.95),
+  refresh = 0
 )
 ```
 
@@ -186,13 +187,13 @@ param <- list(
 )
 ```
 
-We integrate `random` out, which here corresponds to `c("epsilon", "nu")`, with a Laplace approximation:
+We integrate `random` out, which here corresponds to `c("beta", "epsilon", "nu")`, with a Laplace approximation:
 
 ```{r}
 obj <- MakeADFun(
   data = dat,
   parameters = param,
-  random = c("epsilon", "nu"),
+  random = c("beta", "epsilon", "nu"),
   DLL = "epil",
   silent = TRUE
 )
@@ -245,7 +246,7 @@ pars_list <- apply(pars_mat, 1, function(x) relist(flesh = x, skeleton = fit1@in
 upars_list <- lapply(pars_list, function(x) unconstrain_pars(fit1, x))
 ```
 
-Using just a few of them, we can see that there is a difference, but that difference is a constant so doesn't matter:
+Using just a few of them, we can see that the difference between the `TMB` and Stan objectives is a constant:
 
 ```{r}
 test_pars <- upars_list[500:510]
@@ -325,21 +326,24 @@ Another, more standard, approach is to use the `TMB` template, `obj`, that we al
 fit8 <- aghq::marginal_laplace_tmb(
   obj,
   k = 3,
-  startingvalue = c(param$beta, param$l_tau_epsilon, param$l_tau_nu)
+  startingvalue = c(param$l_tau_epsilon, param$l_tau_nu)
 )
 
-summary8 <- summary(fit8)
+fit8_samples <- aghq::sample_marginal(fit8, M = 1000)$samps %>%
+  t() %>%
+  as.data.frame() %>%
+  inf.utils::replace_duplicate_colnames()
 ```
 
 ## Custom Laplace method with `aghq`
 
 ### Using multiple C++ template
 
-Let's just starting by trying to get the Laplace marginals for $\nu$:
+Let's just starting by trying to get the Laplace marginals for $\beta$:
 
 ```{r}
-compile("epil_nu_index.cpp")
-dyn.load(dynlib("epil_nu_index"))
+compile("epil_beta_index.cpp")
+dyn.load(dynlib("epil_beta_index"))
 ```
 
 We have already obtained the MAP estimate $\hat \theta$ in the `TMB` section above that we can use in our empirical Bayes procedure.
@@ -348,10 +352,10 @@ We have already obtained the MAP estimate $\hat \theta$ in the `TMB` section abo
 opt_theta <- opt
 ```
 
-Create a function to get the Laplace marginal for the $i$th element of $\nu$:
+Create a function to get the Laplace marginal for the $i$th element of $\beta$:
 
 ```{r}
-xi_laplace_marginal_nu <- function(i, opt_theta, finegrid) {
+xi_laplace_marginal_beta <- function(i, opt_theta, finegrid) {
   dat$i <- i
   
   theta_names <- unique(names(opt_theta$par))
@@ -365,9 +369,9 @@ xi_laplace_marginal_nu <- function(i, opt_theta, finegrid) {
   }
 
   #' Prepare the initialisation parameters
-  param_fixed_theta[["nu_i"]] <- param_fixed_theta$nu[i]
-  param_fixed_theta[["nu_minus_i"]] <- param_fixed_theta$nu[-i]
-  param_fixed_theta[["nu"]] <- NULL
+  param_fixed_theta[["beta_i"]] <- param_fixed_theta$beta[i]
+  param_fixed_theta[["beta_minus_i"]] <- param_fixed_theta$beta[-i]
+  param_fixed_theta[["beta"]] <- NULL
 
   #' Might need this here if you're getting crashes
   # f <- parallel::mcparallel({})
@@ -376,8 +380,8 @@ xi_laplace_marginal_nu <- function(i, opt_theta, finegrid) {
   obj_fixed_theta <- MakeADFun(
     data = dat,
     parameters = param_fixed_theta,
-    random = c("nu_minus_i", "epsilon"),
-    DLL = "epil_nu_index",
+    random = c("beta_minus_i", "nu", "epsilon"),
+    DLL = "epil_beta_index",
     silent = TRUE,
     map = map_fixed_theta
   )
@@ -395,28 +399,25 @@ xi_laplace_marginal_nu <- function(i, opt_theta, finegrid) {
 }
 ```
 
-Now we can compute the Laplace marginal for all `r dat$N * dat$J` indices of $\nu$:
+Now we can compute the Laplace marginal for all `r dat$K` indices of $\beta$:
 
 ```{r}
 fine_grid <- seq(-5, 5, length.out = 1000)
 
-laplace_nu <- lapply(1:(dat$N * dat$J), xi_laplace_marginal_nu, opt_theta = opt_theta, finegrid = fine_grid) %>%
+laplace_beta <- lapply(1:dat$K, xi_laplace_marginal_beta, opt_theta = opt_theta, finegrid = fine_grid) %>%
   bind_rows(.id = "index") %>%
   mutate(index = as.numeric(index))
 ```
 
-There are too many marginals to plot them all, so here's a random subset of size nine:
+Here are what the marginals look like:
 
 ```{r}
-nine_random_indices <- sample(1:(dat$N * dat$J), size = 9)
-
-laplace_nu %>%
-  filter(index %in% nine_random_indices) %>%
+laplace_beta %>%
   ggplot(aes(x = theta, y = pdf)) +
   geom_line() +
   facet_wrap(~index) +
   theme_minimal() +
-  labs(x = "nu", y = "Posterior")
+  labs(x = "beta", y = "Posterior")
 ```
 
 ### Using one C++ template
@@ -427,19 +428,13 @@ dyn.load(dynlib("epil_index"))
 ```
 
 We're going to use a data structure to pass to `epil_index`.
-A `toggle` value of `0` corresponds to `nu` and a toggle value of `1` corresponds to `epsilon`:
+A `toggle` value of `0` corresponds to `beta`, a toggle value of `1` corresponds to `nu`, and a toggle value of `2` corresponds to `epsilon`:
 
 ```{r}
 index_controller <- data.frame(
-  "toggle" = c(rep(0, dat$N * dat$J),  rep(1, dat$N)),
-  "i" = c(1:(dat$N * dat$J), 1:dat$N)
+  "toggle" = c(rep(0, dat$K), rep(1, dat$N * dat$J),  rep(2, dat$N)),
+  "i" = c(1:dat$K, 1:(dat$N * dat$J), 1:dat$N)
 )
-```
-
-We have already obtained the MAP estimate $\hat \theta$ in the `TMB` section above that we can use in our empirical Bayes procedure.
-
-```{r}
-opt_theta <- opt
 ```
 
 Eventually create function of the form:
@@ -450,7 +445,7 @@ xi_laplace_marginal <- function(i, opt_theta, finegrid) {
 }
 ```
 
-Start with `i = 1` for the first marginal:
+Start with `i = 1` for the first marginal of $\beta$:
 
 ```{r}
 i <- 1
@@ -470,9 +465,17 @@ for(theta in theta_names) {
   param_fixed_theta[[theta]] <- opt_theta$par[names(opt_theta$par) == theta]
 }
 
-#' Prepare the initialisation parameters if it's nu that we're toggling
-#' We fix the nu parameter to zero, as we're using nu_i and nu_minus_i
+#' Prepare the initialisation parameters if it's beta that we're toggling
+#' We fix the beta parameter to zero, as we're using beta_i and beta_minus_i
 if(dat$toggle == 0) {
+  param_fixed_theta[["beta_i"]] <- param_fixed_theta$beta[i]
+  param_fixed_theta[["beta_minus_i"]] <- param_fixed_theta$beta[-i]
+  map_fixed_theta[["beta"]] <- rep(factor(NA), length(param[["beta"]]))
+}
+
+#' Or if it's epsilon that we're toggling
+#' We fix the epsilon parameter to zero, as we're using epsilon_i and epsilon_minus_i
+if(dat$toggle == 1) {
   param_fixed_theta[["nu_i"]] <- param_fixed_theta$nu[i]
   param_fixed_theta[["nu_minus_i"]] <- param_fixed_theta$nu[-i]
   map_fixed_theta[["nu"]] <- rep(factor(NA), length(param[["nu"]]))
@@ -480,15 +483,16 @@ if(dat$toggle == 0) {
 
 #' Or if it's epsilon that we're toggling
 #' We fix the epsilon parameter to zero, as we're using epsilon_i and epsilon_minus_i
-if(dat$toggle == 1) {
+if(dat$toggle == 2) {
   param_fixed_theta[["epsilon_i"]] <- param_fixed_theta$epsilon[i]
   param_fixed_theta[["epsilon_minus_i"]] <- param_fixed_theta$epsilon[-i]
   map_fixed_theta[["epsilon"]] <- rep(factor(NA), length(param[["epsilon"]]))
 }
 
 get_random <- function(dat) {
-  if(dat$toggle == 0) return(c("nu_minus_i", "epsilon"))
-  if(dat$toggle == 1) return(c("nu", "epsilon_minus_i"))
+  if(dat$toggle == 0) return(c("beta_minus_i", "nu", "epsilon"))
+  if(dat$toggle == 1) return(c("beta", "nu_minus_i", "epsilon"))
+  if(dat$toggle == 2) return(c("beta", "nu", "epsilon_minus_i"))
 }
 
 obj_fixed_theta <- MakeADFun(
@@ -512,22 +516,26 @@ pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad, finegrid = fine_grid)[[1]]
 ggplot(pdf_and_cdf, aes(x = theta, y = pdf)) +
   geom_line() +
   theme_minimal() +
-  labs(x = "nu[1]", y = "Posterior")
+  labs(x = "beta[1]", y = "Posterior")
 ```
 
 # Comparison
 
 ## Table
 
+Let's look at the mean and standard deviation of each of the $\beta$ parameters:
+
 ```{r}
 stan1 <- as.vector(t(summary(fit1)$summary[1:6, c(1, 3)]))
 inla2 <- as.vector(t(fit2$summary.fixed[1:6, 1:2]))
 inla3 <- as.vector(t(fit3$summary.fixed[1:6, 1:2]))
 inla4 <- as.vector(t(fit4$summary.fixed[1:6, 1:2]))
-tmb5 <- as.vector(t(data.frame(sd_out$par.fixed[1:6], sqrt(diag(sd_out$cov.fixed)[1:6]))))
+tmb5 <- as.vector(t(data.frame(sd_out$par.random[1:6], sqrt(sd_out$diag.cov.random[1:6]))))
 glmmtmb6 <- as.vector(t(summary(fit6)$coefficients$cond[, c("Estimate", "Std. Error")]))
 tmbstan7 <- as.vector(t(summary(fit7)$summary[1:6, c(1, 3)]))
-aghq8 <- as.vector(t(summary8$summarytable[1:6, c(1, 4)]))
+
+fit8_beta_samples <- fit8_samples[, 1:6]
+aghq8 <- as.vector(t(data.frame(mean = apply(fit8_beta_samples, 2, mean), sd = apply(fit8_beta_samples, 2, sd))))
 
 df <- cbind(stan1, inla2, inla3, inla4, tmb5, glmmtmb6, tmbstan7, aghq8) %>%
   as.data.frame() %>%
@@ -621,7 +629,7 @@ plot_marginals <- function(random_effect, index) {
 
   ggplot(marginals, aes(x = x, y = y, group = method, col = method)) +
     geom_line() +
-    scale_color_manual(values = cbpalette)
+    scale_color_manual(values = cbpalette) +
     theme_minimal()
 }
 
@@ -639,6 +647,16 @@ plot_marginals("Ind", index = skld3$id_Ind)
 ## `epil.stan`
 
 ```{cpp, echo=TRUE, eval=FALSE, output.var="ex2", code=readLines('epil.stan')}
+```
+
+## `epil_beta_index.cpp`
+
+```{cpp, echo=TRUE, eval=FALSE, output.var="ex3", code=readLines('epil_beta_index.cpp')}
+```
+
+## `epil_index.cpp`
+
+```{cpp, echo=TRUE, eval=FALSE, output.var="ex4", code=readLines('epil_index.cpp')}
 ```
 
 # Original computing environment {-}

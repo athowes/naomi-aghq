@@ -6,7 +6,7 @@ template <class Type>
 Type objective_function<Type>::operator()()
 {
   // Data block
-  DATA_INTEGER(toggle) // 0 corresponds to nu, 1 to epsilon
+  DATA_INTEGER(toggle) // 0 corresponds to beta, 1 to nu, 2 to epsilon
   DATA_INTEGER(i); // Index i
   DATA_INTEGER(N);
   DATA_INTEGER(J);
@@ -17,19 +17,36 @@ Type objective_function<Type>::operator()()
 
   // Parameter block
   PARAMETER_VECTOR(beta);
-
-  PARAMETER_VECTOR(epsilon);
   PARAMETER_VECTOR(nu);
+  PARAMETER_VECTOR(epsilon);
 
-  // If toggle == 0 then set-up minus i for nu
+  // If toggle == 0 then set-up minus i for beta
   if(toggle == 0) {
+
+    PARAMETER(beta_i);
+    PARAMETER_VECTOR(beta_minus_i);
+
+    // vector<Type> beta(K);
+    int k = 0;
+    for (int j = 0; j < K; j++) {
+      if (j + 1 == i) {
+        beta(j) = beta_i;
+      } else {
+        beta(j) = beta_minus_i(k);
+        k++;
+      }
+    }
+  }
+
+  // If toggle == 1 then set-up minus i for nu
+  if(toggle == 1) {
 
     PARAMETER(nu_i);
     PARAMETER_VECTOR(nu_minus_i);
 
     // vector<Type> nu(N * J);
     int k = 0;
-    for (int j = 0; j < N * J; j++) {
+    for (int j = 0; j < (N * J); j++) {
       if (j + 1 == i) {
         nu(j) = nu_i;
       } else {
@@ -39,8 +56,8 @@ Type objective_function<Type>::operator()()
     }
   }
 
-  // If toggle == 1 then set-up minus i for epsilon
-  if(toggle == 1) {
+  // If toggle == 2 then set-up minus i for epsilon
+  if(toggle == 2) {
 
     PARAMETER(epsilon_i);
     PARAMETER_VECTOR(epsilon_minus_i);

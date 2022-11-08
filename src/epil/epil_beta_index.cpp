@@ -15,19 +15,19 @@ Type objective_function<Type>::operator()()
   DATA_MATRIX(E); // Epsilon matrix
 
   // Parameter block
-  PARAMETER_VECTOR(beta);
+  PARAMETER_VECTOR(nu);
   PARAMETER_VECTOR(epsilon);
 
-  PARAMETER(nu_i);
-  PARAMETER_VECTOR(nu_minus_i);
+  PARAMETER(beta_i);
+  PARAMETER_VECTOR(beta_minus_i);
 
-  vector<Type> nu(N * J);
+  vector<Type> beta(K);
   int k = 0;
-  for (int j = 0; j < (N * J); j++) {
+  for (int j = 0; j < K; j++) {
     if (j + 1 == i) { // +1 because C++ does zero-indexing
-      nu(j) = nu_i;
+      beta(j) = beta_i;
     } else {
-      nu(j) = nu_minus_i(k);
+      beta(j) = beta_minus_i(k);
       k++;
     }
   }

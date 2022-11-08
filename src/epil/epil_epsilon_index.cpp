@@ -16,7 +16,6 @@ Type objective_function<Type>::operator()()
 
   // Parameter block
   PARAMETER_VECTOR(beta);
-
   PARAMETER_VECTOR(nu);
 
   PARAMETER(epsilon_i);
