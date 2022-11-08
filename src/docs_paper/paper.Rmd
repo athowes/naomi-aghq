@@ -141,7 +141,7 @@ For example, we can note that each of the components individually might be laten
 
 ## Integrated nested Laplace approximation\label{sec:inla}
 
-INLA is designed for use with latent Gaussian models (LGMs) of the form
+Consider a latent Gaussian models (LGM) of the form
 \begin{alignat}{2}
 &\text{(Observations)}     &        y_i &\sim p(y_i \, | \, x_i, \btheta), \quad i = 1, \ldots, n, \label{eq:data} \\
 &\text{(Latent field)}     &        \x &\sim \mathcal{N}(\x \, | \, \mathbf{0}, \mathbf{Q}(\btheta)^{-1}), \label{eq:process} \\
@@ -150,10 +150,10 @@ INLA is designed for use with latent Gaussian models (LGMs) of the form
 where $\text{dim}(\y) = \text{dim}(\x) = n$ and $\text{dim}(\btheta) = m$, and $m < n$.
 For such models, the joint posterior of $(\x, \btheta)$ is given by
 \begin{equation}
-  p(\x, \btheta \, | \, \y) 
+  p(\x, \btheta \, | \, \y)
   \propto p(\btheta) |\mathbf{Q}(\btheta)|^{n/2} \exp \left( - \frac{1}{2} \x^\top \mathbf{Q}(\btheta) \x + \sum_{i = 1}^n \log p(y_i \, | \, x_i, \btheta) \right). \label{eq:lgmjointposterior}
 \end{equation}
-Rather than approximating the above full posterior, the INLA method instead approximates the posterior marginals of each latent random variable $x_i$ and parameter $\theta_j$ given by
+Rather than approximating this joint posterior, the INLA method proceeds by approximation of the posterior marginals of each latent random variable $x_i$ and parameter $\theta_j$ given by
 \begin{align}
   p(x_i \, | \, \y) &= \int p(x_i, \btheta \, | \, \y) \text{d} \btheta = \int p(x_i \, | \, \btheta, \y) p(\btheta \, | \, \y) \text{d}\btheta, \quad i = 1, \dots, n, \label{eq:inla1} \\
   p(\theta_j \, | \, \y) &= \int p(\btheta \, | \, \y) \text{d}\btheta_{-j} \quad j = 1, \ldots, m. \label{eq:inla2}
@@ -167,13 +167,13 @@ The posterior marginal of the parameters $p(\btheta \, | \, \y)$ appears in both
 This distribution is approximated by $\tilde p(\btheta \, | \, \y)$ and represented by a set of $K$ integration points $\{ \btheta^{(k)} \}$ and area-weights $\{ \Delta^{(k)} \}$.
 The first step is to rewrite $p(\btheta \, | \, \y)$ as
 \begin{equation}
-  p(\btheta \, | \, \y) 
+  p(\btheta \, | \, \y)
   = \frac{p(\x, \btheta \, | \, \y)}{p(\x \, | \, \btheta, \y)}
   \propto \frac{p(\y, \x, \btheta)}{p(\x \, | \, \btheta, \y)}. \label{eq:hyperpost}
 \end{equation}
 Approximation (i) then uses a Gaussian approximation to the denominator given by
 \begin{equation}
-p(\x \, | \, \btheta, \y) \approx p_G(\x \, | \, \btheta, \y) \triangleq \mathcal{N}(\x \, | \, \hat{\bm{\mu}}(\btheta), \hat{\mathbf{Q}}(\btheta)^{-1}). \label{eq:gaussianx}
+p(\x \, | \, \btheta, \y) \approx p_\text{G}(\x \, | \, \btheta, \y) \triangleq \mathcal{N}(\x \, | \, \bm{\mu}(\btheta), {\mathbf{Q}}(\btheta)^{-1}). \label{eq:gaussianx}
 \end{equation}
 This approximation is accurate as the Gaussian prior on the latent field $\x$ makes the posterior distribution, given by
 \begin{equation}
@@ -181,46 +181,71 @@ p(\x \, | \, \btheta, \y) \propto
 \exp \left( - \frac{1}{2} \x^\top \mathbf{Q}(\btheta) \x + \sum_{i = 1}^n \log p(y_i \, | \, x_i, \btheta) \right),
 \end{equation}
 close to being Gaussian because $\y$ tends not to be strongly informative and the observation distribution $p(\y \, | \, \x, \btheta)$ is usually well-behaved [@blangiardo2015spatial].
-<!-- If $\y$ is uninformative about $\x$ then how can we hope for useful inference? Perhaps what the author (Marta) meant is that the Gaussian distribution is sufficiently flexible to accommodate the updates made by $\y$. -->
+If $\y$ is uninformative about $\x$ then how can we hope for useful inference? Perhaps what the author (Marta) meant is that the Gaussian distribution is sufficiently flexible to accommodate the updates made by $\y$.
 As $p(\btheta \, | \, \y)$ does not depend on $\x$, any value may be chosen to evaluate the right hand side of Equation \ref{eq:hyperpost}.
-Taking $\x = \hat{\bm{\mu}}(\btheta)$, the value where the Gaussian approximation is most accurate, gives the final approximation as
+Taking $\x = \bm{\mu}(\btheta)$, the value where the Gaussian approximation is most accurate, gives the final approximation as
 \begin{equation}
-\tilde p(\btheta \, | \, \y) \propto \frac{p(\y, \x, \btheta)}{p_G(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat{\bm{\mu}}(\btheta)} = \frac{p(\y, \hat{\bm{\mu}}(\btheta), \btheta)}{\det(\hat{\bm{Q}}(\btheta))^{1/2}}, \label{eq:hypermarginal}
+\tilde p_\text{LA}(\btheta \, | \, \y) \propto \frac{p(\y, \x, \btheta)}{p_G(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \bm{\mu}(\btheta)} = \frac{p(\y, \bm{\mu}(\btheta), \btheta)}{\det({\bm{Q}}(\btheta))^{1/2}}, \label{eq:hypermarginal}
 \end{equation}
-where the equality is because $p_G(\x \, | \, \btheta, \y)$ is evaluated at its mode $\hat{\bm{\mu}}(\btheta)$.
+where the equality is because $p_G(\x \, | \, \btheta, \y)$ is evaluated at its mode $\bm{\mu}(\btheta)$.
+We describe this as a Laplace approximation to the parameter posterior.
 
 ### Approximation (ii)
 
 We now move on to the approximation $p(x_i \, | \, \btheta, \y) \approx \tilde p(x_i \, | \, \btheta, \y)$.
-Having used used the Gaussian approximation $p(\x \, | \, \btheta, \y) \approx p_G(\x \, | \, \btheta, \y)$ in Section \ref{sec:approxi} above, a natural approach, and that taken by [@rue2007approximate], is to marginalise this distribution directly to obtain
+Having used used the Gaussian approximation $p(\x \, | \, \btheta, \y) \approx p_G(\x \, | \, \btheta, \y)$ for the denominator in Section \ref{sec:approxi} above, a natural approach [@rue2007approximate] is to marginalise this distribution directly to obtain
 \begin{equation}
-\tilde p(x_i \, | \, \btheta, \y) = \mathcal{N}(x_i \, | \, \hat{\mu}_i(\btheta), 1 / \hat{q}_i(\btheta)),
+\tilde p(x_i \, | \, \btheta, \y) = \mathcal{N}(x_i \, | \, {\mu}_i(\btheta), 1 / {q}_i(\btheta)),
 \end{equation}
-where the marginal mean $\hat{\mu}_i(\btheta)$ and precision $\hat{q}_i(\btheta)$ are recovered directly from the relevant entries of $\hat{\bm{\mu}}(\btheta)$ and $\hat{\bm{Q}}(\btheta)$ respectively.
+where the marginal mean ${\mu}_i(\btheta)$ and precision ${q}_i(\btheta)$ are recovered directly from the relevant entries of $\bm{\mu}(\btheta)$ and ${\bm{Q}}(\btheta)$ respectively.
 However, although this approximation is fast, it tends not to be accurate, as it involves evaluating the Gaussian approximation away from its mode, so is generally not advised.
-Instead, [@rue2009approximate] propose two methods, a Laplace approximation and a simplified version which is less computationally demanding.
+Instead, @rue2009approximate propose two methods, a Laplace approximation and a simplified version which is less computationally demanding.
 The full Laplace approximation is
 \begin{align}
   p(x_i \, | \, \btheta, \y) &= p(\x \, | \, \btheta, \y) \times \frac{1}{p(\x_{-i} \, | \, x_i, \btheta, \y)} \\
   &= \frac{p(\x, \btheta \, | \, \y)}{p(\btheta \, | \, \y)} \times \frac{1}{p(\x_{-i} \, | \, x_i, \btheta, \y)} \\
   &\propto \frac{p(\x, \btheta \, | \, \y)}{p(\x_{-i} \, | \, x_i, \btheta, \y)} \\
-  &\approx \frac{p(\x, \btheta \, | \, \y)}{p_G(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \hat{\bm{\mu}}_{-i}(x_i, \btheta)}
+  &\approx \frac{p(\x, \btheta \, | \, \y)}{p_G(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \bm{\mu}_{-i}(x_i, \btheta)}
   = \tilde p_{LA}(x_i \, | \, \btheta, \y), \label{eq:laplaceapproximation}
 \end{align}
 where
 \begin{equation}
-p_G(\x_{-i} \, | \, x_i, \btheta, \y) = \mathcal{N}(\x_{-i} \, | \, \hat{\bm{\mu}}_{-i}(x_i, \btheta), \hat{\bm{Q}}_{-i}(x_i, \btheta)),
+p_G(\x_{-i} \, | \, x_i, \btheta, \y) = \mathcal{N}(\x_{-i} \, | \, \bm{\mu}_{-i}(x_i, \btheta), {\bm{Q}}_{-i}(x_i, \btheta)),
 \end{equation}
-is the Gaussian approximation to $\x_{-i} \, | \, x_i, \btheta, \y$ and $\hat{\bm{\mu}}_{-i}(x_i, \btheta)$ is its modal configuration.\footnote{Note that $\hat{\bm{\mu}}(\btheta)$ is the mode of the Gaussian approximation to the full latent field given $\btheta$ and $\hat{\bm{\mu}}_{-i}(x_i, \btheta)$ is not the same as $\hat{\bm{\mu}}_{-i}(\btheta)$.}
+is the Gaussian approximation to $\x_{-i} \, | \, x_i, \btheta, \y$ and $\bm{\mu}_{-i}(x_i, \btheta)$ is its modal configuration.\footnote{Note that $\bm{\mu}(\btheta)$ is the mode of the Gaussian approximation to the full latent field given $\btheta$ and $\bm{\mu}_{-i}(x_i, \btheta)$ is not the same as $\bm{\mu}_{-i}(\btheta)$.}
 The set of distributions $\{p(\x_{-i} \, | \, x_i, \btheta, \y)\}_{i = 1}^n$ are usually reasonably Gaussian so this approximation tends to work well.
 However, the Gaussian approximation $p_G(\x_{-i} \, | \, x_i, \btheta, \y)$ must be recomputed for each value of $i$, which is often computationally prohibitive.
-Therefore, two modifications to Equation \eqref{eq:laplaceapproximation} are proposed by [@rue2009approximate] to reduce the computational cost:
+Therefore, two modifications to Equation \eqref{eq:laplaceapproximation} are proposed by @rue2009approximate to reduce the computational cost:
 \begin{enumerate}
 \item
-Avoiding having to find the mode via optimisation by using the approximation $\hat{\bm{\mu}}_{-i}(x_i, \btheta) \approx \mathbb{E}_{p_G(\x \, | \, \btheta, \y)}(\x_{-i} \, | \, x_i)$
+Avoiding having to find the mode via optimisation by using the approximation $\bm{\mu}_{-i}(x_i, \btheta) \approx \mathbb{E}_{p_G(\x \, | \, \btheta, \y)}(\x_{-i} \, | \, x_i)$
 \item
 As only those $x_j$ close to $x_i$ should have an impact on the marginal of $x_i$, then by selecting some subset $R_i(\btheta)$ of nodes $j$ to impact $j$ the matrix which needs to be factorised can be reduced in dimension to be $| R_i(\btheta) | \times | R_i(\btheta) |$ rather than $n \times n$
 \end{enumerate}
+
+## Algorithm\label{sec:algorithm}
+
+Here we describe the complete algorithm.
+Given a C++ user template `model.cpp` for the unnormalised log posterior:
+
+1. Use a Laplace approximation to obtain the unnormalised $\tilde p_\text{LA}(\btheta, \y)$
+2. Normalise $\tilde p_\text{LA}(\btheta, \y)$ using adaptive Gauss-Hermite quadrature to obtain
+$$
+\tilde p_\text{AQ} (\btheta \, | \, \y) = \frac{\tilde p_\text{LA}(\btheta, \y)}{\tilde p_{\text{AQ}}(\y)},
+$$
+where the normalising constant is calculated using points $\z \in \mathcal{Q}(m, k)$, where $m = \dim(\btheta)$ and $k$ is the number of points per dimension, and weights $\omega: \z \in \mathcal{Q}(m, k) \to \mathbb{R}$ as follows
+$$
+\tilde p_{\text{AQ}}(\y) = \sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\text{LA}(\btheta(\z), \y) \omega(\z).
+$$
+3. For each of the $\dim(\mathcal{Q}(m, k))$ Laplace approximations in Step 2. store the mode and Hessian of the Gaussian approximation to the random effects used in the denominator
+$$
+\{ \bm{\mu}(\btheta(\z)), \bm{Q}(\btheta(\z)) \}_{\z \in \mathcal{Q}(m, k)}.
+$$
+4. Obtain a nested approximation to the posterior marginal of the $i$th latent effect by reusing the AGHQ nodes and weights from Step 2.
+$$
+\tilde p(x_i \, | \, \y) = \sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\text{G}(x_i \, | \, \btheta(\z), \y) \tilde p_\text{AQ} (\btheta(\z) \, | \, \y) \omega(\z),
+$$
+where $p_\text{G}(x_i \, | \, \btheta(\z), \y)$ is a one-dimensional Gaussian with mean $\bm{\mu}(\btheta(\z))_i$ and variance $\bm{Q}(\btheta(\z))^{-1}_{ii}$.
 
 # Application to the Naomi model\label{sec:results}
 
