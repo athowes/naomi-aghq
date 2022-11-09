@@ -12,9 +12,9 @@ output:
     theme: lumen
 bibliography: citations.bib
 abstract: |
-  **Background** @rue2009approximate use the epilespy example from the OpenBUGs manual as demonstration.
+  **Background** @rue2009approximate use the epilespy example from the OpenBUGs manual as demonstration of the integrated nested Laplace approximation method.
   
-  **Task** We implement the epilepsy example in Stan, `R-INLA`, `TMB`, `glmmTMB`, `tmbstan` and `aghq`. We then compare the results of the inference methods.
+  **Task** We implement the epilepsy example in Stan, `R-INLA`, `TMB`, `glmmTMB`, `tmbstan`, `aghq`, and a custom Laplace marginal version of `aghq`. We then compare the results of the inference methods.
 ---
 
 ```{r setup, class.source = 'fold-hide'}
@@ -42,14 +42,15 @@ Patients $i = 1, \ldots, 59$ are each either assigned the new drug $\texttt{Trt}
 Each patient makes four visits the clinic $j = 1, \ldots, 4$.
 The observations $y_{ij}$ give the number of seizures of the $i$th person in the two weeks preceeding their $j$th visit to the clinic.
 The covariates are age $\texttt{Age}_i$, baseline seizure counts $\texttt{Base}_i$ and an indicator for the final clinic visit $\texttt{V}_4$, which are all centered.
-The observations are modelling using a Poisson distribution $y_{ij} \sim \text{Poisson}(e^{\eta_{ij}})$ with linear predictor 
+
+The observations are modeleed using a Poisson distribution $y_{ij} \sim \text{Poisson}(e^{\eta_{ij}})$ with linear predictor 
 \begin{align*}
   \eta_{ij}       &= \beta_0 + \beta_\texttt{Base} \log(\texttt{Baseline}_j / 4) + \beta_\texttt{Trt} \texttt{Trt}_i +
                      \beta_{\texttt{Trt} \times \texttt{Base}} \texttt{Trt}_i \times \log(\texttt{Baseline}_j / 4) \\ 
                   &+ \beta_\texttt{Age} \log(\texttt{Age}_i) + \beta_{\texttt{V}_4} {\texttt{V}_4}_j +
                      \epsilon_i + \nu_{ij}, \quad i=1:59, \quad j=1:4,
 \end{align*}
-where the prior on each of the regression parameters is $\mathcal{N}(0, 100^2)$.
+where the prior on each of the regression parameters, including the intercept, is $\mathcal{N}(0, 100^2)$.
 The random effects are IID $\epsilon_i \sim \mathcal{N}(0, 1/\tau_\epsilon)$ and $\nu_{ij} \sim \mathcal{N}(0, 1/\tau_\nu)$ with precision priors $\tau_\epsilon, \tau_\nu \sim \Gamma(0.001, 0.001)$.
 
 ## Data preparation
@@ -74,7 +75,7 @@ Epil <- Epil %>%
          CBT     = center(Trt * log(Base/4)))
 ```
 
-Implement the model based upon a response variable of length $N \times J$, where $N$ is the number of patients and $J$ is the number of visits to the clinic, and a model matrix with $K$ predictors (including the intercept term):
+We will implement the model based upon a response variable of length $N \times J$, where $N$ is the number of patients and $J$ is the number of visits to the clinic, and a model matrix with $K$ predictors (including the intercept term):
 
 ```{r}
 N <- 59
@@ -102,19 +103,23 @@ t(E %*% c(1, 2, 3)) # Same as rep(1:3, 2)
 
 Multiplying this matrix $E$ by the vector $\epsilon$ allows it to be directly added to the linear predictor $\eta = \beta X + \nu + E \epsilon$, where $\beta$ is the vector of coefficients and $X$ is the model matrix.
 
+```{r}
+dat <- list(N = N, J = J, K = K, X = X, y = y, E = make_epsilon_matrix(N, J))
+```
+
 # Inference methods
 
 We consider a range of inference methods, described below.
 
 ## Stan
 
-First, Hamiltonian Monte Carlo via the No-U-Turn algorithm, with four Markov chains of `iter = 1000` samples, and `warmup = 100` burn-in:
+First, Hamiltonian Monte Carlo (HMC) via the No-U-Turn Sampler (NUTS) algorithm, with four Markov chains of `iter = 1000` samples, and `warmup = 100` burn-in.
+Markov chain Monte Carlo (MCMC) like NUTS are exact as the number of samples tends to infinity.
+We provide the `stan` function with `file = "epil.stan"` which refers to a C++ file implementing the log-posterior in the Stan probabilistic programming language:
 
 ```{r}
-dat <- list(N = N, J = J, K = K, X = X, y = y, E = make_epsilon_matrix(N, J))
-
 fit1 <- stan(
-  "epil.stan",
+  file = "epil.stan",
   data = dat,
   chains = 4,
   warmup = 100,
@@ -126,8 +131,11 @@ fit1 <- stan(
 
 ## `R-INLA`
 
-Both $\tau_\epsilon$ and $\tau_\nu$ have the same $\Gamma(0.001, 0.001)$ prior.
-In `R-INLA`, the precision is internally represented as log-precision, therefore we must set a `loggamma` prior:
+`R-INLA` is an R package which implements integrated nested Laplace approximations.
+Rather than specifying the log-posterior via C++, the package uses a formula interface.
+
+We specify the $\Gamma(0.001, 0.001)$ prior on the random effects $\tau_\epsilon$ and $\tau_\nu$ below.
+In `R-INLA`, the precision is internally represented as log-precision, therefore we must set a `loggamma` prior.
 
 ```{r}
 tau_prior <- list(prec = list(
@@ -148,7 +156,7 @@ formula <- y ~ 1 + CTrt + ClBase4 + CV4 + ClAge + CBT +
   f(Ind,  model = "iid", hyper = tau_prior)    #' Epsilon random effect
 ```
 
-We can use various settings for the strategy, which controls the approximation used for the latent field posterior marginals:
+We can use various settings (`"gaussian"`, `"simplified.laplace"` and `"laplace"`) for the strategy passed to `control.inla`, which controls the approximation used for the latent field posterior marginals:
 
 ```{r}
 epil_inla <- function(strat) {
@@ -166,9 +174,6 @@ fit4 <- epil_inla(strat = "laplace")
 ```
 
 ## `TMB`
-
-The objective function `obj$fn` and its gradient `obj$gn` are a function of only the parameters, which in this instance are the six regression coefficients $\beta$ together with the logarithms of $\tau_\epsilon$ and $\tau_\nu$.
-This can be checked with `names(obj$par)`.
 
 ```{r}
 compile("epil.cpp")
@@ -199,6 +204,8 @@ obj <- MakeADFun(
 )
 ```
 
+The objective function `obj$fn` and its gradient `obj$gn` are a function of only the parameters, which in this instance are the logarithms of $\tau_\epsilon$ and $\tau_\nu$.
+This can be checked with `names(obj$par)`.
 Optimise `obj` using 1000 iterations of the the `nlminb` optimiser, passing in the starting values `start`, objective function `objective` and its derivative `gradient`:
 
 ```{r}
@@ -238,7 +245,9 @@ c(
 )
 ```
 
-To be more thorough, we can get all the parameters obtained using the MCMC:
+This look different!
+Is this a problem?
+We can evaluate the NLL at some of the other parameters explored during the MCMC:
 
 ```{r}
 pars_mat <- as.matrix(fit1)
@@ -246,7 +255,7 @@ pars_list <- apply(pars_mat, 1, function(x) relist(flesh = x, skeleton = fit1@in
 upars_list <- lapply(pars_list, function(x) unconstrain_pars(fit1, x))
 ```
 
-Using just a few of them, we can see that the difference between the `TMB` and Stan objectives is a constant:
+Using just a few of them, we can see that the difference between the `TMB` and Stan objectives is a constant, so for our purposes they are functionally the same:
 
 ```{r}
 test_pars <- upars_list[500:510]
@@ -337,9 +346,14 @@ fit8_samples <- aghq::sample_marginal(fit8, M = 1000)$samps %>%
 
 ## Custom Laplace method with `aghq`
 
+Ok, this next section is going to be a bit more involved.
+
 ### Using multiple C++ template
 
 Let's just starting by trying to get the Laplace marginals for $\beta$:
+
+`epil_beta_index.cpp` is a `TMB` template where the `beta` parameter has been replaced by `beta_i` and `beta_minus_i`.
+As well, there is an additional `DATA_INTEGER(i)` allowing us to pass in the index of `i` that we would like to obtain a full Laplace approximation to.
 
 ```{r}
 compile("epil_beta_index.cpp")
@@ -352,7 +366,11 @@ We have already obtained the MAP estimate $\hat \theta$ in the `TMB` section abo
 opt_theta <- opt
 ```
 
-Create a function to get the Laplace marginal for the $i$th element of $\beta$:
+We create a function to get the Laplace marginal for the $i$th element of $\beta$.
+Some key things to note about this:
+We use the `map` argument to fix the hyperparameters to their MAP estimates, which requires passing `factor(NA)` to `map`, as well as setting the initialisation parameters for the hyperparameters to be their MAP estimates.
+Setting `random = c("beta_minus_i", "nu", "epsilon")` integrates out all of the random effects but `beta_i`.
+Quadrature is performed using `aghq::aghq` to obtain a the normalised posterior marginal.
 
 ```{r}
 xi_laplace_marginal_beta <- function(i, opt_theta, finegrid) {
@@ -399,10 +417,10 @@ xi_laplace_marginal_beta <- function(i, opt_theta, finegrid) {
 }
 ```
 
-Now we can compute the Laplace marginal for all `r dat$K` indices of $\beta$:
+Now we can compute the Laplace marginal for all `r dat$K` indices of $\beta$.
 
 ```{r}
-fine_grid <- seq(-5, 5, length.out = 1000)
+fine_grid <- seq(-5, 5, length.out = 500)
 
 laplace_beta <- lapply(1:dat$K, xi_laplace_marginal_beta, opt_theta = opt_theta, finegrid = fine_grid) %>%
   bind_rows(.id = "index") %>%
@@ -421,6 +439,13 @@ laplace_beta %>%
 ```
 
 ### Using one C++ template
+
+Ok, great, so we got the Laplace marginals for `beta`.
+What about if we wanted to get them for all of the elements of the latent field?
+One way we could do that is to create separate `TMB` templates for each named random effect (`beta`, `nu` and `epsilon`).
+To see what this would look like, have a look at `epil_beta_index.cpp`, `epil_nu_index.cpp` and `epil_epsilon_index.cpp`.
+
+What might be better is to do it in one `TMB` template.
 
 ```{r}
 compile("epil_index.cpp")
@@ -441,82 +466,86 @@ Eventually create function of the form:
 
 ```{r}
 xi_laplace_marginal <- function(i, opt_theta, finegrid) {
-  #' To fill
+  dat$toggle <- index_controller[i, "toggle"]
+  dat$i <- index_controller[i, "i"]
+
+  theta_names <- unique(names(opt_theta$par))
+  map_fixed_theta <- list()
+  param_fixed_theta <- param
+
+  for(theta in theta_names) {
+    map_fixed_theta[[theta]] <- rep(factor(NA), length(param[[theta]]))
+    param_fixed_theta[[theta]] <- opt_theta$par[names(opt_theta$par) == theta]
+  }
+
+  #' Prepare the initialisation parameters if it's beta that we're toggling
+  #' We fix the beta parameter to zero, as we're using beta_i and beta_minus_i
+  if(dat$toggle == 0) {
+    param_fixed_theta[["beta_i"]] <- param_fixed_theta$beta[i]
+    param_fixed_theta[["beta_minus_i"]] <- param_fixed_theta$beta[-i]
+    map_fixed_theta[["beta"]] <- rep(factor(NA), length(param[["beta"]]))
+  }
+
+  #' Or if it's epsilon that we're toggling
+  #' We fix the epsilon parameter to zero, as we're using epsilon_i and epsilon_minus_i
+  if(dat$toggle == 1) {
+    param_fixed_theta[["nu_i"]] <- param_fixed_theta$nu[i]
+    param_fixed_theta[["nu_minus_i"]] <- param_fixed_theta$nu[-i]
+    map_fixed_theta[["nu"]] <- rep(factor(NA), length(param[["nu"]]))
+  }
+  
+  #' Or if it's epsilon that we're toggling
+  #' We fix the epsilon parameter to zero, as we're using epsilon_i and epsilon_minus_i
+  if(dat$toggle == 2) {
+    param_fixed_theta[["epsilon_i"]] <- param_fixed_theta$epsilon[i]
+    param_fixed_theta[["epsilon_minus_i"]] <- param_fixed_theta$epsilon[-i]
+    map_fixed_theta[["epsilon"]] <- rep(factor(NA), length(param[["epsilon"]]))
+  }
+  
+  get_random <- function(dat) {
+    if(dat$toggle == 0) return(c("beta_minus_i", "nu", "epsilon"))
+    if(dat$toggle == 1) return(c("beta", "nu_minus_i", "epsilon"))
+    if(dat$toggle == 2) return(c("beta", "nu", "epsilon_minus_i"))
+  }
+  
+  obj_fixed_theta <- MakeADFun(
+   data = dat,
+   parameters = param_fixed_theta,
+   random = get_random(dat),
+   DLL = "epil_index",
+   silent = TRUE,
+   map = map_fixed_theta
+  )
+
+  quad <- aghq::aghq(
+    ff = obj_fixed_theta,
+    k = 3,
+    startingvalue = 0,
+    control = aghq::default_control_tmb()
+  )
+
+  pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad, finegrid = fine_grid)[[1]]
+  
+  return(list("pdf_and_cdf" = pdf_and_cdf, "quad" = quad))
 }
 ```
 
-Start with `i = 1` for the first marginal of $\beta$:
+Now we can compute the Laplace marginal for all `r nrow(index_controller)` random effects of $(\beta, \nu, \epsilon)$.
 
 ```{r}
-i <- 1
+fine_grid <- seq(-5, 5, length.out = 500)
 
-#' I don't know if this is the right grid for this application...
-fine_grid <- seq(-5, 5, length.out = 1000)
-
-dat$toggle <- index_controller[i, "toggle"]
-dat$i <- index_controller[i, "i"]
-
-theta_names <- unique(names(opt_theta$par))
-map_fixed_theta <- list()
-param_fixed_theta <- param
-
-for(theta in theta_names) {
-  map_fixed_theta[[theta]] <- rep(factor(NA), length(param[[theta]]))
-  param_fixed_theta[[theta]] <- opt_theta$par[names(opt_theta$par) == theta]
+#' It's possible to get errors with the initial value not being finite
+safe_xi_laplace_marginal <- function(...) {
+  return(tryCatch(xi_laplace_marginal(...), error = function(e) NULL))
 }
 
-#' Prepare the initialisation parameters if it's beta that we're toggling
-#' We fix the beta parameter to zero, as we're using beta_i and beta_minus_i
-if(dat$toggle == 0) {
-  param_fixed_theta[["beta_i"]] <- param_fixed_theta$beta[i]
-  param_fixed_theta[["beta_minus_i"]] <- param_fixed_theta$beta[-i]
-  map_fixed_theta[["beta"]] <- rep(factor(NA), length(param[["beta"]]))
-}
+laplace_x <- lapply(1:nrow(index_controller), safe_xi_laplace_marginal, opt_theta = opt_theta, finegrid = fine_grid)
 
-#' Or if it's epsilon that we're toggling
-#' We fix the epsilon parameter to zero, as we're using epsilon_i and epsilon_minus_i
-if(dat$toggle == 1) {
-  param_fixed_theta[["nu_i"]] <- param_fixed_theta$nu[i]
-  param_fixed_theta[["nu_minus_i"]] <- param_fixed_theta$nu[-i]
-  map_fixed_theta[["nu"]] <- rep(factor(NA), length(param[["nu"]]))
-}
+laplace_beta_summary <- lapply(head(laplace_x, n = dat$K), function(result) summary(result$quad)$summarytable) %>%
+  bind_rows()
 
-#' Or if it's epsilon that we're toggling
-#' We fix the epsilon parameter to zero, as we're using epsilon_i and epsilon_minus_i
-if(dat$toggle == 2) {
-  param_fixed_theta[["epsilon_i"]] <- param_fixed_theta$epsilon[i]
-  param_fixed_theta[["epsilon_minus_i"]] <- param_fixed_theta$epsilon[-i]
-  map_fixed_theta[["epsilon"]] <- rep(factor(NA), length(param[["epsilon"]]))
-}
-
-get_random <- function(dat) {
-  if(dat$toggle == 0) return(c("beta_minus_i", "nu", "epsilon"))
-  if(dat$toggle == 1) return(c("beta", "nu_minus_i", "epsilon"))
-  if(dat$toggle == 2) return(c("beta", "nu", "epsilon_minus_i"))
-}
-
-obj_fixed_theta <- MakeADFun(
- data = dat,
- parameters = param_fixed_theta,
- random = get_random(dat),
- DLL = "epil_index",
- silent = TRUE,
- map = map_fixed_theta
-)
-
-quad <- aghq::aghq(
-  ff = obj_fixed_theta,
-  k = 3,
-  startingvalue = 0,
-  control = aghq::default_control_tmb()
-)
-
-pdf_and_cdf <- aghq::compute_pdf_and_cdf(quad, finegrid = fine_grid)[[1]]
-
-ggplot(pdf_and_cdf, aes(x = theta, y = pdf)) +
-  geom_line() +
-  theme_minimal() +
-  labs(x = "beta[1]", y = "Posterior")
+rownames(laplace_beta_summary) <- paste0("beta[", 1:dat$K, "]")
 ```
 
 # Comparison
@@ -537,13 +566,15 @@ tmbstan7 <- as.vector(t(summary(fit7)$summary[1:6, c(1, 3)]))
 fit8_beta_samples <- fit8_samples[, 1:6]
 aghq8 <- as.vector(t(data.frame(mean = apply(fit8_beta_samples, 2, mean), sd = apply(fit8_beta_samples, 2, sd))))
 
-df <- cbind(stan1, inla2, inla3, inla4, tmb5, glmmtmb6, tmbstan7, aghq8) %>%
+adam9 <- as.vector(t(laplace_beta_summary[1:6, 1:2]))
+
+df <- cbind(stan1, inla2, inla3, inla4, tmb5, glmmtmb6, tmbstan7, aghq8, adam9) %>%
   as.data.frame() %>%
   mutate(type = gl(2, 1, 12, labels = c("Mean", "SD")))
 
 beta_i <- function(i) { c(paste0("beta_", i), paste0("sd(beta_", i, ")")) }
 rownames(df) <- c(sapply(0:5, beta_i))
-colnames(df) <- c("Stan", "R-INLA_G", "R-INLA_SL", "R-INLA_L", "TMB", "glmmTMB", "tmbstan", "aghq", "type")
+colnames(df) <- c("Stan", "R-INLA_G", "R-INLA_SL", "R-INLA_L", "TMB", "glmmTMB", "tmbstan", "aghq", "adam", "type")
 
 df %>%
   select(-type) %>%
