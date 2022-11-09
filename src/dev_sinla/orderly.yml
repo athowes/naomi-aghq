@@ -38,6 +38,10 @@ artefacts:
         - model1-icar-samples-m100.rds
         - model1-icar-samples-m250.rds
 
+parameters:
+  run_experiments:
+    default: FALSE
+
 packages:
   - dplyr
   - forcats
