@@ -246,7 +246,7 @@ plot2 <- plot2 +
 
 plot2
 
-ggsave(filename = "aghq-2d.pdf", plot = plot, height = 4, width = 6.25)
+ggsave(filename = "aghq-2d.pdf", plot = plot2, height = 4, width = 6.25)
 ```
 
 Ok! So now let's use `mvQuad` to do the quadrature:
