@@ -11,6 +11,7 @@ resources:
   - preamble.tex
   - citations.bib
   - naomi_hex.png
+  - naomi_user.png
 
 packages:
   - dplyr

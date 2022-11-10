@@ -1,5 +1,5 @@
 ---
-title: Inference methods for extended latent Gaussian models
+title: Integrated nested Laplace approximations for extended latent Gaussian models with application to the Naomi HIV model
 subtitle: Waterloo SAS Student Seminar Series
 author: Adam Howes
 institute: Imperial College London
@@ -23,21 +23,29 @@ output:
   * Incidence $\lambda$: the proportion of people newly infected 
   * Treatment coverage $\alpha$: the proportion of PLHIV on treatment
 * We would like to provide them at a local, district-level
-* This is a challenging task! Data is noisy, sparse and biased
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+This is a challenging task! Data is noisy, sparse and biased. $\implies$ compelling case for thoughtful Bayesian modelling.
+\end{tcolorbox}
+\end{center}
 
 # A simple small-area model for prevalence
 
-* Consider small-areas $i = 1, \ldots, n$
-* Simple random sample household-survey in each area, with sample sizes $m^\text{HS}_i$
-* The number of people testing positive is $y^\text{HS}_i$
-* Then we can use a binomial logistic regression of the form:
+* Consider small-areas $i = 1, \ldots, n$ like the districts of a country
+* Simple random sample household-survey of size $m^\text{HS}_i$ in each area
+* The number of people testing positive for HIV is $y^\text{HS}_i$
+* You could calculate direct estimates of prevalence by $y^\text{HS}_i / m^\text{HS}_i$ but because the survey is powered at a national-level, the sample sizes are small and these estimates would be noisy
+
+# A simple small-area model for prevalence
+
+* We can use a binomial logistic regression of the form:
 \begin{align*}
 y^\text{HS}_i &\sim \text{Bin}(m^\text{HS}_i, \rho^\text{HS}_i), \\
 \text{logit}(\rho^\text{HS}_i) &\sim g(\vartheta^\text{HS}), \quad i = 1, \ldots, n,
 \end{align*}
-* If $g$ is Gaussian then this is a latent Gaussian model in the sense of @rue2009approximate
-* We usually set up $g$ as a spatial smoother, because the sample sizes in each area are too small to get reliable direct estimates
-* One problem with the above model is that household surveys are expensive to run, so they only happen rarely
+* We usually set up $g$ as a Gaussian spatial smoother
+* This allows for pooling of information between districts
 
 # Latent Gaussian models
 
@@ -56,11 +64,17 @@ where $\y = (y_1, \ldots, y_n)$, $\x = (x_1, \ldots, x_n)$, $\btheta = (\theta_1
 * Covers most of the models commonly used in spatiotemporal statistics
 * Latent field is typically indexed by spatiotemporal location, such that $n > m$
 
+# Limitations of household surveys
+
+* A typical household survey takes around $UNKNOWN to run
+* This means that they don't happen very often
+* For this reason, the information might be quite out of date, and difficult to base policy on
+
 # Adding ANC surveillance
 
 * Pregnant women attending antenatal care clinics are routinely tested for HIV, to avoid mother-to-child transmission
 * This data source is more real-time than household surveys, but it's also more biased, because attendees are unlikely to be as representative of the population
-* But perhaps this bias is consistent, in which case we can still make use of the ANC data to improve our model!
+* But perhaps this bias is consistent, in which case we can still make use of the ANC data to supplement our model!
 
 # Adding ANC surveillance
 
@@ -70,19 +84,16 @@ y^\text{ANC}_i &\sim \text{Bin}(m^\text{ANC}_i, \rho^\text{ANC}_i), \\
 \text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho^\text{HS}_i) + b_i, \\
 b_i &\sim \mathcal{N}(\beta_b, \sigma_b^2),
 \end{align*}
-* Similar to using $\rho^\text{ANC}_i$ as a covariate in our model for household survey prevalence, but this way we allow it to vary rather than be fixed
+* This is similar to using $\rho^\text{ANC}_i$ as a covariate in the model for household survey prevalence, but this way takes into account sampling variation
 
 # Adding ART coverage
 
-* Remember that we're also interested in what proportion of PLHIV are receiving treatment
-* To estimate this, we need first to know the number of PLHIV
-\begin{equation*}
-H_i = N_i \rho^\text{HS}_i
-\end{equation*}
-* Then
+* We're also interested in what proportion $\alpha_i$ of people living with HIV (PLHIV) are receiving treatment
+* Suppose we record $A_i$ attendees from a known population of $N_i$ in each district
+* We can use another logistic regression model
 \begin{align*}
 A_i &\sim \text{Bin}(N_i, \rho^\text{HS}_i \alpha_i), \\
-\text{logit}(\alpha_i) &\sim \mathcal{N}(\beta_\alpha, \sigma_\alpha^2),
+\text{logit}(\alpha_i) &\sim \mathcal{N}(\beta_\alpha, \sigma_\alpha^2).
 \end{align*}
 
 # Naomi evidence synthesis model
@@ -92,10 +103,10 @@ A_i &\sim \text{Bin}(N_i, \rho^\text{HS}_i \alpha_i), \\
 ::: {.column width=.65}
 
 * Combining these three modules is the basis of the Naomi evidence synthesis model
-* Used by countries (which provide their own data) to produce HIV estimates in a yearly process supported by UNAIDS
-* Can't run long MCMC in this setting, requires fast, accurate, approximations 
+* Used by countries to produce HIV estimates in a yearly process supported by UNAIDS
+* Can't run long MCMC in this setting, so we require fast, accurate, approximations 
 * It's a complicated model, and requires something more flexible than `R-INLA`
-* Currently using Template Model Builder `TMB` [@kristensen2015tmb]
+* Currently using a package called Template Model Builder `TMB`
 
 :::
 
@@ -109,14 +120,30 @@ knitr::include_graphics("naomi_hex.png")
 
 ::::::::::::::
 
+# 
+
+```{r, echo=FALSE, fig.cap="Example of the user interface from https://naomi.unaids.org/", out.width = '70%'}
+knitr::include_graphics("naomi_user.png")
+```
+
 # Template Model Builder
 
-* R package which implements the Laplace approximation for latent variable models using automatic differentiation (via `CppAD`)
-  * For more about AD see e.g. @griewank2008evaluating. It's useful for getting the mode, Hessian
-* Write an objective function $f(\x, \btheta)$ in C++ ("user template")
-    * We select $f(\x, \btheta) = - \log p(\y \, | \, \x, \btheta) p(\x \, | \, \btheta) p(\btheta)$
+* `TMB` [@kristensen2015tmb] is an R package which implements the Laplace approximation for latent variable models
+* To get started, write an objective function $f(\x, \btheta)$ in `TMB` C++ syntax
+* As pseudo-Bayesians, we choose the log-posterior
+$$
+f(\x, \btheta) = - \log p(\y \, | \, \x, \btheta) p(\x \, | \, \btheta) p(\btheta)
+$$
 
 # Template Model Builder
+
+For example, for the model
+$$
+\y \sim \mathcal{N}(\mu, 1)
+$$
+with $p(\mu) \propto 1$ then the `TMB` user template looks like...
+
+# 
 
 ```{cpp eval=FALSE}
 #include <TMB.hpp>
@@ -136,52 +163,44 @@ Type objective_function<Type>::operator()() {
 
 # Template Model Builder
 
-* Performs the Laplace approximation $L_f(\btheta) \approx L^\star_f(\btheta)$ and use R to optimise this with respect to $\btheta$ to give $\hat \btheta$ (the central point in Figure \ref{fig:grid})
-  * This is done by specifying the `random` argument to be the parameters that you want to integrate out with a Laplace approximation (the latent field)
-* MAP estimate of $\x$ conditional on $\hat \btheta$
-* Standard errors calculated using the $\delta$-method (a Gaussian assumption)
+* We can use `TMB` to obtain the Laplace approximation
+$$
+\tilde p_\text{LA}(\btheta \, | \, \y) \propto \frac{p(\y, \x, \btheta)}{\tilde p_\text{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \bm{\mu}^\star(\btheta)} \label{eq:hypermarginal}
+$$
+* Integrate out a Gaussian approximation $\tilde p_\text{G}(\x \, | \, \btheta, \y)$ to the latent field
+* `TMB` uses automatic differentiation [@griewank2008evaluating] via `CppAD`
 
 # Integrated Nested Laplace Approximation
 
-* Suggested reading: the paper @rue2009approximate or a book e.g. @blangiardo2015spatial
-* Approximate Bayesian inference for \textcolor{hilit}{latent Gaussian models} (LGMs), which recall are three-stage models with middle layer
-\begin{equation*}
-  \text{(Latent field)} \qquad  p(\x \, | \, \btheta) = \mathcal{N}(\x  \, | \, \bm{\mu}(\btheta), \bm{Q}(\btheta)^{-1}).
-\end{equation*}
-* `R-INLA` implementation takes advantage of sparsity properties of $\bm{Q}(\btheta)$, i.e. if $\x$ is a Gaussian Markov random field (GMRF)
-
-# Integrated Nested Laplace Approximation
-
-* Gives approximate \textcolor{hilit}{posterior marginals} $\{\tilde p(x_i \, | \, \y)\}_{i = 1}^n$ and $\{\tilde p(\theta_j \, | \, \y)\}_{j = 1}^m$
-* To approximate posterior marginals below requires $\tilde p(\btheta \, | \, \y)$ and $\tilde p(x_i \, | \, \btheta, \y)$
+* Integrated nested Laplace approximation (INLA) [@rue2009approximate; @blangiardo2015spatial] is an approach to approximate inference which builds on the Laplace approximation
+* Goal is to approximate \textcolor{hilit}{posterior marginals} $\{\tilde p(x_i \, | \, \y)\}_{i = 1}^n$ and $\{\tilde p(\theta_j \, | \, \y)\}_{j = 1}^m$
 \begin{align}
   p(x_i \, | \, \y) &= \int p(x_i, \btheta \, | \, \y) \text{d} \btheta = \int p(x_i \, | \, \btheta, \y) p(\btheta \, | \, \y) \text{d}\btheta, \quad i = 1, \dots, n, \label{eq:inla1} \\
   p(\theta_j \, | \, \y) &= \int p(\btheta \, | \, \y) \text{d}\btheta_{-j} \quad j = 1, \ldots, m. \label{eq:inla2}
 \end{align}
+* To do so, we require the approximations $\tilde p(\btheta \, | \, \y)$ and $\tilde p(x_i \, | \, \btheta, \y)$
+* There are four steps as to how the method works (bare with me!)
 
-# Integrated Nested Laplace Approximation
+# Step 1)
 
 1) First Laplace approximate hyperparameter posterior
 \begin{equation}
-\tilde p(\btheta \, | \, \y) \propto \frac{p(\y, \x, \btheta)}{\tilde p_G(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \bm{\mu}^\star(\btheta)}  \label{eq:hypermarginal}
+\tilde p_\text{LA}(\btheta \, | \, \y) \propto \frac{p(\y, \x, \btheta)}{\tilde p_\text{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \bm{\mu}^\star(\btheta)} \label{eq:hypermarginal}
 \end{equation}
 which can be marginalised to get $\tilde p(\theta_j \, | \, \y)$
-  * Note: this involves integrating out a Gaussian approximation to the latent field, which we denote by $p_G(\x \, | \, \btheta, \y)$
+* Notice that this is the same object we had been working with in `TMB`
+* We use this approximation \textcolor{hilit}{nested} within integrals -- hence the name INLA
 
-# Integrated Nested Laplace Approximation
+# Step 2)
 
-2) In both \eqref{eq:inla1} and \eqref{eq:inla2} we want to integrate w.r.t. \eqref{eq:hypermarginal}, so choose integration points and weights $\{ \btheta^{(k)}, \Delta^{(k)} \}$
+2) In both Equations \eqref{eq:inla1} and \eqref{eq:inla2} we want to integrate w.r.t. $\btheta$, so choose integration nodes and weights $\{ \btheta(\z), \omega(\z) \}_{\z \in \mathcal{Z}}$
   * For low $m$ `R-INLA` uses a grid-strategy
   * For larger $m$ this becomes too expensive and `R-INLA` uses a CCD design
-  * Other approaches, like adaptive Gaussian Hermite quadrature (AGHQ) have recently been shown to have theoretical guarantees [@bilodeau2021stochastic] and may be preferable
-
-# Grid strategy
-
-* To write...
+  * We plan to use adaptive Gaussian Hermite quadrature (AGHQ), which has recently been shown to have theoretical guarantees [@bilodeau2021stochastic]
 
 #
 
-```{r message=FALSE, echo=FALSE, out.height="200px", fig.cap=paste("An illustration of the \\texttt{R-INLA} grid method for selecting integration points using a toy bivariate Gaussian distribution for $\\btheta$. Start at the mode and work outwards along the eigenvectors until the density drops sufficiently low. \\label{fig:grid}")}
+```{r message=FALSE, echo=FALSE, out.height="200px", fig.cap=paste("An illustration of the \\texttt{R-INLA} grid method for selecting integration nodes using a toy bivariate Gaussian distribution for $\\btheta$. Start at the mode and work outwards along the eigenvectors until the density drops sufficiently low. \\label{fig:grid}")}
 knitr::include_graphics("depends/inla-grid.pdf")
 ```
 
@@ -189,11 +208,9 @@ knitr::include_graphics("depends/inla-grid.pdf")
 
 * Gauss-Hermite quadrature is a way of picking nodes and weights, and is based on the theory of polynomial interpolation
 * The adaptive part means that it uses the location (mode) and curvature (Hessian) of the target (posterior) to automatically choose the node locations
-  * No manual tuning!
+  * Does not require manual tuning!
 * Works particularly well when the integrand is pretty Gaussian
-* Supposing you use $k$ quadrature points, then
-  * If $k = 1$ then it's a Laplace approximation
-  * In the vignette $k = 3$ (for each dimension, so $3^m$ total) is chosen quite often
+* Use $k$ quadrature nodes per dimension, for example if $k = 3$ then $3^m$ total nodes
 * Implemented in the `aghq` R package. See vignette @stringer2021implementing
 
 #
@@ -208,33 +225,28 @@ knitr::include_graphics("depends/aghq-1d.pdf")
 knitr::include_graphics("depends/aghq-2d.pdf")
 ```
 
-# Integrated Nested Laplace Approximation
+# Step 3)
 
 3) Choose approximation for $\tilde p(x_i \, | \, \btheta, \y)$
-  * Simplest version [@rue2007approximate] is to marginalise the $p_G(\x \, | \, \btheta, \y)$
+  * Simplest version [@rue2007approximate] is to marginalise $\tilde p_\text{G}(\x \, | \, \btheta, \y)$
 \begin{equation}
-\tilde p(x_i \, | \, \btheta, \y) = \mathcal{N}(x_i \, | \, \mu^\star_i(\btheta), 1 / q^\star_i(\btheta))
+\tilde p_\text{G}(x_i \, | \, \btheta, \y) = \mathcal{N}(x_i \, | \, \mu^\star_i(\btheta), 1 / q^\star_i(\btheta))
 \end{equation}
-  * The above is referred to as `method = "gaussian"` in `R-INLA`
-  * There are two better, more complex approximations
-    * Confusingly called `"simplified laplace"` and `"laplace"`
+  * In `R-INLA`, the above is referred to as `method = "gaussian"` 
+  * There are two better, more complex approximations, confusingly called `"simplified.laplace"` and `"laplace"`
+  * Uses sparsity properties of $\bm{Q}(\btheta)$, i.e. if $\x$ is a Gaussian Markov random field (GMRF)
 
-# Integrated Nested Laplace Approximation
+# Step 4)
 
-4) Finally (!) use quadrature combining
-  * our approximation $p(\btheta \, | \, \y)$ from step 1),
-  * our integration points and weights $\{ \btheta^{(k)}, \Delta^{(k)} \}$ from step 2),
-  * and our approximation $\tilde p(x_i \, | \, \btheta, \y)$ from step 3)
+4) Finally, use quadrature to combine
+  * our approximation $\tilde p_\text{LA}(\btheta \, | \, \y)$ from step 1),
+  * some choice of integration nodes and weights $\{ \btheta(\z), \omega(\z) \}$ from step 2),
+  * some choice of approximation $\tilde p(x_i \, | \, \btheta, \y)$ from step 3)
 to give
 \begin{equation}
   \tilde p(x_i \, | \, \y) = 
-  \sum_{k = 1}^K \tilde p(x_i \, | \, \btheta^{(k)}, \y) \times \tilde p(\btheta^{(k)} \, | \, \y) \times \Delta^{(k)}
+  \sum_{\z \in \mathcal{Z}} \tilde p(x_i \, | \, \btheta(\z), \y) \times \tilde p_\text{LA}(\btheta(\z) \, | \, \y) \times \omega(\z)
 \end{equation}
-
-# Experiments
-
-* We would like to find an accurate way to do inference for the Naomi model
-* It also needs to be fast enough to use in production!
 
 # Experiments
 
@@ -245,7 +257,7 @@ to give
 2. Adaptive Gaussian Hermite quadrature via `aghq`
 3. No-U-Turn Sampling (NUTS -- a type of Hamiltonian Monte Carlo) via `tmbstan`
 
-* Note: using different software it is often very difficult to ensure the model is precisely the same, so we're very fortunate here
+* Note: using different software it is usually very difficult to ensure the model is precisely the same, so we're very fortunate here
 
 # Comparison approach
 
