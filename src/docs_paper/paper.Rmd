@@ -37,7 +37,7 @@ affiliation:
     name: MRC Centre for Global Infectious Disease Analysis, School of Public Health, Imperial College London
     authorsLabels: e4
 abstract: |
-  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of interest, including HIV prevalence, HIV incidence and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. We propose a new inference method which combines the simplified integrated nested Laplace approximation approach of @wood2020simplified with adaptive Gauss-Hermite quadrature to enable fast and accurate inference for Naomi and other extended latent Gaussian models. Using data from Malawi, our method provides substantially more accurate inferences than the empirical Bayes Gaussian approximation approach used currently, and is comparable to Hamiltonian Monte Carlo with the No-U-Turn sampler. By extending the \texttt{aghq} \textsc{R} package we facilitate flexible and easy use of our method when provided a \texttt{TMB} C++ template for the model's log-posterior.
+  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of interest, including HIV prevalence, HIV incidence and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. We propose a new inference method which combines the simplified integrated nested Laplace approximation approach of @wood2020simplified with adaptive Gauss-Hermite quadrature to enable fast and accurate inference for Naomi and other extended latent Gaussian models. Using data from Malawi, our method provides substantially more accurate inferences than the empirical Bayes Gaussian approximation approach used currently, and is comparable to Hamiltonian Monte Carlo with the No-U-Turn sampler. By extending the \texttt{aghq} \textsc{R} package we facilitate flexible and easy use of our method when provided a \texttt{TMB} \textsf{C++} template for the model's log-posterior.
 keyword-subclass: | 
  \begin{keyword}[class=MSC2020] % It must be define for aap, aop, aos journals. For aoas, sts is not used
  \kwd[Primary ]{00X00}
@@ -61,32 +61,41 @@ output:
 
 # Introduction
 
-Mounting an effective public health response to the HIV epidemic requires accurate, timely and sufficiently fine-scale estimates of HIV indicators.
-No single data source is sufficient to base these estimates on.
-Although nationally-representative household surveys are the most reliable data source, in most countries they only occur infrequently.
-Other data sources, such as routine health surveillance of antenatal care clinics, are more timely but from a biased sample of the population.
-To remedy these challenges, the Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV prevalence, HIV incidence, and coverage of antiretroviral treatment (ART) at a district-level.
+Mounting an effective public health response to the HIV epidemic requires accurate, timely HIV indicator estimates at a sufficiently fine-scale resolution.
+Producing these estimates is a challenging task, as all available data sources have shortcomings.
+Nationally-representative household surveys are the most statistically reliable data source, but due to their high cost to run, in most countries they only occur infrequently.
+Other data sources, such as routine health surveillance of antenatal care clinics, are more real-time but based on a biased sample of the population.
+To meet these challenges, the Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV prevalence, HIV incidence, and coverage of antiretroviral treatment (ART) at a district-level.
 Software (\url{https://naomi.unaids.org}) has been developed for Naomi, which allows countries to input their data and generate estimates in a yearly process supported by UNAIDS.
 
-The model is complex and presents a challenging inference problem.
-Any approach must be fast enough to run in production by country teams, ruling out prohibitively slow Markov chain Monte Carlo (MCMC).
-Currently, inference is currently conducted using an empirical Bayes approach, with a Gaussian approximation to the latent field, via the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
-Owing to its speed and flexibility, `TMB` is more broadly becoming a popular package in spatial statistics [@osgoodzimmerman2021statistical].
-In `TMB`, inference is based on optimisation of a C++ template function, with the option available to use a Laplace approximation to integrate out any subset of the function arguments.
+The complexity of the model presents a difficult Bayesian inference problem.
+Any inferential strategy must be fast, as well as easy to run in production by country teams, ruling out prohibitively slow Markov chain Monte Carlo (MCMC) approaches.
+Inference is currently conducted using an empirical Bayes approach, with a Gaussian approximation to the latent field, via the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
+`TMB` is gaining popularity spatial statistics [@osgoodzimmerman2021statistical] owing to its speed and flexibility.
+Inference in `TMB` is based on optimisation of a \textsf{C++} template function, with the option available to use a Laplace approximation to integrate out any subset of the function arguments.
+For the Naomi model, we use this option to integrate out the latent field parameters.
 Taking inspiration from the AD Model Builder (ADMB) package [@fournier2012ad], `TMB` uses automatic differentiation [@baydin2017automatic] to calculate the derivatives required for numerical optimisation routines and the Laplace approximation.
-Although this approach has favorable computational properties, we have found the inferences generated for the Naomi model to sometimes be inaccurate.
-To obtain fast, accruate inferences for the Naomi model we develop a new inference methodology which combines the simplified integrated nested Laplace approximation (INLA) approach of @wood2020simplified with adaptive Gauss-Hermite quadrature (AGHQ).
+Although this approach has favourable computational properties, we have found the inferences generated for the Naomi model to sometimes be inaccurate.
 
-INLA [@rue2009approximate] is an approach to approximate Bayesian inference based on nested Laplace approximations and numerical quadrature, and implemented in the `R-INLA` \textsc{R} package.
+To obtain fast, accurate inferences for the Naomi model we develop a new inference methodology which combines the simplified integrated nested Laplace approximation (INLA) approach of @wood2020simplified with adaptive Gauss-Hermite quadrature (AGHQ).
+INLA [@rue2009approximate] is an approach to approximate Bayesian inference based on nested Laplace approximations and numerical quadrature.
 The central innovation is a way to approximate accurate latent field posterior marginals without explicitly computing the full Laplace approximation for each element.
 Simplified INLA [@wood2020simplified] extends INLA by relaxing the sparsity assumptions on the latent field required for this approximation to be accurate.
-Doing so facilitates inference for extended latent Gaussian models (ELGMs) [@stringer2022fast], which build on latent Gaussian models (LGMs) by allowing each element of the linear predictor $\mu_i$ to depend on any subset of elements from the latent field.
+This extension facilitates inference for models like Naomi, which fall within the extended latent Gaussian model (ELGM) [@stringer2022fast] class, and were not previously amenable to inference with INLA.
+ELGMs build on latent Gaussian models (LGMs) by allowing each element of the linear predictor to depend on any subset of elements from the latent field.
+We combine simplified INLA with AGHQ, a quadrature rule based on the theory of polynomial interpolation which adapts to the integrand based on the Hessian at the mode.
+Though as of yet no theory exists for the nested case, the first stochastic convergence results for adaptive quadrature rules were recently obtained by @bilodeau2021stochastic using AGHQ.
+We implement our method as an extension of the `aghq` \textsf{R} package [@stringer2021implementing].
+As `aghq` is designed to naturally interface with `TMB`, use of the method is easy when provided a \textsf{C++} user template for the log-posterior.
 
-AGHQ is a quadrature rule based on the theory of polynomial interpolation which adapts to the integrand based on the Hessian at the mode.
-@bilodeau2021stochastic provide theoretical results.
-The method is implementing in the `aghq` \textsf{R} package [@stringer2021implementing].
+The remainder of this paper is organised as follows.
+In Section \ref{sec:naomi} we describe the Naomi model.
+Section \ref{sec:fastinferencemethods} outlines our approach to fast, accurate Bayesian inference using simplified INLA and AGHQ.
+As a case-study, we fit the Naomi model on data from Malawi, and compare the accuracy of inferences in Section \ref{sec:naomi}.
+In this section, we also demonstrating a Bayesian workflow.
+Finally, in Section \ref{sec:conclusions} we discuss our conclusions, how our method might be used in other models, and directions for future research.
 
-# The Naomi model
+# The Naomi model\label{sec:naomi}
 
 @eaton2019joint specify a joint model linking small-area estimation models of HIV prevalence from household surveys, HIV prevalence from antenatal care clinics, and antiretroviral therapy (ART) coverage from routine health data collection.
 This model forms the basis of the Naomi small-area estimation model, described fully in @eaton2021naomi. 
@@ -137,115 +146,152 @@ In this section, we would like to set-up notation for the joint model, helping t
 When introducing LGM and ELGM below, we may refer back to this model as example.
 For example, we can note that each of the components individually might be latent Gaussian (perhaps for the ART component it depends if you consider $\rho^\text{HS}_i$ to be fixed) but when combined they are no longer.
 
-# Fast inference methods
+# Fast inference methods\label{sec:fastinferencemethods}
 
-## Integrated nested Laplace approximation\label{sec:inla}
+<!-- ## Integrated nested Laplace approximation\label{sec:inla} -->
 
-Consider a latent Gaussian models (LGM) of the form
+<!-- Consider a latent Gaussian model (LGM) of the form -->
+<!-- \begin{alignat}{2} -->
+<!-- &\text{(Observations)}     &        y_i &\sim p(y_i \, | \, x_i, \btheta), \quad i = 1, \ldots, n, \label{eq:data} \\ -->
+<!-- &\text{(Latent field)}     &        \x &\sim \mathcal{N}(\x \, | \, \mathbf{0}, \mathbf{Q}(\btheta)^{-1}), \label{eq:process} \\ -->
+<!-- &\text{(Parameters)}       & \qquad \btheta &\sim p(\btheta), \label{eq:parameters} -->
+<!-- \end{alignat} -->
+<!-- where $\text{dim}(\y) = \text{dim}(\x) = n$ and $\text{dim}(\btheta) = m$, and $m < n$. -->
+<!-- For such models, the joint posterior of $(\x, \btheta)$ is given by -->
+<!-- \begin{equation} -->
+<!--   p(\x, \btheta \, | \, \y) -->
+<!--   \propto p(\btheta) |\mathbf{Q}(\btheta)|^{n/2} \exp \left( - \frac{1}{2} \x^\top \mathbf{Q}(\btheta) \x + \sum_{i = 1}^n \log p(y_i \, | \, x_i, \btheta) \right). \label{eq:lgmjointposterior} -->
+<!-- \end{equation} -->
+<!-- Rather than approximating this joint posterior, the INLA method proceeds by approximation of the posterior marginals of each latent random variable $x_i$ and parameter $\theta_j$ given by -->
+<!-- \begin{align} -->
+<!--   p(x_i \, | \, \y) &= \int p(x_i, \btheta \, | \, \y) \text{d} \btheta = \int p(x_i \, | \, \btheta, \y) p(\btheta \, | \, \y) \text{d}\btheta, \quad i = 1, \dots, n, \label{eq:inla1} \\ -->
+<!--   p(\theta_j \, | \, \y) &= \int p(\btheta \, | \, \y) \text{d}\btheta_{-j} \quad j = 1, \ldots, m. \label{eq:inla2} -->
+<!-- \end{align} -->
+<!-- An approximation is made to each of the two quantities, $p(\btheta \, | \, \y)$ and $p(x_i \, | \, \btheta, \y)$, nested inside the above integrals: (i) $p(\btheta \, | \, \y) \approx \tilde p(\btheta \, | \, \y)$ and (ii) $p(x_i \, | \, \btheta, \y) \approx \tilde p(x_i \, | \, \btheta, \y)$. -->
+<!-- We discuss these two approximations in turn below. -->
+
+<!-- ### Approximation (i) \label{sec:approxi} -->
+
+<!-- The posterior marginal of the parameters $p(\btheta \, | \, \y)$ appears in both Equations \eqref{eq:inla1} and \eqref{eq:inla2}. -->
+<!-- This distribution is approximated by $\tilde p(\btheta \, | \, \y)$ and represented by a set of $K$ integration nodes $\{ \btheta^{(k)} \}$ and area-weights $\{ \Delta^{(k)} \}$. -->
+<!-- The first step is to rewrite $p(\btheta \, | \, \y)$ as -->
+<!-- \begin{equation} -->
+<!--   p(\btheta \, | \, \y) -->
+<!--   = \frac{p(\x, \btheta \, | \, \y)}{p(\x \, | \, \btheta, \y)} -->
+<!--   \propto \frac{p(\y, \x, \btheta)}{p(\x \, | \, \btheta, \y)}. \label{eq:hyperpost} -->
+<!-- \end{equation} -->
+<!-- Approximation (i) then uses a Gaussian approximation to the denominator given by -->
+<!-- \begin{equation} -->
+<!-- p(\x \, | \, \btheta, \y) \approx p_\text{G}(\x \, | \, \btheta, \y) \triangleq \mathcal{N}(\x \, | \, \bm{\mu}(\btheta), {\mathbf{Q}}(\btheta)^{-1}). \label{eq:gaussianx} -->
+<!-- \end{equation} -->
+<!-- This approximation is accurate as the Gaussian prior on the latent field $\x$ makes the posterior distribution, given by -->
+<!-- \begin{equation} -->
+<!-- p(\x \, | \, \btheta, \y) \propto -->
+<!-- \exp \left( - \frac{1}{2} \x^\top \mathbf{Q}(\btheta) \x + \sum_{i = 1}^n \log p(y_i \, | \, x_i, \btheta) \right), -->
+<!-- \end{equation} -->
+<!-- close to being Gaussian because $\y$ tends not to be strongly informative and the observation distribution $p(\y \, | \, \x, \btheta)$ is usually well-behaved [@blangiardo2015spatial]. -->
+<!-- If $\y$ is uninformative about $\x$ then how can we hope for useful inference? Perhaps what the author (Marta) meant is that the Gaussian distribution is sufficiently flexible to accommodate the updates made by $\y$. -->
+<!-- As $p(\btheta \, | \, \y)$ does not depend on $\x$, any value may be chosen to evaluate the right hand side of Equation \ref{eq:hyperpost}. -->
+<!-- Taking $\x = \bm{\mu}(\btheta)$, the value where the Gaussian approximation is most accurate, gives the final approximation as -->
+<!-- \begin{equation} -->
+<!-- \tilde p_\text{LA}(\btheta \, | \, \y) \propto \frac{p(\y, \x, \btheta)}{p_G(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \bm{\mu}(\btheta)} = \frac{p(\y, \bm{\mu}(\btheta), \btheta)}{\det({\bm{Q}}(\btheta))^{1/2}}, \label{eq:hypermarginal} -->
+<!-- \end{equation} -->
+<!-- where the equality is because $p_G(\x \, | \, \btheta, \y)$ is evaluated at its mode $\bm{\mu}(\btheta)$. -->
+<!-- We describe this as a Laplace approximation to the parameter posterior. -->
+
+<!-- ### Approximation (ii) -->
+
+<!-- We now move on to the approximation $p(x_i \, | \, \btheta, \y) \approx \tilde p(x_i \, | \, \btheta, \y)$. -->
+<!-- Having used used the Gaussian approximation $p(\x \, | \, \btheta, \y) \approx p_G(\x \, | \, \btheta, \y)$ for the denominator in Section \ref{sec:approxi} above, a natural approach [@rue2007approximate] is to marginalise this distribution directly to obtain -->
+<!-- \begin{equation} -->
+<!-- \tilde p(x_i \, | \, \btheta, \y) = \mathcal{N}(x_i \, | \, {\mu}_i(\btheta), 1 / {q}_i(\btheta)), -->
+<!-- \end{equation} -->
+<!-- where the marginal mean ${\mu}_i(\btheta)$ and precision ${q}_i(\btheta)$ are recovered directly from the relevant entries of $\bm{\mu}(\btheta)$ and ${\bm{Q}}(\btheta)$ respectively. -->
+<!-- However, although this approximation is fast, it tends not to be accurate, as it involves evaluating the Gaussian approximation away from its mode, so is generally not advised. -->
+<!-- Instead, @rue2009approximate propose two methods, a Laplace approximation and a simplified version which is less computationally demanding. -->
+<!-- The full Laplace approximation is -->
+<!-- \begin{align} -->
+<!--   p(x_i \, | \, \btheta, \y) &= p(\x \, | \, \btheta, \y) \times \frac{1}{p(\x_{-i} \, | \, x_i, \btheta, \y)} \\ -->
+<!--   &= \frac{p(\x, \btheta \, | \, \y)}{p(\btheta \, | \, \y)} \times \frac{1}{p(\x_{-i} \, | \, x_i, \btheta, \y)} \\ -->
+<!--   &\propto \frac{p(\x, \btheta \, | \, \y)}{p(\x_{-i} \, | \, x_i, \btheta, \y)} \\ -->
+<!--   &\approx \frac{p(\x, \btheta \, | \, \y)}{p_G(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \bm{\mu}_{-i}(x_i, \btheta)} -->
+<!--   = \tilde p_{LA}(x_i \, | \, \btheta, \y), \label{eq:laplaceapproximation} -->
+<!-- \end{align} -->
+<!-- where -->
+<!-- \begin{equation} -->
+<!-- p_G(\x_{-i} \, | \, x_i, \btheta, \y) = \mathcal{N}(\x_{-i} \, | \, \bm{\mu}_{-i}(x_i, \btheta), {\bm{Q}}_{-i}(x_i, \btheta)), -->
+<!-- \end{equation} -->
+<!-- is the Gaussian approximation to $\x_{-i} \, | \, x_i, \btheta, \y$ and $\bm{\mu}_{-i}(x_i, \btheta)$ is its modal configuration.\footnote{Note that $\bm{\mu}(\btheta)$ is the mode of the Gaussian approximation to the full latent field given $\btheta$ and $\bm{\mu}_{-i}(x_i, \btheta)$ is not the same as $\bm{\mu}_{-i}(\btheta)$.} -->
+<!-- The set of distributions $\{p(\x_{-i} \, | \, x_i, \btheta, \y)\}_{i = 1}^n$ are usually reasonably Gaussian so this approximation tends to work well. -->
+<!-- However, the Gaussian approximation $p_G(\x_{-i} \, | \, x_i, \btheta, \y)$ must be recomputed for each value of $i$, which is often computationally prohibitive. -->
+<!-- Therefore, two modifications to Equation \eqref{eq:laplaceapproximation} are proposed by @rue2009approximate to reduce the computational cost: -->
+<!-- \begin{enumerate} -->
+<!-- \item -->
+<!-- Avoiding having to find the mode via optimisation by using the approximation $\bm{\mu}_{-i}(x_i, \btheta) \approx \mathbb{E}_{p_G(\x \, | \, \btheta, \y)}(\x_{-i} \, | \, x_i)$ -->
+<!-- \item -->
+<!-- As only those $x_j$ close to $x_i$ should have an impact on the marginal of $x_i$, then by selecting some subset $R_i(\btheta)$ of nodes $j$ to impact $j$ the matrix which needs to be factorised can be reduced in dimension to be $| R_i(\btheta) | \times | R_i(\btheta) |$ rather than $n \times n$ -->
+<!-- \end{enumerate} -->
+
+Consider a latent Gaussian model (LGM) of the form
 \begin{alignat}{2}
-&\text{(Observations)}     &        y_i &\sim p(y_i \, | \, x_i, \btheta), \quad i = 1, \ldots, n, \label{eq:data} \\
+&\text{(Observations)}     &        \y &\sim p(\y \, | \, \x, \btheta), \label{eq:data} \\
 &\text{(Latent field)}     &        \x &\sim \mathcal{N}(\x \, | \, \mathbf{0}, \mathbf{Q}(\btheta)^{-1}), \label{eq:process} \\
 &\text{(Parameters)}       & \qquad \btheta &\sim p(\btheta), \label{eq:parameters}
 \end{alignat}
 where $\text{dim}(\y) = \text{dim}(\x) = n$ and $\text{dim}(\btheta) = m$, and $m < n$.
-For such models, the joint posterior of $(\x, \btheta)$ is given by
+The joint posterior of $(\x, \btheta)$ is given by
 \begin{equation}
   p(\x, \btheta \, | \, \y)
   \propto p(\btheta) |\mathbf{Q}(\btheta)|^{n/2} \exp \left( - \frac{1}{2} \x^\top \mathbf{Q}(\btheta) \x + \sum_{i = 1}^n \log p(y_i \, | \, x_i, \btheta) \right). \label{eq:lgmjointposterior}
 \end{equation}
-Rather than approximating this joint posterior, the INLA method proceeds by approximation of the posterior marginals of each latent random variable $x_i$ and parameter $\theta_j$ given by
+We consider approximations to the posterior marginals of each latent random variable $x_i$ and parameter $\theta_j$ given by
 \begin{align}
   p(x_i \, | \, \y) &= \int p(x_i, \btheta \, | \, \y) \text{d} \btheta = \int p(x_i \, | \, \btheta, \y) p(\btheta \, | \, \y) \text{d}\btheta, \quad i = 1, \dots, n, \label{eq:inla1} \\
   p(\theta_j \, | \, \y) &= \int p(\btheta \, | \, \y) \text{d}\btheta_{-j} \quad j = 1, \ldots, m. \label{eq:inla2}
 \end{align}
-An approximation is made to each of the two quantities, $p(\btheta \, | \, \y)$ and $p(x_i \, | \, \btheta, \y)$, nested inside the above integrals: (i) $p(\btheta \, | \, \y) \approx \tilde p(\btheta \, | \, \y)$ and (ii) $p(x_i \, | \, \btheta, \y) \approx \tilde p(x_i \, | \, \btheta, \y)$.
-We discuss these two approximations in turn below.
-
-### Approximation (i) \label{sec:approxi}
-
-The posterior marginal of the parameters $p(\btheta \, | \, \y)$ appears in both Equations \eqref{eq:inla1} and \eqref{eq:inla2}.
-This distribution is approximated by $\tilde p(\btheta \, | \, \y)$ and represented by a set of $K$ integration points $\{ \btheta^{(k)} \}$ and area-weights $\{ \Delta^{(k)} \}$.
-The first step is to rewrite $p(\btheta \, | \, \y)$ as
-\begin{equation}
-  p(\btheta \, | \, \y)
-  = \frac{p(\x, \btheta \, | \, \y)}{p(\x \, | \, \btheta, \y)}
-  \propto \frac{p(\y, \x, \btheta)}{p(\x \, | \, \btheta, \y)}. \label{eq:hyperpost}
-\end{equation}
-Approximation (i) then uses a Gaussian approximation to the denominator given by
-\begin{equation}
-p(\x \, | \, \btheta, \y) \approx p_\text{G}(\x \, | \, \btheta, \y) \triangleq \mathcal{N}(\x \, | \, \bm{\mu}(\btheta), {\mathbf{Q}}(\btheta)^{-1}). \label{eq:gaussianx}
-\end{equation}
-This approximation is accurate as the Gaussian prior on the latent field $\x$ makes the posterior distribution, given by
-\begin{equation}
-p(\x \, | \, \btheta, \y) \propto
-\exp \left( - \frac{1}{2} \x^\top \mathbf{Q}(\btheta) \x + \sum_{i = 1}^n \log p(y_i \, | \, x_i, \btheta) \right),
-\end{equation}
-close to being Gaussian because $\y$ tends not to be strongly informative and the observation distribution $p(\y \, | \, \x, \btheta)$ is usually well-behaved [@blangiardo2015spatial].
-If $\y$ is uninformative about $\x$ then how can we hope for useful inference? Perhaps what the author (Marta) meant is that the Gaussian distribution is sufficiently flexible to accommodate the updates made by $\y$.
-As $p(\btheta \, | \, \y)$ does not depend on $\x$, any value may be chosen to evaluate the right hand side of Equation \ref{eq:hyperpost}.
-Taking $\x = \bm{\mu}(\btheta)$, the value where the Gaussian approximation is most accurate, gives the final approximation as
-\begin{equation}
-\tilde p_\text{LA}(\btheta \, | \, \y) \propto \frac{p(\y, \x, \btheta)}{p_G(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \bm{\mu}(\btheta)} = \frac{p(\y, \bm{\mu}(\btheta), \btheta)}{\det({\bm{Q}}(\btheta))^{1/2}}, \label{eq:hypermarginal}
-\end{equation}
-where the equality is because $p_G(\x \, | \, \btheta, \y)$ is evaluated at its mode $\bm{\mu}(\btheta)$.
-We describe this as a Laplace approximation to the parameter posterior.
-
-### Approximation (ii)
-
-We now move on to the approximation $p(x_i \, | \, \btheta, \y) \approx \tilde p(x_i \, | \, \btheta, \y)$.
-Having used used the Gaussian approximation $p(\x \, | \, \btheta, \y) \approx p_G(\x \, | \, \btheta, \y)$ for the denominator in Section \ref{sec:approxi} above, a natural approach [@rue2007approximate] is to marginalise this distribution directly to obtain
-\begin{equation}
-\tilde p(x_i \, | \, \btheta, \y) = \mathcal{N}(x_i \, | \, {\mu}_i(\btheta), 1 / {q}_i(\btheta)),
-\end{equation}
-where the marginal mean ${\mu}_i(\btheta)$ and precision ${q}_i(\btheta)$ are recovered directly from the relevant entries of $\bm{\mu}(\btheta)$ and ${\bm{Q}}(\btheta)$ respectively.
-However, although this approximation is fast, it tends not to be accurate, as it involves evaluating the Gaussian approximation away from its mode, so is generally not advised.
-Instead, @rue2009approximate propose two methods, a Laplace approximation and a simplified version which is less computationally demanding.
-The full Laplace approximation is
-\begin{align}
-  p(x_i \, | \, \btheta, \y) &= p(\x \, | \, \btheta, \y) \times \frac{1}{p(\x_{-i} \, | \, x_i, \btheta, \y)} \\
-  &= \frac{p(\x, \btheta \, | \, \y)}{p(\btheta \, | \, \y)} \times \frac{1}{p(\x_{-i} \, | \, x_i, \btheta, \y)} \\
-  &\propto \frac{p(\x, \btheta \, | \, \y)}{p(\x_{-i} \, | \, x_i, \btheta, \y)} \\
-  &\approx \frac{p(\x, \btheta \, | \, \y)}{p_G(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \bm{\mu}_{-i}(x_i, \btheta)}
-  = \tilde p_{LA}(x_i \, | \, \btheta, \y), \label{eq:laplaceapproximation}
-\end{align}
-where
-\begin{equation}
-p_G(\x_{-i} \, | \, x_i, \btheta, \y) = \mathcal{N}(\x_{-i} \, | \, \bm{\mu}_{-i}(x_i, \btheta), {\bm{Q}}_{-i}(x_i, \btheta)),
-\end{equation}
-is the Gaussian approximation to $\x_{-i} \, | \, x_i, \btheta, \y$ and $\bm{\mu}_{-i}(x_i, \btheta)$ is its modal configuration.\footnote{Note that $\bm{\mu}(\btheta)$ is the mode of the Gaussian approximation to the full latent field given $\btheta$ and $\bm{\mu}_{-i}(x_i, \btheta)$ is not the same as $\bm{\mu}_{-i}(\btheta)$.}
-The set of distributions $\{p(\x_{-i} \, | \, x_i, \btheta, \y)\}_{i = 1}^n$ are usually reasonably Gaussian so this approximation tends to work well.
-However, the Gaussian approximation $p_G(\x_{-i} \, | \, x_i, \btheta, \y)$ must be recomputed for each value of $i$, which is often computationally prohibitive.
-Therefore, two modifications to Equation \eqref{eq:laplaceapproximation} are proposed by @rue2009approximate to reduce the computational cost:
-\begin{enumerate}
-\item
-Avoiding having to find the mode via optimisation by using the approximation $\bm{\mu}_{-i}(x_i, \btheta) \approx \mathbb{E}_{p_G(\x \, | \, \btheta, \y)}(\x_{-i} \, | \, x_i)$
-\item
-As only those $x_j$ close to $x_i$ should have an impact on the marginal of $x_i$, then by selecting some subset $R_i(\btheta)$ of nodes $j$ to impact $j$ the matrix which needs to be factorised can be reduced in dimension to be $| R_i(\btheta) | \times | R_i(\btheta) |$ rather than $n \times n$
-\end{enumerate}
 
 ## Algorithm\label{sec:algorithm}
 
-Here we describe the complete algorithm.
-Given a C++ user template `model.cpp` for the unnormalised log posterior:
+Given a \textsf{C++} user template `model.cpp` for the unnormalised log posterior, we obtain posterior marginal approximations via the following algorithm:
 
 1. Use a Laplace approximation to obtain the unnormalised $\tilde p_\text{LA}(\btheta, \y)$
+$$
+\tilde p_\text{LA}(\btheta, \y) = \frac{p(\y, \x, \btheta)}{\tilde p_\text{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \bm{\mu}(\btheta)}
+$$
+where $\tilde p_\text{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \bm{\mu}(\btheta), \bm{Q}(\btheta)^{-1})$ is a Gaussian approximation to $p(\x \, | \, \btheta, \y)$.
+
 2. Normalise $\tilde p_\text{LA}(\btheta, \y)$ using adaptive Gauss-Hermite quadrature to obtain
 $$
-\tilde p_\text{AQ} (\btheta \, | \, \y) = \frac{\tilde p_\text{LA}(\btheta, \y)}{\tilde p_{\text{AQ}}(\y)},
+\tilde p_\text{AQ}(\btheta \, | \, \y) = \frac{\tilde p_\text{LA}(\btheta, \y)}{\tilde p_{\text{AQ}}(\y)},
 $$
-where the normalising constant is calculated using points $\z \in \mathcal{Q}(m, k)$, where $m = \dim(\btheta)$ and $k$ is the number of points per dimension, and weights $\omega: \z \in \mathcal{Q}(m, k) \to \mathbb{R}$ as follows
+where the normalising constant is calculated using nodes $\z_\theta \in \mathcal{Q}(m, k_\theta)$ as
 $$
-\tilde p_{\text{AQ}}(\y) = \sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\text{LA}(\btheta(\z), \y) \omega(\z).
+\tilde p_{\text{AQ}}(\y) = \sum_{\z_\theta \in \mathcal{Q}(m, k_\theta)} \tilde p_\text{LA}(\btheta(\z_\theta), \y) \omega_\theta(\z_\theta),
 $$
-3. For each of the $\dim(\mathcal{Q}(m, k))$ Laplace approximations in Step 2. store the mode and Hessian of the Gaussian approximation to the random effects used in the denominator
+where $m = \dim(\btheta)$, the number of nodes per dimension is $k_\theta$, and weights $\omega_\theta: \z_\theta \in \mathcal{Q}(m, k_\theta) \to \mathbb{R}$.
+We typically set $k_\theta = 3$ such that there are $3^m$ nodes in total.
+
+3. Use a Laplace approximation to obtain the unnormalised $\tilde p_\text{LA}(x_i, \btheta, \y)$
 $$
-\{ \bm{\mu}(\btheta(\z)), \bm{Q}(\btheta(\z)) \}_{\z \in \mathcal{Q}(m, k)}.
+\tilde p_\text{LA}(x_i, \btheta, \y) = \frac{p(x_i, \x_{-i}, \btheta, \y)}{p_\text{G}(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \bm{\mu}_{-i}(x_i, \btheta)}
 $$
-4. Obtain a nested approximation to the posterior marginal of the $i$th latent effect by reusing the AGHQ nodes and weights from Step 2.
+where $\tilde p_\text{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \bm{\mu}_{-i}(x_i, \btheta), \bm{Q}_{-i}(x_i, \btheta)^{-1})$.
+
+4. Normalise $\tilde p_\text{LA}(x_i, \btheta, \y)$ using adaptive Gauss-Hermite quadrature to obtain
 $$
-\tilde p(x_i \, | \, \y) = \sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\text{G}(x_i \, | \, \btheta(\z), \y) \tilde p_\text{AQ} (\btheta(\z) \, | \, \y) \omega(\z),
+\tilde p_\text{AQ}(x_i \, | \, \btheta, \y) = \frac{\tilde p_\text{LA}(x_i, \btheta, \y)}{\tilde p_{\text{AQ}}(\btheta, \y)},
 $$
-where $p_\text{G}(x_i \, | \, \btheta(\z), \y)$ is a one-dimensional Gaussian with mean $\bm{\mu}(\btheta(\z))_i$ and variance $\bm{Q}(\btheta(\z))^{-1}_{ii}$.
+where the normalising constant is calculated using nodes $z_x \in \mathcal{Q}(1, k_x)$ as
+$$
+\tilde p_{\text{AQ}}(\btheta, \y) = \sum_{z_x \in \mathcal{Q}(1, k_x)} \tilde p_\text{LA}(x_i(z_x), \btheta, \y) \omega_x(z_x),
+$$
+where the total number of nodes is $k_x$ and weights $\omega_x: z_x \in \mathcal{Q}(1, k_x) \to \mathbb{R}$.
+As this quadrature is in one dimension, we can set $k_x = 5$ or higher.
+
+5. Obtain a nested approximation to the posterior marginal of the $i$th latent effect by
+$$
+\tilde p(x_i \, | \, \y) = \sum_{\z_\theta \in \mathcal{Q}(m, k_\theta)} \tilde p_\text{AQ}(x_i \, | \, \btheta(\z_\theta), \y) \tilde p_\text{AQ} (\btheta(\z_\theta) \, | \, \y) \omega_\theta(\z_\theta).
+$$
 
 # Application to the Naomi model\label{sec:results}
 
