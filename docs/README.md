@@ -25,7 +25,7 @@
 
 ## Presentations
 
-* [01-04-20-mini](https://athowes.github.io/elgm-inf/01-04-20-mini): three month CDT mini-project
+* [01-04-20-mini](https://athowes.github.io/elgm-inf/01-04-20-mini.pdf): three month CDT mini-project
 * [01-07-21-stats-epi-group](https://athowes.github.io/elgm-inf/01-07-21-stats-epi-group.pdf): [Machine Learning & Global Health Network](https://mlgh.net/) group meeting
 * [15-11-22-seminar](https://athowes.github.io/elgm-inf/15-11-22-seminar.pdf): Waterloo [SAS Student Seminar Series](https://uwaterloo.ca/statistics-and-actuarial-science/student-seminar-series)
   * [seminar](https://athowes.github.io/elgm-inf/seminar.html): abstract for Waterloo SAS Student Seminar Series
