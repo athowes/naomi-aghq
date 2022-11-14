@@ -12,6 +12,8 @@ resources:
   - citations.bib
   - naomi_hex.png
   - naomi_user.png
+  - naomi_fig.png
+  - zwe_areas.geojson
 
 packages:
   - dplyr

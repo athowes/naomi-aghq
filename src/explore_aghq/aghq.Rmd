@@ -115,13 +115,13 @@ quad$optresults$mode
 
 Suppose we have
 $$
-f(x) = \exp(-\frac{x^2}{2}),
+f(\theta) = \exp(-\frac{\theta^2}{2}),
 $$
-which we would like to integrate over $\mathbb{R}$, i.e. $\int_{-\infty}^\infty f(x) \text{d}x$.
+which we would like to integrate over $\mathbb{R}$, i.e. $\int_{-\infty}^\infty f(\theta) \text{d}\theta$.
 
 ```{r}
-f <- function(x) {
-  exp(-(x^2) / 2)  
+f <- function(theta) {
+  exp(-(theta^2) / 2)  
 }
 ```
 
@@ -132,7 +132,7 @@ plot <- data.frame(x = seq(from = -10, to = 10, by = 0.1)) %>%
   ) %>%
   ggplot(aes(x = x, y = y)) +
     geom_line(col = cbpalette[1]) +
-    labs(x = "x", y = "f(x)") +
+    labs(x = "theta", y = "f(theta)") +
     theme_minimal()
 
 plot
@@ -188,22 +188,22 @@ What about a function in two dimensions?
 Take this one, where each marginal is the same as above:
 
 ```{r}
-f <- function(x) {
-  prod(exp(-(x^2) / 2))
+f <- function(theta) {
+  prod(exp(-(theta^2) / 2))
 }
 
 df <- expand.grid(
-  x1 = seq(-3, 3, by = 0.1),
-  x2 = seq(-3, 3, by = 0.1)
+  theta1 = seq(-3, 3, by = 0.1),
+  theta2 = seq(-3, 3, by = 0.1)
 )
 
 plot2 <- df %>%
   rowwise() %>%
   mutate(
-    y = f(c(x1, x2))
+    y = f(c(theta1, theta2))
   ) %>%
   ggplot() +
-    geom_contour(aes(x = x1, y = x2, z = y), col = multi.utils::cbpalette()[1]) +
+    geom_contour(aes(x = theta1, y = theta2, z = y), col = multi.utils::cbpalette()[1]) +
     theme_minimal()
 
 plot2
@@ -241,7 +241,7 @@ plot2 <- plot2 +
     aes(x = V1, y = V2, size = weights),
     alpha = 0.5
   ) +
-  labs(col = "f(x1, x2)", size = "Weight") +
+  labs(col = "f(theta1, theta2)", size = "Weight") +
   scale_size_continuous(limits = c(2, 4))
 
 plot2

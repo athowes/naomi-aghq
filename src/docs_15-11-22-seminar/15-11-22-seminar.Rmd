@@ -20,22 +20,27 @@ output:
 * Surveillance of the HIV epidemic in sub-Saharan Africa
 * Want to estimate indicators used for monitoring and response, including:
   * Prevalence $\rho$: the proportion of people who are HIV positive
-  * Incidence $\lambda$: the proportion of people newly infected 
   * Treatment coverage $\alpha$: the proportion of PLHIV on treatment
-* We would like to provide them at a local, district-level
+  * Incidence $\lambda$: the proportion of people newly infected 
+* Aim to provide estimates at a district-level to enable \textcolor{hilit}{precision public health}
 
 \begin{center}
 \begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
-This is a challenging task! Data is noisy, sparse and biased. $\implies$ compelling case for thoughtful Bayesian modelling.
+This is a challenging task! Data is noisy, sparse and biased $\implies$ compelling case for thoughtful Bayesian modelling 
 \end{tcolorbox}
 \end{center}
 
 # A simple small-area model for prevalence
 
-* Consider small-areas $i = 1, \ldots, n$ like the districts of a country
-* Simple random sample household-survey of size $m^\text{HS}_i$ in each area
-* The number of people testing positive for HIV is $y^\text{HS}_i$
-* You could calculate direct estimates of prevalence by $y^\text{HS}_i / m^\text{HS}_i$ but because the survey is powered at a national-level, the sample sizes are small and these estimates would be noisy
+* Consider "small-areas" $i = 1, \ldots, n$ (e.g. districts of a country)
+* Simple random sample household-survey^[In reality a complex survey design is used, often with urban rural stratification.] of size $m^\text{HS}_i$ where $y^\text{HS}_i$ people testing positive for HIV
+* Could calculate direct estimates of prevalence by $y^\text{HS}_i / m^\text{HS}_i$
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+Because the survey is powered at a national-level, the $m^\text{HS}_i$ are small and direct estimates would be noisy $\implies$ use a model to smooth estimates
+\end{tcolorbox}
+\end{center}
 
 # A simple small-area model for prevalence
 
@@ -45,7 +50,18 @@ y^\text{HS}_i &\sim \text{Bin}(m^\text{HS}_i, \rho^\text{HS}_i), \\
 \text{logit}(\rho^\text{HS}_i) &\sim g(\vartheta^\text{HS}), \quad i = 1, \ldots, n,
 \end{align*}
 * We usually set up $g$ as a Gaussian spatial smoother
-* This allows for pooling of information between districts
+* This allows for \textcolor{hilit}{pooling of information} between districts
+
+#
+
+```{r echo=FALSE, warning=FALSE, out.width="350px", fig.cap = "The Besag model, $\\phi_i \\, | \\, \\phi_{-i} \\sim \\mathcal{N} \\left(\\frac{1}{n_{\\delta i}} \\sum_{j: j \\sim i} \\phi_j, \\frac{1}{n_{\\delta i}\\tau_\\phi} \\right)$."}
+
+areas <- filter(sf::read_sf("zwe_areas.geojson"), area_level == 2)
+
+areas %>%
+  filter(area_level == 2) %>%
+  bsae::plot_graph(add_geography = TRUE)
+```
 
 # Latent Gaussian models
 
@@ -57,28 +73,39 @@ y^\text{HS}_i &\sim \text{Bin}(m^\text{HS}_i, \rho^\text{HS}_i), \\
 \end{alignat*}
 where $\y = (y_1, \ldots, y_n)$, $\x = (x_1, \ldots, x_n)$, $\btheta = (\theta_1, \ldots, \theta_m)$
 * Interested in learning both $(\btheta, \x)$ from data $\y$
-* If the middle layer is Gaussian, then it's a latent Gaussian model
+* If the middle layer is Gaussian, then it's a \textcolor{hilit}{latent Gaussian model}
 \begin{equation*}
   \text{(Latent field)} \qquad  p(\x \, | \, \btheta) = \mathcal{N}(\x  \, | \, \bm{\mu}(\btheta), \bm{Q}(\btheta)^{-1}).
 \end{equation*}
-* Covers most of the models commonly used in spatiotemporal statistics
 * Latent field is typically indexed by spatiotemporal location, such that $n > m$
 
 # Limitations of household surveys
 
-* A typical household survey takes around $UNKNOWN to run
-* This means that they don't happen very often
-* For this reason, the information might be quite out of date, and difficult to base policy on
+* Household surveys cost millions to run so they don't happen very often
+* e.g. DHS include 5k-30k households, and occurs around every 5 years
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+The snapshot they provide can be quite out of date, and difficult to base effective policy on $\implies$ need to use routinely collected data to help here
+\end{tcolorbox}
+\end{center}
 
 # Adding ANC surveillance
 
-* Pregnant women attending antenatal care clinics are routinely tested for HIV, to avoid mother-to-child transmission
-* This data source is more real-time than household surveys, but it's also more biased, because attendees are unlikely to be as representative of the population
-* But perhaps this bias is consistent, in which case we can still make use of the ANC data to supplement our model!
+* Pregnant women attending antenatal care clinics are routinely tested for HIV, to avoid mother-to-child transmission. This data source is:
+ 1. More \textcolor{hilit}{real-time} than household surveys -- can be collected e.g. monthly
+ 2. More \textcolor{hilit}{biased} than household surveys -- attendees are not representative
+* If the this bias is consistent, we can still ANC data to supplement our model
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+$\implies$ model the level using the household survey data, and the trend using the ANC data
+\end{tcolorbox}
+\end{center}
 
 # Adding ANC surveillance
 
-* Suppose of $m^\text{ANC}_i$ women attending ANC, $y^\text{ANC}_i$ are HIV positive, then we can use another binomial logistic regression:
+* Suppose of $m^\text{ANC}_i$ ANC attendees, $y^\text{ANC}_i$ are HIV positive, and model
 \begin{align*}
 y^\text{ANC}_i &\sim \text{Bin}(m^\text{ANC}_i, \rho^\text{ANC}_i), \\
 \text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho^\text{HS}_i) + b_i, \\
@@ -88,13 +115,13 @@ b_i &\sim \mathcal{N}(\beta_b, \sigma_b^2),
 
 # Adding ART coverage
 
-* We're also interested in what proportion $\alpha_i$ of people living with HIV (PLHIV) are receiving treatment
-* Suppose we record $A_i$ attendees from a known population of $N_i$ in each district
-* We can use another logistic regression model
+* Also interested in what proportion $\alpha_i$ of people living with HIV are receiving treatment, which may also be informative about prevalence
+* If we record $A_i$ attendees from a known population of $N_i$ in each district, then this can be modelled by
 \begin{align*}
 A_i &\sim \text{Bin}(N_i, \rho^\text{HS}_i \alpha_i), \\
 \text{logit}(\alpha_i) &\sim \mathcal{N}(\beta_\alpha, \sigma_\alpha^2).
 \end{align*}
+* To be more sophisticated, you can also model the movement of people to receive treatment in districts other than the one they live in
 
 # Naomi evidence synthesis model
 
@@ -104,7 +131,7 @@ A_i &\sim \text{Bin}(N_i, \rho^\text{HS}_i \alpha_i), \\
 
 * Combining these three modules is the basis of the Naomi evidence synthesis model
 * Used by countries to produce HIV estimates in a yearly process supported by UNAIDS
-* Can't run long MCMC in this setting, so we require fast, accurate, approximations 
+* Can't run long MCMC in this setting, so we \textcolor{hilit}{require fast, accurate, approximations}
 * It's a complicated model, and requires something more flexible than `R-INLA`
 * Currently using a package called Template Model Builder `TMB`
 
@@ -129,19 +156,13 @@ knitr::include_graphics("naomi_user.png")
 # Template Model Builder
 
 * `TMB` [@kristensen2015tmb] is an R package which implements the Laplace approximation for latent variable models
-* To get started, write an objective function $f(\x, \btheta)$ in `TMB` C++ syntax
+* I use "Laplace approximation" to mean approximating the normalising constant with Laplace's method^[Rather than approximating the posterior with a Gaussian, which I call a Gaussian approximation.]
+* To get started with `TMB`, write your $f(\x, \btheta)$ in `TMB`'s C++ syntax
 * As pseudo-Bayesians, we choose the log-posterior
 $$
 f(\x, \btheta) = - \log p(\y \, | \, \x, \btheta) p(\x \, | \, \btheta) p(\btheta)
 $$
-
-# Template Model Builder
-
-For example, for the model
-$$
-\y \sim \mathcal{N}(\mu, 1)
-$$
-with $p(\mu) \propto 1$ then the `TMB` user template looks like...
+* For example, for the model $\y \sim \mathcal{N}(\mu, 1)$ with $p(\mu) \propto 1$ then the `TMB` user template looks as follows
 
 # 
 
@@ -165,10 +186,11 @@ Type objective_function<Type>::operator()() {
 
 * We can use `TMB` to obtain the Laplace approximation
 $$
-\tilde p_\text{LA}(\btheta \, | \, \y) \propto \frac{p(\y, \x, \btheta)}{\tilde p_\text{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \bm{\mu}^\star(\btheta)} \label{eq:hypermarginal}
+\tilde p_\text{LA}(\btheta \, | \, \y) \propto \frac{p(\y, \x, \btheta)}{\tilde p_\text{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \bm{\mu}(\btheta)} \label{eq:hypermarginal}
 $$
 * Integrate out a Gaussian approximation $\tilde p_\text{G}(\x \, | \, \btheta, \y)$ to the latent field
-* `TMB` uses automatic differentiation [@griewank2008evaluating] via `CppAD`
+* `TMB` uses automatic differentiation [@griewank2008evaluating] via `CppAD` to do this, as well as help with numerical optimisation routines
+* TO-DO: how to describe the approximation for $\x$ with `TMB`
 
 # Integrated Nested Laplace Approximation
 
@@ -181,23 +203,23 @@ $$
 * To do so, we require the approximations $\tilde p(\btheta \, | \, \y)$ and $\tilde p(x_i \, | \, \btheta, \y)$
 * There are four steps as to how the method works (bare with me!)
 
-# Step 1)
+# Step 1
 
 1) First Laplace approximate hyperparameter posterior
 \begin{equation}
-\tilde p_\text{LA}(\btheta \, | \, \y) \propto \frac{p(\y, \x, \btheta)}{\tilde p_\text{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \bm{\mu}^\star(\btheta)} \label{eq:hypermarginal}
+\tilde p_\text{LA}(\btheta \, | \, \y) \propto \frac{p(\y, \x, \btheta)}{\tilde p_\text{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \bm{\mu}(\btheta)} \label{eq:hypermarginal}
 \end{equation}
 which can be marginalised to get $\tilde p(\theta_j \, | \, \y)$
 * Notice that this is the same object we had been working with in `TMB`
 * We use this approximation \textcolor{hilit}{nested} within integrals -- hence the name INLA
 
-# Step 2)
+# Step 2
 
 2) In both Equations \eqref{eq:inla1} and \eqref{eq:inla2} we want to integrate w.r.t. $\btheta$, so choose integration nodes and weights $\{ \btheta(\z), \omega(\z) \}_{\z \in \mathcal{Z}}$
   * For low $m$ `R-INLA` uses a grid-strategy
   * For larger $m$ this becomes too expensive and `R-INLA` uses a CCD design
-  * We plan to use adaptive Gaussian Hermite quadrature (AGHQ), which has recently been shown to have theoretical guarantees [@bilodeau2021stochastic]
-
+  * We plan to use adaptive Gaussian Hermite quadrature (AGHQ), which has recently been shown to have theoretical guarantees [@bilodeau2021stochastic] and is implemented in the `aghq` R package [@stringer2021implementing]
+  
 #
 
 ```{r message=FALSE, echo=FALSE, out.height="200px", fig.cap=paste("An illustration of the \\texttt{R-INLA} grid method for selecting integration nodes using a toy bivariate Gaussian distribution for $\\btheta$. Start at the mode and work outwards along the eigenvectors until the density drops sufficiently low. \\label{fig:grid}")}
@@ -206,65 +228,139 @@ knitr::include_graphics("depends/inla-grid.pdf")
 
 # Adaptive Gaussian Hermite Quadrature
 
-* Gauss-Hermite quadrature is a way of picking nodes and weights, and is based on the theory of polynomial interpolation
-* The adaptive part means that it uses the location (mode) and curvature (Hessian) of the target (posterior) to automatically choose the node locations
-  * Does not require manual tuning!
+* Gauss-Hermite quadrature is one way to pick nodes and weights, and is based on the theory of polynomial interpolation
+* The adaptive part means that it uses the location (mode) and curvature (Hessian) of the target (posterior) $\implies$ does not require manual parameter tuning!
 * Works particularly well when the integrand is pretty Gaussian
-* Use $k$ quadrature nodes per dimension, for example if $k = 3$ then $3^m$ total nodes
-* Implemented in the `aghq` R package. See vignette @stringer2021implementing
+* Use $k$ quadrature nodes per dimension, e.g. if $k = 3$ then $3^m$ total nodes
 
 #
 
-```{r message=FALSE, echo=FALSE, out.height="200px", fig.cap=paste("One dimensional example of AGHQ. \\label{fig:aghq-1d}")}
+```{r message=FALSE, echo=FALSE, out.height="200px", fig.cap=paste("One dimensional example of AGHQ with $3^1 = 3$ nodes. \\label{fig:aghq-1d}")}
 knitr::include_graphics("depends/aghq-1d.pdf")
 ```
 
 #
 
-```{r message=FALSE, echo=FALSE, out.height="200px", fig.cap=paste("Two dimensional example of AGHQ. \\label{fig:aghq-2d}")}
+```{r message=FALSE, echo=FALSE, out.height="200px", fig.cap=paste("Two dimensional example of AGHQ with $3^2 = 9$ nodes. \\label{fig:aghq-2d}")}
 knitr::include_graphics("depends/aghq-2d.pdf")
 ```
 
-# Step 3)
+# Step 3
 
 3) Choose approximation for $\tilde p(x_i \, | \, \btheta, \y)$
   * Simplest version [@rue2007approximate] is to marginalise $\tilde p_\text{G}(\x \, | \, \btheta, \y)$
 \begin{equation}
-\tilde p_\text{G}(x_i \, | \, \btheta, \y) = \mathcal{N}(x_i \, | \, \mu^\star_i(\btheta), 1 / q^\star_i(\btheta))
+\tilde p_\text{G}(x_i \, | \, \btheta, \y) = \mathcal{N}(x_i \, | \, \mu_i(\btheta), 1 / q_i(\btheta))
 \end{equation}
   * In `R-INLA`, the above is referred to as `method = "gaussian"` 
-  * There are two better, more complex approximations, confusingly called `"simplified.laplace"` and `"laplace"`
-  * Uses sparsity properties of $\bm{Q}(\btheta)$, i.e. if $\x$ is a Gaussian Markov random field (GMRF)
+  * This is also what is currently used in `aghq`
 
-# Step 4)
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+There are more accurate (and complicated) versions which I will talk about in a minute!
+\end{tcolorbox}
+\end{center}
+
+# Step 4
 
 4) Finally, use quadrature to combine
-  * our approximation $\tilde p_\text{LA}(\btheta \, | \, \y)$ from step 1),
-  * some choice of integration nodes and weights $\{ \btheta(\z), \omega(\z) \}$ from step 2),
-  * some choice of approximation $\tilde p(x_i \, | \, \btheta, \y)$ from step 3)
+  * our approximation $\tilde p_\text{LA}(\btheta \, | \, \y)$ from Step 1,
+  * some choice of integration nodes and weights $\{ \btheta(\z), \omega(\z) \}$ Step 2,
+  * some choice of approximation $\tilde p(x_i \, | \, \btheta, \y)$ from Step 3
 to give
 \begin{equation}
   \tilde p(x_i \, | \, \y) = 
   \sum_{\z \in \mathcal{Z}} \tilde p(x_i \, | \, \btheta(\z), \y) \times \tilde p_\text{LA}(\btheta(\z) \, | \, \y) \times \omega(\z)
 \end{equation}
 
-# Experiments
+# Using a Laplace approximation for Step 3
 
-* We wrote a simplified version of the Naomi model up in `TMB`
-* This allowed us to test three inference methods **all using precisely the same model and C++ code**
+* Rather than taking the marginals of $\tilde p_\text{G}(\x \, | \, \btheta, \y)$ we could calculate \textcolor{hilit}{a new Laplace approximation} for each $x_i$
+$$
+\tilde p_\text{LA}(x_i, \btheta, \y) = \frac{p(x_i, \x_{-i}, \btheta, \y)}{\tilde p_\text{G}(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \bm{\mu}_{-i}(x_i, \btheta)}
+$$
+where $\tilde p_\text{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \bm{\mu}_{-i}(x_i, \btheta), \bm{Q}_{-i}(x_i, \btheta)^{-1})$
+* Problem: $n$ can be big, and we will need to recalculate this for each $(x_i, \btheta)$
+* So for example, if we use a nested AGHQ strategy with $k_x$ and $k_\theta$ then we will need $k_x k_\theta^m$ recalculations for each $i$
 
-1. A direct Gaussian approximation via `TMB`
-2. Adaptive Gaussian Hermite quadrature via `aghq`
-3. No-U-Turn Sampling (NUTS -- a type of Hamiltonian Monte Carlo) via `tmbstan`
+# Cheaper approximate approximations
 
-* Note: using different software it is usually very difficult to ensure the model is precisely the same, so we're very fortunate here
+* @rue2009approximate found a way to do this in a cheaper and more approximate way based on assuming a \textcolor{hilit}{sparse} precision for $\x$
+  * a.k.a. that $\x$ is a Gaussian Markov random field (GMRF)
+* @wood2020simplified extended their approximation to work for the case when $\x$ does not have a sparse precision
+
+# Epilepsy example
+
+* Notebook for this example at `athowes.github.io/elgm-inf/epil`
+* From Section 5.2. of @rue2009approximate previously from BUGS manual
+* Patients $i = 1, \ldots, 59$ each either assigned treatment $\texttt{Trt}_i = 1$ or placebo $\texttt{Trt}_i = 0$ to help with seizures
+* Visits to clinics $j = 1, \ldots, 4$ times with $y_{ij}$ the number of seizures of the $i$th person in the two weeks proceeding their $j$th visit to the clinic
+* Covariates age $\texttt{Age}_i$, baseline seizure counts $\texttt{Base}_i$ and an indicator for the final clinic visit $\texttt{V}_4$
+
+# Epilepsy example
+
+The model is a Poisson GLMM:
+\begin{align*}
+  y_{ij}          &\sim \text{Poisson}(\lambda_{ij}), \\
+  \lambda_{ij}    &= e^{\eta_{ij}}, \\
+  \eta_{ij}       &= \beta_0 + \beta_{\texttt{Base}} \log(\texttt{Baseline}_j / 4) + \beta_{\texttt{Trt}} \texttt{Trt}_i +
+                     \beta_{\texttt{Trt} \times \texttt{Base}} \texttt{Trt}_i \times \log(\texttt{Baseline}_j / 4) \\ 
+                  &+ \beta_{\texttt{Age}} \log(\texttt{Age}_i) + \beta_{\texttt{V}_4} {\texttt{V}_4}_j +
+                     \epsilon_i + \nu_{ij}, \quad i=1:59, \quad j=1:4, \\
+  \beta           &\sim \mathcal{N}(0, 100^2), \quad \forall \beta, \\
+  \epsilon_i      &\sim \mathcal{N}(0, 1/\tau_\epsilon), \\
+  \nu_{ij}        &\sim \mathcal{N}(0, 1/\tau_\nu), \\
+  \tau_\epsilon   &\sim \Gamma(0.001, 0.001), \\
+  \tau_\nu        &\sim \Gamma(0.001, 0.001).
+\end{align*}
+
+# Inference
+
+Implement the following inference procedures:
+
+1. HMC NUTS via `tmbstan` and `TMB`
+2. Grid with Gaussian marginals via `R-INLA`
+3. Grid with simplified Laplace marginals via `R-INLA`
+4. Grid with Laplace marginals via `R-INLA`
+5. EB with Gaussian marginals via `TMB`
+6. AGHQ with Gaussian marginals via `aghq` and `TMB`
+7. **EB with Laplace marginals via `aghq` and `TMB`**^[I'm working on AGHQ with Gaussian marginals via `aghq` and `TMB`. I am using the `aghq` package, just with $k = 1$ corresponding to EB]
+
+# Results
 
 # Comparison approach
 
-* You could look at the summaries like the mean and standard deviation of each of the posterior marginals
-  * Any approximation method should be pretty good at getting the mean right
-  * Gaussian approximations should be good at getting the second moment right
-* It's probably better to compare the whole posterior distributions
+* You could look at the summaries like the mean and standard deviation of each of the posterior marginals but it's better to compare the whole posterior distributions
 * One way to do this is via Kolmogorov-Smirnov statistics, which give the maximum difference between two empirical CDFs
+
+# Prevalence, ANC, ART example
+
+* Notebook for this example at `athowes.github.io/elgm-inf/prev-anc-art`
+* Simulate data from model with all three components and particular (known) parameter values
+
+# Inference
+
+Implement the following inference procedures:
+
+1. HMC NUTS via `tmbstan` and `TMB`
+2. EB with Gaussian marginals via `TMB`
+3. AGHQ with Gaussian marginals via `aghq` and `TMB`
+
+* All of these approaches share the same C++ template, so the models are identical! This is often very difficult to ensure, so we're very fortunate here^[i.e. thanks to Kasper and Alex for making `tmbstan` and ``aghq` respectively!]
+
+# Results
+
+# Conclusions
+
+> My main comment is that several aspects of the computational machineery that is presented by Rue and his colleagues **could benefit from the use of a numerical technique known as automatic differentiation (AD)** ... By the use of AD one could obtain a system that is automatic from a user's perspective... the benefit would be a fast, flexible and easy-to-use system for doing Bayesian analysis in models with Gaussian latent variables 
+
+-- Hans J. Skaug (coauthor of `TMB`), RSS discussion of @rue2009approximate
+
+# Conclusions
+
+* Hopeful that we'll give fast, accurate inferences for Naomi!
+* Implementation as a part of `aghq` combining simplified INLA and AGHQ, enabled by automatic differentiation, will provide flexible use of the method
+  * Will be of interest to advanced users of `R-INLA` who would like specify models outside a formula interface (similar to users of `brms` v.s. Stan)
+  * This describes many in the HIV inference group `hiv-inference.org`^[See `athowes.github.io/inla-sandbox/` for some examples of understanding `R-INLA` internals.]
 
 # References {.allowframebreaks}
