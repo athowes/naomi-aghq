@@ -74,6 +74,33 @@ draw_ksplots_D <- function(results) {
       )
 }
 
+draw_ksplots_D_params <- function(results, params) {
+  map(results, "ks_test") %>%
+    bind_rows(.id = "sim_id") %>%
+    mutate(
+      D = as.numeric(D),
+      parameter = factor(parameter, levels = unique(.data$parameter))
+    ) %>%
+    select(-method2, -l) %>%
+    pivot_wider(
+      names_from = method1,
+      values_from = D
+    ) %>%
+    filter(!is.na(aghq) & !is.na(TMB)) %>%
+    filter(parameter %in% params) %>%
+    ggplot(aes(x = aghq, y = TMB)) +
+    geom_point(alpha = 0.5) +
+    facet_wrap(~parameter) +
+    xlim(0, 0.5) +
+    ylim(0, 0.5) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+    labs(x = "KS(aghq, tmbstan)", y = "KS(TMB, tmbstan)") +
+    theme_minimal() +
+    theme(
+      legend.position = "bottom"
+    )
+}
+
 draw_ksplots_l <- function(results) {
   map(results, "ks_test") %>%
     bind_rows(.id = "sim_id") %>%

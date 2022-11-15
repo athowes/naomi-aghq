@@ -347,17 +347,47 @@ Implement the following inference procedures:
 6. AGHQ with Gaussian marginals via `aghq` and `TMB`
 7. **EB with Laplace marginals via `aghq` and `TMB`**^[I'm working on AGHQ with Gaussian marginals via `aghq` and `TMB`. I am using the `aghq` package, just with $k = 1$ corresponding to EB]
 
-# Results
+#
 
-# Comparison approach
+```{r echo=FALSE}
+df <- readRDS("depends/comparison-results.rds") %>%
+  select("tmbstan", "R-INLA_G", "R-INLA_SL", "R-INLA_L", "TMB", "aghq", "adam")
 
-* You could look at the summaries like the mean and standard deviation of each of the posterior marginals but it's better to compare the whole posterior distributions
+beta_i <- function(i) { c(paste0("$\\mathbb{E}[\\beta_", i, "]$"), paste0("$\\text{sd}[\\beta_", i, "]$")) }
+rownames(df) <- c(sapply(0:5, beta_i))
+
+names(df) <- c("\\texttt{tmbstan}", "\\texttt{R-INLA}-G", "\\texttt{R-INLA}-SL", "\\texttt{R-INLA}-L", "\\texttt{TMB}", "\\texttt{aghq}", "\\texttt{adam}")
+
+df %>%
+  kableExtra::kable(format = "latex", align = "l", booktabs = TRUE, longtable = TRUE, digits = 2, escape = FALSE)
+```
+
+#
+
+```{r message=FALSE, echo=FALSE, out.height="200px", fig.cap=paste("The intercept parameter has the greatest difference between the Gaussian and Laplace approaches. The results in pink are from HMC NUTS.")}
+knitr::include_graphics("depends/intercept-comparison.pdf")
+```
+
+
+# Comparison approaches
+
+* You could look at the summaries like the mean and standard deviation of each of the posterior marginals as we have above
+* It worked for $\beta_0$, but usually this isn't very informative, and it's better to compare the whole posterior distributions
 * One way to do this is via Kolmogorov-Smirnov statistics, which give the maximum difference between two empirical CDFs
+* Also considering other approaches!
+  * PSIS: is your approximate distribution a good importance sampling proposal for your target? If not, maybe there is an issue!
+  * SBC: generating $(\theta, y)$ first $\theta$ then $y \ | \ \theta$ should be the same as first $y$ then then $\theta \ | \ y$
+  * MMD: compute a distance using kernels (e.g. Gaussian)
 
 # Prevalence, ANC, ART example
 
-* Notebook for this example at `athowes.github.io/elgm-inf/prev-anc-art`
 * Simulate data from model with all three components and particular (known) parameter values
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+Notebook for this example at \texttt{athowes.github.io/elgm-inf/prev-anc-art}
+\end{tcolorbox}
+\end{center}
 
 # Inference
 
@@ -370,6 +400,10 @@ Implement the following inference procedures:
 * All of these approaches share the same C++ template, so the models are identical! This is often very difficult to ensure, so we're very fortunate here^[i.e. thanks to Kasper and Alex for making `tmbstan` and ``aghq` respectively!]
 
 # Results
+
+```{r message=FALSE, echo=FALSE, out.height="200px", fig.cap=paste("Example KS results from five simulated datasets.")}
+knitr::include_graphics("depends/ks-example.pdf")
+```
 
 # Conclusions
 
@@ -386,7 +420,7 @@ Implement the following inference procedures:
 
 # Thanks for listening!
 
-* Joint work with Alex Stringer (Waterloo) and my supervisors Seth Flaxman (Oxford) and Jeff Eaton (Imperial)
+* Joint work with Alex Stringer (Waterloo) and my PhD supervisors Seth Flaxman (Oxford) and Jeff Eaton (Imperial)
 * The code for this project is at `github.com/athowes/elgm-inf`
 * You can find me online at `athowes.github.io`
 

@@ -243,6 +243,8 @@ draw_ksplots_D(model3) + labs(title = "Model 3")
 
 ```{r fig.height=8}
 draw_ksplots_D(model4) + labs(title = "Model 4")
+
+ggsave("ks-example.pdf", draw_ksplots_D_params(model4, params = "phi_prev[5]"), h = 4, w = 6.25)
 ```
 
 ##

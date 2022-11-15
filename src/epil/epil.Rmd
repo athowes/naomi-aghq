@@ -593,16 +593,19 @@ plot_pdf <- ggplot(data.frame(x = rstan::extract(fit1, pars = "beta[1]")[[1]]), 
 
 beta0_inla_marginals <- bind_rows(
   data.frame(fit2$marginals.fixed$`(Intercept)`) %>%
-    mutate(method = "G"),
-  data.frame(fit3$marginals.fixed$`(Intercept)`) %>%
-    mutate(method = "SL"),
+    mutate(method = "Gaussian"),
   data.frame(fit4$marginals.fixed$`(Intercept)`) %>%
-    mutate(method = "L")
+    mutate(method = "Laplace")
 )
 
-plot_pdf +
+plot_pdf <- plot_pdf +
   geom_line(data = beta0_inla_marginals, aes(x = x, y = y, col = method)) +
-  scale_color_manual(values = cbpalette)
+  scale_color_manual(values = cbpalette) +
+  labs(col = "Method")
+
+plot_pdf
+
+ggsave("intercept-comparison.pdf", plot = plot_pdf, h = 4, w = 6.25)
 ```
 
 ## Scatter plot against `tmbstan`

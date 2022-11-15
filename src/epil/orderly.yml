@@ -9,6 +9,7 @@ artefacts:
       description: Results of model comparison
       filenames:
         - comparison-results.rds
+        - intercept-comparison.pdf
 
 resources:
   - epil.Rmd

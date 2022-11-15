@@ -8,6 +8,10 @@ artefacts:
       description: Prevalence, ANC, ART model
       filenames:
         - prev-anc-art.html
+  - data:
+      description: KS example plot
+      filenames:
+        - ks-example.pdf
 
 resources:
   - prev-anc-art.Rmd

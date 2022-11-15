@@ -34,3 +34,12 @@ depends:
     use:
       depends/aghq-1d.pdf: aghq-1d.pdf
       depends/aghq-2d.pdf: aghq-2d.pdf
+  epil:
+    id: latest
+    use:
+      depends/comparison-results.rds: comparison-results.rds
+      depends/intercept-comparison.pdf: intercept-comparison.pdf
+  prev-anc-art_results:
+    id: latest
+    use:
+      depends/ks-example.pdf: ks-example.pdf
