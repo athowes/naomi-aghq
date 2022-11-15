@@ -71,13 +71,13 @@ areas %>%
   &\text{(Latent field)}     &   \x &\sim p(\x \, | \, \btheta), \\
   &\text{(Hyperparameters)}  &   \qquad \btheta &\sim p(\btheta),
 \end{alignat*}
-where $\y = (y_1, \ldots, y_n)$, $\x = (x_1, \ldots, x_n)$, $\btheta = (\theta_1, \ldots, \theta_m)$
+where $\y = (y_1, \ldots, y_n)$, $\x = (x_1, \ldots, x_N)$, $\btheta = (\theta_1, \ldots, \theta_m)$
 * Interested in learning both $(\btheta, \x)$ from data $\y$
 * If the middle layer is Gaussian, then it's a \textcolor{hilit}{latent Gaussian model}
 \begin{equation*}
   \text{(Latent field)} \qquad  p(\x \, | \, \btheta) = \mathcal{N}(\x  \, | \, \bm{\mu}(\btheta), \bm{Q}(\btheta)^{-1}).
 \end{equation*}
-* Latent field is typically indexed by spatiotemporal location, such that $n > m$
+* Latent field is typically indexed by spatiotemporal location, such that $N > m$
 
 # Limitations of household surveys
 
@@ -158,7 +158,7 @@ knitr::include_graphics("naomi_user.png")
 * `TMB` [@kristensen2015tmb] is an R package which implements the Laplace approximation for latent variable models
 * I use "Laplace approximation" to mean approximating the normalising constant with Laplace's method^[Rather than approximating the posterior with a Gaussian, which I call a Gaussian approximation.]
 * To get started with `TMB`, write your $f(\x, \btheta)$ in `TMB`'s C++ syntax
-* As pseudo-Bayesians, we choose the log-posterior
+* As pseudo-Bayesians, we choose (something proportional to) the log-posterior
 $$
 f(\x, \btheta) = - \log p(\y \, | \, \x, \btheta) p(\x \, | \, \btheta) p(\btheta)
 $$
@@ -190,14 +190,14 @@ $$
 $$
 * Integrate out a Gaussian approximation $\tilde p_\text{G}(\x \, | \, \btheta, \y)$ to the latent field
 * `TMB` uses automatic differentiation [@griewank2008evaluating] via `CppAD` to do this, as well as help with numerical optimisation routines
-* TO-DO: how to describe the approximation for $\x$ with `TMB`
+* We then optimise this to obtain a mode $\hat \btheta$, and a Hessian $\bm{H}$ at the mode
 
 # Integrated Nested Laplace Approximation
 
 * Integrated nested Laplace approximation (INLA) [@rue2009approximate; @blangiardo2015spatial] is an approach to approximate inference which builds on the Laplace approximation
 * Goal is to approximate \textcolor{hilit}{posterior marginals} $\{\tilde p(x_i \, | \, \y)\}_{i = 1}^n$ and $\{\tilde p(\theta_j \, | \, \y)\}_{j = 1}^m$
 \begin{align}
-  p(x_i \, | \, \y) &= \int p(x_i, \btheta \, | \, \y) \text{d} \btheta = \int p(x_i \, | \, \btheta, \y) p(\btheta \, | \, \y) \text{d}\btheta, \quad i = 1, \dots, n, \label{eq:inla1} \\
+  p(x_i \, | \, \y) &= \int p(x_i, \btheta \, | \, \y) \text{d} \btheta = \int p(x_i \, | \, \btheta, \y) p(\btheta \, | \, \y) \text{d}\btheta, \quad i = 1, \dots, N, \label{eq:inla1} \\
   p(\theta_j \, | \, \y) &= \int p(\btheta \, | \, \y) \text{d}\btheta_{-j} \quad j = 1, \ldots, m. \label{eq:inla2}
 \end{align}
 * To do so, we require the approximations $\tilde p(\btheta \, | \, \y)$ and $\tilde p(x_i \, | \, \btheta, \y)$
@@ -211,7 +211,11 @@ $$
 \end{equation}
 which can be marginalised to get $\tilde p(\theta_j \, | \, \y)$
 * Notice that this is the same object we had been working with in `TMB`
-* We use this approximation \textcolor{hilit}{nested} within integrals -- hence the name INLA
+* We will use this approximation \textcolor{hilit}{nested} within integrals like this one
+$$
+\int p(x_i, \btheta \, | \, \y) \text{d} \btheta = \int p(x_i \, | \, \btheta, \y) \tilde p_\text{LA}(\btheta \, | \, \y) \text{d}\btheta
+$$
+hence the name INLA
 
 # Step 2
 
@@ -228,20 +232,25 @@ knitr::include_graphics("depends/inla-grid.pdf")
 
 # Adaptive Gaussian Hermite Quadrature
 
-* Gauss-Hermite quadrature is one way to pick nodes and weights, and is based on the theory of polynomial interpolation
-* The adaptive part means that it uses the location (mode) and curvature (Hessian) of the target (posterior) $\implies$ does not require manual parameter tuning!
+* Gauss-Hermite quadrature is one way to pick nodes $\z \in \mathcal{Q}(m, k)$ and weights $\omega(\z): \mathcal{Q}(m, k) \to \mathbb{R}$, based on the theory of polynomial interpolation
+* The \textcolor{hilit}{adaptive} part means that it uses the location (mode) and curvature (Hessian) of the target (posterior) so that $\btheta(\z) = \hat \btheta + \bm{L}\z$
 * Works particularly well when the integrand is pretty Gaussian
 * Use $k$ quadrature nodes per dimension, e.g. if $k = 3$ then $3^m$ total nodes
 
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+Key benefits: no manual tuning, works well (and starting to get some theory) in statistical contexts
+\end{tcolorbox}
+\end{center}
 #
 
-```{r message=FALSE, echo=FALSE, out.height="200px", fig.cap=paste("One dimensional example of AGHQ with $3^1 = 3$ nodes. \\label{fig:aghq-1d}")}
+```{r message=FALSE, echo=FALSE, out.height="200px", fig.cap=paste("One dimensional example of AGHQ with $3^1 = 3$ nodes. If $k$ is odd then the mode is always included. \\label{fig:aghq-1d}")}
 knitr::include_graphics("depends/aghq-1d.pdf")
 ```
 
 #
 
-```{r message=FALSE, echo=FALSE, out.height="200px", fig.cap=paste("Two dimensional example of AGHQ with $3^2 = 9$ nodes. \\label{fig:aghq-2d}")}
+```{r message=FALSE, echo=FALSE, out.height="200px", fig.cap=paste("Two dimensional example of AGHQ with $3^2 = 9$ nodes. Here we use the product rule so that the points in 2D are just 1D x 1D. \\label{fig:aghq-2d}")}
 knitr::include_graphics("depends/aghq-2d.pdf")
 ```
 
@@ -257,7 +266,7 @@ knitr::include_graphics("depends/aghq-2d.pdf")
 
 \begin{center}
 \begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
-There are more accurate (and complicated) versions which I will talk about in a minute!
+There are more accurate (and complicated) versions which I will talk briefly about in a minute!
 \end{tcolorbox}
 \end{center}
 
@@ -275,13 +284,14 @@ to give
 
 # Using a Laplace approximation for Step 3
 
-* Rather than taking the marginals of $\tilde p_\text{G}(\x \, | \, \btheta, \y)$ we could calculate \textcolor{hilit}{a new Laplace approximation} for each $x_i$
+* Previously had been taking the marginals of $\tilde p_\text{G}(\x \, | \, \btheta, \y)$
+* Alternative: calculate \textcolor{hilit}{a new Laplace approximation} for each $x_i$
 $$
 \tilde p_\text{LA}(x_i, \btheta, \y) = \frac{p(x_i, \x_{-i}, \btheta, \y)}{\tilde p_\text{G}(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \bm{\mu}_{-i}(x_i, \btheta)}
 $$
 where $\tilde p_\text{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \bm{\mu}_{-i}(x_i, \btheta), \bm{Q}_{-i}(x_i, \btheta)^{-1})$
-* Problem: $n$ can be big, and we will need to recalculate this for each $(x_i, \btheta)$
-* So for example, if we use a nested AGHQ strategy with $k_x$ and $k_\theta$ then we will need $k_x k_\theta^m$ recalculations for each $i$
+* Problem: $N$ can be big, and we will need to recalculate this for each $(x_i, \btheta)$
+* Ideas like using $\bm{\mu}(\btheta)_{-i}$ to initialise Newton optimisation to find $\bm{\mu}_{-i}(x_i, \btheta)$ could help 
 
 # Cheaper approximate approximations
 
@@ -289,13 +299,24 @@ where $\tilde p_\text{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \bm{\m
   * a.k.a. that $\x$ is a Gaussian Markov random field (GMRF)
 * @wood2020simplified extended their approximation to work for the case when $\x$ does not have a sparse precision
 
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+Plan: see how long a naive version without these modifications takes, then use this work to get speed-ups as required
+\end{tcolorbox}
+\end{center}
+
 # Epilepsy example
 
-* Notebook for this example at `athowes.github.io/elgm-inf/epil`
-* From Section 5.2. of @rue2009approximate previously from BUGS manual
+* Replication of example from Section 5.2. of @rue2009approximate, and previously from BUGS manual
 * Patients $i = 1, \ldots, 59$ each either assigned treatment $\texttt{Trt}_i = 1$ or placebo $\texttt{Trt}_i = 0$ to help with seizures
 * Visits to clinics $j = 1, \ldots, 4$ times with $y_{ij}$ the number of seizures of the $i$th person in the two weeks proceeding their $j$th visit to the clinic
 * Covariates age $\texttt{Age}_i$, baseline seizure counts $\texttt{Base}_i$ and an indicator for the final clinic visit $\texttt{V}_4$
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+Notebook for this example at \texttt{athowes.github.io/elgm-inf/epil}
+\end{tcolorbox}
+\end{center}
 
 # Epilepsy example
 
@@ -362,5 +383,11 @@ Implement the following inference procedures:
 * Implementation as a part of `aghq` combining simplified INLA and AGHQ, enabled by automatic differentiation, will provide flexible use of the method
   * Will be of interest to advanced users of `R-INLA` who would like specify models outside a formula interface (similar to users of `brms` v.s. Stan)
   * This describes many in the HIV inference group `hiv-inference.org`^[See `athowes.github.io/inla-sandbox/` for some examples of understanding `R-INLA` internals.]
+
+# Thanks for listening!
+
+* Joint work with Alex Stringer (Waterloo) and my supervisors Seth Flaxman (Oxford) and Jeff Eaton (Imperial)
+* The code for this project is at `github.com/athowes/elgm-inf`
+* You can find me online at `athowes.github.io`
 
 # References {.allowframebreaks}
