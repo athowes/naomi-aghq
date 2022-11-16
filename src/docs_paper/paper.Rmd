@@ -210,7 +210,7 @@ We typically set $k = 3$ such that there are $3^m$ nodes in total.
 
 3. Obtain a nested approximation to the posterior marginal of the $i$th latent effect by
 $$
-\tilde p(x_i \, | \, \y) = \sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\text{AQ}(x_i \, | \, \btheta(\z), \y) \tilde p_\text{AQ} (\btheta(\z) \, | \, \y) \psi(\z).
+\tilde p(x_i \, | \, \y) = \sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\text{AQ}(x_i \, | \, \btheta(\z), \y) \tilde p_\text{AQ} (\btheta(\z) \, | \, \y) \omega(\z).
 $$
 The nodes and weights $\{\mathcal{Q}(m, k), \omega\}$ used to obtain $\tilde p_{\text{AQ}}(\y)$ are reused to perform integration with respect to the hyperparameters above.
 For each of the $k^m$ values of $\btheta(\z)$ we obtain $\tilde p_\text{AQ}(x_i \, | \, \btheta(\z), \y)$ by setting $\btheta = \btheta(\z)$ in the following two steps.
