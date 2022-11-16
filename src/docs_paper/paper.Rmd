@@ -179,48 +179,68 @@ We consider approximations to the posterior marginals of each latent random vari
 
 ## Algorithm\label{sec:algorithm}
 
-Given a \textsf{C++} user template `model.cpp` for the unnormalised log posterior, we obtain the posterior marginal approximations given in Equations \eqref{eq:inla1} and \eqref{eq:inla2} via the following algorithm:
+Given a \textsf{C++} user template `model.cpp` for the negative unnormalised log posterior $- \log p(\y, \x, \btheta)$, we obtain the posterior marginal approximations $\{ \tilde p(x_i \, | \, \y) \}_{i = 1}^n$ and $\tilde p(\theta_j \, | \, \y)_{j = 1}^m$ via the following algorithm, comprised of nested applications of Laplace approximation and adative Gauss-Hermite quadrature.
 
 1. Use a Laplace approximation to obtain the unnormalised $\tilde p_\text{LA}(\btheta, \y)$
 $$
-\tilde p_\text{LA}(\btheta, \y) = \frac{p(\y, \x, \btheta)}{\tilde p_\text{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \bm{\mu}(\btheta)}
+\tilde p_\text{LA}(\btheta, \y) = \frac{p(\y, \x, \btheta)}{\tilde p_\text{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat \x(\btheta)}
 $$
-where $\tilde p_\text{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \bm{\mu}(\btheta), \bm{Q}(\btheta)^{-1})$ is a Gaussian approximation to $p(\x \, | \, \btheta, \y)$.
+where $\tilde p_\text{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \x(\btheta), \mathbf{H}(\btheta)^{-1})$ is a Gaussian approximation to $p(\x \, | \, \btheta, \y)$ with mode and precision matrix given by
+\begin{align*}
+\hat \x(\btheta) &= \argmin_\x - \log p(\y, \x, \btheta), \\
+\mathbf{H}(\btheta) &= \frac{\partial^2}{\partial x \partial x^\top} - \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}
+\end{align*}
 
 2. Normalise $\tilde p_\text{LA}(\btheta, \y)$ using adaptive Gauss-Hermite quadrature to obtain
 $$
 \tilde p_\text{AQ}(\btheta \, | \, \y) = \frac{\tilde p_\text{LA}(\btheta, \y)}{\tilde p_{\text{AQ}}(\y)},
 $$
-where the normalising constant is calculated using nodes $\z_\theta \in \mathcal{Q}(m, k_\theta)$ as
+where the normalising constant is calculated using nodes from a Gauss-Hermite quadrature rule $\z \in \mathcal{Q}(m, k)$ with $m = \dim(\btheta)$, $k$ nodes per dimension, and weights $\omega: \z \in \mathcal{Q}(m, k) \to \mathbb{R}$ as
 $$
-\tilde p_{\text{AQ}}(\y) = \sum_{\z_\theta \in \mathcal{Q}(m, k_\theta)} \tilde p_\text{LA}(\btheta(\z_\theta), \y) \omega_\theta(\z_\theta),
+\tilde p_{\text{AQ}}(\y) = \sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\text{LA}(\btheta(\z), \y) \omega(\z).
 $$
-where $m = \dim(\btheta)$, the number of nodes per dimension is $k_\theta$, and weights $\omega_\theta: \z_\theta \in \mathcal{Q}(m, k_\theta) \to \mathbb{R}$.
-We typically set $k_\theta = 3$ such that there are $3^m$ nodes in total.
+The nodes $\z$ are adapted based on the mode and curvature at the mode of the Laplace approximation as follows
+\begin{align*}
+\btheta(\z) &= \hat{\btheta} + \mathbf{L} \z, \\
+\hat{\btheta} &= \argmax_{\btheta} {\tilde p_\text{LA}(\btheta, \y)}, \\
+\mathbf{H} &= \frac{\partial^2}{\partial \btheta \partial \btheta^\top} - \log \tilde p_\text{LA}(\btheta, \y) \rvert_{\btheta = \hat \btheta} \\
+\mathbf{H}^{-1} &= \mathbf{L} \mathbf{L}^\top.
+\end{align*}
+We typically set $k = 3$ such that there are $3^m$ nodes in total.
 
 3. Obtain a nested approximation to the posterior marginal of the $i$th latent effect by
 $$
-\tilde p(x_i \, | \, \y) = \sum_{\z_\theta \in \mathcal{Q}(m, k_\theta)} \tilde p_\text{AQ}(x_i \, | \, \btheta(\z_\theta), \y) \tilde p_\text{AQ} (\btheta(\z_\theta) \, | \, \y) \omega_\theta(\z_\theta).
+\tilde p(x_i \, | \, \y) = \sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\text{AQ}(x_i \, | \, \btheta(\z), \y) \tilde p_\text{AQ} (\btheta(\z) \, | \, \y) \psi(\z).
 $$
-The nodes and weights $\{\mathcal{Q}(m, k_\theta), \omega_\theta\}$ used to obtain $\tilde p_{\text{AQ}}(\y)$ are reused to perform integration with respect to the hyperparameters above.
-For each of the $k_\theta^m$ values of $\btheta(\z_\theta)$ we obtain $\tilde p_\text{AQ}(x_i \, | \, \btheta(\z_\theta), \y)$ by setting $\btheta = \btheta(\z_\theta)$ in the following two steps.
+The nodes and weights $\{\mathcal{Q}(m, k), \omega\}$ used to obtain $\tilde p_{\text{AQ}}(\y)$ are reused to perform integration with respect to the hyperparameters above.
+For each of the $k^m$ values of $\btheta(\z)$ we obtain $\tilde p_\text{AQ}(x_i \, | \, \btheta(\z), \y)$ by setting $\btheta = \btheta(\z)$ in the following two steps.
 
 a) Use a Laplace approximation to obtain the unnormalised $\tilde p_\text{LA}(x_i, \btheta, \y)$
 $$
-\tilde p_\text{LA}(x_i, \btheta, \y) = \frac{p(x_i, \x_{-i}, \btheta, \y)}{p_\text{G}(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \bm{\mu}_{-i}(x_i, \btheta)}
+\tilde p_\text{LA}(x_i, \btheta, \y) = \frac{p(x_i, \x_{-i}, \btheta, \y)}{p_\text{G}(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)}
 $$
-where $\tilde p_\text{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \bm{\mu}_{-i}(x_i, \btheta), \bm{Q}_{-i}(x_i, \btheta)^{-1})$.
+where $\tilde p_\text{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \x_{-i}(x_i, \btheta), \mathbf{H}_{-i, -i}(x_i, \btheta)^{-1})$ is a Gaussian approximation to $p(\x \, | \, \btheta, \y)$ with mode and precision matrix given by
+\begin{align*}
+\hat \x_{-i}(x_i, \btheta) &= \argmin_{\x_{-i}} - \log p(\y, x_i, \x_{-i}, \btheta), \\
+\mathbf{H}_{-i, -i}(x_i, \btheta) &= \frac{\partial^2}{\partial \x_{-i} \partial \x_{-i}^\top} - \log p(\y, x_i, \x_{-i}, \btheta) \rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)}
+\end{align*}
 
 b) Normalise $\tilde p_\text{LA}(x_i, \btheta, \y)$ using adaptive Gauss-Hermite quadrature to obtain
 $$
 \tilde p_\text{AQ}(x_i \, | \, \btheta, \y) = \frac{\tilde p_\text{LA}(x_i, \btheta, \y)}{\tilde p_{\text{AQ}}(\btheta, \y)},
 $$
-where the normalising constant is calculated using nodes $z_x \in \mathcal{Q}(1, k_x)$ as
+where the normalising constant is calculated using nodes from a Gauss-Hermite quadrature rule $v \in \mathcal{Q}(1, l)$ with $l$ nodes, and weights $\psi: v \in \mathcal{Q}(1, l) \to \mathbb{R}$ as follows
 $$
-\tilde p_{\text{AQ}}(\btheta, \y) = \sum_{z_x \in \mathcal{Q}(1, k_x)} \tilde p_\text{LA}(x_i(z_x), \btheta, \y) \omega_x(z_x),
+\tilde p_{\text{AQ}}(\btheta, \y) = \sum_{v \in \mathcal{Q}(1, l)} \tilde p_\text{LA}(x_i(v), \btheta, \y) \psi(v),
 $$
-where the total number of nodes is $k_x$ and weights $\omega_x: z_x \in \mathcal{Q}(1, k_x) \to \mathbb{R}$.
-As this quadrature is in one dimension, we can set $k_x = 5$ or higher.
+The nodes $v$ are adapted based on the mode and curvature at the mode of the Laplace approximation as follows
+\begin{align*}
+x_i(v) &= \hat{x_i} + \sigma_i v, \\
+x_i(v) &= \argmax_{x_i} {\tilde p_\text{LA}(x_i, \btheta, \y)}, \\
+\tau_i^2 &= \frac{\partial^2}{\partial^2 x_i} - \log \tilde p_\text{LA}(x_i, \btheta, \y) \rvert_{x_i = \hat x_i} \\
+\sqrt{\tau_i^2} &= \sigma_i.
+\end{align*}
+As this quadrature is in one dimension, we can set $l = 5$ or more.
 
 # Application to the Naomi model\label{sec:results}
 
