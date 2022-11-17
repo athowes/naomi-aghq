@@ -157,7 +157,7 @@ b_i &\sim \mathcal{N}(\beta_b, \sigma_b^2), \\
 \text{logit}(\alpha_i) &\sim \mathcal{N}(\beta_\alpha, \sigma_\alpha^2).
 \end{align*}
 
-# Fast inference methods\label{sec:fastinferencemethods}
+# Fast approximate inference method\label{sec:fastinferencemethods}
 
 Consider a latent Gaussian model (LGM) of the form
 \begin{alignat*}{2}
@@ -177,9 +177,9 @@ We consider approximations to the posterior marginals of each latent random vari
   \tilde p(\theta_j \, | \, \y) \approx p(\theta_j \, | \, \y) &= \int p(\btheta \, | \, \y) \text{d}\btheta_{-j} \quad j = 1, \ldots, m. \label{eq:inla2}
 \end{align}
 
-## Algorithm\label{sec:algorithm}
+## Forwards algorithm\label{sec:algorithm}
 
-Given a \textsf{C++} user template `model.cpp` for the negative unnormalised log posterior $- \log p(\y, \x, \btheta)$, we obtain the posterior marginal approximations $\{ \tilde p(x_i \, | \, \y) \}_{i = 1}^n$ and $\tilde p(\theta_j \, | \, \y)_{j = 1}^m$ via the following algorithm, comprised of nested applications of Laplace approximation and adative Gauss-Hermite quadrature.
+Given a \textsf{C++} user template `model.cpp` for the negative unnormalised log posterior $- \log p(\y, \x, \btheta)$, we obtain the posterior marginal approximations $\{ \tilde p(x_i \, | \, \y) \}_{i = 1}^n$ and $\tilde p(\theta_j \, | \, \y)_{j = 1}^m$ via the following algorithm, comprised of nested applications of Laplace approximation and adaptive Gauss-Hermite quadrature.
 
 1. Use a Laplace approximation to obtain the unnormalised $\tilde p_\text{LA}(\btheta, \y)$
 $$
@@ -188,7 +188,7 @@ $$
 where $\tilde p_\text{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \x(\btheta), \mathbf{H}(\btheta)^{-1})$ is a Gaussian approximation to $p(\x \, | \, \btheta, \y)$ with mode and precision matrix given by
 \begin{align*}
 \hat \x(\btheta) &= \argmin_\x - \log p(\y, \x, \btheta), \\
-\mathbf{H}(\btheta) &= \frac{\partial^2}{\partial x \partial x^\top} - \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}
+\mathbf{H}(\btheta) &= \frac{\partial^2}{\partial x \partial x^\top} - \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}.
 \end{align*}
 
 2. Normalise $\tilde p_\text{LA}(\btheta, \y)$ using adaptive Gauss-Hermite quadrature to obtain
@@ -213,19 +213,72 @@ $$
 \tilde p_\text{LA}(x_i, \y) = \sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\text{LA}(x_i, \btheta(\z), \y) \omega(\z).
 $$
 The nodes and weights $\{\mathcal{Q}(m, k), \omega\}$ used to obtain $\tilde p_{\text{AQ}}(\y)$ are reused to perform integration with respect to the hyperparameters above.
-For each of the $k^m$ values of $\btheta(\z)$ we obtain $\tilde p_\text{AQ}(x_i \, | \, \btheta(\z), \y)$ by setting $\btheta = \btheta(\z)$ in the following Laplace approximation
+For each of the $k^m$ values of $\btheta(\z)$ we obtain $\tilde p_\text{LA}(x_i, \btheta(\z), \y)$ by setting $\btheta = \btheta(\z)$ in the following Laplace approximation
 $$
-\tilde p_\text{LA}(x_i, \btheta, \y) = \frac{p(x_i, \x_{-i}, \btheta, \y)}{p_\text{G}(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)}
+\tilde p_\text{LA}(x_i, \btheta, \y) = \frac{p(x_i, \x_{-i}, \btheta, \y)}{\tilde p_\text{G}(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)}
 $$
 where $\tilde p_\text{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \x_{-i}(x_i, \btheta), \mathbf{H}_{-i, -i}(x_i, \btheta)^{-1})$ is a Gaussian approximation to $p(\x \, | \, \btheta, \y)$ with mode and precision matrix given by
 \begin{align*}
 \hat \x_{-i}(x_i, \btheta) &= \argmin_{\x_{-i}} - \log p(\y, x_i, \x_{-i}, \btheta), \\
-\mathbf{H}_{-i, -i}(x_i, \btheta) &= \frac{\partial^2}{\partial \x_{-i} \partial \x_{-i}^\top} - \log p(\y, x_i, \x_{-i}, \btheta) \rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)}
+\mathbf{H}_{-i, -i}(x_i, \btheta) &= \frac{\partial^2}{\partial \x_{-i} \partial \x_{-i}^\top} - \log p(\y, x_i, \x_{-i}, \btheta) \rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)}.
 \end{align*}
+Optimisation to obtain $\hat \x_{-i}(x_i, \btheta)$ may be initialised at $\hat \x(\btheta)_{-i}$.
+
 
 4. Normalise $\tilde p_\text{LA}(x_i, \y)$ using $\tilde p_{\text{AQ}}(\y)$ to obtain
 $$
 \tilde p_\text{AQ}(x_i \, | \, \y) = \frac{\tilde p_\text{LA}(x_i, \y)}{p_{\text{AQ}}(\y)}.
+$$
+which may be evaluated for some choice of values $x_i \in \{\ldots\}$.
+
+
+## Backward algorithm\label{sec:algorithm}
+
+1. Calculate
+\begin{align*}
+\hat{\btheta} &= \argmax_{\btheta} {\tilde p_\text{LA}(\btheta, \y)}, \\
+\mathbf{H} &= \frac{\partial^2}{\partial \btheta \partial \btheta^\top} - \log \tilde p_\text{LA}(\btheta, \y) \rvert_{\btheta = \hat \btheta} \\
+\mathbf{H}^{-1} &= \mathbf{L} \mathbf{L}^\top,
+\end{align*}
+where
+$$
+\tilde p_\text{LA}(\btheta, \y) = \frac{p(\y, \x, \btheta)}{\tilde p_\text{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat \x(\btheta)}
+$$
+where $\tilde p_\text{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \x(\btheta), \mathbf{H}(\btheta)^{-1})$ is a Gaussian approximation to $p(\x \, | \, \btheta, \y)$ with mode and precision matrix given by
+\begin{align*}
+\hat \x(\btheta) &= \argmin_\x - \log p(\y, \x, \btheta), \\
+\mathbf{H}(\btheta) &= \frac{\partial^2}{\partial x \partial x^\top} - \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}.
+\end{align*}
+2. Generate a set of nodes $\z \in \mathcal{Q}(m, k)$ and weights $\omega: \z \in \mathcal{Q}(m, k) \to \mathbb{R}$ from a Gauss-Hermite quadrature rule with $m = \dim(\btheta)$, $k$ nodes per dimension, as follows
+\begin{align*}
+\btheta(\z) &= \hat{\btheta} + \mathbf{L} \z, \\
+\hat{\btheta} &= \argmax_{\btheta} {\tilde p_\text{LA}(\btheta, \y)}, \\
+\mathbf{H} &= \frac{\partial^2}{\partial \btheta \partial \btheta^\top} - \log \tilde p_\text{LA}(\btheta, \y) \rvert_{\btheta = \hat \btheta} \\
+\mathbf{H}^{-1} &= \mathbf{L} \mathbf{L}^\top.
+\end{align*}
+We typically set $k = 3$ such that there are $3^m$ nodes in total.
+3. Use this quadrature rule to calculate $\tilde p_{\text{AQ}}(\y)$ as follows
+$$
+\tilde p_{\text{AQ}}(\y) = \sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\text{LA}(\btheta(\z), \y) \omega(\z).
+$$
+4. For $x_i \in \{\ldots\}$ and $\btheta \in \{ \btheta(\z) \}_{\z \in \mathcal{Q}(m, k)}$ calculate the modes and Hessians
+\begin{align*}
+\hat \x_{-i}(x_i, \btheta) &= \argmin_{\x_{-i}} - \log p(\y, x_i, \x_{-i}, \btheta), \\
+\mathbf{H}_{-i, -i}(x_i, \btheta) &= \frac{\partial^2}{\partial \x_{-i} \partial \x_{-i}^\top} - \log p(\y, x_i, \x_{-i}, \btheta) \rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)},
+\end{align*}
+where optimisation to obtain $\hat \x_{-i}(x_i, \btheta)$ may be initialised at $\hat \x(\btheta)_{-i}$.
+
+5. For each $x_i$ calculate
+$$
+\tilde p_\text{AQ}(x_i \, | \, \y) = \frac{\tilde p_\text{LA}(x_i, \y)}{p_{\text{AQ}}(\y)}.
+$$
+where
+$$
+\tilde p_\text{LA}(x_i, \y) = \sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\text{LA}(x_i, \btheta(\z), \y) \omega(\z).
+$$
+and
+$$
+\tilde p_\text{LA}(x_i, \btheta, \y) = \frac{p(x_i, \x_{-i}, \btheta, \y)}{\tilde p_\text{G}(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)}.
 $$
 
 # Application to the Naomi model\label{sec:results}
