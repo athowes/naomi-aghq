@@ -12,7 +12,7 @@ output:
     theme: lumen
 bibliography: citations.bib
 abstract: |
-  **Background** @rue2009approximate use the epilespy example from the OpenBUGs manual as demonstration of the integrated nested Laplace approximation method.
+  **Background** @rue2009approximate use the epilespy example from the OpenBUGs manual as demonstration of the integrated nested Laplace approximation method. The model is a Poisson GLMM including both fixed and random effects.
   
   **Task** We implement the epilepsy example in Stan, `R-INLA`, `TMB`, `glmmTMB`, `tmbstan`, `aghq`, and a custom Laplace marginal version of `aghq`. We then compare the results of the inference methods.
 ---
@@ -159,18 +159,22 @@ formula <- y ~ 1 + CTrt + ClBase4 + CV4 + ClAge + CBT +
 We can use various settings (`"gaussian"`, `"simplified.laplace"` and `"laplace"`) for the strategy passed to `control.inla`, which controls the approximation used for the latent field posterior marginals:
 
 ```{r}
-epil_inla <- function(strat) {
+epil_inla <- function(strat, int_strat) {
   inla(formula,
        control.fixed = list(mean = 0, prec = 1 / 100^2), #' Beta prior
        family = "poisson",
        data = Epil,
-       control.inla = list(strategy = strat),
+       control.inla = list(strategy = strat, int.strategy = int_strat),
        control.predictor = list(compute = TRUE))
 }
 
-fit2 <- epil_inla(strat = "gaussian")
-fit3 <- epil_inla(strat = "simplified.laplace")
-fit4 <- epil_inla(strat = "laplace")
+fit2 <- epil_inla(strat = "gaussian", int_strat = "eb")
+fit3 <- epil_inla(strat = "simplified.laplace", int_strat = "eb")
+fit4 <- epil_inla(strat = "laplace", int_strat = "eb")
+
+fit5 <- epil_inla(strat = "gaussian", int_strat = "grid")
+fit6 <- epil_inla(strat = "simplified.laplace", int_strat = "grid")
+fit7 <- epil_inla(strat = "laplace", int_strat = "grid")
 ```
 
 ## `TMB`
@@ -332,13 +336,13 @@ glmm_quad <- aghq::marginal_laplace_tmb(glmm_ff, k = 3, startingvalue = glmm_ff$
 Another, more standard, approach is to use the `TMB` template, `obj`, that we already have:
 
 ```{r results='hide'}
-fit8 <- aghq::marginal_laplace_tmb(
+fit11 <- aghq::marginal_laplace_tmb(
   obj,
   k = 3,
   startingvalue = c(param$l_tau_epsilon, param$l_tau_nu)
 )
 
-fit8_samples <- aghq::sample_marginal(fit8, M = 1000)$samps %>%
+fit11_samples <- aghq::sample_marginal(fit8, M = 1000)$samps %>%
   t() %>%
   as.data.frame() %>%
   inf.utils::replace_duplicate_colnames()
@@ -559,26 +563,29 @@ stan1 <- as.vector(t(summary(fit1)$summary[1:6, c(1, 3)]))
 inla2 <- as.vector(t(fit2$summary.fixed[1:6, 1:2]))
 inla3 <- as.vector(t(fit3$summary.fixed[1:6, 1:2]))
 inla4 <- as.vector(t(fit4$summary.fixed[1:6, 1:2]))
-tmb5 <- as.vector(t(data.frame(sd_out$par.random[1:6], sqrt(sd_out$diag.cov.random[1:6]))))
-glmmtmb6 <- as.vector(t(summary(fit6)$coefficients$cond[, c("Estimate", "Std. Error")]))
-tmbstan7 <- as.vector(t(summary(fit7)$summary[1:6, c(1, 3)]))
+inla5 <- as.vector(t(fit2$summary.fixed[1:6, 1:2]))
+inla6 <- as.vector(t(fit3$summary.fixed[1:6, 1:2]))
+inla7 <- as.vector(t(fit4$summary.fixed[1:6, 1:2]))
+tmb8 <- as.vector(t(data.frame(sd_out$par.random[1:6], sqrt(sd_out$diag.cov.random[1:6]))))
+glmmtmb9 <- as.vector(t(summary(fit6)$coefficients$cond[, c("Estimate", "Std. Error")]))
+tmbstan10 <- as.vector(t(summary(fit7)$summary[1:6, c(1, 3)]))
 
-fit8_beta_samples <- fit8_samples[, 1:6]
-aghq8 <- as.vector(t(data.frame(mean = apply(fit8_beta_samples, 2, mean), sd = apply(fit8_beta_samples, 2, sd))))
+fit11_beta_samples <- fit8_samples[, 1:6]
+aghq11 <- as.vector(t(data.frame(mean = apply(fit11_beta_samples, 2, mean), sd = apply(fit8_beta_samples, 2, sd))))
 
-adam9 <- as.vector(t(laplace_beta_summary[1:6, 1:2]))
+adam12 <- as.vector(t(laplace_beta_summary[1:6, 1:2]))
 
-df <- cbind(stan1, inla2, inla3, inla4, tmb5, glmmtmb6, tmbstan7, aghq8, adam9) %>%
+df <- cbind(stan1, inla2, inla3, inla4, inla5, inla6, inla7, tmb8, glmmtmb9, tmbstan10, aghq11, adam12) %>%
   as.data.frame() %>%
   mutate(type = gl(2, 1, 12, labels = c("Mean", "SD")))
 
 beta_i <- function(i) { c(paste0("beta_", i), paste0("sd(beta_", i, ")")) }
 rownames(df) <- c(sapply(0:5, beta_i))
-colnames(df) <- c("Stan", "R-INLA_G", "R-INLA_SL", "R-INLA_L", "TMB", "glmmTMB", "tmbstan", "aghq", "adam", "type")
+colnames(df) <- c("Stan", "EB-G", "EB-SL", "EB-L", "Grid-G", "Grid-SL", "Grid-L", "TMB", "glmmTMB", "tmbstan", "aghq", "adam", "type")
 
 df %>%
   select(-type) %>%
-  kableExtra::kable()
+  kableExtra::kable(digits = 3)
 
 saveRDS(df, "comparison-results.rds")
 ```
