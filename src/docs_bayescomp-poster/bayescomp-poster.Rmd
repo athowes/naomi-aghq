@@ -1,6 +1,6 @@
 ---
-main_topsize: 0.2
-main_bottomsize: 0.075
+main_topsize: 0.18
+main_bottomsize: 0.03
 poster_height: "48in"
 poster_width: "36in"
 font_family: "Open Sans"
@@ -27,8 +27,7 @@ affiliation:
     address: Department of Statistics and Actuarial Science, University of Waterloo
   - num: 4
     address: Department of Computer Science, University of Oxford
-main_findings:
-  - "Combining **simplified INLA**, automatic differentiation and **adaptive Gauss-Hermite quadrature** for fast and accurate inference in a challenging, real-world problem"
+main_findings: "Simplified INLA, automatic differentiation and adaptive Gauss-Hermite quadrature for fast and accurate approximate inference"
 logoleft_name: "IMP_ML_W_N.png"
 # logoright_name: "UNAIDS-reverse-EN.gif"
 # Style & formatting
@@ -46,7 +45,7 @@ primary_colour: '#38761C'
 secondary_colour: '#3b77D8'
 accent_colour: "#5d19c4"
 body_bgcol: "#ffffff"
-body_textsize: "40px"
+body_textsize: "35px"
 body_textcol: "#000000"
 reference_textsize: "25px"
 sectitle_textsize: "40px"
@@ -65,7 +64,23 @@ $$\\[0.15in]$$
 
 ## The Naomi model
 
+$$\\[0.15in]$$
+
 ## Inference procedure
+
+### Laplace approximation
+
+### Adaptive Gauss-Hermite Quadrature
+
+Approximate integrals by 
+$$
+\int_\Theta p(\theta) \text{d} \theta \approx \lvert L \rvert \sum_{z \in \mathcal{Q}(m, k)} p(\hat \theta + Lz) \omega(z)
+$$
+with **Gauss-Hermite quadrature** rule $z \in \mathcal{Q}(m, k)$ **adapted** based upon the mode $\hat \theta = \text{argmax}_{\theta \in \Theta} \in p(\theta)$ and lower Cholesky $LL^\top = - \partial_\theta^2 \log p(\theta) \rvert_{\theta = \hat \theta}$ of the target.
+
+### Our algorithm
+
+Given C++ user template for $- \log p(y, x, \theta)$:
 
 ## Comparison
 
