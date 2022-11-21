@@ -744,13 +744,13 @@ plot3
 ### KS test
 
 ```{r}
-ks_gaussian_tmbstan <- lapply(1:length(mode), function(i) {
+ks_gaussian_tmbstan <- lapply(1:length(x_hat), function(i) {
   samples_gaussian_i <- filter(samples_gaussian, index == i)$value
   samples_tmbstan_i <- filter(samples_tmbstan, index == i)$value
   inf.utils::ks_test(samples_gaussian_i, samples_tmbstan_i)
 })
 
-ks_laplace_tmbstan <- lapply(1:length(mode), function(i) {
+ks_laplace_tmbstan <- lapply(1:length(x_hat), function(i) {
   samples_laplace_i <- filter(samples_laplace, index == i)$value
   samples_tmbstan_i <- filter(samples_tmbstan, index == i)$value
   inf.utils::ks_test(samples_laplace_i, samples_tmbstan_i)
@@ -775,6 +775,13 @@ ks_results %>%
     lims(x = c(0, 1), y = c(0, 1)) +
     labs(x = "KS(laplace, tmbstan)", y = "KS(gaussian, tmbstan)") +
     theme_minimal()
+```
+
+
+```{r}
+ks_results %>%
+  group_by(type) %>%
+  summarise(D = mean(D))
 ```
 
 # Extension beyond empirical Bayes
@@ -887,7 +894,7 @@ We won't worry about inefficient R for loops for the time being.
 ```{r}
 pdf <- 0
 
-for(z in 1:length(modesandhessians$weights)) {
+for(z in 1:nrow(modesandhessians)) {
   theta <- as.numeric(modesandhessians[z, thetanames])
   mode_i <- as.numeric(modesandhessians$mode[[z]][i])
   Sigma <- solve(modesandhessians$H[[z]])
@@ -903,7 +910,7 @@ Instead what we can do is perform another separate AGHQ to select a set of `x_va
 To do this with the `aghq` R package, we could create a `TMB` template to evaluate $\tilde p(x_i \, | \, y)$, but I imagine this might be too annoying.
 Instead, we could create the `ff` object (with components `ff$fn`, `ff$gn` `ff$hn`) in R directly.
 
-## Full Laplace approximation
+## Full Laplace approximation (old way)
 
 Let's do as we have above, but with the full Laplace approximation in place of the Gaussian.
 We want to evaluate
@@ -928,7 +935,13 @@ modesandhessians$weights[z]
 And also as before, the normalised Laplace approximation $\tilde p_\text{LA}(\theta(z) \, | \, y)$ is:
 
 ```{r}
+#' All of the theta
+modesandhessians[, thetanames]
+
+#' Just the zth one
 theta <- as.numeric(modesandhessians[z, thetanames])
+theta
+
 - h_norm(theta)
 ```
 
@@ -945,7 +958,7 @@ param_i_fixed_theta <- list(
   log_sigma_phi_prev = 0
 )
 
-for(theta in thetanames) param_i_fixed_theta[[theta]] <- modesandhessians[z, thetanames][[theta]]
+for(theta_string in thetanames) param_i_fixed_theta[[theta_string]] <- modesandhessians[z, thetanames][[theta_string]]
 
 obj_fixed_theta <- MakeADFun(
   data = dat_i,
@@ -979,7 +992,7 @@ Sum this over `z`:
 ```{r}
 pdf <- 0
 
-for(z in 1:length(modesandhessians$weights)) {
+for(z in 1:nrow(modesandhessians)) {
   theta <- as.numeric(modesandhessians[z, thetanames])
   
   dat_i <- prepare_dat(dat, i)
@@ -992,7 +1005,7 @@ for(z in 1:length(modesandhessians$weights)) {
     log_sigma_phi_prev = 0
   )
 
-  for(theta in thetanames) param_i_fixed_theta[[theta]] <- modesandhessians[z, thetanames][[theta]]
+  for(theta_string in thetanames) param_i_fixed_theta[[theta_string]] <- modesandhessians[z, thetanames][[theta_string]]
 
   obj_fixed_theta <- MakeADFun(
     data = dat_i,
@@ -1012,6 +1025,66 @@ for(z in 1:length(modesandhessians$weights)) {
 }
 
 pdf
+```
+
+## Full Laplace approximation (new way)
+
+The method above for doing quadrature over the full Laplace approximation should work, but it requires a lot of computation.
+Instead, we might be able to do this more cost effectively by integrating $\theta$ out before normalising $\tilde p_\text{LA}(x_i, \theta(z), y)$.
+This would look like first obtaining
+$$
+\tilde p(x_i, y) = \sum_z \tilde p_\text{LA}(x_i, \theta(z), y) \omega(z),
+$$
+then normalising by the previously obtained $\tilde p_\text{AQ}(y)$ as follows
+$$
+\tilde p(x_i \, | \, y) = \frac{\tilde p(x_i, y)}{\tilde p_\text{AQ}(y)}.
+$$
+
+```{r}
+#' Always (?) want the same initialisation parameters (though they probably could be better right?)
+param_i_fixed_theta <- list(
+  beta_prev = 0, 
+  phi_prev_i = 0, 
+  phi_prev_minus_i = rep(0, data$n - 1),
+  log_sigma_phi_prev = 0
+)
+
+#' Always fixing the hyperparameters
+map_fixed_theta <- list(beta_prev = factor(NA), log_sigma_phi_prev = factor(NA))
+
+#' Going to store the functions p_LA(x_i, theta(z), y) in objs
+objs <- list()
+
+for(z in 1:nrow(modesandhessians)) {
+ theta <- as.numeric(modesandhessians[z, thetanames])
+
+  dat_i <- prepare_dat(dat, i)
+
+  for(theta_string in thetanames) param_i_fixed_theta[[theta_string]] <- modesandhessians[z, thetanames][[theta_string]]
+
+  obj_fixed_theta <- MakeADFun(
+    data = dat_i,
+    parameters = param_i_fixed_theta,
+    random = "phi_prev_minus_i",
+    DLL = "model1_index",
+    silent = TRUE,
+    map = map_fixed_theta
+  )
+  
+  objs[[z]] <- obj_fixed_theta
+}
+
+aghq_laplace_marginal <- function(x) {
+  pdf <- 0
+  for(z in 1:nrow(modesandhessians)) {
+    pdf <- pdf + exp(as.numeric(-objs[[z]]$fn(x))) * modesandhessians[z, "weights"]
+  }
+  return(pdf)
+}
+
+#' Issue is that we do the normalisation after now..
+aghq_laplace_marginal(x = x_test_value)
+aghq_laplace_marginal(x = -1)
 ```
 
 <!-- # Simplified INLA -->
