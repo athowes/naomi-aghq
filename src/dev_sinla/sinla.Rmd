@@ -792,7 +792,7 @@ In this section we will use `ahgq` to integrate over $\theta$.
 ## Marginal of joint Gaussian approximation {#aghq-gaussian-marginal}
 
 We're going to start by normalising $\tilde p_\text{LA}(\theta, y)$.
-Remember that we did this above in the empirical Bayes case, but found that it wasn't strictly necessary. 
+We did this above in the empirical Bayes case, but found that it wasn't strictly necessary. 
 
 ```{r}
 h$he <- function(theta) numDeriv::jacobian(h$gr, theta, method = "Richardson")
@@ -830,85 +830,85 @@ $$
 \tilde p(x_i \, | \, y) = \sum_z \tilde p_\text{G}(x_i \, | \, \theta(z), y) \tilde p_\text{LA}(\theta(z) \, | \, y) \omega(z).
 $$
 
-If you wanted to evaluate this to obtain each marginal then it would be something like (pseudo-code):
-
-```{r eval=FALSE}
-for(i in 1:n) {
-  for(x in x_vals) {
-    for(z in z_vals) {
-      #' ...
-    }
-  }
-}
-```
-
-To start with, let's evaluate this for `i = 1`, `x = x_test_value` and the first value of `z` (actually I don't really know what $z$ runs over, but this is just the first weight):
+To start with, let's evaluate this on the log-scale for `i = 1`, `x = x_test_value` and the first value of `z`.
+The weight $\omega(z)$ will be `modesandhessians$weights[z]`.
+The normalised Laplace approximation $\tilde p_\text{LA}(\theta(z) \, | \, y)$ will be `- h_norm(as.numeric(modesandhessians[z, thetanames]))`.
+And to obtain the normalised Gaussian approximation $p_\text{G}(x_i \, | \, \theta(z), y)$ on the log-scale we get the relevant subcomponents of the joint Gaussian then use `ndorm` with `log = TRUE`.
 
 ```{r}
 x_test_value <- 0
-z <- 1
+
+#' Note that in some sense z actually runs over nodes, not indices
+z <- 1 
 i <- 1
-```
 
-The weight $\omega(z)$ is:
-
-```{r}
-modesandhessians$weights[z]
-```
-
-The normalised Laplace approximation $\tilde p_\text{LA}(\theta(z) \, | \, y)$ is:
-
-```{r}
-theta <- as.numeric(modesandhessians[z, thetanames])
-- h_norm(theta)
-```
-
-The normalised Gaussian approximation $p_\text{G}(x_i \, | \, \theta(z), y)$ on the log-scale is:
-
-```{r}
 mode_i <- as.numeric(modesandhessians$mode[[z]][i])
 Sigma <- solve(modesandhessians$H[[z]])
 sd_i <- as.numeric(sqrt(Sigma[i, i]))
 
-dnorm(x_test_value, mean = mode_i, sd = sd_i, log = TRUE)
-```
-
-So, putting it together, the value we would compute on the log-scale is as follows:
-
-```{r}
 dnorm(x_test_value, mean = mode_i, sd = sd_i, log = TRUE) + (- h_norm(theta)) + log(modesandhessians$weights[z])
 ```
 
-To obtain the unlogged version we can use:
-$$
-\exp \left( \log\tilde p_\text{G}(x_i \, | \, \theta(z), y) + \log \tilde p_\text{LA}(\theta(z) \, | \, y) + \log \omega(z) \right)
-$$
+Now let's sum over `z` so that we can obtain the log-probability for our `x_test_value` in marginal `i`:
 
 ```{r}
-exp(dnorm(x_test_value, mean = mode_i, sd = sd_i, log = TRUE) + (- h_norm(theta)) + log(modesandhessians$weights[z]))
-```
+gaussian_marginal <- function(x) {
+  lp <- vector(mode = "numeric", length = nrow(modesandhessians))
 
-Great -- now let's sum over `z` so that we can obtain the probability for our `x_test_value` in marginal `i`.
-We won't worry about inefficient R for loops for the time being.
+  for(z in 1:nrow(modesandhessians)) {
+    theta <- as.numeric(modesandhessians[z, thetanames])
+    mode_i <- as.numeric(modesandhessians$mode[[z]][i])
+    Sigma <- solve(modesandhessians$H[[z]])
+    sd_i <- as.numeric(sqrt(Sigma[i, i]))
+    lp[z] <- dnorm(x, mean = mode_i, sd = sd_i, log = TRUE) + (- h_norm(theta)) + log(modesandhessians$weights[z])
+  }
 
-```{r}
-pdf <- 0
-
-for(z in 1:nrow(modesandhessians)) {
-  theta <- as.numeric(modesandhessians[z, thetanames])
-  mode_i <- as.numeric(modesandhessians$mode[[z]][i])
-  Sigma <- solve(modesandhessians$H[[z]])
-  sd_i <- as.numeric(sqrt(Sigma[i, i]))
-  pdf <- pdf + exp(dnorm(x_test_value, mean = mode_i, sd = sd_i, log = TRUE) + (- h_norm(theta)) + log(modesandhessians$weights[z]))
+  matrixStats::logSumExp(lp)
 }
 
-pdf
+gaussian_marginal(x_test_value)
 ```
 
-Using a `fine_grid` set of values for `x_vals` for each `i` might be overly computationally expensive.
-Instead what we can do is perform another separate AGHQ to select a set of `x_vals`.
-To do this with the `aghq` R package, we could create a `TMB` template to evaluate $\tilde p(x_i \, | \, y)$, but I imagine this might be too annoying.
-Instead, we could create the `ff` object (with components `ff$fn`, `ff$gn` `ff$hn`) in R directly.
+To pick a set of $x_i$ to evaluate the marginal at, we will use an approximation to the AGHQ nodes.
+We will take the hyperparameters to be fixed at their mode, then choose the appropriate marginals of the joint Gaussian:
+
+```{r}
+#' Get the row number of modesandhessians which contains that theta mode
+theta_mode_location <- which.max(quad$normalized_posterior$nodesandweights$logpost_normalized)
+
+#' These are the mode and standard deviation from the Gaussian approximation at the node which is the mode of the Laplace approximation
+#' (Say that three times fast...)
+mode_i <- modesandhessians[[theta_mode_location, "mode"]][i]
+sd_i <- sqrt(1 / modesandhessians[[theta_mode_location, "H"]][i, i])
+
+#' Create Gauss-Hermite quadrature
+gg <- mvQuad::createNIGrid(dim = 1, type = "GHe", level = 7)
+
+#' Adapt to mode_i and sd_i
+mvQuad::rescale(gg, m = mode_i, C = sd_i^2)
+
+#' These are our set of x input values
+gg$nodes
+
+#' The log-probabilities at the set of input values
+lps <- sapply(gg$nodes, gaussian_marginal)
+
+#' Build a Lagrange polynomial interpolant of the marginal posterior
+ss <- splines::interpSpline(gg$nodes, lps, bSpline = TRUE, sparse = TRUE)
+
+interpolant <- function(x) {
+  as.numeric(stats::predict(ss, x)$y)
+}
+
+finegrid <- seq(-5, 5, by = 0.1)
+
+df <- data.frame(x = finegrid, y = exp(interpolant(finegrid)))
+
+ggplot(df, aes(x = x, y = y)) +
+  geom_line() +
+  theme_minimal() +
+  labs(x = "phi_prev[1]", y = "Posterior")
+```
 
 ## Full Laplace approximation (old way)
 
