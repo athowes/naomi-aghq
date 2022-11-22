@@ -893,32 +893,30 @@ gg$nodes
 #' The log-probabilities at the set of input values
 lps <- sapply(gg$nodes, gaussian_marginal)
 
-#' Build a Lagrange polynomial interpolant of the marginal posterior
-ss <- splines::interpSpline(gg$nodes, lps, bSpline = TRUE, sparse = TRUE)
+plot_marginal_spline <- function(lps) {
+  #' Build a Lagrange polynomial interpolant of the marginal posterior
+  ss <- splines::interpSpline(gg$nodes, lps, bSpline = TRUE, sparse = TRUE)
+  interpolant <- function(x) { as.numeric(stats::predict(ss, x)$y) }
+  finegrid <- seq(-5, 5, by = 0.1)
+  df <- data.frame(x = finegrid, y = exp(interpolant(finegrid)))
 
-interpolant <- function(x) {
-  as.numeric(stats::predict(ss, x)$y)
+  ggplot(df, aes(x = x, y = y)) +
+    geom_line() +
+    theme_minimal() +
+    labs(x = "phi_prev[1]", y = "Posterior")
 }
 
-finegrid <- seq(-5, 5, by = 0.1)
-
-df <- data.frame(x = finegrid, y = exp(interpolant(finegrid)))
-
-ggplot(df, aes(x = x, y = y)) +
-  geom_line() +
-  theme_minimal() +
-  labs(x = "phi_prev[1]", y = "Posterior")
+plot_marginal_spline(lps)
 ```
 
 ## Full Laplace approximation (old way)
 
-Let's do as we have above, but with the full Laplace approximation in place of the Gaussian.
-We want to evaluate
+As before, but with the full Laplace approximation in place of the Gaussian.
+Much of what we computed above in Section \@ref(aghq-gaussian-marginal) is still relevant.
+The only thing that has changed is that we're now using $\tilde p_\text{LA}(x_i \, | \, \theta(z), y)$ rather than $\tilde p_\text{G}(x_i \, | \, \theta(z), y)$ in
 $$
-\tilde p(x_i \, | \, y) = \sum_z \tilde p_\text{LA}(x_i \, | \, \theta(z), y) \tilde p_\text{LA}(\theta(z) \, | \, y) \omega(z),
+\tilde p(x_i \, | \, y) = \sum_z \tilde p_\text{LA}(x_i \, | \, \theta(z), y) \tilde p_\text{LA}(\theta(z) \, | \, y) \omega(z).
 $$
-so much of what we computed above in Section \@ref(aghq-gaussian-marginal) is still relevant.
-The only thing that has changed is that we're now using $\tilde p_\text{LA}(x_i \, | \, \theta(z), y)$ rather than $\tilde p_\text{G}(x_i \, | \, \theta(z), y)$.
 
 ```{r}
 x_test_value <- 0
@@ -926,26 +924,8 @@ i <- 1
 z <- 1
 ```
 
-As before, the weight $\omega(z)$ is:
-
-```{r}
-modesandhessians$weights[z]
-```
-
-And also as before, the normalised Laplace approximation $\tilde p_\text{LA}(\theta(z) \, | \, y)$ is:
-
-```{r}
-#' All of the theta
-modesandhessians[, thetanames]
-
-#' Just the zth one
-theta <- as.numeric(modesandhessians[z, thetanames])
-theta
-
-- h_norm(theta)
-```
-
-Now, getting to the difference, the normalised Laplace approximation $p_\text{LA}(x_i \, | \, \theta(z), y)$ on the log-scale is:
+As before, the weight $\omega(z)$ is `modesandhessians$weights[z]` and the normalised Laplace approximation $\tilde p_\text{LA}(\theta(z) \, | \, y)$ is `- h_norm(as.numeric(modesandhessians[z, thetanames]))`.
+Getting to the difference, the normalised Laplace approximation $p_\text{LA}(x_i \, | \, \theta(z), y)$ on the log-scale is:
 
 ```{r}
 dat_i <- prepare_dat(dat, i)
@@ -970,67 +950,68 @@ obj_fixed_theta <- MakeADFun(
 )
 
 #' Note that this is only a one-dimensional marginal, so perhaps we can afford to put k > 3 here
-quad <- aghq::aghq(ff = obj_fixed_theta, k = 5, startingvalue = 0, control = aghq::default_control_tmb())
+quad <- aghq::aghq(ff = obj_fixed_theta, k = 7, startingvalue = 0, control = aghq::default_control_tmb())
 
 obj_fixed_theta_norm <- function(x) obj_fixed_theta$fn(x) + quad$normalized_posterior$lognormconst
 
-obj_fixed_theta_norm(x_test_value)
+- obj_fixed_theta_norm(x_test_value)
 ```
 
-Putting it together:
+Putting it together on the log-scale:
 
 ```{r}
-#' On the log-scale
-as.numeric(obj_fixed_theta_norm(x_test_value)) + (- h_norm(theta)) + log(modesandhessians$weights[z])
-
-#' Unlogged
-exp(as.numeric(obj_fixed_theta_norm(x_test_value)) + (- h_norm(theta)) + log(modesandhessians$weights[z]))
+as.numeric(- obj_fixed_theta_norm(x_test_value)) + (- h_norm(theta)) + log(modesandhessians$weights[z])
 ```
 
-Sum this over `z`:
+Sum over `z`:
 
 ```{r}
-pdf <- 0
+old_laplace_marginal <- function(x) {
+  lp <- vector(mode = "numeric", length = nrow(modesandhessians))
 
-for(z in 1:nrow(modesandhessians)) {
-  theta <- as.numeric(modesandhessians[z, thetanames])
+  for(z in 1:nrow(modesandhessians)) {
+    theta <- as.numeric(modesandhessians[z, thetanames])
   
-  dat_i <- prepare_dat(dat, i)
-  map_fixed_theta <- list(beta_prev = factor(NA), log_sigma_phi_prev = factor(NA))
+    dat_i <- prepare_dat(dat, i)
+    map_fixed_theta <- list(beta_prev = factor(NA), log_sigma_phi_prev = factor(NA))
   
-  param_i_fixed_theta <- list(
-    beta_prev = 0, 
-    phi_prev_i = 0, 
-    phi_prev_minus_i = rep(0, data$n - 1),
-    log_sigma_phi_prev = 0
-  )
+    param_i_fixed_theta <- list(
+      beta_prev = 0, 
+      phi_prev_i = 0, 
+      phi_prev_minus_i = rep(0, data$n - 1),
+      log_sigma_phi_prev = 0
+    )
 
-  for(theta_string in thetanames) param_i_fixed_theta[[theta_string]] <- modesandhessians[z, thetanames][[theta_string]]
+    for(theta_string in thetanames) param_i_fixed_theta[[theta_string]] <- modesandhessians[z, thetanames][[theta_string]]
 
-  obj_fixed_theta <- MakeADFun(
-    data = dat_i,
-    parameters = param_i_fixed_theta,
-    random = "phi_prev_minus_i",
-    DLL = "model1_index",
-    silent = TRUE,
-    map = map_fixed_theta
-  )
+    obj_fixed_theta <- MakeADFun(
+      data = dat_i,
+      parameters = param_i_fixed_theta,
+      random = "phi_prev_minus_i",
+      DLL = "model1_index",
+      silent = TRUE,
+      map = map_fixed_theta
+    )
+    
+    quad <- aghq::aghq(ff = obj_fixed_theta, k = 7, startingvalue = 0, control = aghq::default_control_tmb())
+    obj_fixed_theta_norm <- function(xx) obj_fixed_theta$fn(xx) + quad$normalized_posterior$lognormconst
+    
+    lp[z] <- as.numeric(- obj_fixed_theta_norm(x)) + (- h_norm(theta)) + log(modesandhessians$weights[z])
+  }
 
-  #' Note that this is only a one-dimensional marginal, so perhaps we can afford to put k > 3 here
-  quad <- aghq::aghq(ff = obj_fixed_theta, k = 5, startingvalue = 0, control = aghq::default_control_tmb())
-
-  obj_fixed_theta_norm <- function(x) obj_fixed_theta$fn(x) + quad$normalized_posterior$lognormconst
-  
-  pdf <- pdf + exp(as.numeric(obj_fixed_theta_norm(x_test_value)) + (- h_norm(theta)) + log(modesandhessians$weights[z]))
+  matrixStats::logSumExp(lp)
 }
 
-pdf
+old_laplace_marginal(x_test_value)
+
+lps <- sapply(gg$nodes, old_laplace_marginal)
+plot_marginal_spline(lps)
 ```
 
 ## Full Laplace approximation (new way)
 
-The method above for doing quadrature over the full Laplace approximation should work, but it requires a lot of computation.
-Instead, we might be able to do this more cost effectively by integrating $\theta$ out before normalising $\tilde p_\text{LA}(x_i, \theta(z), y)$.
+The method above should work, but it requires a lot of computation.
+Instead, we might be able to do this more cost effectively by integrating $\theta$ out *before* normalising $\tilde p_\text{LA}(x_i, \theta(z), y)$.
 This would look like first obtaining
 $$
 \tilde p(x_i, y) = \sum_z \tilde p_\text{LA}(x_i, \theta(z), y) \omega(z),
@@ -1041,50 +1022,47 @@ $$
 $$
 
 ```{r}
-#' Always (?) want the same initialisation parameters (though they probably could be better right?)
-param_i_fixed_theta <- list(
-  beta_prev = 0, 
-  phi_prev_i = 0, 
-  phi_prev_minus_i = rep(0, data$n - 1),
-  log_sigma_phi_prev = 0
-)
+#' Make sure the log normalising constant is available
+quad <- aghq::aghq(ff = h, k = 3, startingvalue = c(0, 0), control = aghq::default_control_tmb())
+quad$normalized_posterior$lognormconst
 
-#' Always fixing the hyperparameters
-map_fixed_theta <- list(beta_prev = factor(NA), log_sigma_phi_prev = factor(NA))
+laplace_marginal <- function(x) {
+  lp <- vector(mode = "numeric", length = nrow(modesandhessians))
 
-#' Going to store the functions p_LA(x_i, theta(z), y) in objs
-objs <- list()
-
-for(z in 1:nrow(modesandhessians)) {
- theta <- as.numeric(modesandhessians[z, thetanames])
-
-  dat_i <- prepare_dat(dat, i)
-
-  for(theta_string in thetanames) param_i_fixed_theta[[theta_string]] <- modesandhessians[z, thetanames][[theta_string]]
-
-  obj_fixed_theta <- MakeADFun(
-    data = dat_i,
-    parameters = param_i_fixed_theta,
-    random = "phi_prev_minus_i",
-    DLL = "model1_index",
-    silent = TRUE,
-    map = map_fixed_theta
-  )
-  
-  objs[[z]] <- obj_fixed_theta
-}
-
-aghq_laplace_marginal <- function(x) {
-  pdf <- 0
   for(z in 1:nrow(modesandhessians)) {
-    pdf <- pdf + exp(as.numeric(-objs[[z]]$fn(x))) * modesandhessians[z, "weights"]
+    theta <- as.numeric(modesandhessians[z, thetanames])
+  
+    dat_i <- prepare_dat(dat, i)
+    map_fixed_theta <- list(beta_prev = factor(NA), log_sigma_phi_prev = factor(NA))
+  
+    param_i_fixed_theta <- list(
+      beta_prev = 0, 
+      phi_prev_i = 0, 
+      phi_prev_minus_i = rep(0, data$n - 1),
+      log_sigma_phi_prev = 0
+    )
+
+    for(theta_string in thetanames) param_i_fixed_theta[[theta_string]] <- modesandhessians[z, thetanames][[theta_string]]
+
+    obj_fixed_theta <- MakeADFun(
+      data = dat_i,
+      parameters = param_i_fixed_theta,
+      random = "phi_prev_minus_i",
+      DLL = "model1_index",
+      silent = TRUE,
+      map = map_fixed_theta
+    )
+
+    lp[z] <- as.numeric(- obj_fixed_theta$fn(x)) + log(modesandhessians$weights[z])
   }
-  return(pdf)
+
+  matrixStats::logSumExp(lp) - quad$normalized_posterior$lognormconst
 }
 
-#' Issue is that we do the normalisation after now..
-aghq_laplace_marginal(x = x_test_value)
-aghq_laplace_marginal(x = -1)
+laplace_marginal(x_test_value)
+
+lps <- sapply(gg$nodes, laplace_marginal)
+plot_marginal_spline(lps)
 ```
 
 <!-- # Simplified INLA -->
