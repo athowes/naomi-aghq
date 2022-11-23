@@ -1,0 +1,49 @@
+\documentclass[tikz]{standalone}
+
+% Things to add / improve:
+% Bold versions of variables as they're all vectors
+% Try to reduce whitespace a bit
+% Arrow goes under rather than through box
+% Dashed box around right hand side of diagram with i = 1, ..., N
+% Make it clear AGHQ nodes and weights are being reused
+% Add explanation of which x_i values to pick (and make clear these are coming from the Gaussian approximation
+% Add spline interpolant detail
+% Add how to get p(theta_j | y) from p(theta | y)
+% (Maybe) put arrow for normalising constant on the top with arrow that says normalise
+% (Maybe) add details about Laplace approximation e.g. making use of starting values, notation for mode and Hessian
+
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning}
+
+\begin{document}
+
+\tikzstyle{question} = [rectangle, draw, text width=10em, text centered, rounded corners, minimum height=4em]
+\tikzstyle{category} = [rectangle, draw, text width=10em, text centered, rounded corners, minimum height=4em]
+\tikzstyle{container} = [rectangle, draw, rounded corners, dashed, inner sep=2em]
+\tikzstyle{line} = [draw, -latex']
+
+\begin{tikzpicture}[node distance = 2cm, auto]
+
+    % theta
+    \node[category] at (0, 0) (1) {$p(\theta, x, y)$};
+    \node[category] at (0, -4) (2) {$\tilde p_{\text{LA}}(\theta, y)$};
+    \node[category] at (0, -8) (3) {$\tilde p_{\text{AQ}}(y)$};
+    \node[category] at (0, -12) (4) {$\tilde p_{\text{AQ}}(\theta \, | \, y)$};
+    \path[line] (1) -- node[align=center] {Laplace approximation\\Integrate out $\tilde p_{\text{G}}(x \, | \, \theta, y)$}(2);
+    \path[line] (2) -- node[align=center] {Integrate out $\theta$ with AGHQ\\Nodes $z \in \mathcal{Q}(m, k)$\\Adapted $\theta(z) = \hat \theta + Lz$\\Weights $\omega(z):\mathcal{Q} \to \mathbb{R}$}(3);
+    \path[line] (3) -- node[align=center] {Normalise} (4);
+    \path[line] (2) edge[bend right] node [left] {} (4);
+
+    % x
+    %\node[container, fit={(0, 0)(10, -10)] {};
+    \node[category] at (10, 0) (a) {$\tilde p_{\text{LA}}(x_i, \theta, y)$};
+    \node[category] at (10, -4) (b) {$\tilde p_{\text{AQ}}(x_i, y)$};
+    \node[category] at (10, -8) (c) {$\tilde p_{\text{AQ}}(x_i \, | \, y)$};
+    \path[line] (1) -- node[align=center] {Laplace approximation\\Integrate out $\tilde p_{\text{G}}(x_{-i} \, | \, x_i, \theta, y)$}(a);
+    \path[line] (a) -- node[align=center] {Integrate out $\theta$\\$\sum_z \tilde p_{\text{LA}}(x_i, \theta(z), y) \omega(z)$}(b);
+    \path[line] (b) -- node[align=center] {Normalise}(c);
+    \path[line] (3) -- (c);
+
+\end{tikzpicture}
+
+\end{document}

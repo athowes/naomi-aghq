@@ -1,0 +1,13 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Algorithm flowchart
+      filenames:
+        - algorithm-flowchart.pdf
+
+resources:
+  - algorithm-flowchart.tex
+
+packages:
+  - tools
