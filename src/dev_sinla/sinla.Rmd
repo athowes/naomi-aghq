@@ -877,25 +877,29 @@ To pick a set of $x_i$ to evaluate the marginal at, we will use an approximation
 We will take the hyperparameters to be fixed at their mode, then choose the appropriate marginals of the joint Gaussian:
 
 ```{r}
-#' Get the row number of modesandhessians which contains that theta mode
-theta_mode_location <- which.max(quad$normalized_posterior$nodesandweights$logpost_normalized)
+#' Create a function that takes nodesandhessians and outputs the spline nodes for a particular marginal
+spline_nodes <- function(modesandhessians, i, k = 7) {
+  #' Get the row number of modesandhessians which contains that theta mode
+  #' This is bad code (relying on objects outside function)
+  theta_mode_location <- which.max(quad$normalized_posterior$nodesandweights$logpost_normalized)
+  
+  #' These are the mode and standard deviation from the Gaussian approximation at the node which is the mode of the Laplace approximation
+  #' (Say that three times fast...)
+  mode_i <- modesandhessians[[theta_mode_location, "mode"]][i]
+  sd_i <- sqrt(1 / modesandhessians[[theta_mode_location, "H"]][i, i])
 
-#' These are the mode and standard deviation from the Gaussian approximation at the node which is the mode of the Laplace approximation
-#' (Say that three times fast...)
-mode_i <- modesandhessians[[theta_mode_location, "mode"]][i]
-sd_i <- sqrt(1 / modesandhessians[[theta_mode_location, "H"]][i, i])
+  #' Create Gauss-Hermite quadrature
+  gg <- mvQuad::createNIGrid(dim = 1, type = "GHe", level = k)
 
-#' Create Gauss-Hermite quadrature
-gg <- mvQuad::createNIGrid(dim = 1, type = "GHe", level = 7)
+  #' Adapt to mode_i and sd_i
+  mvQuad::rescale(gg, m = mode_i, C = sd_i^2)
 
-#' Adapt to mode_i and sd_i
-mvQuad::rescale(gg, m = mode_i, C = sd_i^2)
-
-#' These are our set of x input values
-gg$nodes
+  #' These are our set of x input values
+  gg$nodes
+}
 
 #' The log-probabilities at the set of input values
-lps <- sapply(gg$nodes, gaussian_marginal)
+lps <- sapply(spline_nodes(modesandhessians, i = 1, k = 7), gaussian_marginal)
 
 plot_marginal_spline <- function(lps) {
   #' Build a Lagrange polynomial interpolant of the marginal posterior
@@ -1109,6 +1113,37 @@ new_laplace_marginal(x_test_value, i = 1)
 
 lps <- sapply(gg$nodes, new_laplace_marginal, i = 1)
 plot_marginal_spline(lps)
+```
+Now let's loop this over $i$ so we can compare to the other methods.
+The hypothesis is that this will be better than the empirical Bayes methods.
+
+```{r}
+spline_nodes(modesandhessians, i = 1)
+
+new_laplace_marginal_spline_aghq <- function(i) {
+  x <- spline_nodes(modesandhessians, i = i)
+  lps <- sapply(x, new_laplace_marginal, i = i)
+  ss <- splines::interpSpline(x, lps, bSpline = TRUE, sparse = TRUE)
+  interpolant <- function(x) { as.numeric(stats::predict(ss, x)$y) }
+  finegrid <- seq(-5, 5, by = 0.1)
+  df <- data.frame(x = finegrid, y = exp(interpolant(finegrid)))
+  return(df)
+}
+
+aghq_laplace_df <- lapply(1:dat$n, new_laplace_marginal_spline_aghq) %>%
+  bind_rows(.id = "index") %>%
+  mutate(index = as.numeric(index))
+
+plot3 +
+  geom_line(data = aghq_laplace_df, aes(x = x, y = y), col = cbpalette[3])
+
+#' Need to edit this so that there are cdf and theta columns in aghq_laplace_df
+# samples_aghq_laplace <- lapply(1:dat$n, function(i) {
+#   aghq_laplace_df_i <- filter(aghq_laplace_df, index == i)
+#   samples <- approxfun(x = aghq_laplace_df_i$cdf, y = aghq_laplace_df_i$theta, ties = "ordered")(runif(M))
+#   data.frame("value" = samples)
+# }) %>%
+#   bind_rows(.id = "index")
 ```
 
 <!-- # Simplified INLA -->
