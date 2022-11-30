@@ -19,7 +19,7 @@ output:
 
 * As a statistical modeller, our whole job (approximately) is to construct a generative model for data $y$ using parameters $\vartheta$
 * This is the joint distribution $p(y, \vartheta) = p(y \, | \, \vartheta) p(\vartheta)$
-* What we actually want is the posterior $p(\vartheta \, | \, y)$ which is **just**
+* What we actually want is the posterior $p(\vartheta \, | \, y)$ which is **just**^[I've bolded this for sarcasm.]
 $$
 p(\vartheta \, | \, y) = \frac{p(y, \vartheta)}{p(y)} = \frac{p(y \, | \, \vartheta) p(\vartheta)}{p(y)}
 $$
@@ -31,12 +31,46 @@ $$
 # How might you do it?
 
 * Usually if you wanted to integrate something, you could use numerical integration methods
-* It doesn't work when $\text{dim}(\vartheta)$ gets even moderately sized
+* Pick nodes $\vartheta_i$ and weights $\omega_i$ then compute the sum
+$$
+\tilde p(y) = \sum_i p(y, \vartheta_i) \omega_i
+$$
 
-# Notation set-up
+# Monte Carlo as an example of numerical integration
 
+* Suppose we can sample $\vartheta_i \sim p(y, \vartheta)$ for $i = 1, \ldots, N$
+* If we set $\omega_i = 1/N$ for all $i$ then
+$$
+\tilde p(y) = \frac{1}{N} \sum_i p(y, \vartheta_i)
+$$
+
+# Monte Carlo is fundamentally unsound
+
+* "Monte Carlo ignores information" according to @o1987monte
+* Suppose $N = 3$ and we sample $\vartheta_1, \vartheta_2, \vartheta_3$ with $\vartheta_2 = \vartheta_3$ then our MC estimate is
+$$
+\tilde p(y) = \frac{1}{3} \left( p(y, \vartheta_1) + p(y, \vartheta_2) + p(y, \vartheta_3) \right)
+$$
+* This is despite the fact that nothing new about the function has been learned by adding $\{\vartheta_3, p(y, \vartheta_3)\}$
+
+# Application to HIV survey sampling
+
+* Suppose we're running a household survey, and sample the same individual twice
+* We didn't learn anything new about HIV by surveying them again!
+* This doesn't just bite for nodes or individuals which are exactly the same: an analogous argument can be made if they are close together and we expect their function evaluations to be similar
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+$\implies$ Bayesian quadrature, Bayesian survey design (end of digression)
+\end{tcolorbox}
+\end{center}
+
+# Latent variables and hyperparameters
+
+* Quadrature doesn't work very well when $\text{dim}(\vartheta)$ gets even moderately sized
 * Previously I had all of the parameters under the symbol $\vartheta$
 * What if we split them up as being $\vartheta = (x, \theta)$
+* The key part about this is that $\dim(x)$ is big and $\dim(\theta)$ is small
 
 | Names for $x$ | Names for $\theta$ |
 |---------------|--------------------|
