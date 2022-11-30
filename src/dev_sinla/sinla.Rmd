@@ -1287,6 +1287,7 @@ plot3 +
 
 * [INLA and other approaches to GAMs](https://www.maths.ed.ac.uk/~swood34/inla-etc.pdf)
 * [mgcv::ginla](https://github.com/cran/mgcv/blob/d9fe307c8ed1f8f1ed436c85e4ac415c1febeef4/R/inla.r)
+* [How important are Cholesky factorisations for performing computations with large Gaussians?](https://dpsimpson.github.io/pages/talks/Krylov_SUQ_2013.pdf)
 
 ## Comparison of notation
 
