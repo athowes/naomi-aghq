@@ -28,7 +28,7 @@ Following vignette [here](https://mrc-ide.github.io/naomi/articles/model-workflo
 
 ## Load data inputs
 
-Area hierarchy and boundaries:
+Area hierarchy and boundaries, and plot to check we've got the right thing:
 
 ```{r}
 area_merged <- read_sf(system.file("extdata/demo_areas.geojson", package = "naomi"))
@@ -40,34 +40,83 @@ area_merged %>%
   theme_minimal()
 ```
 
-Population data:
+The population data is as follows, with columns:
+
+* `area_id`: contains the ISO, area level, and area identifier.
+* `source`: where did this information come from?
+* `calendar_quarter`: contains the type of year (such as CY for calendar year), the year, and the quarter
+* `sex`: either female or male.
+* `age_group`: in the format `Ylower_upper` where e.g. for 15-49 `lower = 15` and `upper = 49`.
+* `population`: the population, which might not be an integer I guess due to survey weighting.
+* `area_name`: the plain text version of the area name.
+* `asfr`: age-sex fertility rate.
 
 ```{r}
 pop_agesex <- read_csv(system.file("extdata/demo_population_agesex.csv", package = "naomi"))
 head(pop_agesex)
 ```
 
-Survey data:
+The survey data is as follows, with columns:
+
+* `indicator`: which survey indicator is it? Takes values `"prevalence"`, `"art_coverage"`, `"viral_suppression_plhiv"` and `"recent_infected"`.
+* `survey_id`: the name of the survey, containing the country, year and type.
+* `survey_mid_calendar_quarter`: which calendar quarter did the survey occur during?
+* `area_id`: as before.
+* `area_name`: as before.
+* `res_type`: unknown.
+* `sex`: as before.
+* `age_group`: as before.
+* `n_clusters`: the number of survey clusters in this area.
+* `n_observations`: the number of individuals surveyed.
+* `n_eff_kish`: the Kish effective sample size.
+* `estimate`: a survey weighted estimate of the indicator.
+* `std_error`: standard error of `estimate`.
+* `ci_lower`: 95% lower confidence interval for `estimate`.
+* `ci_upper`: 95% upper confidence interval for `estimate`.
 
 ```{r}
 survey_hiv_indicators <- read_csv(system.file("extdata/demo_survey_hiv_indicators.csv", package = "naomi"))
 head(survey_hiv_indicators)
 ```
-ART programmatic data:
+
+The ART programmatic data is as follows, with columns:
+
+* `area_id`: as before.
+* `area_name`: as before.
+* `sex`: as before.
+* `age_group`: as before.
+* `year`: the year.
+* `calendar_quarter`: the calendar quarter.
+* `art_current`: unknown.
+* `art_new`: unknown.
+* `vl_tested_12mos`: viral load tested past 12 months.
+* `vl_suppressed_12mos`: viral load suppressed past 12 months.
 
 ```{r}
 art_number <- read_csv(system.file("extdata/demo_art_number.csv", package = "naomi"))
 head(art_number)
 ```
 
-ANC programmatic data:
+The ANC programmatic data is as follows, with columns:
 
 ```{r}
 anc_testing <- read_csv(system.file("extdata/demo_anc_testing.csv", package = "naomi"))
 head(anc_testing)
 ```
 
+```{r}
+pjnz <- system.file("extdata/demo_mwi2019.PJNZ", package = "naomi")
+spec <- extract_pjnz_naomi(pjnz)
+head(spec)
+```
+
 ## Choose model areas and time points
+
+* `scope`: A collection of `area_id`s defining the set of areas to be modelled. Usually this is simply national level, so the level 0 `area_id`.
+* `level`: Area level at which to fit the model.
+* `quarter_id_t1`: The first time point for the model -- approximately the midpoint of the household survey data used.
+* `quarter_id_t2`: The second time point for the model -- the current time for which estimates are needed.
+* `quarter_id_t3`: The third time point for the model -- the future projection for HIV estimates.
 
 ```{r}
 scope <- "MWI"
@@ -96,9 +145,15 @@ anc_art_coverage_year1 <- 2016
 anc_art_coverage_year2 <- 2018
 ```
 
+## Review input data
+
+This section is missing from the vignette!
+
 ## Prepare model inputs
 
-```{r eval=FALSE}
+Setup the model:
+
+```{r}
 naomi_mf <- naomi_model_frame(
   area_merged,
   pop_agesex,
@@ -111,7 +166,9 @@ naomi_mf <- naomi_model_frame(
 )
 ```
 
-```{r eval=FALSE}
+Prepare data inputs
+
+```{r}
 naomi_data <- select_naomi_data(
   naomi_mf,
   survey_hiv_indicators,
@@ -132,25 +189,37 @@ naomi_data <- select_naomi_data(
 
 ## Fit the TMB model
 
-```{r eval=FALSE}
+```{r}
+tmb_inputs <- prepare_tmb_inputs(naomi_data)
 fit <- fit_tmb(tmb_inputs)
 ```
 
-```{r eval=FALSE}
-outputs <- output_package(fit, naomi_mf)
+Calculate model outputs:
+
+```{r}
+outputs <- output_package(fit, naomi_data) #' Note that in the vignette they have naomi_mf here, is this a mistake?
+```
+
+The output package consists of a data frame of indicators and metadata defining the labels for each indicator:
+
+```{r}
 names(outputs)
 ```
 
-```{r eval=FALSE}
+If uncertainty has not been calcualted yet, the output object retures values for the mode, but not the mean or lower and upper 95% uncertainty ranges:
+
+```{r}
 outputs$indicators %>%
   dplyr::filter(
-    indicator == "prevalence",  # HIV prevalence
-    age_group == "Y015_049"   # Age group 15-49
+    indicator == "prevalence",  #' HIV prevalence
+    age_group == "Y015_049"   #' Age group 15-49
   ) %>%
   head()
 ```
 
-```{r eval=FALSE}
+The function `add_output_labels()` returns the indicators table with labels added as additional columns:
+
+```{r}
 add_output_labels(outputs) %>%
   dplyr::filter(
     indicator == "prevalence",  # HIV prevalence
@@ -159,12 +228,14 @@ add_output_labels(outputs) %>%
   head()
 ```
 
-```{r eval=FALSE}
+```{r}
 system.time(fit <- sample_tmb(fit))
 ```
 
-```{r eval=FALSE}
-system.time(outputs <- output_package(fit, naomi_mf))
+Regenerate outputs with uncertainty ranges:
+
+```{r}
+system.time(outputs <- output_package(fit, naomi_data))
 
 outputs_calib <- calibrate_outputs(
   outputs, 
@@ -187,7 +258,96 @@ outputs$indicators %>%
   head()
 ```
 
-# Using simplified TMB template
+## Plot model outputs
 
-Use the same data from above, but fit a model using our simplified Naomi TMB template, rather than the one from the package.
-This may require making some edits to the simplified TMB template, such as allowing non-integer values for survey-weighted cases and sample sizes.
+```{r}
+indicators <- add_output_labels(outputs) %>%
+  left_join(outputs$meta_area %>% select(area_level, area_id, center_x, center_y)) %>%
+  sf::st_as_sf()
+```
+
+15-49 prevalence by district (which is `area_level` 4):
+
+```{r}
+indicators %>%
+  filter(age_group == "Y015_049",
+         indicator == "prevalence",
+         area_level == 4) %>%
+  ggplot(aes(fill = mode)) +
+  geom_sf() +
+  viridis::scale_fill_viridis(labels = scales::percent_format()) +
+  th_map() +
+  facet_wrap(~sex)
+```
+
+15-49 prevalence by zone (which is `area_level` 2):
+
+```{r}
+indicators %>%
+  filter(age_group == "Y015_049",
+         indicator == "prevalence",
+         area_level == 2) %>%
+  ggplot(aes(fill = mode)) +
+  geom_sf() +
+  viridis::scale_fill_viridis(labels = scales::percent_format()) +
+  th_map() +
+  facet_wrap(~sex)
+```
+
+Age-specific prevalence at a national-level:
+
+```{r}
+indicators %>%
+  dplyr::filter(area_level == 0,
+         sex != "both",
+         age_group %in% get_five_year_age_groups(),
+         calendar_quarter == "CY2018Q3",
+         indicator == "prevalence") %>%
+  left_join(get_age_groups()) %>%
+  mutate(age_group = fct_reorder(age_group_label, age_group_sort_order)) %>%
+  ggplot(aes(age_group, mean, ymin = lower, ymax = upper, fill = sex)) +
+  geom_col(position = "dodge") +
+  geom_linerange(position = position_dodge(0.8)) +
+  scale_fill_brewer(palette = "Set1") +
+  scale_y_continuous(labels = scales::percent_format(1)) +
+  facet_wrap(~area_name) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1.0, vjust = 0.5))
+```
+
+ART coverage by age-sex-region:
+
+```{r}
+indicators %>%
+  filter(area_level == 1,
+         sex != "both",
+         age_group %in% get_five_year_age_groups(),
+         indicator == "art_coverage",
+         calendar_quarter == "CY2018Q3") %>%
+  left_join(get_age_groups()) %>%
+  mutate(age_group = fct_reorder(age_group_label, age_group_sort_order)) %>%
+  ggplot(aes(age_group, mean, ymin = lower, ymax = upper, fill = sex)) +
+  geom_col(position = "dodge") +
+  geom_linerange(position = position_dodge(0.8)) +
+  scale_fill_brewer(palette = "Set1") +
+  scale_y_continuous(labels = scales::percent_format(1)) +
+  facet_wrap(~area_name) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1.0, vjust = 0.5))
+```
+
+Bubble plot of prevalence and PLHIV:
+
+```{r}
+indicators %>%
+  filter(age_group == "Y015_064",
+         area_level == 4,
+         indicator %in% c("prevalence", "plhiv"),
+         calendar_quarter == "CY2018Q3") %>%
+  select(sex, center_x, center_y, indicator_label, mean) %>%
+  spread(indicator_label, mean) %>%
+  ggplot() +
+  geom_sf() +
+  geom_point(aes(center_x, center_y, colour = `HIV prevalence`, size = PLHIV)) +
+  viridis::scale_color_viridis(labels = scales::percent_format()) +
+  th_map() +
+  facet_wrap(~sex)
+```
