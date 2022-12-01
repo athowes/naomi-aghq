@@ -1,0 +1,26 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Plots
+      filenames:
+        - 15-19-prev.pdf
+
+resources:
+  - naomi.cpp
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - INLA
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - TMB
+  - glmmTMB
+  - tmbstan
+  - rstan
+  - aghq
