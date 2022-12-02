@@ -9,7 +9,7 @@ survey_hiv_indicators <- read_csv(system.file("extdata/demo_survey_hiv_indicator
 art_number <- read_csv(system.file("extdata/demo_art_number.csv", package = "naomi"))
 anc_testing <- read_csv(system.file("extdata/demo_anc_testing.csv", package = "naomi"))
 pjnz <- system.file("extdata/demo_mwi2019.PJNZ", package = "naomi")
-spec <- extract_pjnz_naomi(pjnz)
+spec <- naomi::extract_pjnz_naomi(pjnz)
 
 #' Settings
 scope <- "MWI"

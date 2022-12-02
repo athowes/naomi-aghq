@@ -24,3 +24,5 @@ packages:
   - tmbstan
   - rstan
   - aghq
+  - sf
+  - naomi
