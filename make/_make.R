@@ -4,6 +4,7 @@ run_commit_push("example_inla-replication")
 run_commit_push("example_inla-grid")
 run_commit_push("explore_aghq")
 run_commit_push("example_naomi")
+run_commit_push("naomi")
 
 #' Without experiments
 run_commit_push("dev_sinla")

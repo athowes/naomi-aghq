@@ -1,0 +1,80 @@
+---
+title: "Mathematical description of Naomi"
+author:
+- name: Adam Howes
+output:
+  html_document:
+    toc: yes
+    toc_float: true
+    toc_collapsed: true
+    df_print: paged
+    code_folding: show
+    theme: lumen
+abstract: |
+    **Background** The Naomi HIV model is specified in the appendix of Eaton et al. (2021).
+    
+    **Task** We translate the model to R Markdown in order to (1) aid understanding, (2) clarify any details which have been compressed for publication, (3) avoid having to read mathematics in Word.
+---
+
+# Notation
+
+* District $x$
+  * Located in Spectrum region file $R_x$
+* Sex $s \in \{\text{F}, \text{M}\}$
+* Age $a \in \{\text{0-5}, \text{5-10}, \ldots, \text{75-80}, 80+\}$
+* Time $t \in \{T_1, T_2, T_3\}$
+  * $T_1$: Most recent national household survey with HIV testing
+  * $T_2$: Current time period at which to generate estimates
+  * $T_3$: Short-term project period (typically 9-12 months)
+  * Note $T_{1:3}$ specified to nearest calendar quarter
+* Population size $N_{x, s, a, t}$
+* HIV prevalence $\rho_{x, s, a, t}$
+* ART coverage $\alpha_{x, s, a, t}$
+* Annual HIV incidence rate $\lambda_{x, s, a, t}$
+
+# HIV prevalence and ART coverage at $T_1$
+
+## Background
+
+* $u \sim \text{ICAR}(\sigma)$ refers to the intrinsic conditional auto-regressive model (ICAR) with marginal standard deviation $\sigma > 0$.
+* $u \sim \text{BYM}2(\sigma, \phi)$ refers to a reparameterised Besag-York-Mollie model (BYM2) with marginal standard deviation $\sigma > 0$ comprised of a spatially structured ICAR component with proportion $\phi \in (0, 1)$ and spatially unstructured IID component with proportion $1 - \phi$.
+* For both the ICAR and BYM2 models, we follow recommendations on scaling, disconnected adjacency graph components, and islands.
+
+## HIV prevalence
+
+HIV prevalence modelled by
+$$
+\text{logit}(\rho_{x, s, a, T_1}) = \beta^\rho_0 + \beta_{S}^{\rho, s = \text{M}} + u^\rho_a + u_a^{\rho, s = \text{M}} + u^\rho_x + u_x^{\rho, s = \text{M}} + u_x^{\rho, a < 15} + \eta^\rho_{R_x, s, a} 
+$$
+where:
+
+  * $\beta^\rho_0$ is the intercept
+  * $\beta_{s}^{\rho, s = \text{M}}$ is the difference in logit prevalence for men compared to women
+  * $u^\rho_a \sim \text{AR}1(\sigma_A^\rho, \phi_A^\rho)$ are age random effects for women
+  * $u_a^{\rho, s = \text{M}}$ are age random effects for the difference in logit prevalence for men compared to women age $a$
+  * $u^\rho_x \sim \text{BYM}2(\sigma_X^\rho, \phi_X^\rho)$ are spatial random effects for women
+  * $u_x^{\rho, s = \text{M}} \sim \text{BYM}2(\sigma_{XS}^\rho, \phi_{XS}^\rho)$ are spatial random effects for the difference in logit prevalence for men compared to women in district $x$
+  * $u_x^{\rho, a < 15} \sim \text{ICAR}(0, \sigma_{XA}^\rho)$ are spatial random effects for the ratio of paediatric prevalence to adult women prevalence
+  * $\eta^\rho_{R_x, s, a}$ are a fixed offset specifying assumed odds ratios for prevalence outside the age ranges for which data are available
+  
+For prior distributions, we use:
+
+* $\mathcal{N}(0, 5)$ for all fixed effects ($\beta^\rho_0, \beta_{s}^{\rho, s = \text{M}}$)
+* $\mathcal{N}^{+}(0, 2.5)$ for all standard deviation terms
+* $\mathcal{U}(-1, 1)$ for all AR1 correlation parameters
+* $\text{Beta}(0.5, 0.5)$ for all BYM2 proportion parameters
+
+## ART coverage
+
+ART coverage modelled by
+$$
+\text{logit}(\alpha_{x, s, a, T_1}) = \beta^\alpha_0 + \beta_{S}^{\alpha, s = \text{M}} + u^\alpha_a + u_a^{\alpha, s = \text{M}} + u^\alpha_x + u_x^{\alpha, s = \text{M}} + u_x^{\alpha, a < 15} + \eta^\alpha_{R_x, s, a} 
+$$
+where terms are analogous to the HIV prevalence model.
+
+## HIV incidence rate
+
+HIV incidence rate is modelled by
+$$
+\log(\lambda_{x, s, a, t}) = \beta_0^\lambda + \beta_S^{\lambda, s = \text{M}} + \cdots
+$$

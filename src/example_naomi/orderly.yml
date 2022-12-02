@@ -2,12 +2,14 @@ script: script.R
 
 artefacts:
   - data:
-      description: Naomi model workflow example
+      description: Naomi model workflow example and mathematical description
       filenames:
         - naomi.html
+        - maths.html
 
 resources:
   - naomi.Rmd
+  - maths.Rmd
 
 packages:
   - dplyr

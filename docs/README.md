@@ -8,6 +8,7 @@
 * [sinla](https://athowes.github.io/elgm-inf/sinla.html): implementing approximations for the posterior marginal of the latent field, building to the approach of [Wood (2021)](https://academic.oup.com/biomet/article/107/1/223/5572662)
 * [prev-anc-art](https://athowes.github.io/elgm-inf/prev-anc-art.html): comparison of `tmbstan`, `TMB` and `aghq` for a collection of models based on Joint small-area estimation of HIV prevalence, ART coverage, and HIV incidence (Eaton et al. 2019)
 * [naomi](https://athowes.github.io/elgm-inf/naomi.html): following `naomi` vignettes
+* [maths](https://athowes.github.io/elgm-inf/maths.html): mathematical description of the Naomi model
 * [posterior-comparison](https://athowes.github.io/elgm-inf/posterior-comparison.html): exploring methods (Kolmogorov-Smirnov, simulation-based calibration, Pareto smoothed importance sampling, maximum mean discrepancy) for comparison of posterior distributions from approximate Bayesian inference methods
 
 ## Experiments

@@ -3,3 +3,4 @@
 # setwd("src/example_naomi")
 
 rmarkdown::render("naomi.Rmd")
+rmarkdown::render("maths.Rmd")
