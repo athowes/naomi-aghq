@@ -2916,8 +2916,10 @@ Word.</p>
 </div>
 
 
-<div id="notation" class="section level1">
-<h1>Notation</h1>
+<div id="process-specification" class="section level1">
+<h1>Process specification</h1>
+<div id="notation" class="section level2">
+<h2>Notation</h2>
 <ul>
 <li>District <span class="math inline">\(x\)</span>
 <ul>
@@ -2946,13 +2948,6 @@ t}\)</span></li>
 t}\)</span></li>
 <li>Annual HIV incidence rate <span class="math inline">\(\lambda_{x, s,
 a, t}\)</span></li>
-</ul>
-</div>
-<div id="hiv-prevalence-and-art-coverage-at-t_1" class="section level1">
-<h1>HIV prevalence and ART coverage at <span class="math inline">\(T_1\)</span></h1>
-<div id="background" class="section level2">
-<h2>Background</h2>
-<ul>
 <li><span class="math inline">\(u \sim \text{ICAR}(\sigma)\)</span>
 refers to the intrinsic conditional auto-regressive model (ICAR) with
 marginal standard deviation <span class="math inline">\(\sigma &gt;
@@ -2967,8 +2962,10 @@ unstructured IID component with proportion <span class="math inline">\(1
 scaling, disconnected adjacency graph components, and islands.</li>
 </ul>
 </div>
-<div id="hiv-prevalence" class="section level2">
-<h2>HIV prevalence</h2>
+<div id="hiv-prevalence-and-art-coverage-at-t_1" class="section level2">
+<h2>HIV prevalence and ART coverage at <span class="math inline">\(T_1\)</span></h2>
+<div id="hiv-prevalence" class="section level3">
+<h3>HIV prevalence</h3>
 <p>HIV prevalence modelled by <span class="math display">\[
 \text{logit}(\rho_{x, s, a, T_1}) = \beta^\rho_0 + \beta_{S}^{\rho, s =
 \text{M}} + u^\rho_a + u_a^{\rho, s = \text{M}} + u^\rho_x + u_x^{\rho,
@@ -3010,8 +3007,8 @@ correlation parameters</li>
 BYM2 proportion parameters</li>
 </ul>
 </div>
-<div id="art-coverage" class="section level2">
-<h2>ART coverage</h2>
+<div id="art-coverage" class="section level3">
+<h3>ART coverage</h3>
 <p>ART coverage modelled by <span class="math display">\[
 \text{logit}(\alpha_{x, s, a, T_1}) = \beta^\alpha_0 +
 \beta_{S}^{\alpha, s = \text{M}} + u^\alpha_a + u_a^{\alpha, s =
@@ -3019,13 +3016,347 @@ BYM2 proportion parameters</li>
 &lt; 15} + \eta^\alpha_{R_x, s, a}
 \]</span> where terms are analogous to the HIV prevalence model.</p>
 </div>
-<div id="hiv-incidence-rate" class="section level2">
-<h2>HIV incidence rate</h2>
+<div id="hiv-incidence-rate" class="section level3">
+<h3>HIV incidence rate</h3>
 <p>HIV incidence rate is modelled by <span class="math display">\[
 \log(\lambda_{x, s, a, t}) = \beta_0^\lambda + \beta_S^{\lambda, s =
-\text{M}} + \cdots
+\text{M}} + \log(\rho_{x, t}^{\text{15-49}}) + \log(1 - \omega \cdot
+\alpha_{x, t}^{\text{15-49}}) + u_x^\lambda + \eta_{R_x, s, a,
+t}^\lambda
+\]</span> where:</p>
+<ul>
+<li><span class="math inline">\(\beta^\lambda_0\)</span> is the
+intercept, which is proportional to the average HIV transmission rate
+for untreated HIV positive adults</li>
+<li><span class="math inline">\(\beta_S^{\lambda, s = \text{M}}\)</span>
+is the log incidence rate ratio for men compared to women</li>
+<li><span class="math inline">\(\rho_{x, t}^{\text{15-49}}\)</span> is
+the HIV prevalence among adults 15-49 calculated by <span class="math display">\[
+\rho_{x, t}^{\text{15-49}} = \frac{\sum_{s \in \{\text{F}, \text{M}\}}
+\sum_{a = 15}^{49} N_{x, s, a, t} \cdot \rho_{x, s, a, t}}{\sum_{s \in
+\{\text{F}, \text{M}\}} \sum_{a = 15}^{49} N_{x, s, a, t}}
+\]</span></li>
+<li><span class="math inline">\(\alpha_{x, t}^{\text{15-49}}\)</span> is
+the ART coverage among adults 15-49 calculated by <span class="math display">\[
+\alpha_{x, t}^{\text{15-49}} = \frac{\sum_{s \in \{\text{F}, \text{M}\}}
+\sum_{a = 15}^{49} N_{x, s, a, t} \cdot \rho_{x, s, a, t} \cdot
+\alpha_{x, s, a, t}}{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a =
+15}^{49} N_{x, s, a, t} \cdot \rho_{x, s, a, t}}
+\]</span></li>
+<li><span class="math inline">\(\omega\)</span> is the average reduction
+in HIV transmission rate per 1% increase in population ART coverage and
+is fixed at <span class="math inline">\(\omega = 0.7\)</span> from the
+EPP model</li>
+<li><span class="math inline">\(u_x^\lambda \sim \mathcal{N}(0,
+\sigma^\lambda)\)</span> with <span class="math inline">\(\sigma^\lambda
+\sim \mathcal{N}^+(0, 1)\)</span> are IID spatial random effects</li>
+<li><span class="math inline">\(\eta^\lambda_{R_x, s, a, t}\)</span>
+specify log incidence rate ratios by sex and age group calculated from
+Spectrum model output</li>
+</ul>
+</div>
+</div>
+<div id="short-term-projection-from-t_1-to-t_2-and-t_2-to-t_3" class="section level2">
+<h2>Short-term projection from <span class="math inline">\(T_1 \to
+T_2\)</span> and <span class="math inline">\(T_2 \to T_3\)</span></h2>
+<div id="hiv-prevalence-1" class="section level3">
+<h3>HIV prevalence</h3>
+<ul>
+<li>HIV population projected from <span class="math inline">\(T_1 \to
+T_2\)</span> based on survival of PLHIV from Spectrum output, ageing
+from one five-year age group to the next, and the addition of new HIV
+infections calculated from district-level HIV incidence rate and
+survival and ageing after infection</li>
+<li>Let <span class="math inline">\(H_{x, s, a, {T_1}} = N_{x, s, a,
+{T_1}} \cdot \rho_{x, s, a, {T_1}}\)</span> be the number of PLHIV at
+<span class="math inline">\(T_1\)</span></li>
+<li>For age groups <span class="math inline">\(a \geq 5\)</span> the
+number of PLHIV at <span class="math inline">\(T_2\)</span> is modelled
+by <span class="math display">\[
+\begin{align*}
+H_{x, s, a, {T_2}} &amp;= H_{x, s, a, {T_1}} \cdot S_{{R_x}, s, a \to a,
+{T_1}} + H_{x, s, a - 5, {T_1}} \cdot S_{{R_x}, s, a - 5 \to a, {T_1}}
+\\
+&amp;+ (1 - \exp(- \delta_{T_1} \cdot \lambda_{x, s, a, {T_1}})) \cdot
+(N_{x, s, a, {T_1}} - H_{x, s, a, {T_1}}) \cdot L_{R_x, s, a \to a,
+{T_1}} \\
+&amp;+ (1 - \exp(- \delta_{T_1} \cdot \lambda_{x, s, a - 5, {T_1}}))
+\cdot (N_{x, s, a - 5, {T_1}} - H_{x, s, a - 5, {T_1}}) \cdot L_{R_x, s,
+a - 5 \to a, {T_1}}
+\end{align*}
+\]</span></li>
+<li><span class="math inline">\(S_{{R_x}, s, a \to a, {T_1}}\)</span> is
+the ratio for the number of PLHIV surviving from <span class="math inline">\(T_1\)</span> to <span class="math inline">\(T_2\)</span> and remaining in age group <span class="math inline">\(a\)</span> (i.e. not aging from <span class="math inline">\(a\)</span> to <span class="math inline">\(a +
+5\)</span>)</li>
+<li><span class="math inline">\(S_{{R_x}, s, a - 5 \to a,
+{T_1}}\)</span> the survival ratio from <span class="math inline">\(T_1\)</span> to <span class="math inline">\(T_2\)</span> and aging from <span class="math inline">\(a - 5\)</span> to <span class="math inline">\(a\)</span></li>
+<li><span class="math inline">\((1 - \exp(- \delta_{T_1} \cdot
+\lambda_{x, s, a, {T_1}}))\)</span> is the probability of acquiring HIV
+between <span class="math inline">\(T_1\)</span> and <span class="math inline">\(T_2\)</span> of duration <span class="math inline">\(\Delta_{T_1} = T_2 - T_1\)</span> for the
+susceptible population <span class="math inline">\(N_{x, s, a, {T_1}} -
+H_{x, s, a, {T_1}}\)</span></li>
+<li><span class="math inline">\(L_{R_x, s, a \to a, {T_1}}\)</span> is
+the ratio surviving and remaining in age group <span class="math inline">\(a\)</span> for those infected between <span class="math inline">\(T_1\)</span> and <span class="math inline">\(T_2\)</span></li>
+<li><span class="math inline">\(L_{R_x, s, a - 5 \to a, {T_1}}\)</span>
+is the ratio surviving and aging from <span class="math inline">\(a -
+5\)</span> to <span class="math inline">\(a\)</span> for those infected
+between <span class="math inline">\(T_1\)</span> and <span class="math inline">\(T_2\)</span></li>
+<li>The ratios <span class="math inline">\(S\)</span> and <span class="math inline">\(L\)</span> are calculated from Specturm results by
+<ol style="list-style-type: decimal">
+<li>Disaggregating single-year or single-age Specturm model results for
+PLHIV at <span class="math inline">\(T_1\)</span> and <span class="math inline">\(T_2\)</span> and new infections between <span class="math inline">\(T_1\)</span> and <span class="math inline">\(T_2\)</span> to quarterly birth cohorts</li>
+<li>Subtracting the number of new infections within the cohort from the
+number of PLHIV at <span class="math inline">\(T_2\)</span> to calculate
+the number of surviving PLHIV in each cohort</li>
+<li>Aggregating the survivors by quarter-age cohorts to those who
+survived and aged from <span class="math inline">\(a\)</span> to <span class="math inline">\(a&#39;\)</span> between <span class="math inline">\(T_1\)</span> and <span class="math inline">\(T_2\)</span>, and calculating the ratio by
+dividing by the initial PLHIV <span class="math inline">\(H_{x, s, a,
+{T_1}}\)</span></li>
+</ol></li>
+<li>Variation in ART coverage or effectiveness is assumed not to affect
+survival</li>
+</ul>
+</div>
+<div id="art-coverage-1" class="section level3">
+<h3>ART coverage</h3>
+<p>Change in ART coverage is modelled by <span class="math display">\[
+\text{logit}(\alpha_{x, s, a, {T_2}}) = \text{logit}(\alpha_{x, s, a,
+{T_1}}) + \beta_{T_2}^\alpha + \beta_{T_2, s = \text{M}}^\alpha + u_{x,
+{T_2}}^\alpha + u_{x, a &lt; 15, {T_2}}^\alpha + \eta_{R_x, s, a,
+{T_2}}^\alpha
+\]</span> where</p>
+<ul>
+<li><span class="math inline">\(\eta_{R_x, s, a, {T_2}}^\alpha\)</span>
+are offsets for the logit change in ART coverage between <span class="math inline">\(T_1\)</span> and <span class="math inline">\(T_2\)</span> from Spectrum region <span class="math inline">\(R_x\)</span></li>
+<li><span class="math inline">\(\beta_{T_2}^\alpha\)</span> is the
+average change in logit ART coverage between <span class="math inline">\(T_1\)</span> and <span class="math inline">\(T_2\)</span> for adult women</li>
+<li><span class="math inline">\(\beta_{T_2, s =
+\text{M}}^\alpha\)</span> is the difference in average change for men
+compared to women</li>
+<li><span class="math inline">\(u_{x, {T_2}}^\alpha \sim \mathcal{N}(0,
+\sigma_{XT}^\alpha)\)</span> are district random effects</li>
+<li><span class="math inline">\(u_{x, a &lt; 15, {T_2}}^\alpha\)</span>
+is the difference in logit ART coverage for children compared to
+adults</li>
+</ul>
+<p><strong>Flag for not understanding</strong> ART coverage at <span class="math inline">\(T_3\)</span> is modelled by <span class="math display">\[
+\text{logit}(\alpha_{x, s, a, {T_2}}) = \text{logit}(\alpha_{x, s, a,
+{T_1}}) + \eta_{R_x, s, a, {T_3}}^\alpha
 \]</span></p>
 </div>
+</div>
+<div id="anc-testing-cascade" class="section level2">
+<h2>ANC testing cascade</h2>
+<ul>
+<li>For women 15-49 the predicted number of ANC clients <span class="math inline">\(\Psi_{x, a, t}\)</span> is a log-linear model
+<span class="math display">\[
+\log (\Psi_{x, a, t}) = \log (N_{x, \text{F}, a, t}) + \psi_{R_x, a, t}
++ \beta^\psi + u_x^\psi
+\]</span>
+<ul>
+<li><span class="math inline">\(N_{x, \text{F}, a, t}\)</span> are the
+female population sizes</li>
+<li><span class="math inline">\(\psi_{R_x, a, t}\)</span> are ASFR in
+Spectrum region <span class="math inline">\(R_x\)</span> at time <span class="math inline">\(t\)</span></li>
+<li><span class="math inline">\(\beta^\psi\)</span> are the log rate
+ratio for the number of ANC clients relative to the predicted
+fertility</li>
+<li><span class="math inline">\(u_x^\psi \sim \mathcal{N}(0,
+\sigma^\psi)\)</span> are district random effects</li>
+</ul></li>
+<li>HIV prevalence <span class="math inline">\(\rho_{x, a,
+t}^\text{ANC}\)</span> and ART coverage <span class="math inline">\(\alpha_{x, a, t}^\text{ANC}\)</span> among
+pregnant women modelled with logit-linear models <span class="math display">\[\begin{align}
+\text{logit}(\rho_{x, a, t}^{\text{ANC}}) &amp;= \text{logit}(\rho_{x,
+F, a, t}) + \beta^{\rho^{\text{ANC}}} + \beta_{t \in(T_2,
+T_3\}}^{\rho^{\text{ANC}}} + u_x^{\rho^{\text{ANC}}} + u_{x, t \in\{T_2,
+T_3\}}^{\rho^{\text{ANC}}} + \eta_{R_x, a, t}^{\rho^{\text{ANC}}} \\
+\text{logit}(\alpha_{x, a, t}^{\text{ANC}}) &amp;=
+\text{logit}(\alpha_{x, F, a, t}) + \beta^{\alpha^{\text{ANC}}} +
+\beta_{t \in\{T_2, T_3\}}^{\alpha^{\text{ANC}}} +
+u_x^{\alpha^{\text{ANC}}}+u_{x, t \in\{T_2, T_3\}}^{\alpha^{\text{ANC}}}
++ \eta_{R_x, a, t}^{\alpha^{\text{ANC}}}
+\end{align}\]</span>
+<ul>
+<li><span class="math inline">\(\eta_{R_x, a,
+t}^{\theta^{\text{ANC}}}\)</span> for <span class="math inline">\(\theta
+\in \{\rho, \alpha\}\)</span> are offsets for the log fertility rate
+ratios for HIV positive women compared to HIV negative women and for
+women on ART to HIV positive women not on ART, calculated from Spectrum
+model outputs for region <span class="math inline">\(R_x\)</span></li>
+<li><span class="math inline">\(\beta^{\theta^{\text{ANC}}}\)</span> for
+<span class="math inline">\(\theta \in \{\rho, \alpha\}\)</span> are the
+average differences between population and ANC outcomes at <span class="math inline">\(T_1\)</span> after removing the offset</li>
+<li><span class="math inline">\(\beta_{t \in(T_2,
+T_3\}}^{\theta^{\text{ANC}}}\)</span> for <span class="math inline">\(\theta \in \{\rho, \alpha\}\)</span> are the
+change in average difference from <span class="math inline">\(T_1\)</span> to <span class="math inline">\(T_2\)</span></li>
+<li><span class="math inline">\(u_x^{\theta^{\text{ANC}}} \sim
+\mathcal{N}(0, \sigma_X^{\theta^{\text{ANC}}})\)</span> for <span class="math inline">\(\theta \in \{\rho, \alpha\}\)</span> are district
+random effects</li>
+<li><span class="math inline">\(u_{x, t \in\{T_2,
+T_3\}}^{\theta^{\text{ANC}}} \sim \mathcal{N}(0,
+\sigma_{XT}^{\theta^{\text{ANC}}})\)</span> for <span class="math inline">\(\theta \in \{\rho, \alpha\}\)</span> capture the
+change in district random effects between times <span class="math inline">\(T_1\)</span> and <span class="math inline">\(T_2\)</span></li>
+</ul></li>
+</ul>
+</div>
+<div id="anc-attendance" class="section level2">
+<h2>ANC attendance</h2>
+<ul>
+<li>Number of PLHIV on ART is <span class="math inline">\(A_{x, s, a, t}
+= N_{x, s, a, t} \cdot \rho_{x, s, a, t} \cdot \alpha_{x, s, a,
+t}\)</span></li>
+<li>Let <span class="math inline">\(\gamma_{x, x&#39;, t} \in [0,
+1]\)</span> be the probability that a person of ART residing in district
+<span class="math inline">\(x\)</span> recieves ART in district <span class="math inline">\(x&#39;\)</span> at time <span class="math inline">\(t\)</span></li>
+<li>We assume that <span class="math inline">\(\gamma_{x, x&#39;, t} =
+0\)</span> for <span class="math inline">\(x \notin \{x,
+\text{ne}(x)\}\)</span> i.e. that individuals seek treatment only in
+their residing district and its neighbours <span class="math inline">\(\text{ne}(x) = \{x&#39;: x&#39; \sim x\}\)</span>
+where <span class="math inline">\(\sim\)</span> is an adjacency relation
+<ul>
+<li><span class="math inline">\(\sum_{x&#39; \in \{x, \text{ne}(x)\}}
+\gamma_{x, x&#39;, t} = 1\)</span></li>
+</ul></li>
+<li>Model <span class="math inline">\(\gamma_{x, x&#39;, t}\)</span>
+with a multinomial logit model where <span class="math inline">\(\tilde
+\gamma_{x, t}\)</span> is the log odds ratio of seeking ART in the
+district <span class="math inline">\(x&#39;\)</span> neighbouring <span class="math inline">\(x\)</span> <strong>flag for confusion
+here</strong> <span class="math display">\[\begin{align}
+\tilde \gamma_{x, t} &amp;= \tilde \gamma_0 + u_x^{\tilde \gamma} +
+u_x^{\tilde \gamma, t = T_2} \\
+\tilde \gamma_0 &amp;= -4 \\
+u_x^{\tilde \gamma} &amp;\sim \mathcal{N}(0, \sigma_X^{\tilde \gamma})
+\\
+u_x^{\tilde \gamma, t \in \{T_2, T_3\}} &amp;\sim \mathcal{N}(0,
+\sigma_{XT}^{\tilde \gamma})
+\end{align}\]</span>
+<ul>
+<li><span class="math inline">\(\tilde \gamma_{x, t}\)</span> is an
+intercept specifying the prior mean for the log odds of seeking ART in
+each neighbouring district compared to the home district</li>
+<li><span class="math inline">\(u_x^{\tilde \gamma}\)</span> are
+district random effects</li>
+<li><span class="math inline">\(u_x^{\tilde \gamma, t \in \{T_2,
+T_3\}}\)</span> is the change in district level log-odds ratios between
+<span class="math inline">\(T_1\)</span> and <span class="math inline">\(T_2\)</span> – <strong>flag for confusion:
+shouldn’t this just be <span class="math inline">\(t = T_2\)</span>
+here</strong></li>
+<li>Note: only one value estimated for each district, implying no
+preference between neighbouring districts, and no sex-age specific
+modelling</li>
+</ul></li>
+<li>Calculate multinomial probabilities via softmax (n.b. this is the
+sigmoid function, the inverse of the softmax) <span class="math display">\[
+\gamma_{x, x&#39;, t} = \frac{1}{1 + \sum_{x^\star \sim x} \exp(\tilde
+\gamma_{x^\star, t})}
+\]</span></li>
+<li>The number of ART clients who reside in district <span class="math inline">\(x\)</span> and obtain ART in district <span class="math inline">\(x&#39;\)</span> are <span class="math inline">\(A_{x, x&#39;, s, a, t} = A_{x, s, a, t} \cdot
+\gamma_{x, x&#39;, t} = N_{x, s, a, t} \cdot \rho_{x, s, a, t} \cdot
+\alpha_{x, s, a, t} \cdot \gamma_{x, x&#39;, t}\)</span></li>
+<li>Total attending ART facilities in district <span class="math inline">\(x&#39;\)</span> is <span class="math inline">\(\tilde A_{x&#39;, s, a, t} = \sum_{x \sim x&#39;,
+x = x&#39;} A_{x, x&#39;, s, a, t}\)</span></li>
+</ul>
+</div>
+<div id="awareness-of-hiv-status" class="section level2">
+<h2>Awareness of HIV status</h2>
+<ul>
+<li>The proportion of HIV positive adults aware of their HIV status is
+<span class="math inline">\(v_{x, s, a, t}\)</span></li>
+<li>The proportion of untreated HIV positive adults aware of their HIV
+status is <span class="math inline">\(\tilde \nu_{x, s, a, t}\)</span>
+such that <span class="math display">\[
+v_{x, s, a, t} = \alpha_{x, s, a, t} + \frac{\tilde v_{R_x, s, a, t}}{1
+- \alpha_{x, s, a, t}}
+\]</span></li>
+</ul>
+</div>
+</div>
+<div id="likelihood-specification" class="section level1">
+<h1>Likelihood specification</h1>
+<div id="notation-1" class="section level2">
+<h2>Notation</h2>
+<ul>
+<li>Use <span class="math inline">\(\{x\}\)</span> to denote a
+collection of districts, <span class="math inline">\(\{s\}\)</span> a
+collection of sexes and <span class="math inline">\(\{a\}\)</span> a
+collection of ages for which an outcome is observed</li>
+</ul>
+</div>
+<div id="household-survey-data" class="section level2">
+<h2>Household survey data</h2>
+<ul>
+<li>Let <span class="math inline">\(\nu\)</span> be a household survey
+occuring at <span class="math inline">\(T_1\)</span></li>
+<li>Furnishes weighted observations for HIV prevalence <span class="math inline">\(\hat \rho_{\{x\}, \{s\}, \{a\}, \nu}\)</span>, ART
+coverage <span class="math inline">\(\hat \alpha_{\{x\}, \{s\}, \{a\},
+\nu}\)</span> and proportion recently infected <span class="math inline">\(\hat \kappa_{\{x\}, \{s\}, \{a\}, \nu}\)</span>
+with respective Kish effective sample sizes <span class="math inline">\(M^{\hat \theta}_{\{x\}, \{s\}, \{a\},
+\nu}\)</span> for <span class="math inline">\(\theta \in \{\rho, \alpha,
+\kappa\}\)</span></li>
+<li>The observed cases are <span class="math inline">\(Y^{\hat
+\theta}_{\{x\}, \{s\}, \{a\}, \nu} = M^{\hat \theta}_{\{x\}, \{s\},
+\{a\}, \nu} \cdot \hat \theta_{\{x\}, \{s\}, \{a\}, \nu}\)</span></li>
+<li>For HIV prevalence we use a binomial working likelihood <span class="math display">\[\begin{align}
+Y^{\hat \rho}_{\{x\}, \{s\}, \{a\}, \nu} &amp;\sim \text{Bin}(M^{\hat
+\rho}_{\{x\}, \{s\}, \{a\}, \nu}, \rho_{\{x\}, \{s\}, \{a\}, {T_1}}) \\
+\rho_{\{x\}, \{s\}, \{a\}, t} &amp;= \frac{\sum_{x \in \{x\}} \sum_{s
+\in \{s\}} \sum_{a \in \{a\}} N_{x, s, a, t} \cdot \rho_{x, s, a,
+t}}{\sum_{x \in \{x\}} \sum_{s \in \{s\}} \sum_{a \in \{a\}} N_{x, s, a,
+t}}
+\end{align}\]</span></li>
+<li>For ART coverage we also use a binomial working likelihood <span class="math display">\[\begin{align}
+Y^{\hat \alpha}_{\{x\}, \{s\}, \{a\}, \nu} &amp;\sim \text{Bin}(M^{\hat
+\alpha}_{\{x\}, \{s\}, \{a\}, \nu}, \alpha_{\{x\}, \{s\}, \{a\}, {T_1}})
+\\
+\alpha_{\{x\}, \{s\}, \{a\}, t} &amp;= \frac{\sum_{x \in \{x\}} \sum_{s
+\in \{s\}} \sum_{a \in \{a\}} N_{x, s, a, t} \cdot \rho_{x, s, a, t}
+\cdot \alpha_{x, s, a, t}}{\sum_{x \in \{x\}} \sum_{s \in \{s\}} \sum_{a
+\in \{a\}} N_{x, s, a, t} \cdot \rho_{x, s, a, t}}
+\end{align}\]</span></li>
+<li>For recent infections we also use a binomial working likelihood
+<span class="math display">\[\begin{align}
+Y^{\hat \kappa}_{\{x\}, \{s\}, \{a\}, \nu} &amp;\sim \text{Bin}(M^{\hat
+\kappa}_{\{x\}, \{s\}, \{a\}, \nu}, \kappa_{\{x\}, \{s\}, \{a\}, {T_1}})
+\\
+\kappa_{x, s, a, t} &amp;= 1 - \exp(- \lambda_{x, s, a, t} \cdot \frac{1
+- \rho_{x, s, a, t}}{\rho_{x, s, a, t}} \cdot (\Omega_T - \beta_T ) -
+\beta_T ) \\
+\Omega_T &amp;\sim \mathcal{N}(\Omega_{T_0}, \sigma^{\Omega_T}) \\
+\beta_T &amp;\sim \mathcal{N}(\beta_{T_0}, \sigma^{\beta_T})
+\end{align}\]</span></li>
+</ul>
+</div>
+</div>
+<div id="clarification-notes-to-discuss-with-jeff" class="section level1">
+<h1>Clarification notes to discuss with Jeff</h1>
+<ul>
+<li>Not sure what <span class="math inline">\(R_x\)</span> means. Is it
+like <span class="math inline">\(R_x: \mathcal{X} \to
+\mathcal{X}\)</span></li>
+<li>Some confusion on how to offset terms work – they seem cool though.
+Might prefer they not be called <span class="math inline">\(\eta\)</span> which is in my head linear predictor
+<ul>
+<li><span class="math inline">\(\eta^\lambda_{R_x, s, a, t}\)</span>
+aren’t these <span class="math inline">\(R_x, s, a, t\)</span> specific
+rather than</li>
+</ul></li>
+<li>Aggregation over age 15-49 uses sum from <span class="math inline">\(a = 15\)</span> to <span class="math inline">\(a =
+45\)</span>? Perhaps this is because <span class="math inline">\(a =
+45\)</span> actually corresponds to the age band 45-49. Edit: yes, <span class="math inline">\(a = 45\)</span> corresponds to 45-49</li>
+<li>Sometimes in subscript we have <span class="math inline">\(x, s, a,
+t\)</span> and sometimes e.g. <span class="math inline">\(x, s,
+at\)</span> – why?</li>
+<li>Why <span class="math inline">\(\sigma^\lambda \sim \mathcal{N}^+(0,
+1)\)</span> rather than e.g. <span class="math inline">\(\sigma^\lambda
+\sim \mathcal{N}^+(0, 2.5)\)</span></li>
+<li>Inconsistent use of <span class="math inline">\(T2\)</span> and
+<span class="math inline">\(T_2\)</span> in the appendix (I prefer the
+subscript so try to use throughout here)</li>
+<li>In softmax function, confused as to what this equation is saying:
+shouldn’t there be an equals sign in there before the large
+brackets?</li>
+</ul>
 </div>
 
 
