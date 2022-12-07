@@ -218,6 +218,22 @@ Y^{\hat \kappa}_{\{x\}, \{s\}, \{a\}, \nu} &\sim \text{Bin}(M^{\hat \kappa}_{\{x
 \Omega_T &\sim \mathcal{N}(\Omega_{T_0}, \sigma^{\Omega_T}) \\
 \beta_T &\sim \mathcal{N}(\beta_{T_0}, \sigma^{\beta_T})
 \end{align}
+  * $\kappa_{x, s, a, t}$ are the predicted proportion recently infected among HIV positive persons
+  * $\Omega_T$ is the mean duration of recent infection (MDRI)
+    * Use an informative prior based on the characteristics of the recent infection testing algorithm (RITA)
+    * For PHIA surveys $\Omega_{T_0} = 130 \text{ days}$ and $\sigma^{\Omega_T} = 6.12 \text{ days}$
+    * **Flag: what about for other surveys?*
+  * $\beta_T$ is the false recent ratio (FRR)
+    * For PHIA surveys $\beta_{T_0} = 0.0$ and $\sigma^{\beta_T} = 0.0$. **Flag: is this just assuming that there is no false recency? How is this assumption justified?*
+    
+## ANC testing data
+
+* Include two years of ANC testing data: the year of the most recent survey $Y[T_1]$ and the current year $Y[T_2]$
+* $W^\text{ANC}_{\{x\}, Y[t]}$ are the number of ANC clients
+* $X^\text{ANC}_{\{x\}, Y[t]}$ are the number of ANC clients with ascertained status
+* $Y^\text{ANC}_{\{x\}, Y[t]}$ are the number of ANC clients with positive status (either known or tested)
+* $Z^\text{ANC}_{\{x\}, Y[t]}$ are the number of ANC clients already on ART prior to first ANC
+* Sometimes ANC testing data are only available for part of a given year, for example only the first three quarters. Denote $M^\text{ANC}_{Y[t]} \in \{1, \ldots, 12\}$ the number of months of reported data reflected in counts for year $Y[t]$
 
 # Clarification notes to discuss with Jeff
 
