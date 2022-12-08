@@ -17,6 +17,8 @@ abstract: |
 ---
 
 ```{r}
+knitr::opts_chunk$set(error = TRUE)
+
 library(naomi)
 library(tidyverse)
 library(sf)
