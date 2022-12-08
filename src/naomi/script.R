@@ -74,7 +74,7 @@ packageVersion("naomi")
 compile("naomi.cpp")
 dyn.load(dynlib("naomi"))
 
-#' Expose naomi::fit_tmb
+#' Begin expose naomi::fit_tmb
 #' https://github.com/mrc-ide/naomi/blob/e9de40f12cf2e652f78966bb351fa5718ecd7867/R/tmb-model.R#L557
 #' Replacing the following call
 #' fit <- fit_tmb(tmb_inputs, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL)
@@ -86,7 +86,7 @@ progress <- NULL
 
 stopifnot(inherits(tmb_input, "naomi_tmb_input"))
 
-#' Expose naomi:::make_tmb_obj
+#' Begin expose naomi:::make_tmb_obj
 #' https://github.com/mrc-ide/naomi/blob/e9de40f12cf2e652f78966bb351fa5718ecd7867/R/tmb-model.R#L496
 #' Replacing the following call
 #' obj <- naomi:::make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress)
@@ -117,6 +117,8 @@ if (!is.null(progress)) {
   obj$fn <- report_progress(obj$fn, progress)
 }
 
+#' End expose naomi:::make_tmb_obj
+
 trace <- ifelse(outer_verbose, 1, 0)
 
 f <- withCallingHandlers(
@@ -139,6 +141,8 @@ class(val) <- "naomi_fit"
 
 fit <- val
 
+#' End expose naomi::fit_tmb
+
 #' Add uncertainty
 fit <- sample_tmb(fit)
 
@@ -149,7 +153,7 @@ indicators <- add_output_labels(outputs) %>%
   left_join(outputs$meta_area %>% select(area_level, area_id, center_x, center_y)) %>%
   sf::st_as_sf()
 
-pdf("15-19-prev.pdf", h = 5, w = 6.25)
+pdf("tmb-15-19-prev.pdf", h = 5, w = 6.25)
 
 indicators %>%
   filter(age_group == "Y015_049",
@@ -162,3 +166,27 @@ indicators %>%
   facet_wrap(~sex)
 
 dev.off()
+
+#' Develop new function naomi::fit_aghq
+#' fit <- fit_aghq(tmb_inputs, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL)
+tmb_input <- tmb_inputs
+outer_verbose <- TRUE
+inner_verbose <- FALSE
+max_iter <- 250
+progress <- NULL
+
+stopifnot(inherits(tmb_input, "naomi_tmb_input"))
+
+obj <- naomi:::make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress)
+
+#' The number of hyperparameters is 31
+length(obj$par)
+
+#' This is quite a lot if we plan on using a dense grid
+#' For example with k = 3 points per dimension then we'll get 3^31 ~= 6E14 points
+#' Or with k = 2 points per dimension 2^31 ~= 2E9
+#' Let's set k = 1 (empirical Bayes) for now, and get all of the infrastructure working first
+
+#' Using the branch https://github.com/athowes/aghq/tree/issue6 for now on this to fix issue with k = 1
+#' Will PR this to master soon!
+quad <- aghq::marginal_laplace_tmb(obj, k = 1, startingvalue = obj$par)
