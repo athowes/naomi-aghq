@@ -62,7 +62,22 @@ naomi_data <- select_naomi_data(
 #' Fit model with TMB
 tmb_inputs <- prepare_tmb_inputs(naomi_data)
 
+#' Note that naomi.cpp was obtained from https://github.com/mrc-ide/naomi on the 7/12/22
+#' This corresponds to package number 2.8.5.
+
+#' Check package version for Naomi -- you probably want it to match 2.8.5.
+packageVersion("naomi")
+
+#' Version 2.8.5. of Naomi can be installed with (TODO: how to select version number)
+# devtools::install_github("mrc-ide/naomi")
+
+compile("naomi.cpp")
+dyn.load(dynlib("naomi"))
+
 #' Expose naomi::fit_tmb
+#' https://github.com/mrc-ide/naomi/blob/e9de40f12cf2e652f78966bb351fa5718ecd7867/R/tmb-model.R#L557
+#' Replacing the following call
+#' fit <- fit_tmb(tmb_inputs, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL)
 tmb_input <- tmb_inputs
 outer_verbose <- TRUE
 inner_verbose <- FALSE
@@ -71,10 +86,10 @@ progress <- NULL
 
 stopifnot(inherits(tmb_input, "naomi_tmb_input"))
 
-compile("naomi.cpp")
-dyn.load(dynlib("naomi"))
-
 #' Expose naomi:::make_tmb_obj
+#' https://github.com/mrc-ide/naomi/blob/e9de40f12cf2e652f78966bb351fa5718ecd7867/R/tmb-model.R#L496
+#' Replacing the following call
+#' obj <- naomi:::make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress)
 data <- tmb_input$data
 par <- tmb_input$par_init
 calc_outputs <- 0L
@@ -121,6 +136,8 @@ objout <- naomi:::make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs 
 f$mode <- objout$report(f$par.full)
 val <- c(f, obj = list(objout))
 class(val) <- "naomi_fit"
+
+fit <- val
 
 #' Add uncertainty
 fit <- sample_tmb(fit)
