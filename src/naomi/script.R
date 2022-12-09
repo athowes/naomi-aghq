@@ -188,5 +188,30 @@ length(obj$par)
 #' Let's set k = 1 (empirical Bayes) for now, and get all of the infrastructure working first
 
 #' Using the branch https://github.com/athowes/aghq/tree/issue6 for now on this to fix issue with k = 1
-#' Will PR this to master soon!
-quad <- aghq::marginal_laplace_tmb(obj, k = 1, startingvalue = obj$par)
+#' Will PR this to master soon (submitted! -- working through)
+start_eb_quad <- Sys.time()
+eb_quad <- aghq::marginal_laplace_tmb(obj, k = 1, startingvalue = obj$par)
+end_eb_quad <- Sys.time()
+time_eb_quad <- end_eb_quad - start_eb_quad
+
+#' The default number of samples for naomi::sample_tmb is 1000, so we will use that as well
+#' Note that with k = 1, the sample marginal algorithm is just returning the mode over and over
+#' Is this a bug or a feature?
+samp <- aghq::sample_marginal(eb_quad, 1000)
+
+n_hyper <- length(obj$par)
+
+#' With k = 2 and ndConstruction = "sparse" we get 63 points -- should be pretty feasible
+sparse_grid <- mvQuad::createNIGrid(n_hyper, "GHe", 2, "sparse")
+mvQuad::size(sparse_grid)$gridpoints
+
+start_sparse_quad <- Sys.time()
+sparse_quad <- aghq::marginal_laplace_tmb(obj, k = 2, startingvalue = obj$par, basegrid = sparse_grid)
+end_sparse_quad <- Sys.time()
+
+#' TODO: Run aghq::marginal_laplace_tmb line by line here to explain the following error
+# Error in matrix(NA, nrow = No.Points, ncol = dim) :
+#   invalid 'nrow' value (too large or NA)
+# In addition: Warning message:
+#   In matrix(NA, nrow = No.Points, ncol = dim) :
+#   NAs introduced by coercion to integer range
