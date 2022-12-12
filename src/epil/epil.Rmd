@@ -1,5 +1,5 @@
 ---
-title: "Epilepsy example"
+title: "Epilepsy GLMM example"
 author:
 - name: Adam Howes
 output:
@@ -14,7 +14,7 @@ bibliography: citations.bib
 abstract: |
   **Background** @rue2009approximate use the epilespy example from the OpenBUGs manual as demonstration of the integrated nested Laplace approximation method. The model is a Poisson GLMM including both fixed and random effects.
   
-  **Task** We implement the epilepsy example in Stan, `R-INLA`, `TMB`, `glmmTMB`, `tmbstan`, `aghq`, and a custom Laplace marginal version of `aghq`. We then compare the results of the inference methods.
+  **Task** We implement the epilepsy example in Stan, `R-INLA`, `TMB`, `glmmTMB`, `tmbstan`, `aghq`, and a custom Laplace marginal version of `aghq`. We then compare the results of the inference methods. This serves to compare inference methods, and check new methods are behaving as expected.
 ---
 
 ```{r setup, class.source = 'fold-hide'}
@@ -45,10 +45,11 @@ The covariates are age $\texttt{Age}_i$, baseline seizure counts $\texttt{Base}_
 
 The observations are modeleed using a Poisson distribution $y_{ij} \sim \text{Poisson}(e^{\eta_{ij}})$ with linear predictor 
 \begin{align*}
-  \eta_{ij}       &= \beta_0 + \beta_\texttt{Base} \log(\texttt{Baseline}_j / 4) + \beta_\texttt{Trt} \texttt{Trt}_i +
-                     \beta_{\texttt{Trt} \times \texttt{Base}} \texttt{Trt}_i \times \log(\texttt{Baseline}_j / 4) \\ 
-                  &+ \beta_\texttt{Age} \log(\texttt{Age}_i) + \beta_{\texttt{V}_4} {\texttt{V}_4}_j +
-                     \epsilon_i + \nu_{ij}, \quad i=1:59, \quad j=1:4,
+\eta_{ij}
+&= \beta_0 + \beta_\texttt{Base} \log(\texttt{Baseline}_j / 4) + \beta_\texttt{Trt} \texttt{Trt}_i +
+   \beta_{\texttt{Trt} \times \texttt{Base}} \texttt{Trt}_i \times \log(\texttt{Baseline}_j / 4) \\ 
+&+ \beta_\texttt{Age} \log(\texttt{Age}_i) + \beta_{\texttt{V}_4} {\texttt{V}_4}_j +
+   \epsilon_i + \nu_{ij}, \quad i=1:59, \quad j=1:4,
 \end{align*}
 where the prior on each of the regression parameters, including the intercept, is $\mathcal{N}(0, 100^2)$.
 The random effects are IID $\epsilon_i \sim \mathcal{N}(0, 1/\tau_\epsilon)$ and $\nu_{ij} \sim \mathcal{N}(0, 1/\tau_\nu)$ with precision priors $\tau_\epsilon, \tau_\nu \sim \Gamma(0.001, 0.001)$.
@@ -60,6 +61,14 @@ The data is available within `R-INLA` as follows:
 ```{r}
 data(Epil, package = "INLA")
 head(Epil)
+```
+
+```{r fig.cap="It looks like treatment is associated to fewer seizures on average, but of course we haven't accounted for the different covariates, hence the use of a statistical model!"}
+Epil %>% ggplot(aes(x =  as.factor(Trt), y = y)) +
+  geom_boxplot(alpha = 0.5, outlier = FALSE) +
+  geom_jitter(width = 0.1, alpha = 0.5) +
+  theme_minimal() +
+  labs(x = "Treatment", y = "Number of seizures")
 ```
 
 We modify `Epil` by centering all of the covariates:
@@ -118,6 +127,8 @@ Markov chain Monte Carlo (MCMC) like NUTS are exact as the number of samples ten
 We provide the `stan` function with `file = "epil.stan"` which refers to a C++ file implementing the log-posterior in the Stan probabilistic programming language:
 
 ```{r}
+start_time_fit1 <- Sys.time()
+
 fit1 <- stan(
   file = "epil.stan",
   data = dat,
@@ -127,6 +138,31 @@ fit1 <- stan(
   control = list(adapt_delta = 0.95),
   refresh = 0
 )
+
+end_time_fit1 <- Sys.time()
+time_fit1 <- end_time_fit1 - start_time_fit1
+```
+
+It took `r time_fit1` seconds to fit this model.
+All of the $\hat R$ values are below 1.05, so it looks like the MCMC has reached convergence:
+
+```{r}
+monitor1 <- rstan::monitor(fit1, print = FALSE)
+  
+monitor1 %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column(var = "parameter") %>%
+  ggplot(aes(x = parameter, y = Rhat)) +
+  geom_point(alpha = 0.5) +
+  geom_hline(yintercept = 1.05, linetype = "dashed") +
+  labs(x = "Parameter")  +
+  theme_minimal() +
+  theme(
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.position = "bottom"
+  )
 ```
 
 ## `R-INLA`
@@ -168,16 +204,41 @@ epil_inla <- function(strat, int_strat) {
        control.predictor = list(compute = TRUE))
 }
 
+start_time_fit2 <- Sys.time()
 fit2 <- epil_inla(strat = "gaussian", int_strat = "eb")
-fit3 <- epil_inla(strat = "simplified.laplace", int_strat = "eb")
-fit4 <- epil_inla(strat = "laplace", int_strat = "eb")
+end_time_fit2 <- Sys.time()
+(time_fit2 <- end_time_fit2 - start_time_fit2)
 
+start_time_fit3 <- Sys.time()
+fit3 <- epil_inla(strat = "simplified.laplace", int_strat = "eb")
+end_time_fit3 <- Sys.time()
+(time_fit3 <- end_time_fit3 - start_time_fit3)
+
+start_time_fit4 <- Sys.time()
+fit4 <- epil_inla(strat = "laplace", int_strat = "eb")
+end_time_fit4 <- Sys.time()
+(time_fit4 <- end_time_fit4 - start_time_fit4)
+
+start_time_fit5 <- Sys.time()
 fit5 <- epil_inla(strat = "gaussian", int_strat = "grid")
+end_time_fit5 <- Sys.time()
+(time_fit5 <- end_time_fit5 - start_time_fit5)
+
+start_time_fit6 <- Sys.time()
 fit6 <- epil_inla(strat = "simplified.laplace", int_strat = "grid")
+end_time_fit6 <- Sys.time()
+(time_fit6 <- end_time_fit6 - start_time_fit6)
+
+start_time_fit7 <- Sys.time()
 fit7 <- epil_inla(strat = "laplace", int_strat = "grid")
+end_time_fit7 <- Sys.time()
+(time_fit7 <- end_time_fit7 - start_time_fit7)
 ```
 
 ## `TMB`
+
+Template Model Builder, or `TMB`, is an R package which implements Laplace approximation using automatic differentiation.
+The user writes a C++ file, here `epil.cpp`, which contains the negative log-posterior for the model in question:
 
 ```{r}
 compile("epil.cpp")
@@ -199,6 +260,10 @@ param <- list(
 We integrate `random` out, which here corresponds to `c("beta", "epsilon", "nu")`, with a Laplace approximation:
 
 ```{r}
+#' Perhaps you could argue about when the "start" and "end" of the model fitting are
+#' For example, is compilation of the TMB template part of the model fitting?
+start_time_fit8 <- Sys.time()
+
 obj <- MakeADFun(
   data = dat,
   parameters = param,
@@ -210,7 +275,7 @@ obj <- MakeADFun(
 
 The objective function `obj$fn` and its gradient `obj$gn` are a function of only the parameters, which in this instance are the logarithms of $\tau_\epsilon$ and $\tau_\nu$.
 This can be checked with `names(obj$par)`.
-Optimise `obj` using 1000 iterations of the the `nlminb` optimiser, passing in the starting values `start`, objective function `objective` and its derivative `gradient`:
+We optimise `obj` using 1000 iterations of the the `nlminb` optimiser, passing in the starting values `start`, objective function `objective` and its derivative `gradient`:
 
 ```{r}
 its <- 1000 #' May converge before this
@@ -227,12 +292,15 @@ sd_out <- sdreport(
   par.fixed = opt$par,
   getJointPrecision = TRUE
 )
+
+end_time_fit8 <- Sys.time()
+(time_fit8 <- end_time_fit8 - start_time_fit8)
 ```
 
 ### Check `TMB` objective is the same as Stan
 
 For completeness, we check here that the objective functions as implemented in `TMB` and Stan are identical.
-To obtain the `TMB` negative log-likelihood we call `MakeADFun` as before, but now do not specify any parameters to be integrated out.
+To obtain the `TMB` negative log-posterior we call `MakeADFun` as before, but now do not specify any parameters to be integrated out.
 For Stan, we create an empty model, then use `rstan::log_prob`:
 
 ```{r}
@@ -240,7 +308,7 @@ tmb_nll <- MakeADFun(data = dat, parameters = param, DLL = "epil")
 stan_nll <- stan("epil.stan", data = dat, chains = 0)
 ```
 
-Now test the NLL of the initialisation parameters `param`:
+For example, we can test the NLL of the initialisation parameters `param`:
 
 ```{r}
 c(
@@ -249,7 +317,7 @@ c(
 )
 ```
 
-This look different!
+These look different!
 Is this a problem?
 We can evaluate the NLL at some of the other parameters explored during the MCMC:
 
@@ -293,8 +361,11 @@ obj <- mccollect(testrun, wait = TRUE, timeout = 0, intermediate = FALSE)
 For example, rather than writing `epil.cpp`, we could have called the following:
 
 ```{r}
-formula6 <- y ~ 1 + CTrt + ClBase4 + CV4 + ClAge + CBT + (1 | rand) + (1 | Ind)
-fit6 <- glmmTMB(formula6, data = Epil, family = poisson(link = "log"))
+start_time_fit9 <- Sys.time()
+formula9 <- y ~ 1 + CTrt + ClBase4 + CV4 + ClAge + CBT + (1 | rand) + (1 | Ind)
+fit9 <- glmmTMB(formula9, data = Epil, family = poisson(link = "log"))
+end_time_fit9 <- Sys.time()
+(time_fit9 <- end_time_fit9 - start_time_fit9)
 ```
 
 This won't be exactly the same model, in terms of priors and so on, but it may be close.
@@ -303,18 +374,22 @@ This won't be exactly the same model, in terms of priors and so on, but it may b
 
 [`tmbstan`](https://journals.pl,os.org/plosone/article?id=10.1371/journal.pone.0197954) (Cole Monnahan and Kasper Kristensen) is another helpful `TMB` package which allows you to pass the same C++ template you use in `TMB` to Stan in order to perform NUTS (if you have standard C++ code then this can also likely be done using [`stanc`](https://statmodeling.stat.columbia.edu/2017/03/31/running-stan-external-c-code/)).
 
-```{r}
-fit7 <- tmbstan(obj = obj, chains = 4, refresh = 0)
+```{r} 
+start_time_fit10 <- Sys.time()
+fit10 <- tmbstan(obj = obj, chains = 4, refresh = 0)
+end_time_fit10 <- Sys.time()
+(time_fit10 <- end_time_fit10 - start_time_fit10)
 ```
 
 ## `aghq`
 
 [`aghq`](https://arxiv.org/pdf/2101.04468.pdf) is an R package written by Alex Stringer which implements adaptive Gauss-Hermite quadrature.
 It also works smoothly with `TMB` templates.
-One (odd!) approach would be to use `glmmTMB` to get the `TMB` template which can be passed the `aghq`.
+
+One (non-standard!) approach would be to use `glmmTMB` to get the `TMB` template which can then be passed to `aghq`.
 
 ```{r}
-glmm_model_info <- glmmTMB(formula6, data = Epil, family = poisson(link = "log"), doFit = FALSE)
+glmm_model_info <- glmmTMB(formula9, data = Epil, family = poisson(link = "log"), doFit = FALSE)
 
 glmm_ff <- with(glmm_model_info, {
   TMB::MakeADFun(
@@ -333,26 +408,29 @@ The parameter `k = 3` determines the number of quadrature points per dimension:
 glmm_quad <- aghq::marginal_laplace_tmb(glmm_ff, k = 3, startingvalue = glmm_ff$par)
 ```
 
-Another, more standard, approach is to use the `TMB` template, `obj`, that we already have:
+This would be useful if we didn't have a `TMB` template written, but we do, so let's just use that instead!
 
 ```{r results='hide'}
+start_time_fit11 <- Sys.time()
 fit11 <- aghq::marginal_laplace_tmb(
   obj,
   k = 3,
   startingvalue = c(param$l_tau_epsilon, param$l_tau_nu)
 )
 
-fit11_samples <- aghq::sample_marginal(fit8, M = 1000)$samps %>%
+fit11_samples <- aghq::sample_marginal(fit11, M = 1000)$samps %>%
   t() %>%
   as.data.frame() %>%
   inf.utils::replace_duplicate_colnames()
+end_time_fit11 <- Sys.time()
+(time_fit11 <- end_time_fit11 - start_time_fit11)
 ```
 
 ## Custom Laplace method with `aghq`
 
 Ok, this next section is going to be a bit more involved.
 
-### Using multiple C++ template
+### Empirical Bayes with multiple C++ template
 
 Let's just starting by trying to get the Laplace marginals for $\beta$:
 
@@ -442,7 +520,7 @@ laplace_beta %>%
   labs(x = "beta", y = "Posterior")
 ```
 
-### Using one C++ template
+### Empirical Bayes with one C++ template
 
 Ok, great, so we got the Laplace marginals for `beta`.
 What about if we wanted to get them for all of the elements of the latent field?
@@ -466,7 +544,7 @@ index_controller <- data.frame(
 )
 ```
 
-Eventually create function of the form:
+Create function which takes as input the index `i` (from `index_controller`), the results of optimisation for $\theta$, and a grid of values for $x_i$ to evaluate at:
 
 ```{r}
 xi_laplace_marginal <- function(i, opt_theta, finegrid) {
@@ -552,6 +630,14 @@ laplace_beta_summary <- lapply(head(laplace_x, n = dat$K), function(result) summ
 rownames(laplace_beta_summary) <- paste0("beta[", 1:dat$K, "]")
 ```
 
+### AGHQ with one C++ template
+
+```{r}
+i <- 1
+dat$toggle <- index_controller[i, "toggle"]
+dat$i <- index_controller[i, "i"]
+```
+
 # Comparison
 
 ## Table
@@ -563,15 +649,15 @@ stan1 <- as.vector(t(summary(fit1)$summary[1:6, c(1, 3)]))
 inla2 <- as.vector(t(fit2$summary.fixed[1:6, 1:2]))
 inla3 <- as.vector(t(fit3$summary.fixed[1:6, 1:2]))
 inla4 <- as.vector(t(fit4$summary.fixed[1:6, 1:2]))
-inla5 <- as.vector(t(fit2$summary.fixed[1:6, 1:2]))
-inla6 <- as.vector(t(fit3$summary.fixed[1:6, 1:2]))
-inla7 <- as.vector(t(fit4$summary.fixed[1:6, 1:2]))
+inla5 <- as.vector(t(fit5$summary.fixed[1:6, 1:2]))
+inla6 <- as.vector(t(fit6$summary.fixed[1:6, 1:2]))
+inla7 <- as.vector(t(fit7$summary.fixed[1:6, 1:2]))
 tmb8 <- as.vector(t(data.frame(sd_out$par.random[1:6], sqrt(sd_out$diag.cov.random[1:6]))))
-glmmtmb9 <- as.vector(t(summary(fit6)$coefficients$cond[, c("Estimate", "Std. Error")]))
-tmbstan10 <- as.vector(t(summary(fit7)$summary[1:6, c(1, 3)]))
+glmmtmb9 <- as.vector(t(summary(fit9)$coefficients$cond[, c("Estimate", "Std. Error")]))
+tmbstan10 <- as.vector(t(summary(fit10)$summary[1:6, c(1, 3)]))
 
-fit11_beta_samples <- fit8_samples[, 1:6]
-aghq11 <- as.vector(t(data.frame(mean = apply(fit11_beta_samples, 2, mean), sd = apply(fit8_beta_samples, 2, sd))))
+fit11_beta_samples <- fit11_samples[, 1:6]
+aghq11 <- as.vector(t(data.frame(mean = apply(fit11_beta_samples, 2, mean), sd = apply(fit11_beta_samples, 2, sd))))
 
 adam12 <- as.vector(t(laplace_beta_summary[1:6, 1:2]))
 
@@ -581,13 +667,26 @@ df <- cbind(stan1, inla2, inla3, inla4, inla5, inla6, inla7, tmb8, glmmtmb9, tmb
 
 beta_i <- function(i) { c(paste0("beta_", i), paste0("sd(beta_", i, ")")) }
 rownames(df) <- c(sapply(0:5, beta_i))
-colnames(df) <- c("Stan", "EB-G", "EB-SL", "EB-L", "Grid-G", "Grid-SL", "Grid-L", "TMB", "glmmTMB", "tmbstan", "aghq", "adam", "type")
+method_names <- c("Stan", "EB-G", "EB-SL", "EB-L", "Grid-G", "Grid-SL", "Grid-L", "TMB", "glmmTMB", "tmbstan", "aghq", "adam")
+colnames(df) <- c(method_names, "type")
 
 df %>%
   select(-type) %>%
   kableExtra::kable(digits = 3)
 
 saveRDS(df, "comparison-results.rds")
+```
+
+```{r}
+time_df <- data.frame(
+  time = c(time_fit1, time_fit2, time_fit3, time_fit4, time_fit5, time_fit6, time_fit7, time_fit8, time_fit9, time_fit10, time_fit11),
+  method = head(method_names, n = 11)
+)
+
+time_df %>% ggplot(aes(x = method, y = time)) +
+  geom_col() +
+  theme_minimal() +
+  labs(x = "Method", y = "Time taken")
 ```
 
 ## Focus on $\beta_0$
