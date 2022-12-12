@@ -215,3 +215,25 @@ end_sparse_quad <- Sys.time()
 # In addition: Warning message:
 #   In matrix(NA, nrow = No.Points, ncol = dim) :
 #   NAs introduced by coercion to integer range
+
+#' Want to make aghq output match that of TMB for the Naomi model
+#' Should be able to feed into the functions
+#' * naomi::output_package
+#' * naomi:::extract_indicators
+#' * naomi::extract_art_attendance
+#'
+#' How does the output of naomi::fit_tmb look?
+#' val is quite complicated
+str(val)
+
+#' sample_tmb adds $sample (a list where each component is a matrix of samples from the named parameter) to fit
+#' These samples all end in _out and appear to be generated from the REPORT section of naomi.cpp
+#' Are there samples from the hyperparameters and latent field as well? How do I access these?
+str(fit)
+str(fit$sample)
+
+#' This should be quite easy to reproduce in aghq
+str(samp)
+str(samp$samps) #' 633 x 1000 matrix (a.k.a. x samples)
+str(samp$theta) #' 31 x 100 dataframe (a.k.a. theta samples)
+str(samp$thetasamples) #' List of 31
