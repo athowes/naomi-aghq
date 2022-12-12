@@ -139,6 +139,7 @@ f$mode <- objout$report(f$par.full)
 val <- c(f, obj = list(objout))
 class(val) <- "naomi_fit"
 
+#' Returns parameter estimate (mode) and Hessian
 fit <- val
 
 #' End expose naomi::fit_tmb

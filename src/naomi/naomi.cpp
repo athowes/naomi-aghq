@@ -969,10 +969,82 @@ Type objective_function<Type>::operator() ()
     REPORT(artnum_t1_ll);
     REPORT(anc_rho_obs_t1_ll);
     REPORT(anc_rho_obs_t2_ll)
-      REPORT(anc_alpha_obs_t2_ll);
+    REPORT(anc_alpha_obs_t2_ll);
     REPORT(anc_clients_obs_t2_ll);
 
   }
+
+  // Adam addition to include reporting of all latent field and hyper-parameter elements
+
+  // Hyper-parameter
+  REPORT(logit_phi_rho_x)
+  REPORT(log_sigma_rho_x)
+  REPORT(logit_phi_rho_xs)
+  REPORT(log_sigma_rho_xs)
+  REPORT(logit_phi_rho_a)
+  REPORT(log_sigma_rho_a)
+  REPORT(logit_phi_rho_as)
+  REPORT(log_sigma_rho_as)
+  REPORT(log_sigma_rho_xa)
+  REPORT(logit_phi_alpha_x)
+  REPORT(log_sigma_alpha_x)
+  REPORT(logit_phi_alpha_xs)
+  REPORT(log_sigma_alpha_xs)
+  REPORT(logit_phi_alpha_a)
+  REPORT(log_sigma_alpha_a)
+  REPORT(logit_phi_alpha_as)
+  REPORT(log_sigma_alpha_as)
+  REPORT(log_sigma_alpha_xt)
+  REPORT(log_sigma_alpha_xa)
+  REPORT(log_sigma_alpha_xat)
+  REPORT(log_sigma_alpha_xst)
+  REPORT(OmegaT_raw)
+  REPORT(log_betaT)
+  REPORT(log_sigma_lambda_x)
+  REPORT(log_sigma_asfr_x)
+  REPORT(log_sigma_ancrho_x)
+  REPORT(log_sigma_ancalpha_x)
+  REPORT(log_sigma_ancrho_xt)
+  REPORT(log_sigma_ancalpha_xt)
+  REPORT(log_sigma_or_gamma)
+  REPORT(log_sigma_or_gamma_t1t2)
+
+  // Latent field
+  REPORT(beta_rho)
+  REPORT(beta_alpha)
+  REPORT(beta_alpha_t2)
+  REPORT(beta_lambda)
+  REPORT(beta_asfr)
+  REPORT(beta_anc_rho)
+  REPORT(beta_anc_alpha)
+  REPORT(beta_anc_rho_t2)
+  REPORT(beta_anc_alpha_t2)
+  REPORT(u_rho_x)
+  REPORT(us_rho_x)
+  REPORT(u_rho_xs)
+  REPORT(us_rho_xs)
+  REPORT(u_rho_a)
+  REPORT(u_rho_as)
+  REPORT(u_rho_xa)
+  REPORT(u_alpha_x)
+  REPORT(us_alpha_x)
+  REPORT(u_alpha_xs)
+  REPORT(us_alpha_xs)
+  REPORT(u_alpha_a)
+  REPORT(u_alpha_as)
+  REPORT(u_alpha_xt)
+  REPORT(u_alpha_xa)
+  REPORT(u_alpha_xat)
+  REPORT(u_alpha_xst)
+  REPORT(ui_lambda_x)
+  REPORT(logit_nu_raw)
+  REPORT(ui_asfr_x)
+  REPORT(ui_anc_rho_x)
+  REPORT(ui_anc_alpha_x)
+  REPORT(ui_anc_rho_xt)
+  REPORT(ui_anc_alpha_xt)
+  REPORT(log_or_gamma)
+  REPORT(log_or_gamma_t1t2)
 
   return val;
 }
