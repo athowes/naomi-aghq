@@ -144,8 +144,47 @@ fit <- val
 
 #' End expose naomi::fit_tmb
 
-#' Add uncertainty
-fit <- sample_tmb(fit)
+#' Begin expose naomi::sample_tmb
+nsample <- 1000
+rng_seed <- NULL
+random_only <- TRUE
+verbose <- TRUE
+
+set.seed(rng_seed)
+stopifnot(methods::is(fit, "naomi_fit"))
+stopifnot(nsample > 1)
+to_tape <- TMB:::isNullPointer(fit$obj$env$ADFun$ptr)
+if (to_tape) fit$obj$retape(FALSE)
+if (!random_only) {
+  if (verbose)
+    print("Calculating joint precision")
+  hess <- sdreport_joint_precision(fit$obj, fit$par.fixed)
+  if (verbose)
+    print("Inverting precision for joint covariance")
+  cov <- solve(hess)
+  if (verbose)
+    print("Drawing sample")
+  smp <- mvtnorm::rmvnorm(nsample, fit$par.full, cov)
+} else {
+  r <- fit$obj$env$random
+  par_f <- fit$par.full[-r]
+  par_r <- fit$par.full[r]
+  hess_r <- fit$obj$env$spHess(fit$par.full, random = TRUE)
+  smp_r <- naomi:::rmvnorm_sparseprec(nsample, par_r, hess_r)
+  smp <- matrix(0, nsample, length(fit$par.full))
+  smp[, r] <- smp_r
+  smp[, -r] <- matrix(par_f, nsample, length(par_f), byrow = TRUE)
+  colnames(smp)[r] <- colnames(smp_r)
+  colnames(smp)[-r] <- names(par_f)
+}
+if (verbose) print("Simulating outputs")
+sim <- apply(smp, 1, fit$obj$report)
+r <- fit$obj$report()
+if (verbose) print("Returning sample")
+fit$sample <- Map(vapply, list(sim), "[[", lapply(lengths(r), numeric), names(r))
+is_vector <- vapply(fit$sample, inherits, logical(1), "numeric")
+fit$sample[is_vector] <- lapply(fit$sample[is_vector], matrix, nrow = 1)
+names(fit$sample) <- names(r)
 
 #' Calculate model outputs
 outputs <- output_package(fit, naomi_data)
@@ -227,9 +266,7 @@ end_sparse_quad <- Sys.time()
 #' val is quite complicated
 str(val)
 
-#' sample_tmb adds $sample (a list where each component is a matrix of samples from the named parameter) to fit
-#' These samples all end in _out and appear to be generated from the REPORT section of naomi.cpp
-#' Are there samples from the hyperparameters and latent field as well? How do I access these?
+#' sample_tmb adds $sample (list where each component is a matrix of samples from the named parameter) to fit
 str(fit)
 str(fit$sample)
 
