@@ -22,7 +22,7 @@ local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, prog
   )
 
   if (!is.null(progress)) {
-    obj$fn <- report_progress(obj$fn, progress)
+    obj$fn <- naomi:::report_progress(obj$fn, progress)
   }
 
   obj
@@ -114,7 +114,7 @@ local_sample_tmb <- function(fit, nsample = 1000, rng_seed = NULL, random_only =
 }
 
 #' Inference for the Naomi model using aghq
-fit_aghq <- function(tmb_inputs, ...) {
+fit_aghq <- function(tmb_input, inner_verbose = FALSE, progress = NULL, ...) {
   stopifnot(inherits(tmb_input, "naomi_tmb_input"))
   obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress)
   quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, ...)
@@ -152,7 +152,7 @@ sample_aghq <- function(quad, M, verbose = TRUE) {
 }
 
 #' Inference for the Naomi model using tmbstan
-fit_tmbstan <- function(tmb_inputs, ...) {
+fit_tmbstan <- function(tmb_input, inner_verbose = FALSE, progress = NULL, ...) {
   stopifnot(inherits(tmb_input, "naomi_tmb_input"))
   obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress)
   fit <- tmbstan::tmbstan(obj, ...)

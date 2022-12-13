@@ -73,7 +73,7 @@ dyn.load(dynlib("naomi"))
 fit <- local_fit_tmb(tmb_inputs, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL)
 
 #' Add uncertainty
-fit <- local_sample_tmb(fit, nsample = 10)
+fit <- local_sample_tmb(fit, nsample = 100)
 
 #' Calculate model outputs
 outputs <- output_package(fit, naomi_data)
@@ -107,17 +107,6 @@ eb_quad <- fit_aghq(tmb_inputs, k = 1)
 end_eb_quad <- Sys.time()
 time_eb_quad <- end_eb_quad - start_eb_quad
 
-#' With k = 2 and ndConstruction = "sparse" it's 63 points: should be feasible
-n_hyper <- length(fit$obj$env$par) - length(fit$obj$env$random)
-sparse_grid <- mvQuad::createNIGrid(n_hyper, "GHe", 2, "sparse")
-mvQuad::size(sparse_grid)$gridpoints
-start_sparse_quad <- Sys.time()
-sparse_quad <- fit_aghq(tmb_inputs, k = 2, basegrid = sparse_grid)
-end_sparse_quad <- Sys.time()
-time_sparse_quad <- end_sparse_quad - start_sparse_quad
-
-#' TODO: Run aghq::marginal_laplace_tmb line by line here to explain the error
-
 #' Eventually want to make aghq output match that of TMB for the Naomi model.
 #' Should be able to feed into the functions naomi::output_package, naomi:::extract_indicators
 #' and naomi::extract_art_attendance. The output of naomi::fit_tmb is pretty complex,
@@ -127,8 +116,36 @@ str(fit)
 str(fit$sample)
 
 #' Add uncertainty
-eb_quad <- sample_aghq(eb_quad, M = 10)
+eb_quad <- sample_aghq(eb_quad, M = 100)
+
+#' With k = 2 and ndConstruction = "sparse" it's 63 points: should be feasible
+#' Not working at the moment for some reason! Matrix rows NA or too big!
+n_hyper <- length(fit$obj$env$par) - length(fit$obj$env$random)
+sparse_grid <- mvQuad::createNIGrid(n_hyper, "GHe", 2, "sparse")
+mvQuad::size(sparse_grid)$gridpoints
+# start_sparse_quad <- Sys.time()
+# sparse_quad <- fit_aghq(tmb_inputs, k = 2, basegrid = sparse_grid)
+# end_sparse_quad <- Sys.time()
+# time_sparse_quad <- end_sparse_quad - start_sparse_quad
 
 #' tmbstan
 
 mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = 100)
+
+#' Comparison
+names(fit$obj$env$par)
+test_par <- "beta_anc_rho" #' Picked pretty randomly
+df_compare <- rbind(
+  data.frame(method = "TMB", samples = as.numeric(fit$sample[[test_par]])),
+  data.frame(method = "aghq", samples = as.numeric(eb_quad$sample[[test_par]])),
+  data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(mcmc, pars = test_par))))
+)
+
+df_compare %>%
+  group_by(method) %>%
+  summarise(n = n())
+
+ggplot(df_compare, aes(x = samples, fill = method)) +
+  geom_density(alpha = 0.5) +
+  theme_minimal() +
+  labs(x = paste0(test_par), y = "Density", fill = "Method")
