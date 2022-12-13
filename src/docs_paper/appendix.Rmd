@@ -1,5 +1,5 @@
 ---
-title: Appendix to "Simplifying Integrated nested Laplace approximation with adaptive Gaussian Hermite quadrature"
+title: Appendix to "Integrated nested Laplace approximations for extended latent Gaussian models with application to the Naomi HIV model"
 subtitle: |
   Corresponding author: Adam Howes (`ath19@ic.ac.uk`)
 output:
@@ -19,5 +19,271 @@ bibliography: citations.bib
 \renewcommand{\thetable}{A.\arabic{table}} 
 \setcounter{figure}{0} 
 \renewcommand{\thefigure}{A.\arabic{figure}}
+
+# Complete Naomi model description
+
+## Process specification
+
+### Notation
+
+* District $x$
+  * Located in Spectrum region file $R_x$
+* Sex $s \in \{\text{F}, \text{M}\}$
+* Age $a \in \{\text{0-5}, \text{5-10}, \ldots, \text{75-80}, 80+\}$
+* Time $t \in \{T_1, T_2, T_3\}$
+  * $T_1$: Most recent national household survey with HIV testing
+  * $T_2$: Current time period at which to generate estimates
+  * $T_3$: Short-term project period (typically 9-12 months)
+  * Note $T_{1:3}$ specified to nearest calendar quarter
+* Population size $N_{x, s, a, t}$
+* HIV prevalence $\rho_{x, s, a, t}$
+* ART coverage $\alpha_{x, s, a, t}$
+* Annual HIV incidence rate $\lambda_{x, s, a, t}$
+* $u \sim \text{ICAR}(\sigma)$ refers to the intrinsic conditional auto-regressive model (ICAR) with marginal standard deviation $\sigma > 0$.
+* $u \sim \text{BYM}2(\sigma, \phi)$ refers to a reparameterised Besag-York-Mollie model (BYM2) with marginal standard deviation $\sigma > 0$ comprised of a spatially structured ICAR component with proportion $\phi \in (0, 1)$ and spatially unstructured IID component with proportion $1 - \phi$.
+* For both the ICAR and BYM2 models, we follow recommendations on scaling, disconnected adjacency graph components, and islands.
+
+### HIV prevalence and ART coverage at $T_1$
+
+#### HIV prevalence
+
+HIV prevalence modelled by
+$$
+\text{logit}(\rho_{x, s, a, T_1}) = \beta^\rho_0 + \beta_{S}^{\rho, s = \text{M}} + u^\rho_a + u_a^{\rho, s = \text{M}} + u^\rho_x + u_x^{\rho, s = \text{M}} + u_x^{\rho, a < 15} + \eta^\rho_{R_x, s, a} 
+$$
+where:
+
+* $\beta^\rho_0$ is the intercept
+* $\beta_{s}^{\rho, s = \text{M}}$ is the difference in logit prevalence for men compared to women
+* $u^\rho_a \sim \text{AR}1(\sigma_A^\rho, \phi_A^\rho)$ are age random effects for women
+* $u_a^{\rho, s = \text{M}}$ are age random effects for the difference in logit prevalence for men compared to women age $a$
+* $u^\rho_x \sim \text{BYM}2(\sigma_X^\rho, \phi_X^\rho)$ are spatial random effects for women
+* $u_x^{\rho, s = \text{M}} \sim \text{BYM}2(\sigma_{XS}^\rho, \phi_{XS}^\rho)$ are spatial random effects for the difference in logit prevalence for men compared to women in district $x$
+* $u_x^{\rho, a < 15} \sim \text{ICAR}(0, \sigma_{XA}^\rho)$ are spatial random effects for the ratio of paediatric prevalence to adult women prevalence
+* $\eta^\rho_{R_x, s, a}$ are a fixed offset specifying assumed odds ratios for prevalence outside the age ranges for which data are available
+  
+For prior distributions, we use:
+
+* $\mathcal{N}(0, 5)$ for all fixed effects ($\beta^\rho_0, \beta_{s}^{\rho, s = \text{M}}$)
+* $\mathcal{N}^{+}(0, 2.5)$ for all standard deviation terms
+* $\mathcal{U}(-1, 1)$ for all AR1 correlation parameters
+* $\text{Beta}(0.5, 0.5)$ for all BYM2 proportion parameters
+
+#### ART coverage
+
+ART coverage modelled by
+$$
+\text{logit}(\alpha_{x, s, a, T_1}) = \beta^\alpha_0 + \beta_{S}^{\alpha, s = \text{M}} + u^\alpha_a + u_a^{\alpha, s = \text{M}} + u^\alpha_x + u_x^{\alpha, s = \text{M}} + u_x^{\alpha, a < 15} + \eta^\alpha_{R_x, s, a} 
+$$
+where terms are analogous to the HIV prevalence model.
+
+#### HIV incidence rate
+
+HIV incidence rate is modelled by
+$$
+\log(\lambda_{x, s, a, t}) = \beta_0^\lambda + \beta_S^{\lambda, s = \text{M}} + \log(\rho_{x, t}^{\text{15-49}}) + \log(1 - \omega \cdot \alpha_{x, t}^{\text{15-49}}) + u_x^\lambda + \eta_{R_x, s, a, t}^\lambda 
+$$
+where:
+
+* $\beta^\lambda_0$ is the intercept, which is proportional to the average HIV transmission rate for untreated HIV positive adults
+* $\beta_S^{\lambda, s = \text{M}}$ is the log incidence rate ratio for men compared to women
+* $\rho_{x, t}^{\text{15-49}}$ is the HIV prevalence among adults 15-49 calculated by
+$$
+\rho_{x, t}^{\text{15-49}} = \frac{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{49} N_{x, s, a, t} \cdot \rho_{x, s, a, t}}{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{49} N_{x, s, a, t}}
+$$
+* $\alpha_{x, t}^{\text{15-49}}$ is the ART coverage among adults 15-49 calculated by
+$$
+\alpha_{x, t}^{\text{15-49}} = \frac{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{49} N_{x, s, a, t} \cdot \rho_{x, s, a, t} \cdot \alpha_{x, s, a, t}}{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{49} N_{x, s, a, t} \cdot \rho_{x, s, a, t}}
+$$
+* $\omega$ is the average reduction in HIV transmission rate per 1% increase in population ART coverage and is fixed at $\omega = 0.7$ from the EPP model
+* $u_x^\lambda \sim \mathcal{N}(0, \sigma^\lambda)$ with $\sigma^\lambda \sim \mathcal{N}^+(0, 1)$ are IID spatial random effects
+* $\eta^\lambda_{R_x, s, a, t}$ specify log incidence rate ratios by sex and age group calculated from Spectrum model output
+
+### Short-term projection from $T_1 \to T_2$ and $T_2 \to T_3$
+
+#### HIV prevalence
+
+* HIV population projected from $T_1 \to T_2$ based on survival of PLHIV from Spectrum output, ageing from one five-year age group to the next, and the addition of new HIV infections calculated from district-level HIV incidence rate and survival and ageing after infection
+* Let $H_{x, s, a, {T_1}} = N_{x, s, a, {T_1}} \cdot \rho_{x, s, a, {T_1}}$ be the number of PLHIV at $T_1$
+* For age groups $a \geq 5$ the number of PLHIV at $T_2$ is modelled by
+\begin{align*}
+H_{x, s, a, {T_2}} &= H_{x, s, a, {T_1}} \cdot S_{{R_x}, s, a \to a, {T_1}} + H_{x, s, a - 5, {T_1}} \cdot S_{{R_x}, s, a - 5 \to a, {T_1}} \\
+&+ (1 - \exp(- \delta_{T_1} \cdot \lambda_{x, s, a, {T_1}})) \cdot (N_{x, s, a, {T_1}} - H_{x, s, a, {T_1}}) \cdot L_{R_x, s, a \to a, {T_1}} \\
+&+ (1 - \exp(- \delta_{T_1} \cdot \lambda_{x, s, a - 5, {T_1}})) \cdot (N_{x, s, a - 5, {T_1}} - H_{x, s, a - 5, {T_1}}) \cdot L_{R_x, s, a - 5 \to a, {T_1}}
+\end{align*}
+* $S_{{R_x}, s, a \to a, {T_1}}$ is the ratio for the number of PLHIV surviving from $T_1$ to $T_2$ and remaining in age group $a$ (i.e. not aging from $a$ to $a + 5$)
+* $S_{{R_x}, s, a - 5 \to a, {T_1}}$ the survival ratio from $T_1$ to $T_2$ and aging from $a - 5$ to $a$
+* $(1 - \exp(- \delta_{T_1} \cdot \lambda_{x, s, a, {T_1}}))$ is the probability of acquiring HIV between $T_1$ and $T_2$ of duration $\Delta_{T_1} = T_2 - T_1$ for the susceptible population $N_{x, s, a, {T_1}} - H_{x, s, a, {T_1}}$
+* $L_{R_x, s, a \to a, {T_1}}$ is the ratio surviving and remaining in age group $a$ for those infected between $T_1$ and $T_2$
+* $L_{R_x, s, a - 5 \to a, {T_1}}$ is the ratio surviving and aging from $a - 5$ to $a$ for those infected between $T_1$ and $T_2$
+* The ratios $S$ and $L$ are calculated from Specturm results by
+  1. Disaggregating single-year or single-age Specturm model results for PLHIV at $T_1$ and $T_2$ and new infections between $T_1$ and $T_2$ to quarterly birth cohorts
+  2. Subtracting the number of new infections within the cohort from the number of PLHIV at $T_2$ to calculate the number of surviving PLHIV in each cohort
+  3. Aggregating the survivors by quarter-age cohorts to those who survived and aged from $a$ to $a'$ between $T_1$ and $T_2$, and calculating the ratio by dividing by the initial PLHIV $H_{x, s, a, {T_1}}$
+* Variation in ART coverage or effectiveness is assumed not to affect survival
+
+#### ART coverage
+
+Change in ART coverage is modelled by
+$$
+\text{logit}(\alpha_{x, s, a, {T_2}}) = \text{logit}(\alpha_{x, s, a, {T_1}}) + \beta_{T_2}^\alpha + \beta_{T_2, s = \text{M}}^\alpha + u_{x, {T_2}}^\alpha + u_{x, a < 15, {T_2}}^\alpha + \eta_{R_x, s, a, {T_2}}^\alpha
+$$
+where
+
+* $\eta_{R_x, s, a, {T_2}}^\alpha$ are offsets for the logit change in ART coverage between $T_1$ and $T_2$ from Spectrum region $R_x$
+* $\beta_{T_2}^\alpha$ is the average change in logit ART coverage between $T_1$ and $T_2$ for adult women
+* $\beta_{T_2, s = \text{M}}^\alpha$ is the difference in average change for men compared to women
+* $u_{x, {T_2}}^\alpha \sim \mathcal{N}(0, \sigma_{XT}^\alpha)$ are district random effects
+* $u_{x, a < 15, {T_2}}^\alpha$ is the difference in logit ART coverage for children compared to adults
+
+ART coverage at $T_3$ is modelled by^[Don't understand this.]
+$$
+\text{logit}(\alpha_{x, s, a, {T_2}}) = \text{logit}(\alpha_{x, s, a, {T_1}}) + \eta_{R_x, s, a, {T_3}}^\alpha
+$$
+
+### ANC testing cascade
+
+* For women 15-49 the predicted number of ANC clients $\Psi_{x, a, t}$ is a log-linear model
+$$
+\log (\Psi_{x, a, t}) = \log (N_{x, \text{F}, a, t}) + \psi_{R_x, a, t} + \beta^\psi + u_x^\psi
+$$
+  * $N_{x, \text{F}, a, t}$ are the female population sizes
+  * $\psi_{R_x, a, t}$ are ASFR in Spectrum region $R_x$ at time $t$
+  * $\beta^\psi$ are the log rate ratio for the number of ANC clients relative to the predicted fertility
+  * $u_x^\psi \sim \mathcal{N}(0, \sigma^\psi)$ are district random effects
+* HIV prevalence $\rho_{x, a, t}^\text{ANC}$ and ART coverage $\alpha_{x, a, t}^\text{ANC}$ among pregnant women modelled with logit-linear models
+\begin{align}
+\text{logit}(\rho_{x, a, t}^{\text{ANC}}) &= \text{logit}(\rho_{x, F, a, t}) + \beta^{\rho^{\text{ANC}}} + \beta_{t \in(T_2, T_3\}}^{\rho^{\text{ANC}}} + u_x^{\rho^{\text{ANC}}} + u_{x, t \in\{T_2, T_3\}}^{\rho^{\text{ANC}}} + \eta_{R_x, a, t}^{\rho^{\text{ANC}}} \\
+\text{logit}(\alpha_{x, a, t}^{\text{ANC}}) &= \text{logit}(\alpha_{x, F, a, t}) + \beta^{\alpha^{\text{ANC}}} + \beta_{t \in\{T_2, T_3\}}^{\alpha^{\text{ANC}}} + u_x^{\alpha^{\text{ANC}}}+u_{x, t \in\{T_2, T_3\}}^{\alpha^{\text{ANC}}} + \eta_{R_x, a, t}^{\alpha^{\text{ANC}}}
+\end{align}
+  * $\eta_{R_x, a, t}^{\theta^{\text{ANC}}}$ for $\theta \in \{\rho, \alpha\}$ are offsets for the log fertility rate ratios for HIV positive women compared to HIV negative women and for women on ART to HIV positive women not on ART, calculated from Spectrum model outputs for region $R_x$
+  * $\beta^{\theta^{\text{ANC}}}$ for $\theta \in \{\rho, \alpha\}$ are the average differences between population and ANC outcomes at $T_1$ after removing the offset
+  * $\beta_{t \in(T_2, T_3\}}^{\theta^{\text{ANC}}}$ for $\theta \in \{\rho, \alpha\}$ are the change in average difference from $T_1$ to $T_2$
+  * $u_x^{\theta^{\text{ANC}}} \sim \mathcal{N}(0, \sigma_X^{\theta^{\text{ANC}}})$ for $\theta \in \{\rho, \alpha\}$ are district random effects
+  * $u_{x, t \in\{T_2, T_3\}}^{\theta^{\text{ANC}}} \sim \mathcal{N}(0, \sigma_{XT}^{\theta^{\text{ANC}}})$ for $\theta \in \{\rho, \alpha\}$ capture the change in district random effects between times $T_1$ and $T_2$
+  
+### ANC attendance
+
+* Number of PLHIV on ART is $A_{x, s, a, t} = N_{x, s, a, t} \cdot \rho_{x, s, a, t} \cdot \alpha_{x, s, a, t}$
+* Let $\gamma_{x, x', t} \in [0, 1]$ be the probability that a person of ART residing in district $x$ recieves ART in district $x'$ at time $t$
+* We assume that $\gamma_{x, x', t} = 0$ for $x \notin \{x, \text{ne}(x)\}$ i.e. that individuals seek treatment only in their residing district and its neighbours $\text{ne}(x) = \{x': x' \sim x\}$ where $\sim$ is an adjacency relation
+  * $\sum_{x' \in \{x, \text{ne}(x)\}} \gamma_{x, x', t} = 1$
+* Model $\gamma_{x, x', t}$ with a multinomial logit model where $\tilde \gamma_{x, t}$ is^[Confused by this notation.] the log odds ratio of seeking ART in the district $x'$ neighbouring $x$
+\begin{align}
+\tilde \gamma_{x, t} &= \tilde \gamma_0 + u_x^{\tilde \gamma} + u_x^{\tilde \gamma, t = T_2} \\ 
+\tilde \gamma_0 &= -4 \\
+u_x^{\tilde \gamma} &\sim \mathcal{N}(0, \sigma_X^{\tilde \gamma}) \\
+u_x^{\tilde \gamma, t \in \{T_2, T_3\}} &\sim \mathcal{N}(0, \sigma_{XT}^{\tilde \gamma}) 
+\end{align}
+  * $\tilde \gamma_{x, t}$ is an intercept specifying the prior mean for the log odds of seeking ART in each neighbouring district compared to the home district
+  * $u_x^{\tilde \gamma}$ are district random effects
+  * $u_x^{\tilde \gamma, t \in \{T_2, T_3\}}$ is^[Shouldn't this just be $t = T_2$ here rather than $t \in \{T_2, T_3\}$?] the change in district level log-odds ratios between $T_1$ and $T_2$
+  * Note: only one value estimated for each district, implying no preference between neighbouring districts, and no sex-age specific modelling
+* Calculate multinomial probabilities via softmax (n.b. this is the sigmoid function, the inverse of the softmax)
+$$
+\gamma_{x, x', t} = \frac{1}{1 + \sum_{x^\star \sim x} \exp(\tilde \gamma_{x^\star, t})}
+$$
+* The number of ART clients who reside in district $x$ and obtain ART in district $x'$ are $A_{x, x', s, a, t} = A_{x, s, a, t} \cdot \gamma_{x, x', t} = N_{x, s, a, t} \cdot \rho_{x, s, a, t} \cdot \alpha_{x, s, a, t} \cdot \gamma_{x, x', t}$
+* Total attending ART facilities in district $x'$ is $\tilde A_{x', s, a, t} = \sum_{x \sim x', x = x'} A_{x, x', s, a, t}$
+
+### Awareness of HIV status
+
+* The proportion of HIV positive adults aware of their HIV status is $v_{x, s, a, t}$
+* The proportion of untreated HIV positive adults aware of their HIV status is $\tilde \nu_{x, s, a, t}$ such that
+$$
+v_{x, s, a, t} = \alpha_{x, s, a, t} + \frac{\tilde v_{R_x, s, a, t}}{1 - \alpha_{x, s, a, t}}
+$$
+
+## Likelihood specification
+
+### Notation
+
+* Use $\{x\}$ to denote a collection of districts, $\{s\}$ a collection of sexes and $\{a\}$ a collection of ages for which an outcome is observed
+
+### Household survey data
+
+* Let $\nu$ be a household survey occuring at $T_1$
+* Furnishes weighted observations for HIV prevalence $\hat \rho_{\{x\}, \{s\}, \{a\}, \nu}$, ART coverage $\hat \alpha_{\{x\}, \{s\}, \{a\}, \nu}$ and proportion recently infected $\hat \kappa_{\{x\}, \{s\}, \{a\}, \nu}$ with respective Kish effective sample sizes $M^{\hat \theta}_{\{x\}, \{s\}, \{a\}, \nu}$ for $\theta \in \{\rho, \alpha, \kappa\}$
+* The observed cases are $Y^{\hat \theta}_{\{x\}, \{s\}, \{a\}, \nu} = M^{\hat \theta}_{\{x\}, \{s\}, \{a\}, \nu} \cdot \hat \theta_{\{x\}, \{s\}, \{a\}, \nu}$
+* For HIV prevalence we use a binomial working likelihood
+\begin{align}
+Y^{\hat \rho}_{\{x\}, \{s\}, \{a\}, \nu} &\sim \text{Bin}(M^{\hat \rho}_{\{x\}, \{s\}, \{a\}, \nu}, \rho_{\{x\}, \{s\}, \{a\}, {T_1}}) \\
+\rho_{\{x\}, \{s\}, \{a\}, t} &= \frac{\sum_{x \in \{x\}} \sum_{s \in \{s\}} \sum_{a \in \{a\}} N_{x, s, a, t} \cdot \rho_{x, s, a, t}}{\sum_{x \in \{x\}} \sum_{s \in \{s\}} \sum_{a \in \{a\}} N_{x, s, a, t}}
+\end{align}
+* For ART coverage we also use a binomial working likelihood
+\begin{align}
+Y^{\hat \alpha}_{\{x\}, \{s\}, \{a\}, \nu} &\sim \text{Bin}(M^{\hat \alpha}_{\{x\}, \{s\}, \{a\}, \nu}, \alpha_{\{x\}, \{s\}, \{a\}, {T_1}}) \\
+\alpha_{\{x\}, \{s\}, \{a\}, t} &= \frac{\sum_{x \in \{x\}} \sum_{s \in \{s\}} \sum_{a \in \{a\}} N_{x, s, a, t} \cdot \rho_{x, s, a, t} \cdot \alpha_{x, s, a, t}}{\sum_{x \in \{x\}} \sum_{s \in \{s\}} \sum_{a \in \{a\}} N_{x, s, a, t} \cdot \rho_{x, s, a, t}}
+\end{align}
+* For recent infections we also use a binomial working likelihood
+\begin{align}
+Y^{\hat \kappa}_{\{x\}, \{s\}, \{a\}, \nu} &\sim \text{Bin}(M^{\hat \kappa}_{\{x\}, \{s\}, \{a\}, \nu}, \kappa_{\{x\}, \{s\}, \{a\}, {T_1}}) \\
+\kappa_{x, s, a, t} &= 1 - \exp(- \lambda_{x, s, a, t} \cdot \frac{1 - \rho_{x, s, a, t}}{\rho_{x, s, a, t}} \cdot (\Omega_T - \beta_T ) - \beta_T ) \\
+\Omega_T &\sim \mathcal{N}(\Omega_{T_0}, \sigma^{\Omega_T}) \\
+\beta_T &\sim \mathcal{N}(\beta_{T_0}, \sigma^{\beta_T})
+\end{align}
+  * $\kappa_{x, s, a, t}$ are the predicted proportion recently infected among HIV positive persons
+  * $\Omega_T$ is the mean duration of recent infection (MDRI)
+    * Use an informative prior based on the characteristics of the recent infection testing algorithm (RITA)
+    * For PHIA surveys^[What about other surveys?] $\Omega_{T_0} = 130 \text{ days}$ and $\sigma^{\Omega_T} = 6.12 \text{ days}$
+  * $\beta_T$ is the false recent ratio (FRR)
+    * For PHIA surveys $\beta_{T_0} = 0.0$ and $\sigma^{\beta_T} = 0.0$.^[Is this just assuming that there is no false recency? How is this assumption justified?]
+    
+### ANC testing data
+
+* Include two years of ANC testing data: the year of the most recent survey $Y[T_1]$ and the current year $Y[T_2]$
+* $W^\text{ANC}_{\{x\}, Y[t]}$ are the number of ANC clients
+* $X^\text{ANC}_{\{x\}, Y[t]}$ are the number of ANC clients with ascertained status
+* $Y^\text{ANC}_{\{x\}, Y[t]}$ are the number of ANC clients with positive status (either known or tested)
+* $Z^\text{ANC}_{\{x\}, Y[t]}$ are the number of ANC clients already on ART prior to first ANC
+* Sometimes ANC testing data are only available for part of a given year, for example only the first three quarters. Denote $M^\text{ANC}_{Y[t]} \in \{1, \ldots, 12\}$ the number of months of reported data reflected in counts for year $Y[t]$
+* Likelihood for number of ANC clients specified only^[Why?] for year $Y[T_2]$ as
+$$
+W_{\{x\} Y[T_2]}^{\text{ANC}} \sim \text{Pois} \left( \frac{M_{Y[T 2]}^{\text{ANC}}}{12} \sum_{x \in\{x\}} \sum_{a \in\{15, \ldots 45\}} \Psi_{x, a, T_2} \right)
+$$
+* Observed number of HIV positive and already on ART among ANC clients at both $Y[T_1]$ and $Y[T_2]$ are modelled by
+\begin{align*}
+& Y_{\{x\} Y[t]}^{\text{ANC}} &\sim \text{Bin} \left(X_{\{x\} Y[t]}^{\text{ANC}}, \rho_{\{x\},\{15, \ldots 49\}, t}^{\text{ANC}}\right) \\
+& Z_{\{x\} Y[t]}^{\text{ANC}} &\sim \text{Bin} \left(Y_{\{x\} Y[t]}^{\text{ANC}}, \alpha_{\{x\},\{15, \ldots 49\}, t}^{\text{ANC}}\right)
+\end{align*}
+where predicted prevalence and ART coverage are aggregated weighted by the predicted number of pregnant women by age $\Psi_{x, a, t}$
+\begin{align*}
+\rho_{\{x\}\{a\}, t}^{\text{ANC}} &= \frac{\sum_{x \in\{x\}} \sum_{a \in\{a\}} \Psi_{x, a, t} \cdot \rho_{x, a, t}^{\text{ANC}}}{\sum_{x \in\{x\}} \sum_{a \in\{a\}} \Psi_{x, a, t}} \\
+\alpha_{\{x\}\{a\}, t}^{\text{ANC}} &= \frac{\sum_{x \in\{x\}} \sum_{a \in\{a\}} \Psi_{x, a, t} \cdot \rho_{x, a, t}^{\text{ANC}} \cdot \alpha_{x, a, t}^{\text{ANC}}}{\sum_{x \in\{x\}} \sum_{a \in\{a\}} \Psi_{x, a, t} \cdot \rho_{x, a, t}^{\text{ANC}}}
+\end{align*}
+
+### Number receiving ART
+
+* Let $\dot A_{\{x\}, \{s\}, \{a\}, t}$ be data for the number receiving ART^[I'm confused about the notation here. In general would be good to define precisely what is meant by $\{x\}$. Presumably the LHS below is a set, yet the RHS is a sum over the sets so I think just a number -- so how can the two be equal?]
+$$
+\dot A_{\{x\}, \{s\}, \{a\}, t} = \sum_{s \in \{s\}} \sum_{a \in \{a\}} \sum_{x \in \{x\}} \sum_{x \sim x', x = x'} \dot A_{x', x, s, a, t}
+$$
+* Model the unobserved numbers of ART clients travelling from $x'$ to $x$ as
+$$
+\dot A_{x', x, s, a, t} \sim \text{Bin}(N_{x', s, a, t}, \pi_{x', x, s, a, t})
+$$
+where $\pi_{x', x, s, a, t} = \rho_{x', s, a, t} \cdot \alpha_{x', s, a, t} \cdot \gamma_{x', s, a, t}$^[Should this be $\gamma_{x', x, s, a, t}$ since it's people moving from $x'$ to $x$ (and so far no where in the RHS is there an $x$ which is suspicious)]
+* This likelihood is approximated using a normal for the sum of binomials
+$$
+\dot A_{\{x\}, \{s\}, \{a\}, t} \sim \mathcal{N}(\tilde) A_{\{x\}, \{s\}, \{a\}, t}, \sigma^{\tilde A}_{\{x\}, \{s\}, \{a\}, t})
+$$
+where
+  * $\tilde{A}_{\{x\},\{s\}\{a\}, t} = \sum_{s \in\{s\}} \sum_{a \in\{a\}} \sum_{x \in\{x\}} \sum_{x \sim x', x = x'} N_{x', s, a, t} \cdot \pi_{x', x, s, a, t}$
+  * $\sigma_{\{x\},\{s\}\{a\}, t}^{\tilde{A}} = \sqrt{\sum_{s \in\{s\}} \sum_{a \in\{a\}} \sum_{x \in\{x\}} \sum_{x \sim x', x = x'} N_{x', s, a, t} \cdot \pi_{x', x, s, a, t} \cdot \left(1-\pi_{x', x, s, a, t}\right)}$
+
+## Identifiability constaints
+
+* Depends on data availability. If data is missing, some parameters might be fixed to default values
+* Survey data on ART coverage by age and sex not available then set $u_a^\alpha = 0$ and $u_{a, s = \text{M}}^\alpha = 0$ and use the average age/sex pattern of ART coverage from the Spectrum offset $\eta_{R_x, s, a}^\alpha$
+* If there is no ART data at $T_1$ (either survey or ART programme) or no ART data at $T_2$ then change in ART coverage is unidentifiable and set $\beta_{T_2}^\alpha = \beta_{T_2, s = \text{M}}^\alpha = u_{x, {T_2}}^\alpha = u_{x, a < 15, {T_2}}^\alpha = 0$ such that change in ART coverage is modelled by
+$$
+\text{logit}(\alpha_{x, s, a, {T_2}}) = \text{logit}(\alpha_{x, s, a, {T_1}}) + \eta_{R_x, s, a, {T_2}}^\alpha
+$$
+* If no ART data (survey or ART programme) are available at $T_1$ or $T_2$ but data on ART coverage among ANC clients are available, the level of ART coverage is not identifiable, but spatial variation is identifiable. In this instance, overall ART coverage is determined by the Spectrum offset, and only area random effects are estimated
+\begin{align*}
+\text{logit} \left(\alpha_{x, s, a, T_1} \right) &= u_x^\alpha+\eta_{R_x, s, a}^\alpha \\
+\text{logit} \left(\alpha_{x, s, a, T_2} \right) &= \text{logit}\left(\alpha_{x, s, a, T_1}\right)+u_{x, T_2}^\alpha+\eta_{R_{x, s, a, T_2}}^\alpha
+\end{align*}
+* If survey data on recent HIV infection are not included in the model, then $\beta_0^\lambda = \beta_S^{\lambda, s = \text{M}} = u_x^\lambda = 0$. The sex ratio for HIV incidence is determined by the sex incidence rate ratio from Spectrum in the same years and the incidence rate in all districts is modelled assuming the same average HIV transmission rate for untreated adults, but varies according to district estimates of HIV prevalence and ART coverage
 
 # References {#references .unnumbered}
