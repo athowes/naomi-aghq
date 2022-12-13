@@ -62,87 +62,17 @@ naomi_data <- select_naomi_data(
 #' Fit model with TMB
 tmb_inputs <- prepare_tmb_inputs(naomi_data)
 
-#' Note that naomi.cpp was obtained from https://github.com/mrc-ide/naomi on the 7/12/22
-#' This corresponds to package number 2.8.5.
-
-#' Check package version for Naomi -- you probably want it to match 2.8.5.
+#' naomi.cpp was obtained from https://github.com/mrc-ide/naomi on the 7/12/22
+#' This corresponds to package number 2.8.5. You can check package version for Naomi with
 packageVersion("naomi")
 
-#' Version 2.8.5. of Naomi can be installed with (TODO: how to select version number)
-# devtools::install_github("mrc-ide/naomi")
+#' If required, version 2.8.5. of Naomi can be installed with
+# devtools::install_github("mrc-ide/naomi", ref = "e9de40f")
 
 compile("naomi.cpp")
 dyn.load(dynlib("naomi"))
 
-#' Begin expose naomi::fit_tmb
-#' https://github.com/mrc-ide/naomi/blob/e9de40f12cf2e652f78966bb351fa5718ecd7867/R/tmb-model.R#L557
-#' Replacing the following call
-#' fit <- fit_tmb(tmb_inputs, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL)
-tmb_input <- tmb_inputs
-outer_verbose <- TRUE
-inner_verbose <- FALSE
-max_iter <- 250
-progress <- NULL
-
-stopifnot(inherits(tmb_input, "naomi_tmb_input"))
-
-#' Begin expose naomi:::make_tmb_obj
-#' https://github.com/mrc-ide/naomi/blob/e9de40f12cf2e652f78966bb351fa5718ecd7867/R/tmb-model.R#L496
-#' Replacing the following call
-#' obj <- naomi:::make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress)
-data <- tmb_input$data
-par <- tmb_input$par_init
-calc_outputs <- 0L
-
-data$calc_outputs <- as.integer(calc_outputs)
-
-obj <- TMB::MakeADFun(
-  data = data,
-  parameters = par,
-  DLL = "naomi",
-  silent = !inner_verbose,
-  random = c("beta_rho", "beta_alpha",
-    "beta_alpha_t2", "beta_lambda", "beta_asfr", "beta_anc_rho",
-    "beta_anc_alpha", "beta_anc_rho_t2", "beta_anc_alpha_t2",
-    "u_rho_x", "us_rho_x", "u_rho_xs", "us_rho_xs", "u_rho_a",
-    "u_rho_as", "u_rho_xa", "u_alpha_x", "us_alpha_x",
-    "u_alpha_xs", "us_alpha_xs", "u_alpha_a", "u_alpha_as",
-    "u_alpha_xt", "u_alpha_xa", "u_alpha_xat", "u_alpha_xst",
-    "ui_lambda_x", "logit_nu_raw", "ui_asfr_x", "ui_anc_rho_x",
-    "ui_anc_alpha_x", "ui_anc_rho_xt", "ui_anc_alpha_xt",
-    "log_or_gamma", "log_or_gamma_t1t2")
-)
-
-if (!is.null(progress)) {
-  obj$fn <- report_progress(obj$fn, progress)
-}
-
-#' End expose naomi:::make_tmb_obj
-
-trace <- ifelse(outer_verbose, 1, 0)
-
-f <- withCallingHandlers(
-  stats::nlminb(obj$par, obj$fn, obj$gr, control = list(trace = trace, iter.max = max_iter)),
-  warning = function(w) {
-    if (grepl("NA/NaN function evaluation", w$message)) invokeRestart("muffleWarning")
-  }
-)
-
-if (f$convergence != 0) warning(paste("convergence error:", f$message))
-
-if (outer_verbose) message(paste("converged:", f$message))
-
-f$par.fixed <- f$par
-f$par.full <- obj$env$last.par
-objout <- naomi:::make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 1L, inner_verbose)
-f$mode <- objout$report(f$par.full)
-val <- c(f, obj = list(objout))
-class(val) <- "naomi_fit"
-
-#' Returns parameter estimate (mode) and Hessian
-fit <- val
-
-#' End expose naomi::fit_tmb
+fit <- local_fit_tmb(tmb_inputs, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL)
 
 #' Begin expose naomi::sample_tmb
 #' https://github.com/mrc-ide/naomi/blob/65ac94517b910ac517a45f41e824824e1907a3c4/R/tmb-model.R#L624
