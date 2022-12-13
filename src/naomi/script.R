@@ -62,63 +62,19 @@ naomi_data <- select_naomi_data(
 #' Fit model with TMB
 tmb_inputs <- prepare_tmb_inputs(naomi_data)
 
-#' naomi.cpp was obtained from https://github.com/mrc-ide/naomi on the 7/12/22
-#' This corresponds to package number 2.8.5. You can check package version for Naomi with
-packageVersion("naomi")
-
-#' If required, version 2.8.5. of Naomi can be installed with
-# devtools::install_github("mrc-ide/naomi", ref = "e9de40f")
+#' naomi.cpp was obtained from https://github.com/mrc-ide/naomi on the 7/12/22.
+#' This corresponds to package number 2.8.5. You can check package version for
+#' Naomi with packageVersion("naomi"), and if required, install version 2.8.5.
+#' with devtools::install_github("mrc-ide/naomi", ref = "e9de40f")
 
 compile("naomi.cpp")
 dyn.load(dynlib("naomi"))
 
+#' Fit TMB model
 fit <- local_fit_tmb(tmb_inputs, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL)
 
-#' Begin expose naomi::sample_tmb
-#' https://github.com/mrc-ide/naomi/blob/65ac94517b910ac517a45f41e824824e1907a3c4/R/tmb-model.R#L624
-nsample <- 10
-rng_seed <- NULL
-random_only <- TRUE
-verbose <- TRUE
-
-set.seed(rng_seed)
-stopifnot(methods::is(fit, "naomi_fit"))
-stopifnot(nsample > 1)
-to_tape <- TMB:::isNullPointer(fit$obj$env$ADFun$ptr)
-if (to_tape) fit$obj$retape(FALSE)
-if (!random_only) {
-  if (verbose) print("Calculating joint precision")
-  hess <- sdreport_joint_precision(fit$obj, fit$par.fixed)
-  if (verbose) print("Inverting precision for joint covariance")
-  cov <- solve(hess)
-  if (verbose) print("Drawing sample")
-  smp <- mvtnorm::rmvnorm(nsample, fit$par.full, cov)
-} else {
-  r <- fit$obj$env$random #' Indices of the random effects
-  par_f <- fit$par.full[-r] #' Mode of the fixed effects
-  par_r <- fit$par.full[r] #' Mode of the random effects
-  hess_r <- fit$obj$env$spHess(fit$par.full, random = TRUE) #' Hessian of the random effects
-  smp_r <- naomi:::rmvnorm_sparseprec(nsample, par_r, hess_r) #' Sample from the random effects
-  smp <- matrix(0, nsample, length(fit$par.full)) #' Create data structure for sample storage
-  smp[, r] <- smp_r #' Store random effect samples
-  smp[, -r] <- matrix(par_f, nsample, length(par_f), byrow = TRUE) #' For fixed effects store mode
-  colnames(smp)[r] <- colnames(smp_r) #' Random effect names
-  colnames(smp)[-r] <- names(par_f) #' Fixed effect names
-}
-if (verbose) print("Simulating outputs")
-
-nrow(smp) #' Number of rows equal number of samples
-ncol(smp) #' Number of columns equal number of parameters (latent field and hyper)
-sum(lengths(tmb_input$par_init)) #' This is the same as ncol(smp)
-
-#' Given samples, use TMB template to generate output samples
-sim <- apply(smp, 1, fit$obj$report)
-r <- fit$obj$report()
-if (verbose) print("Returning sample")
-fit$sample <- Map(vapply, list(sim), "[[", lapply(lengths(r), numeric), names(r))
-is_vector <- vapply(fit$sample, inherits, logical(1), "numeric")
-fit$sample[is_vector] <- lapply(fit$sample[is_vector], matrix, nrow = 1)
-names(fit$sample) <- names(r)
+#' Add uncertainty
+fit <- local_sample_tmb(fit, nsample = 10)
 
 #' Calculate model outputs
 outputs <- output_package(fit, naomi_data)
@@ -141,58 +97,33 @@ indicators %>%
 
 dev.off()
 
-#' Develop new function naomi::fit_aghq
-#' fit <- fit_aghq(tmb_inputs, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL)
-tmb_input <- tmb_inputs
-outer_verbose <- TRUE
-inner_verbose <- FALSE
-max_iter <- 250
-progress <- NULL
+#' aghq
 
-stopifnot(inherits(tmb_input, "naomi_tmb_input"))
-
-obj <- naomi:::make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress)
-
-#' The number of hyperparameters is 31
-length(obj$par)
-
-#' This is quite a lot if we plan on using a dense grid
-#' For example with k = 3 points per dimension then we'll get 3^31 ~= 6E14 points
-#' Or with k = 2 points per dimension 2^31 ~= 2E9
-#' Let's set k = 1 (empirical Bayes) for now, and get all of the infrastructure working first
+#' The number of hyperparameters is 31, which is a lot if we plan on using a
+#' dense grid. With k = 3 points per dimension then we'll get 3^31 ~= 6E14 points
+#' Or with k = 2 points per dimension 2^31 ~= 2E9. Let's set k = 1 (empirical Bayes)
+#' for now, and get all of the infrastructure working first
 start_eb_quad <- Sys.time()
-eb_quad <- aghq::marginal_laplace_tmb(obj, k = 1, startingvalue = obj$par)
+eb_quad <- fit_aghq(tmb_inputs, k = 1)
 end_eb_quad <- Sys.time()
 time_eb_quad <- end_eb_quad - start_eb_quad
 
-n_hyper <- length(obj$par)
-
-#' With k = 2 and ndConstruction = "sparse" we get 63 points -- should be pretty feasible
+#' With k = 2 and ndConstruction = "sparse" it's 63 points: should be feasible
 # sparse_grid <- mvQuad::createNIGrid(n_hyper, "GHe", 2, "sparse")
 # mvQuad::size(sparse_grid)$gridpoints
-#
 # start_sparse_quad <- Sys.time()
-# sparse_quad <- aghq::marginal_laplace_tmb(obj, k = 2, startingvalue = obj$par, basegrid = sparse_grid)
+# sparse_quad <- fit_aghq(tmb_inputs, k = 2, basegrid = sparse_grid)
 # end_sparse_quad <- Sys.time()
 
-#' TODO: Run aghq::marginal_laplace_tmb line by line here to explain the following error
-# Error in matrix(NA, nrow = No.Points, ncol = dim) :
-#   invalid 'nrow' value (too large or NA)
-# In addition: Warning message:
-#   In matrix(NA, nrow = No.Points, ncol = dim) :
-#   NAs introduced by coercion to integer range
+#' TODO: Run aghq::marginal_laplace_tmb line by line here to explain the error
 
-#' Want to make aghq output match that of TMB for the Naomi model
-#' Should be able to feed into the functions
-#' * naomi::output_package
-#' * naomi:::extract_indicators
-#' * naomi::extract_art_attendance
-#'
-#' How does the output of naomi::fit_tmb look?
-#' val is quite complicated
+#' Want to make aghq output match that of TMB for the Naomi model. Should be able
+#' to feed into the functions naomi::output_package, naomi:::extract_indicators
+#' and naomi::extract_art_attendance. How does the output of naomi::fit_tmb look?
 str(val)
 
-#' sample_tmb adds $sample (list where each component is a matrix of samples from the named parameter) to fit
+#' sample_tmb adds $sample (list where each component is a matrix of samples
+#' from the named parameter) to fit
 str(fit)
 str(fit$sample)
 

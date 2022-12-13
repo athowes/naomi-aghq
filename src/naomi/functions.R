@@ -65,3 +65,58 @@ local_fit_tmb <- function(tmb_input, outer_verbose = TRUE, inner_verbose = FALSE
 
   # End expose naomi::fit_tmb
 }
+
+#' A local version of naomi::sample_tmb
+local_sample_tmb <- function(fit, nsample = 1000, rng_seed = NULL, random_only = TRUE, verbose = FALSE) {
+  # Begin expose naomi::sample_tmb
+  # https://github.com/mrc-ide/naomi/blob/65ac94517b910ac517a45f41e824824e1907a3c4/R/tmb-model.R#L624
+  set.seed(rng_seed)
+  stopifnot(methods::is(fit, "naomi_fit"))
+  stopifnot(nsample > 1)
+  to_tape <- TMB:::isNullPointer(fit$obj$env$ADFun$ptr)
+  if (to_tape) fit$obj$retape(FALSE)
+  if (!random_only) {
+  if (verbose) print("Calculating joint precision")
+  hess <- sdreport_joint_precision(fit$obj, fit$par.fixed)
+  if (verbose) print("Inverting precision for joint covariance")
+  cov <- solve(hess)
+  if (verbose) print("Drawing sample")
+  smp <- mvtnorm::rmvnorm(nsample, fit$par.full, cov)
+  } else {
+  r <- fit$obj$env$random # Indices of the random effects
+  par_f <- fit$par.full[-r] # Mode of the fixed effects
+  par_r <- fit$par.full[r] # Mode of the random effects
+  hess_r <- fit$obj$env$spHess(fit$par.full, random = TRUE) # Hessian of the random effects
+  smp_r <- naomi:::rmvnorm_sparseprec(nsample, par_r, hess_r) # Sample from the random effects
+  smp <- matrix(0, nsample, length(fit$par.full)) # Create data structure for sample storage
+  smp[, r] <- smp_r # Store random effect samples
+  smp[, -r] <- matrix(par_f, nsample, length(par_f), byrow = TRUE) # For fixed effects store mode
+  colnames(smp)[r] <- colnames(smp_r) # Random effect names
+  colnames(smp)[-r] <- names(par_f) # Fixed effect names
+  }
+  if (verbose) print("Simulating outputs")
+
+  # Number of rows nrow(smp) equal number of samples
+  # Number of columns ncol(smp) equal number of parameters (latent field and hyper)
+  # sum(lengths(tmb_input$par_init)) is the same as ncol(smp)
+
+  # Given samples, use TMB template to generate output samples
+  sim <- apply(smp, 1, fit$obj$report)
+  r <- fit$obj$report()
+  if (verbose) print("Returning sample")
+  fit$sample <- Map(vapply, list(sim), "[[", lapply(lengths(r), numeric), names(r))
+  is_vector <- vapply(fit$sample, inherits, logical(1), "numeric")
+  fit$sample[is_vector] <- lapply(fit$sample[is_vector], matrix, nrow = 1)
+  names(fit$sample) <- names(r)
+
+  fit
+  # End expose naomi::sample_tmb
+}
+
+#' Inference for the Naomi model using aghq
+fit_aghq <- function(tmb_inputs, ...) {
+  stopifnot(inherits(tmb_input, "naomi_tmb_input"))
+  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress)
+  quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, ...)
+  quad
+}
