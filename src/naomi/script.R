@@ -59,7 +59,6 @@ naomi_data <- select_naomi_data(
   anc_art_coverage_year2
 )
 
-#' Fit model with TMB
 tmb_inputs <- prepare_tmb_inputs(naomi_data)
 
 #' naomi.cpp was obtained from https://github.com/mrc-ide/naomi on the 7/12/22.
@@ -109,11 +108,13 @@ end_eb_quad <- Sys.time()
 time_eb_quad <- end_eb_quad - start_eb_quad
 
 #' With k = 2 and ndConstruction = "sparse" it's 63 points: should be feasible
-# sparse_grid <- mvQuad::createNIGrid(n_hyper, "GHe", 2, "sparse")
-# mvQuad::size(sparse_grid)$gridpoints
-# start_sparse_quad <- Sys.time()
-# sparse_quad <- fit_aghq(tmb_inputs, k = 2, basegrid = sparse_grid)
-# end_sparse_quad <- Sys.time()
+n_hyper <- length(fit$obj$env$par) - length(fit$obj$env$random)
+sparse_grid <- mvQuad::createNIGrid(n_hyper, "GHe", 2, "sparse")
+mvQuad::size(sparse_grid)$gridpoints
+start_sparse_quad <- Sys.time()
+sparse_quad <- fit_aghq(tmb_inputs, k = 2, basegrid = sparse_grid)
+end_sparse_quad <- Sys.time()
+time_sparse_quad <- end_sparse_quad - start_sparse_quad
 
 #' TODO: Run aghq::marginal_laplace_tmb line by line here to explain the error
 
@@ -127,3 +128,7 @@ str(fit$sample)
 
 #' Add uncertainty
 eb_quad <- sample_aghq(eb_quad, M = 10)
+
+#' tmbstan
+
+mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = 100)
