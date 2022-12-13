@@ -117,75 +117,13 @@ time_eb_quad <- end_eb_quad - start_eb_quad
 
 #' TODO: Run aghq::marginal_laplace_tmb line by line here to explain the error
 
-#' Want to make aghq output match that of TMB for the Naomi model. Should be able
-#' to feed into the functions naomi::output_package, naomi:::extract_indicators
-#' and naomi::extract_art_attendance. How does the output of naomi::fit_tmb look?
-str(val)
-
-#' sample_tmb adds $sample (list where each component is a matrix of samples
-#' from the named parameter) to fit
+#' Eventually want to make aghq output match that of TMB for the Naomi model.
+#' Should be able to feed into the functions naomi::output_package, naomi:::extract_indicators
+#' and naomi::extract_art_attendance. The output of naomi::fit_tmb is pretty complex,
+#' but sample_tmb just adds $sample, a list where each component is a matrix of samples
+#' from the named parameter.
 str(fit)
 str(fit$sample)
 
-#' Should be quite easy to reproduce in aghq. samp has three elements:
-str(samp$samps) #' 633 x 10 matrix (a.k.a. x samples)
-str(samp$theta) #' 31 x 10 dataframe (a.k.a. theta samples)
-str(samp$thetasamples) #' List of 31
-
-sample_aghq <- function(quad, obj, M, verbose = TRUE) {
-  # Note that with k = 1, sample_marginal just returns the mode for the hypers
-  if (verbose) print("Sampling from aghq")
-  samp <- aghq::sample_marginal(quad, M)
-
-  # This part replaces samples from TMB with samples from aghq
-  if (verbose) print("Rearranging samples")
-  r <- obj$env$random
-  smp <- matrix(0, M, length(obj$env$par))
-  smp[, r] <- unname(t(samp$samps))
-  smp[, -r] <- unname(t(samp$theta))
-  smp <- as.data.frame(smp)
-  colnames(smp)[r] <- rownames(samp$samps)
-  colnames(smp)[-r] <- names(samp$theta)
-
-  # This part is the same as TMB
-  if (verbose) print("Simulating from model")
-  sim <- apply(smp, 1, obj$report)
-  r <- fit$obj$report()
-  if (verbose) print("Returning sample")
-  quad$sample <- Map(vapply, list(sim), "[[", lapply(lengths(r), numeric), names(r))
-  is_vector <- vapply(fit$sample, inherits, logical(1), "numeric")
-  quad$sample[is_vector] <- lapply(quad$sample[is_vector], matrix, nrow = 1)
-  names(quad$sample) <- names(r)
-
-  quad
-}
-
-eb_quad <- sample_aghq(eb_quad, obj, M = 10)
-
-quad <- eb_quad
-M <- 10
-verbose <- TRUE
-
-# Note that with k = 1, sample_marginal just returns the mode for the hypers
-if (verbose) print("Sampling from aghq")
-samp <- aghq::sample_marginal(quad, M)
-
-# This part replaces samples from TMB with samples from aghq
-if (verbose) print("Rearranging samples")
-r <- obj$env$random
-smp <- matrix(0, M, length(obj$env$par))
-smp[, r] <- unname(t(samp$samps))
-smp[, -r] <- unname(t(samp$theta))
-smp <- as.data.frame(smp)
-colnames(smp)[r] <- rownames(samp$samps)
-colnames(smp)[-r] <- names(samp$theta)
-
-# This part is the same as TMB
-if (verbose) print("Simulating from model")
-sim <- apply(smp, 1, obj$report)
-r <- fit$obj$report()
-if (verbose) print("Returning sample")
-quad$sample <- Map(vapply, list(sim), "[[", lapply(lengths(r), numeric), names(r))
-is_vector <- vapply(fit$sample, inherits, logical(1), "numeric")
-quad$sample[is_vector] <- lapply(quad$sample[is_vector], matrix, nrow = 1)
-names(quad$sample) <- names(r)
+#' Add uncertainty
+eb_quad <- sample_aghq(eb_quad, M = 10)

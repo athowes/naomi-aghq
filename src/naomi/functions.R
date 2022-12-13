@@ -76,23 +76,23 @@ local_sample_tmb <- function(fit, nsample = 1000, rng_seed = NULL, random_only =
   to_tape <- TMB:::isNullPointer(fit$obj$env$ADFun$ptr)
   if (to_tape) fit$obj$retape(FALSE)
   if (!random_only) {
-  if (verbose) print("Calculating joint precision")
-  hess <- sdreport_joint_precision(fit$obj, fit$par.fixed)
-  if (verbose) print("Inverting precision for joint covariance")
-  cov <- solve(hess)
-  if (verbose) print("Drawing sample")
-  smp <- mvtnorm::rmvnorm(nsample, fit$par.full, cov)
+    if (verbose) print("Calculating joint precision")
+    hess <- sdreport_joint_precision(fit$obj, fit$par.fixed)
+    if (verbose) print("Inverting precision for joint covariance")
+    cov <- solve(hess)
+    if (verbose) print("Drawing sample")
+    smp <- mvtnorm::rmvnorm(nsample, fit$par.full, cov)
   } else {
-  r <- fit$obj$env$random # Indices of the random effects
-  par_f <- fit$par.full[-r] # Mode of the fixed effects
-  par_r <- fit$par.full[r] # Mode of the random effects
-  hess_r <- fit$obj$env$spHess(fit$par.full, random = TRUE) # Hessian of the random effects
-  smp_r <- naomi:::rmvnorm_sparseprec(nsample, par_r, hess_r) # Sample from the random effects
-  smp <- matrix(0, nsample, length(fit$par.full)) # Create data structure for sample storage
-  smp[, r] <- smp_r # Store random effect samples
-  smp[, -r] <- matrix(par_f, nsample, length(par_f), byrow = TRUE) # For fixed effects store mode
-  colnames(smp)[r] <- colnames(smp_r) # Random effect names
-  colnames(smp)[-r] <- names(par_f) # Fixed effect names
+    r <- fit$obj$env$random # Indices of the random effects
+    par_f <- fit$par.full[-r] # Mode of the fixed effects
+    par_r <- fit$par.full[r] # Mode of the random effects
+    hess_r <- fit$obj$env$spHess(fit$par.full, random = TRUE) # Hessian of the random effects
+    smp_r <- naomi:::rmvnorm_sparseprec(nsample, par_r, hess_r) # Sample from the random effects
+    smp <- matrix(0, nsample, length(fit$par.full)) # Create data structure for sample storage
+    smp[, r] <- smp_r # Store random effect samples
+    smp[, -r] <- matrix(par_f, nsample, length(par_f), byrow = TRUE) # For fixed effects store mode
+    colnames(smp)[r] <- colnames(smp_r) # Random effect names
+    colnames(smp)[-r] <- names(par_f) # Fixed effect names
   }
   if (verbose) print("Simulating outputs")
 
@@ -118,5 +118,43 @@ fit_aghq <- function(tmb_inputs, ...) {
   stopifnot(inherits(tmb_input, "naomi_tmb_input"))
   obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress)
   quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, ...)
+  quad$obj <- obj
   quad
+}
+
+#' Uncertainty for the Naomi model using aghq
+sample_aghq <- function(quad, M, verbose = TRUE) {
+  # Note that with k = 1, sample_marginal just returns the mode for the hypers
+  if (verbose) print("Sampling from aghq")
+  samp <- aghq::sample_marginal(quad, M)
+
+  # This part replaces samples from TMB with samples from aghq
+  if (verbose) print("Rearranging samples")
+  r <- quad$obj$env$random
+  smp <- matrix(0, M, length(quad$obj$env$par))
+  smp[, r] <- unname(t(samp$samps))
+  smp[, -r] <- unname(t(samp$theta))
+  smp <- as.data.frame(smp)
+  colnames(smp)[r] <- rownames(samp$samps)
+  colnames(smp)[-r] <- names(samp$theta)
+
+  # This part is the same as TMB
+  if (verbose) print("Simulating from model")
+  sim <- apply(smp, 1, quad$obj$report)
+  r <- quad$obj$report()
+  if (verbose) print("Returning sample")
+  quad$sample <- Map(vapply, list(sim), "[[", lapply(lengths(r), numeric), names(r))
+  is_vector <- vapply(quad$sample, inherits, logical(1), "numeric")
+  quad$sample[is_vector] <- lapply(quad$sample[is_vector], matrix, nrow = 1)
+  names(quad$sample) <- names(r)
+
+  quad
+}
+
+#' Inference for the Naomi model using tmbstan
+fit_tmbstan <- function(tmb_inputs, ...) {
+  stopifnot(inherits(tmb_input, "naomi_tmb_input"))
+  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress)
+  fit <- tmbstan::tmbstan(obj, ...)
+  fit
 }
