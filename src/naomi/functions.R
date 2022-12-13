@@ -1,5 +1,5 @@
 #' A local version of naomi::make_tmb_obj
-local_make_tmb_obj <- function(data, par_init, calc_outputs = 0L, inner_verbose, progress) {
+local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, progress) {
   # Begin expose naomi:::make_tmb_obj
   # https://github.com/mrc-ide/naomi/blob/e9de40f12cf2e652f78966bb351fa5718ecd7867/R/tmb-model.R#L496
   data$calc_outputs <- as.integer(calc_outputs)
