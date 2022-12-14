@@ -73,7 +73,7 @@ dyn.load(dynlib("naomi"))
 fit <- local_fit_tmb(tmb_inputs, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL)
 
 #' Add uncertainty
-fit <- local_sample_tmb(fit, nsample = 100)
+fit <- local_sample_tmb(fit, nsample = 2000)
 
 #' Calculate model outputs
 outputs <- output_package(fit, naomi_data)
@@ -116,7 +116,7 @@ str(fit)
 str(fit$sample)
 
 #' Add uncertainty
-eb_quad <- sample_aghq(eb_quad, M = 100)
+eb_quad <- sample_aghq(eb_quad, M = 2000)
 
 #' With k = 2 and ndConstruction = "sparse" it's 63 points: should be feasible
 n_hyper <- length(fit$obj$env$par) - length(fit$obj$env$random)
@@ -152,12 +152,14 @@ mcmc <- readRDS("mcmc.rds")
 
 #' MCMC diagnostic checks
 
-bayesplot::color_scheme_set("viridis")
+bayesplot::color_scheme_set("viridisA")
+ggplot2::theme_set(theme_minimal())
 
 #' Univariate traceplots
 
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("beta")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("logit")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("log_sigma")))
 
 #' Prevalence model
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_x[")))
@@ -180,12 +182,47 @@ bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_xa[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_xat[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_xst[")))
 
+#' Other
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_lambda_x[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_asfr_x[")))
+
+#' ANC model
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_anc_rho_x[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_anc_alpha_x[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_anc_rho_xt[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_anc_alpha_xt[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("log_or_gamma["))) #' N.B. these are from the ANC attendance model
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("log_or_gamma_t1t2[")))
+
+#' Pairs plots
+
+#' Have suspicion that the ART attendance model is unidentifiable. Let's have a
+#' look at the pairs plot for neighbouring districts and the log_or_gamma parameter.
+nb <- area_merged %>%
+  filter(area_level == max(area_level)) %>%
+  bsae::sf_to_nb()
+
+neighbours_log_or_gamma_pairs_plot <- function(i) {
+  neighbour_pars <- paste0("log_or_gamma[", c(i, nb[[i]]), "]")
+  bayesplot::mcmc_pairs(mcmc, pars = neighbour_pars, diag_fun = "hist", off_diag_fun = "hex")
+}
+
+lengths(nb)
+
+area_merged %>%
+  filter(area_level == max(area_level)) %>%
+  print(n = Inf)
+
+neighbours_log_or_gamma_pairs_plot(5)
+
 #' Comparison
 
 #' All of the possible parameter names as follows
 names(fit$obj$env$par)
 
-density_plot <- function(par) {
+#' Univariate plots
+
+histogram_plot <- function(par) {
   df_compare <- rbind(
     data.frame(method = "TMB", samples = as.numeric(fit$sample[[par]])),
     data.frame(method = "aghq", samples = as.numeric(eb_quad$sample[[par]])),
@@ -196,11 +233,23 @@ density_plot <- function(par) {
     group_by(method) %>%
     summarise(n = n())
 
-  ggplot(df_compare, aes(x = samples, fill = method)) +
-    geom_density(alpha = 0.5) +
+  ggplot(df_compare, aes(x = samples, fill = method, col = method)) +
+    geom_histogram(aes(y = ..density..), alpha = 0.5, position = "identity") +
     theme_minimal() +
-    labs(x = paste0(par), y = "Density", fill = "Method")
+    facet_grid(method~.) +
+    labs(x = paste0(par), y = "Density", fill = "Method") +
+    scale_color_manual(values = multi.utils::cbpalette()) +
+    scale_fill_manual(values = multi.utils::cbpalette()) +
+    theme(legend.position = "none")
 }
 
-density_plot("beta_anc_rho")
+histogram_plot("beta_anc_rho")
 
+#' Kolmogorov Smirnov tests
+par <- "beta_anc_rho"
+tmbstan <- as.numeric(unlist(rstan::extract(mcmc, pars = par)))
+tmb_ks <- inf.utils::ks_test(x = tmbstan, y = as.numeric(fit$sample[[par]]))
+tmb_ks
+
+aghq_ks <- inf.utils::ks_test(x = tmbstan, y = as.numeric(eb_quad$sample[[par]]))
+aghq_ks
