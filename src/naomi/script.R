@@ -119,18 +119,25 @@ str(fit$sample)
 eb_quad <- sample_aghq(eb_quad, M = 100)
 
 #' With k = 2 and ndConstruction = "sparse" it's 63 points: should be feasible
-#' Not working at the moment for some reason! Matrix rows NA or too big!
 n_hyper <- length(fit$obj$env$par) - length(fit$obj$env$random)
 sparse_grid <- mvQuad::createNIGrid(n_hyper, "GHe", 2, "sparse")
 mvQuad::size(sparse_grid)$gridpoints
-# start_sparse_quad <- Sys.time()
-# sparse_quad <- fit_aghq(tmb_inputs, k = 2, basegrid = sparse_grid)
-# end_sparse_quad <- Sys.time()
-# time_sparse_quad <- end_sparse_quad - start_sparse_quad
+
+#' Set aghq only to compute the normalising constant. For sparse grids some downsteam
+#' elements, like the hyperparameter marginals, are not working yet because a product
+#' structure is assumed. Unsure if this is a real limitation, or just something which
+#' could be implemented but hasn't yet.
+control <- aghq::default_control_tmb()
+control$onlynormconst <- TRUE
+
+start_sparse_quad <- Sys.time()
+sparse_quad <- fit_aghq(tmb_inputs, k = 2, basegrid = sparse_grid, control = control)
+end_sparse_quad <- Sys.time()
+time_sparse_quad <- end_sparse_quad - start_sparse_quad
 
 #' tmbstan
 
-mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = 100)
+mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = 100, warmup = 75)
 
 #' Comparison
 names(fit$obj$env$par)
