@@ -137,22 +137,70 @@ time_sparse_quad <- end_sparse_quad - start_sparse_quad
 
 #' tmbstan
 
-mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = 100, warmup = 75)
+#' 1. Four chains of 100 with four cores takes 2.5 minutes
+#' 2. Four chains of 1000 with four cores takes 30 minutes
+#' I have saved the results of (2.) under the name mcmc.rds for access without waiting half an hour!
+
+# start_mcmc <- Sys.time()
+# mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = 1000, cores = 4)
+# end_mcmc <- Sys.time()
+# time_mcmc <- end_mcmc - start_mcmc
+#
+# saveRDS(mcmc, "mcmc.rds")
+
+mcmc <- readRDS("mcmc.rds")
+
+#' MCMC diagnostic checks
+
+bayesplot::color_scheme_set("viridis")
+
+#' Univariate traceplots
+
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("beta")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("logit")))
+
+#' Prevalence model
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_x[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_xs[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("us_rho_x[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("us_rho_xs[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_a[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_as[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_xa[")))
+
+#' ART model
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_x[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_xs[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("us_alpha_x[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("us_alpha_xs[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_a[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_as[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_xt[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_xa[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_xat[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_xst[")))
 
 #' Comparison
+
+#' All of the possible parameter names as follows
 names(fit$obj$env$par)
-test_par <- "beta_anc_rho" #' Picked pretty randomly
-df_compare <- rbind(
-  data.frame(method = "TMB", samples = as.numeric(fit$sample[[test_par]])),
-  data.frame(method = "aghq", samples = as.numeric(eb_quad$sample[[test_par]])),
-  data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(mcmc, pars = test_par))))
-)
 
-df_compare %>%
-  group_by(method) %>%
-  summarise(n = n())
+density_plot <- function(par) {
+  df_compare <- rbind(
+    data.frame(method = "TMB", samples = as.numeric(fit$sample[[par]])),
+    data.frame(method = "aghq", samples = as.numeric(eb_quad$sample[[par]])),
+    data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(mcmc, pars = par))))
+  )
 
-ggplot(df_compare, aes(x = samples, fill = method)) +
-  geom_density(alpha = 0.5) +
-  theme_minimal() +
-  labs(x = paste0(test_par), y = "Density", fill = "Method")
+  df_compare %>%
+    group_by(method) %>%
+    summarise(n = n())
+
+  ggplot(df_compare, aes(x = samples, fill = method)) +
+    geom_density(alpha = 0.5) +
+    theme_minimal() +
+    labs(x = paste0(par), y = "Density", fill = "Method")
+}
+
+density_plot("beta_anc_rho")
+

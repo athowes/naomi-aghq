@@ -11,6 +11,7 @@ artefacts:
 
 resources:
   - naomi.cpp
+  - mcmc.rds
 
 packages:
   - dplyr
