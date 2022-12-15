@@ -155,7 +155,20 @@ mcmc <- readRDS("mcmc.rds")
 bayesplot::color_scheme_set("viridisA")
 ggplot2::theme_set(theme_minimal())
 
+#' Rhat
+#' Looking for values less than 1.1 here
+
+rhats <- bayesplot::rhat(mcmc)
+bayesplot::mcmc_rhat(rhats)
+
+#' ESS ratio
+#' Worry about values less than 0.1 here
+
+ratios <- bayesplot::neff_ratio(mcmc)
+bayesplot::mcmc_neff(ratios)
+
 #' Univariate traceplots
+#' Assess these visually
 
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("beta")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("logit")))
@@ -246,10 +259,50 @@ histogram_plot <- function(par) {
 histogram_plot("beta_anc_rho")
 
 #' Kolmogorov Smirnov tests
-par <- "beta_anc_rho"
-tmbstan <- as.numeric(unlist(rstan::extract(mcmc, pars = par)))
-tmb_ks <- inf.utils::ks_test(x = tmbstan, y = as.numeric(fit$sample[[par]]))
-tmb_ks
 
-aghq_ks <- inf.utils::ks_test(x = tmbstan, y = as.numeric(eb_quad$sample[[par]]))
-aghq_ks
+to_ks_df <- function(par, fit, quad, mcmc) {
+  tmb <- t(fit$sample[[par]])
+  aghq <- t(quad$sample[[par]])
+  tmbstan <- rstan::extract(mcmc, pars = par)[[par]]
+
+  n <- ncol(tmbstan)
+  ks_tmb <- numeric(n)
+  ks_aghq <- numeric(n)
+  for(i in 1:n) {
+    ks_tmb[i] <- inf.utils::ks_test(tmb[, i], tmbstan[, i])$D
+    ks_aghq[i] <- inf.utils::ks_test(aghq[, i], tmbstan[, i])$D
+  }
+
+  rbind(
+    data.frame(method = "TMB", ks = ks_tmb, par = par, index = 1:length(ks_tmb)),
+    data.frame(method = "aghq", ks = ks_aghq, par = par, index = 1:length(ks_aghq))
+  )
+}
+
+plot_ks_df <- function(ks_df) {
+  wide_ks_df <- pivot_wider(ks_df, names_from = "method", values_from = "ks")
+
+  boxplot <- wide_ks_df %>%
+    mutate(ks_diff = TMB - aghq) %>%
+    ggplot(aes(x = ks_diff)) +
+    geom_boxplot(width = 0.5) +
+    coord_flip() +
+    labs(x = "KS(TMB, tmbstan) - KS(aghq, tmbstan)") +
+    theme_minimal()
+
+  scatterplot <- ggplot(wide_ks_df, aes(x = TMB, y = aghq)) +
+    geom_point(alpha = 0.5) +
+    xlim(0, 0.5) +
+    ylim(0, 0.5) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+    labs(title = paste0("KS tests for ", ks_df$par, " of length ", max(ks_df$index)), x = "KS(aghq, tmbstan)", y = "KS(TMB, tmbstan)") +
+    theme_minimal() +
+    theme(
+      legend.position = "bottom"
+    )
+
+  cowplot::plot_grid(scatterplot, boxplot, ncol = 2, rel_widths = c(1.3, 1))
+}
+
+to_ks_df("ui_anc_alpha_xt", fit = fit, quad = eb_quad, mcmc = mcmc) %>%
+  plot_ks_df()
