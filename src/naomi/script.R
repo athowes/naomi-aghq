@@ -137,15 +137,16 @@ time_sparse_quad <- end_sparse_quad - start_sparse_quad
 
 #' tmbstan
 
-#' 1. Four chains of 100 with four cores takes 2.5 minutes
-#' 2. Four chains of 1000 with four cores takes 30 minutes
-#' I have saved the results of (2.) under the name mcmc.rds for access without waiting half an hour!
+#' 1. Four chains of 100 with four cores takes ~2.5 minutes
+#' 2. Four chains of 1000 with four cores takes ~30 minutes
+#' 3. Four chains of 4000 with four cores takes ~3 hours
+#' I have saved the results of (3.) under the name mcmc.rds for access without waiting 3 hours!
 
 # start_mcmc <- Sys.time()
-# mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = 1000, cores = 4)
+# mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = 4000, cores = 4)
 # end_mcmc <- Sys.time()
 # time_mcmc <- end_mcmc - start_mcmc
-#
+
 # saveRDS(mcmc, "mcmc.rds")
 
 mcmc <- readRDS("mcmc.rds")
