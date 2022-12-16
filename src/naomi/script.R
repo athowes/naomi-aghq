@@ -162,6 +162,16 @@ ggplot2::theme_set(theme_minimal())
 rhats <- bayesplot::rhat(mcmc)
 bayesplot::mcmc_rhat(rhats)
 
+(big_rhats <- rhats[rhats > 1.5])
+
+length(big_rhats)
+
+#' 31 out of 32 districts this has Rhat > 1.5 -- suggesting a problem here
+sum(str_starts(names(big_rhats), "ui_asfr_x"))
+
+#' 10 out of 32 districts with Rhat > 1.5 here -- also worth looking into
+sum(str_starts(names(big_rhats), "u_rho_a"))
+
 #' ESS ratio
 #' Worry about values less than 0.1 here
 
@@ -212,14 +222,14 @@ bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("log_or_gamma["))) #' N.B. t
 
 #' Pairs plots
 
-#' Have suspicion that the ART attendance model is unidentifiable. Let's have a
-#' look at the pairs plot for neighbouring districts and the log_or_gamma parameter.
+#' Prior suspicion (from Jeff, Tim, Rachel) that the ART attendance model is unidentifiable
+#' Let's have a look at the pairs plot for neighbouring districts and the log_or_gamma parameter
 nb <- area_merged %>%
   filter(area_level == max(area_level)) %>%
   bsae::sf_to_nb()
 
-neighbours_log_or_gamma_pairs_plot <- function(i) {
-  neighbour_pars <- paste0("log_or_gamma[", c(i, nb[[i]]), "]")
+neighbours_pairs_plot <- function(par, i) {
+  neighbour_pars <- paste0(par, "[", c(i, nb[[i]]), "]")
   bayesplot::mcmc_pairs(mcmc, pars = neighbour_pars, diag_fun = "hist", off_diag_fun = "hex")
 }
 
@@ -227,7 +237,20 @@ area_merged %>%
   filter(area_level == max(area_level)) %>%
   print(n = Inf)
 
-neighbours_log_or_gamma_pairs_plot(5)
+neighbours_pairs_plot("log_or_gamma", 5) #' Nkhata Bay and neighbours
+neighbours_pairs_plot("log_or_gamma", 26) #' Blantyre and neighbours
+
+#' We got high Rhat values for ui_asfr_x
+#' It also has strange pairs plots (diagonal, high colinearlity)
+
+neighbours_pairs_plot("ui_asfr_x", 5)
+neighbours_pairs_plot("ui_asfr_x", 26)
+
+#' Both ui_asfr_x and beta_asfr have high Rhat -- identifiability problem within their linear predictor?
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_asfr_x[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("beta_asfr")))
+
+#' Which data is informing the ASFR? TODO
 
 #' NUTS specific assessment
 
