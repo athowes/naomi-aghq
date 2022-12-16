@@ -182,7 +182,6 @@ bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("us_rho_x[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("us_rho_xs[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_a[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_as[")))
-bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_xa[")))
 
 #' ART model
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_x[")))
@@ -194,7 +193,6 @@ bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_as[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_xt[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_xa[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_xat[")))
-bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_xst[")))
 
 #' Other
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_lambda_x[")))
@@ -206,7 +204,6 @@ bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_anc_alpha_x[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_anc_rho_xt[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_anc_alpha_xt[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("log_or_gamma["))) #' N.B. these are from the ANC attendance model
-bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("log_or_gamma_t1t2[")))
 
 #' Pairs plots
 
@@ -220,8 +217,6 @@ neighbours_log_or_gamma_pairs_plot <- function(i) {
   neighbour_pars <- paste0("log_or_gamma[", c(i, nb[[i]]), "]")
   bayesplot::mcmc_pairs(mcmc, pars = neighbour_pars, diag_fun = "hist", off_diag_fun = "hex")
 }
-
-lengths(nb)
 
 area_merged %>%
   filter(area_level == max(area_level)) %>%
@@ -281,14 +276,20 @@ to_ks_df <- function(par, fit, quad, mcmc) {
 }
 
 plot_ks_df <- function(ks_df) {
-  wide_ks_df <- pivot_wider(ks_df, names_from = "method", values_from = "ks")
+  wide_ks_df <- pivot_wider(ks_df, names_from = "method", values_from = "ks") %>%
+    mutate(ks_diff = TMB - aghq)
+
+  mean_ks_diff <- mean(wide_ks_df$ks_diff)
 
   boxplot <- wide_ks_df %>%
-    mutate(ks_diff = TMB - aghq) %>%
     ggplot(aes(x = ks_diff)) +
     geom_boxplot(width = 0.5) +
     coord_flip() +
-    labs(x = "KS(TMB, tmbstan) - KS(aghq, tmbstan)") +
+    labs(
+      title = paste0("Mean KS difference is ", mean_ks_diff),
+      subtitle = ">0 then TMB more different to tmbstan, <0 then aghq more different",
+      x = "KS(TMB, tmbstan) - KS(aghq, tmbstan)"
+    ) +
     theme_minimal()
 
   scatterplot <- ggplot(wide_ks_df, aes(x = TMB, y = aghq)) +
@@ -296,14 +297,41 @@ plot_ks_df <- function(ks_df) {
     xlim(0, 0.5) +
     ylim(0, 0.5) +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
-    labs(title = paste0("KS tests for ", ks_df$par, " of length ", max(ks_df$index)), x = "KS(aghq, tmbstan)", y = "KS(TMB, tmbstan)") +
-    theme_minimal() +
-    theme(
-      legend.position = "bottom"
-    )
+    labs(
+      title = paste0("KS tests for ", ks_df$par, " of length ", max(ks_df$index)),
+      subtitle = "Values along y = x have similar KS",
+      x = "KS(aghq, tmbstan)", y = "KS(TMB, tmbstan)"
+    ) +
+    theme_minimal()
 
   cowplot::plot_grid(scatterplot, boxplot, ncol = 2, rel_widths = c(1.3, 1))
 }
 
-to_ks_df("ui_anc_alpha_xt", fit = fit, quad = eb_quad, mcmc = mcmc) %>%
-  plot_ks_df()
+ks_helper <- function(par) to_ks_df(par, fit = fit, quad = eb_quad, mcmc = mcmc) %>% plot_ks_df()
+
+ks_helper("beta") #' Broken
+ks_helper("logit") #' Broken
+ks_helper("log_sigma") #' Broken
+
+ks_helper("u_rho_x")
+ks_helper("u_rho_xs")
+ks_helper("us_rho_x")
+ks_helper("us_rho_xs")
+ks_helper("u_rho_a")
+ks_helper("u_rho_as")
+
+ks_helper("u_alpha_x")
+ks_helper("u_alpha_xs")
+ks_helper("us_alpha_x")
+ks_helper("us_alpha_xs")
+ks_helper("u_alpha_a")
+ks_helper("u_alpha_as")
+ks_helper("u_alpha_xt")
+ks_helper("u_alpha_xa")
+ks_helper("u_alpha_xat")
+
+ks_helper("ui_anc_rho_x")
+ks_helper("ui_anc_alpha_x")
+ks_helper("ui_anc_rho_xt")
+ks_helper("ui_anc_alpha_xt")
+ks_helper("log_or_gamma")
