@@ -168,6 +168,11 @@ bayesplot::mcmc_rhat(rhats)
 ratios <- bayesplot::neff_ratio(mcmc)
 bayesplot::mcmc_neff(ratios)
 
+#' Autocorrelation
+#' High values of autocorrelation in the chains
+
+bayesplot::mcmc_acf(mcmc, pars = vars(starts_with("beta")))
+
 #' Univariate traceplots
 #' Assess these visually
 
@@ -223,6 +228,25 @@ area_merged %>%
   print(n = Inf)
 
 neighbours_log_or_gamma_pairs_plot(5)
+
+#' NUTS specific assessment
+
+np <- bayesplot::nuts_params(mcmc)
+
+#' Number of divergent transitions
+#' In this instance it's zero, so no need to do further divergent transition investigation
+np %>%
+  filter(Parameter == "divergent__") %>%
+  summarise(n_divergent = sum(Value))
+
+bayesplot::mcmc_nuts_divergence(np, bayesplot::log_posterior(mcmc))
+
+#' Energy plots
+
+#' Ideally these two histograms would be the same (Betancourt 2017)
+#' The histograms are quite different, in a way suggesting the chains may not be
+#' fully exploring the tails of the target distribution
+bayesplot::mcmc_nuts_energy(np)
 
 #' Comparison
 
