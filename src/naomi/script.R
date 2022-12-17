@@ -382,3 +382,17 @@ ks_helper("ui_anc_alpha_x")
 ks_helper("ui_anc_rho_xt")
 ks_helper("ui_anc_alpha_xt")
 ks_helper("log_or_gamma")
+
+#' Fixing ui_asfr_x
+zero_ui_asfr_x_map <- list("ui_asfr_x" = rep(factor(NA), sum(names(fit$obj$env$par) == "ui_asfr_x")))
+
+#' This did take less time to sample (~5 minutes as compared with ~25) but unclear that the inferences are better
+start_zeroed_mcmc <- Sys.time()
+zeroed_mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = 1000, cores = 4, map = zero_ui_asfr_x_map)
+end_zeroed_mcmc <- Sys.time()
+time_zeroed_mcmc <- end_zeroed_mcmc - start_zeroed_mcmc
+
+zeroed_rhats <- bayesplot::rhat(zeroed_mcmc)
+bayesplot::mcmc_rhat(zeroed_rhats)
+
+(zeroed_big_rhats <- zeroed_rhats[zeroed_rhats > 2])

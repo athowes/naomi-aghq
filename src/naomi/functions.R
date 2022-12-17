@@ -1,5 +1,5 @@
 #' A local version of naomi::make_tmb_obj
-local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, progress) {
+local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, progress, map) {
   # Begin expose naomi:::make_tmb_obj
   # https://github.com/mrc-ide/naomi/blob/e9de40f12cf2e652f78966bb351fa5718ecd7867/R/tmb-model.R#L496
   data$calc_outputs <- as.integer(calc_outputs)
@@ -9,16 +9,16 @@ local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, prog
     parameters = par,
     DLL = "naomi",
     silent = !inner_verbose,
-    random = c("beta_rho", "beta_alpha",
-               "beta_alpha_t2", "beta_lambda", "beta_asfr", "beta_anc_rho",
-               "beta_anc_alpha", "beta_anc_rho_t2", "beta_anc_alpha_t2",
-               "u_rho_x", "us_rho_x", "u_rho_xs", "us_rho_xs", "u_rho_a",
-               "u_rho_as", "u_rho_xa", "u_alpha_x", "us_alpha_x",
-               "u_alpha_xs", "us_alpha_xs", "u_alpha_a", "u_alpha_as",
-               "u_alpha_xt", "u_alpha_xa", "u_alpha_xat", "u_alpha_xst",
-               "ui_lambda_x", "logit_nu_raw", "ui_asfr_x", "ui_anc_rho_x",
-               "ui_anc_alpha_x", "ui_anc_rho_xt", "ui_anc_alpha_xt",
-               "log_or_gamma", "log_or_gamma_t1t2")
+    random = c("beta_rho", "beta_alpha", "beta_alpha_t2", "beta_lambda",
+               "beta_asfr", "beta_anc_rho", "beta_anc_alpha", "beta_anc_rho_t2",
+               "beta_anc_alpha_t2", "u_rho_x", "us_rho_x", "u_rho_xs",
+               "us_rho_xs", "u_rho_a", "u_rho_as", "u_rho_xa", "u_alpha_x",
+               "us_alpha_x", "u_alpha_xs", "us_alpha_xs", "u_alpha_a",
+               "u_alpha_as", "u_alpha_xt", "u_alpha_xa", "u_alpha_xat",
+               "u_alpha_xst", "ui_lambda_x", "logit_nu_raw", "ui_asfr_x",
+               "ui_anc_rho_x", "ui_anc_alpha_x", "ui_anc_rho_xt", "ui_anc_alpha_xt",
+               "log_or_gamma", "log_or_gamma_t1t2"),
+    map = map
   )
 
   if (!is.null(progress)) {
@@ -30,12 +30,12 @@ local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, prog
 }
 
 #' A local version of naomi::fit_tmb
-local_fit_tmb <- function(tmb_input, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL) {
+local_fit_tmb <- function(tmb_input, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL, map = NULL) {
   # Begin expose naomi::fit_tmb
   # https://github.com/mrc-ide/naomi/blob/e9de40f12cf2e652f78966bb351fa5718ecd7867/R/tmb-model.R#L557
   stopifnot(inherits(tmb_input, "naomi_tmb_input"))
 
-  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress)
+  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map)
   data <- tmb_input$data
   par <- tmb_input$par_init
   calc_outputs <- 0L
@@ -114,9 +114,9 @@ local_sample_tmb <- function(fit, nsample = 1000, rng_seed = NULL, random_only =
 }
 
 #' Inference for the Naomi model using aghq
-fit_aghq <- function(tmb_input, inner_verbose = FALSE, progress = NULL, ...) {
+fit_aghq <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, ...) {
   stopifnot(inherits(tmb_input, "naomi_tmb_input"))
-  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress)
+  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map)
   quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, ...)
   quad$obj <- obj
   quad
@@ -152,9 +152,9 @@ sample_aghq <- function(quad, M, verbose = TRUE) {
 }
 
 #' Inference for the Naomi model using tmbstan
-fit_tmbstan <- function(tmb_input, inner_verbose = FALSE, progress = NULL, ...) {
+fit_tmbstan <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, ...) {
   stopifnot(inherits(tmb_input, "naomi_tmb_input"))
-  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress)
+  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map)
   fit <- tmbstan::tmbstan(obj, ...)
   fit
 }
