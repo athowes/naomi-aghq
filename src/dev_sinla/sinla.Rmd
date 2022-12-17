@@ -899,11 +899,12 @@ spline_nodes <- function(modesandhessians, i, k = 7) {
 }
 
 #' The log-probabilities at the set of input values
-lps <- sapply(spline_nodes(modesandhessians, i = 1, k = 7), gaussian_marginal)
+nodes <- spline_nodes(modesandhessians, i = 1, k = 7)
+lps <- sapply(nodes, gaussian_marginal)
 
-plot_marginal_spline <- function(lps) {
+plot_marginal_spline <- function(nodes, lps) {
   #' Build a Lagrange polynomial interpolant of the marginal posterior
-  ss <- splines::interpSpline(gg$nodes, lps, bSpline = TRUE, sparse = TRUE)
+  ss <- splines::interpSpline(nodes, lps, bSpline = TRUE, sparse = TRUE)
   interpolant <- function(x) { as.numeric(stats::predict(ss, x)$y) }
   finegrid <- seq(-5, 5, by = 0.1)
   df <- data.frame(x = finegrid, y = exp(interpolant(finegrid)))
@@ -914,7 +915,7 @@ plot_marginal_spline <- function(lps) {
     labs(x = "phi_prev[1]", y = "Posterior")
 }
 
-plot_marginal_spline(lps)
+plot_marginal_spline(nodes, lps)
 ```
 
 ## Full Laplace approximation (old way)
@@ -1012,8 +1013,8 @@ old_laplace_marginal <- function(x) {
 
 old_laplace_marginal(x_test_value)
 
-lps <- sapply(gg$nodes, old_laplace_marginal)
-plot_marginal_spline(lps)
+lps <- sapply(nodes, old_laplace_marginal)
+plot_marginal_spline(nodes, lps)
 ```
 
 ## Full Laplace approximation (new way)
@@ -1069,9 +1070,10 @@ laplace_marginal <- function(x) {
 
 laplace_marginal(x_test_value)
 
-lps <- sapply(gg$nodes, laplace_marginal)
-plot_marginal_spline(lps)
+lps <- sapply(nodes, laplace_marginal)
+plot_marginal_spline(nodes, lps)
 ```
+
 ## Full Laplace method (new new method)
 
 Try doing this without a new `MakeADFun` for each $z$:
@@ -1111,8 +1113,8 @@ We get the same value as we did with `laplace_marginal`!
 ```{r}
 new_laplace_marginal(x_test_value, i = 1)
 
-lps <- sapply(gg$nodes, new_laplace_marginal, i = 1)
-plot_marginal_spline(lps)
+lps <- sapply(nodes, new_laplace_marginal, i = 1)
+plot_marginal_spline(nodes, lps)
 ```
 Now let's loop this over $i$ so we can compare to the other methods.
 The hypothesis is that this will be better than the empirical Bayes methods.
