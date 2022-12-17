@@ -1,23 +1,32 @@
 #' A local version of naomi::make_tmb_obj
-local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, progress, map) {
+local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, progress, map, DLL = "naomi") {
   # Begin expose naomi:::make_tmb_obj
   # https://github.com/mrc-ide/naomi/blob/e9de40f12cf2e652f78966bb351fa5718ecd7867/R/tmb-model.R#L496
   data$calc_outputs <- as.integer(calc_outputs)
 
+  integrate_out <- c(
+    "beta_rho", "beta_alpha", "beta_alpha_t2", "beta_lambda",
+    "beta_asfr", "beta_anc_rho", "beta_anc_alpha", "beta_anc_rho_t2",
+    "beta_anc_alpha_t2", "u_rho_x", "us_rho_x", "u_rho_xs",
+    "us_rho_xs", "u_rho_a", "u_rho_as", "u_rho_xa", "u_alpha_x",
+    "us_alpha_x", "u_alpha_xs", "us_alpha_xs", "u_alpha_a",
+    "u_alpha_as", "u_alpha_xt", "u_alpha_xa", "u_alpha_xat",
+    "u_alpha_xst", "ui_lambda_x", "logit_nu_raw", "ui_asfr_x",
+    "ui_anc_rho_x", "ui_anc_alpha_x", "ui_anc_rho_xt", "ui_anc_alpha_xt",
+    "log_or_gamma", "log_or_gamma_t1t2"
+  )
+
+  if(DLL == "naomi_beta_rho_index") {
+    integrate_out <- integrate_out[!integrate_out == "beta_rho"]
+    integrate_out <- c("beta_rho_i", "beta_rho_minus_i", integrate_out)
+  }
+
   obj <- TMB::MakeADFun(
     data = data,
     parameters = par,
-    DLL = "naomi",
+    DLL = DLL,
     silent = !inner_verbose,
-    random = c("beta_rho", "beta_alpha", "beta_alpha_t2", "beta_lambda",
-               "beta_asfr", "beta_anc_rho", "beta_anc_alpha", "beta_anc_rho_t2",
-               "beta_anc_alpha_t2", "u_rho_x", "us_rho_x", "u_rho_xs",
-               "us_rho_xs", "u_rho_a", "u_rho_as", "u_rho_xa", "u_alpha_x",
-               "us_alpha_x", "u_alpha_xs", "us_alpha_xs", "u_alpha_a",
-               "u_alpha_as", "u_alpha_xt", "u_alpha_xa", "u_alpha_xat",
-               "u_alpha_xst", "ui_lambda_x", "logit_nu_raw", "ui_asfr_x",
-               "ui_anc_rho_x", "ui_anc_alpha_x", "ui_anc_rho_xt", "ui_anc_alpha_xt",
-               "log_or_gamma", "log_or_gamma_t1t2"),
+    random = integrate_out,
     map = map
   )
 
@@ -157,4 +166,9 @@ fit_tmbstan <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map =
   obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map)
   fit <- tmbstan::tmbstan(obj, ...)
   fit
+}
+
+#' Inference for the Naomi model using aghq plus Laplace marginals
+fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, ...) {
+  return("Under development!")
 }

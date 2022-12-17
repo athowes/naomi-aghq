@@ -12,6 +12,7 @@ artefacts:
 resources:
   - naomi.cpp
   - mcmc.rds
+  - naomi_beta_rho_index.cpp
 
 packages:
   - dplyr

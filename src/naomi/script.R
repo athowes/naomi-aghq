@@ -396,3 +396,88 @@ zeroed_rhats <- bayesplot::rhat(zeroed_mcmc)
 bayesplot::mcmc_rhat(zeroed_rhats)
 
 (zeroed_big_rhats <- zeroed_rhats[zeroed_rhats > 2])
+
+#' New method with AGHQ (calling adam for now)
+# adam_quad <- fit_adam(tmb_inputs, k = 1)
+
+#' Start with naomi_beta_rho_index
+#' The dimension of beta_rho is two
+sum(names(fit$obj$env$par) == "beta_rho")
+
+#' Describe inputs here
+tmb_input <- tmb_inputs
+inner_verbose <- FALSE
+k <- 1
+control <- default_control_tmb()
+transformation <- default_transformation()
+map <- NULL
+progress <- NULL
+optresults <- NULL
+basegrid <- NULL
+
+stopifnot(inherits(tmb_input, "naomi_tmb_input"))
+
+compile("naomi_beta_rho_index.cpp")
+dyn.load(dynlib("naomi_beta_rho_index"))
+
+tmb_input$data$i <- 1
+
+#' TODO Make function which is like prepare_dat() for tmb_inputs which makes
+#' them suitable for use with _i and minus_i DLLs
+
+obj <- local_make_tmb_obj(
+  tmb_input$data, tmb_input$par_init, calc_outputs = 0L,
+  inner_verbose, progress, map, DLL = "naomi_beta_rho_index"
+)
+
+ff <- obj
+startingvalue <- obj$par
+
+validate_control(control, type = "tmb")
+validate_transformation(transformation)
+
+transformation <- make_transformation(transformation)
+
+thetanames <- NULL
+
+if (exists("par", ff)) thetanames <- make.unique(names(ff$par), sep = "")
+
+if (control$numhessian) {
+  ff$he <- function(theta) numDeriv::jacobian(ff$gr, theta, method = "Richardson")
+}
+
+quad <- aghq(
+  ff = ff, k = k, transformation = transformation, startingvalue = startingvalue,
+  optresults = optresults, basegrid = basegrid, control = control
+)
+
+if (control$onlynormconst) return(quad)
+
+distinctthetas <- quad$normalized_posterior$nodesandweights[, grep("theta", colnames(quad$normalized_posterior$nodesandweights))]
+if (!is.data.frame(distinctthetas)) distinctthetas <- data.frame(theta1 = distinctthetas)
+modesandhessians <- distinctthetas
+
+if (is.null(thetanames)) {
+  thetanames <- colnames(distinctthetas)
+} else {
+  colnames(modesandhessians) <- thetanames
+  colnames(quad$normalized_posterior$nodesandweights)[grep("theta", colnames(quad$normalized_posterior$nodesandweights))] <- thetanames
+}
+
+modesandhessians$mode <- vector(mode = "list", length = nrow(distinctthetas))
+modesandhessians$H <- vector(mode = "list", length = nrow(distinctthetas))
+
+for (i in 1:nrow(distinctthetas)) {
+  theta <- as.numeric(modesandhessians[i, thetanames])
+  ff$fn(theta)
+  mm <- ff$env$last.par
+  modesandhessians[i, "mode"] <- list(list(mm[ff$env$random]))
+  H <- ff$env$spHess(mm, random = TRUE)
+  H <- rlang::duplicate(H)
+  modesandhessians[i, "H"] <- list(list(H))
+}
+
+quad$modesandhessians <- modesandhessians
+class(quad) <- c("marginallaplace", "aghq")
+
+quad$obj <- obj
