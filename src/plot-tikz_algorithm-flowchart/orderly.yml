@@ -5,6 +5,7 @@ artefacts:
       description: Algorithm flowchart
       filenames:
         - algorithm-flowchart.pdf
+        - algorithm-flowchart.png
 
 resources:
   - algorithm-flowchart.tex

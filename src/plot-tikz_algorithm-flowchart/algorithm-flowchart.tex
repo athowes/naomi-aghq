@@ -1,19 +1,24 @@
 \documentclass[tikz]{standalone}
 
 % Things to add / improve:
-% Bold versions of variables as they're all vectors
 % Try to reduce whitespace a bit
 % Arrow goes under rather than through box
-% Dashed box around right hand side of diagram with i = 1, ..., N
+% Dashed box around x with i = 1, ..., N
+% Dashed box around theta with j = 1, ..., m
 % Make it clear AGHQ nodes and weights are being reused
-% Add explanation of which x_i values to pick (and make clear these are coming from the Gaussian approximation
-% Add spline interpolant detail
-% Add how to get p(theta_j | y) from p(theta | y)
+% AGHQ nodes from Gaussian marginal
+% More detail than "Marginalise"
 % (Maybe) put arrow for normalising constant on the top with arrow that says normalise
 % (Maybe) add details about Laplace approximation e.g. making use of starting values, notation for mode and Hessian
 
 \usepackage{tikz}
 \usetikzlibrary{shapes,arrows,positioning}
+\usepackage{bm}
+
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\y}{\mathbf{y}}
+\newcommand{\z}{\mathbf{z}}
+\newcommand{\btheta}{\bm{\theta}}
 
 \begin{document}
 
@@ -24,25 +29,31 @@
 
 \begin{tikzpicture}[node distance = 2cm, auto]
 
-    % theta
-    \node[category] at (0, 0) (1) {$p(\theta, x, y)$};
-    \node[category] at (0, -4) (2) {$\tilde p_{\text{LA}}(\theta, y)$};
-    \node[category] at (0, -8) (3) {$\tilde p_{\text{AQ}}(y)$};
-    \node[category] at (0, -12) (4) {$\tilde p_{\text{AQ}}(\theta \, | \, y)$};
-    \path[line] (1) -- node[align=center] {Laplace approximation\\Integrate out $\tilde p_{\text{G}}(x \, | \, \theta, y)$}(2);
-    \path[line] (2) -- node[align=center] {Integrate out $\theta$ with AGHQ\\Nodes $z \in \mathcal{Q}(m, k)$\\Adapted $\theta(z) = \hat \theta + Lz$\\Weights $\omega(z):\mathcal{Q} \to \mathbb{R}$}(3);
-    \path[line] (3) -- node[align=center] {Normalise} (4);
-    \path[line] (2) edge[bend right] node [left] {} (4);
+    \node[category] at (0, 0) (1) {$p(\theta, \x, \y)$};
 
     % x
-    %\node[container, fit={(0, 0)(10, -10)] {};
-    \node[category] at (10, 0) (a) {$\tilde p_{\text{LA}}(x_i, \theta, y)$};
-    \node[category] at (10, -4) (b) {$\tilde p_{\text{AQ}}(x_i, y)$};
-    \node[category] at (10, -8) (c) {$\tilde p_{\text{AQ}}(x_i \, | \, y)$};
-    \path[line] (1) -- node[align=center] {Laplace approximation\\Integrate out $\tilde p_{\text{G}}(x_{-i} \, | \, x_i, \theta, y)$}(a);
-    \path[line] (a) -- node[align=center] {Integrate out $\theta$\\$\sum_z \tilde p_{\text{LA}}(x_i, \theta(z), y) \omega(z)$}(b);
+    \node[category] at (0, -3) (a) {$\tilde p_{\text{LA}}(x_i, \btheta, \y)$};
+    \node[category] at (0, -6) (b) {$\tilde p_{\text{AQ}}(x_i, \y)$};
+    \node[category] at (0, -9) (c) {$\tilde p_{\text{AQ}}(x_i \, | \, \y)$};
+    \node[category] at (0, -12) (d) {Image of a nice curve};
+    \path[line] (1) -- node[align=center] {Laplace approximation\\Integrate out $\tilde p_{\text{G}}(\x_{-i} \, | \, x_i, \btheta, \y)$}(a);
+    \path[line] (a) -- node[align=center] {Integrate out $\theta$\\$\sum_\z \tilde p_{\text{LA}}(x_i, \btheta(\z), \y) \omega(\z)$}(b);
     \path[line] (b) -- node[align=center] {Normalise}(c);
+    \path[line] (c) -- node[align=center] {Evaluate $k = 7$ AGHQ nodes\\Use spline interpolation}(d);
+
+    % theta
+    \node[category] at (8, 0) (2) {$\tilde p_{\text{LA}}(\btheta, \y)$};
+    \node[category] at (8, -3) (3) {$\tilde p_{\text{AQ}}(\y)$};
+    \node[category] at (8, -6) (4) {$\tilde p_{\text{AQ}}(\btheta \, | \, \y)$};
+    \node[category] at (8, -9) (5) {$\tilde p_{\text{AQ}}(\theta_j \, | \, \y)$};
+    \node[category] at (8, -12) (6) {Image of a nice curve};
+    \path[line] (1) -- node[align=center] {Laplace approximation\\Integrate out $\tilde p_{\text{G}}(\x \, | \, \btheta, \y)$}(2);
+    \path[line] (2) -- node[align=center] {Integrate out $\btheta$ with AGHQ\\Nodes $\z \in \mathcal{Q}(m, k)$\\Adapted $\btheta(\z) = \hat{\btheta} + Lz$\\Weights $\omega(\z):\mathcal{Q} \to \mathbb{R}$}(3);
+    \path[line] (3) -- node[align=center] {Normalise} (4);
+    \path[line] (2) edge[bend left] node [left] {} (4);
     \path[line] (3) -- (c);
+    \path[line] (4) -- node[align=center] {Marginalise} (5);
+    \path[line] (5) -- node[align=center] {Evaluate $k = 7$ AGHQ nodes\\Use spline interpolation}(6);
 
 \end{tikzpicture}
 
