@@ -26,20 +26,11 @@ bibliography: citations.bib
 
 ### Notation
 
-* District $x$
-  * Located in Spectrum region file $R_x$
-* Sex $s \in \{\text{F}, \text{M}\}$
-* Age $a \in \{\text{0-5}, \text{5-10}, \ldots, \text{75-80}, 80+\}$
-* Time $t \in \{T_1, T_2, T_3\}$
-  * $T_1$: Most recent national household survey with HIV testing
-  * $T_2$: Current time period at which to generate estimates
-  * $T_3$: Short-term project period (typically 9-12 months)
-  * Note $T_{1:3}$ specified to nearest calendar quarter
-* Population size $N_{x, s, a, t}$
-* HIV prevalence $\rho_{x, s, a, t}$
-* ART coverage $\alpha_{x, s, a, t}$
-* Annual HIV incidence rate $\lambda_{x, s, a, t}$
-* $u \sim \text{ICAR}(\sigma)$ refers to the intrinsic conditional auto-regressive model (ICAR) with marginal standard deviation $\sigma > 0$.
+Let $x$ be a district, located within the Spectrum region $R_x$, $s \in \{\text{F}, \text{M}\}$ be sex, and $a \in \{\text{0-5}, \text{5-10}, \ldots, \text{75-80}, 80+\}$ be five-year age bands.
+Consider two time-points $t \in \{T_1, T_2\}$, specified to the nearest calendar quarter: $T_1$, the time period of the most recent national household survey with HIV testing, and $T_2$, the current time period at which to generate estimates.
+We index population size $N_{x, s, a, t}$, HIV prevalence $\rho_{x, s, a, t}$, ART coverage $\alpha_{x, s, a, t}$ and annual HIV incidence rate $\lambda_{x, s, a, t}$ by district, sex, age-band and time period.
+
+* $u \sim \text{ICAR}(\sigma)$ refers to the Besag intrinsic conditional auto-regressive model (ICAR) with marginal standard deviation $\sigma > 0$.
 * $u \sim \text{BYM}2(\sigma, \phi)$ refers to a reparameterised Besag-York-Mollie model (BYM2) with marginal standard deviation $\sigma > 0$ comprised of a spatially structured ICAR component with proportion $\phi \in (0, 1)$ and spatially unstructured IID component with proportion $1 - \phi$.
 * For both the ICAR and BYM2 models, we follow recommendations on scaling, disconnected adjacency graph components, and islands.
 
