@@ -20,6 +20,7 @@ resources:
   - imsart-nameyear.bst
   - imsart.cls
   - imsart.sty
+  - naomi.cpp
 
 packages:
   - rmarkdown
@@ -27,10 +28,3 @@ packages:
   - ggplot2
   - forcats
   - tidyverse
-
-depends:
-  # plot_available-surveys:
-  #   id: latest
-  #   use:
-  #     depends/available-surveys.pdf: available-surveys.pdf
-  #     depends/available-surveys.csv: available-surveys.csv

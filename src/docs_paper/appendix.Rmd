@@ -217,4 +217,12 @@ $$
 
 \newpage
 
+# \textsc{C++} template
+
+```{cpp, echo=TRUE, eval=FALSE, output.var="ex", code=readLines("naomi.cpp")}
+
+```
+
+\newpage
+
 # References {#references .unnumbered}

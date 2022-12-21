@@ -92,23 +92,26 @@ We implement our method as an extension of the `aghq` \textsf{R} package [@strin
 As `aghq` is designed to naturally interface with `TMB`, use of the method is easy when provided a \textsf{C++} user template for the log-posterior.
 
 The remainder of this paper is organised as follows.
-In Section \ref{sec:naomi} we describe the Naomi model.
+In Section \ref{sec:naomi} we describe a modified version of the Naomi model that we consider.
 Section \ref{sec:fastinferencemethods} outlines our approach to fast, accurate Bayesian inference using simplified INLA and AGHQ.
-As a case-study, we fit the Naomi model on data from Malawi, and compare the accuracy of inferences in Section \ref{sec:naomi}.
+As a case-study, we fit the modified Naomi model on data from Malawi, and compare the accuracy of inferences in Section \ref{sec:naomi}.
 In this section, we also demonstrating a Bayesian workflow.
 Finally, in Section \ref{sec:conclusions} we discuss our conclusions, how our method might be used in other models, and directions for future research.
 
-# The Naomi model\label{sec:naomi}
+# A modified Naomi model\label{sec:naomi}
 
 @eaton2021naomi specify a joint model linking small-area estimation models of HIV prevalence from household surveys, HIV prevalence from antenatal care clinics, and antiretroviral therapy (ART) coverage from routine health data collection.
-Modelling data from multiple sources concurrently is attractive as it increases statistical power, mitigates the biases of any single source, and prompts investigation into any data conflicts.
+Modelling data from multiple sources concurrently is beneficial as it mitigates the limitations of any single source, increases statistical power and prompts investigation into data conflicts.
 
-In this work, we consider a modified version of the model, with temporal projection omitted.
-In this section, we provide an overview of the model structure, with full details provided in the appendix.
+For each country, the full model is defined over three time points: $T_1$, the time of the most recent household survey with HIV testing; $T_2$, the current time period; and $T_3$, a short term projection period.
+We consider a simplified version of the full model which is defined only at $T_1$ and omits temporal projection.
+In this section, we provide an overview of the modified model, highlighting the aspects which make it a challenge for existing inferential approaches.
+Full mathematical details of this modified model, as well as a \textsf{C++} template for the log-posterior, are provided in the appendix.
 
 ## Process model
 
-To write.
+Let $i$ index the coarsest space-age-sex division included in the model.
+Let $N_i$ be the population size and consider the following indicators: HIV prevalence $\rho_i$, annual HIV incidence rate $\lambda_i$ and ART coverage $\alpha_i$.
 
 ## Likelihood
 
