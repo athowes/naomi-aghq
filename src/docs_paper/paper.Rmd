@@ -100,62 +100,19 @@ Finally, in Section \ref{sec:conclusions} we discuss our conclusions, how our me
 
 # The Naomi model\label{sec:naomi}
 
-@eaton2019joint specify a joint model linking small-area estimation models of HIV prevalence from household surveys, HIV prevalence from antenatal care clinics, and antiretroviral therapy (ART) coverage from routine health data collection.
-This model forms the basis of the Naomi small-area estimation model, described fully in @eaton2021naomi. 
+@eaton2021naomi specify a joint model linking small-area estimation models of HIV prevalence from household surveys, HIV prevalence from antenatal care clinics, and antiretroviral therapy (ART) coverage from routine health data collection.
 Modelling data from multiple sources concurrently is attractive as it increases statistical power, mitigates the biases of any single source, and prompts investigation into any data conflicts.
-The model is comprised of three components, described as follows.
 
-## Household survey component
+In this work, we consider a modified version of the model, with temporal projection omitted.
+In this section, we provide an overview of the model structure, with full details provided in the appendix.
 
-Consider a country partitioned into $n$ areas indexed by $i$.
-Suppose a simple random household survey of $m^\text{HS}_i$ people is conducted in each area, and $y^\text{HS}_i$ HIV positive cases are observed.
-Then, cases may be modelled using a binomial logistic regression model
-\begin{align*}
-y^\text{HS}_i &\sim \text{Bin}(m^\text{HS}_i, \rho^\text{HS}_i), \\
-\text{logit}(\rho^\text{HS}_i) &\sim \mathcal{N}(\beta_\phi, \sigma_\phi^2),
-\end{align*}
-where $\rho^\text{HS}_i$ is the HIV prevalence, modelled on the logit scale by a Gaussian with mean $\beta_\phi \sim p(\beta_\phi)$ and standard deviation $\sigma_\phi \sim p(\sigma_\phi)$.
+## Process model
 
-## ANC component
+To write.
 
-Routinely collected data from pregnant women attending antenatal care clinics (ANCs) is another important source of information about the HIV epidemic.
-Suppose that of $m^\text{ANC}_i$ women attending ANC, $y^\text{ANC}_i$ are HIV positive.
-Then an analogous binomial logistic regression model
-\begin{align*}
-y^\text{ANC}_i &\sim \text{Bin}(m^\text{ANC}_i, \rho^\text{ANC}_i), \\
-\text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho^\text{HS}_i) + b_i, \\
-b_i &\sim \mathcal{N}(\beta_b, \sigma_b^2),
-\end{align*}
-may be used to describe HIV prevalence amongst the sub-population of women attending ANCs.
-Reflecting the fact that prevalence in ANCs is related, but importantly different, to prevalence in the general population, bias terms $b_i$ are used to offset ANC prevalence from HIV prevalence on the logit scale.
-We use a Gaussian distribution with mean $\beta_b \sim p(\beta_b)$ and standard deviation $\sigma_b \sim p(\sigma_b)$ for these bias random effects.
+## Likelihood
 
-## ART component
-
-The number of people receiving treatment at district health facilities $A_i$ provides additional information about HIV prevalence.
-Districts with high prevalence are likely to have a greater number of people receiving treatment, and vice versa districts with low prevalence are likely to have fewer people recieving treatment.
-ART coverage, defined to be the proportion of people living with HIV (PLHIV) currently on ART on district $i$, is given by $\alpha_i = A_i / \rho^\text{HS}_i N_i$, where $N_i$ is the total population of district $i$ and assumed to be constant.
-As such, ART coverage may also be modelled using a binomial logistic regression model
-\begin{align*}
-A_i &\sim \text{Bin}(N_i, \rho^\text{HS}_i \alpha_i), \\
-\text{logit}(\alpha_i) &\sim \mathcal{N}(\beta_\alpha, \sigma_\alpha^2),
-\end{align*}
-where the proportion of people receiving ART is $\rho^\text{HS}_i \alpha_i$.
-We again use a Gaussian distribution with mean $\beta_\alpha \sim p(\beta_\alpha)$ and standard deviation $\sigma_\alpha \sim p(\sigma_\alpha)$.
-Here we assume no travel between districts to receive treatment.
-
-## Joint model
-
-The three components above may be combined to a single model as follows
-\begin{align*}
-y^\text{HS}_i &\sim \text{Bin}(m^\text{HS}_i, \rho^\text{HS}_i), \\
-y^\text{ANC}_i &\sim \text{Bin}(m^\text{ANC}_i, \rho^\text{ANC}_i), \\
-A_i &\sim \text{Bin}(N_i, \rho^\text{HS}_i \alpha_i), \\
-\text{logit}(\rho^\text{HS}_i) &\sim \mathcal{N}(\beta_\phi, \sigma_\phi^2), \\
-\text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho^\text{HS}_i) + b_i, \\
-b_i &\sim \mathcal{N}(\beta_b, \sigma_b^2), \\
-\text{logit}(\alpha_i) &\sim \mathcal{N}(\beta_\alpha, \sigma_\alpha^2).
-\end{align*}
+To write.
 
 # Fast approximate inference method\label{sec:fastinferencemethods}
 
