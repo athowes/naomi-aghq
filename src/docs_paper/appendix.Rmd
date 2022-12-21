@@ -61,7 +61,7 @@ $$
 $$
 with terms and priors analogous to the HIV prevalence model above.
 
-#### HIV incidence rate
+### HIV incidence rate
 
 We model HIV incidence rate by
 $$
@@ -136,12 +136,12 @@ $$
 For HIV prevalence and ART coverage we use binomial working likelihoods as follows
 \begin{align}
 Y^{\hat \rho}_{\{x\}, \{s\}, \{a\}, \nu} &\sim \text{xBin}(M^{\hat \rho}_{\{x\}, \{s\}, \{a\}, \nu}, \rho_{\{x\}, \{s\}, \{a\}, {T_1}}) \\
-\rho_{\{x\}, \{s\}, \{a\}, t} &= \frac{\sum_{x \in \{x\}} \sum_{s \in \{s\}} \sum_{a \in \{a\}} N_{x, s, a} \cdot \rho_{x, s, a}}{\sum_{x \in \{x\}} \sum_{s \in \{s\}} \sum_{a \in \{a\}} N_{x, s, a}},
+\rho_{\{x\}, \{s\}, \{a\}} &= \frac{\sum_{x \in \{x\}} \sum_{s \in \{s\}} \sum_{a \in \{a\}} N_{x, s, a} \cdot \rho_{x, s, a}}{\sum_{x \in \{x\}} \sum_{s \in \{s\}} \sum_{a \in \{a\}} N_{x, s, a}},
 \end{align}
 and
 \begin{align}
 Y^{\hat \alpha}_{\{x\}, \{s\}, \{a\}, \nu} &\sim \text{xBin}(M^{\hat \alpha}_{\{x\}, \{s\}, \{a\}, \nu}, \alpha_{\{x\}, \{s\}, \{a\}, {T_1}}) \\
-\alpha_{\{x\}, \{s\}, \{a\}, t} &= \frac{\sum_{x \in \{x\}} \sum_{s \in \{s\}} \sum_{a \in \{a\}} N_{x, s, a} \cdot \rho_{x, s, a} \cdot \alpha_{x, s, a}}{\sum_{x \in \{x\}} \sum_{s \in \{s\}} \sum_{a \in \{a\}} N_{x, s, a} \cdot \rho_{x, s, a}}.
+\alpha_{\{x\}, \{s\}, \{a\}} &= \frac{\sum_{x \in \{x\}} \sum_{s \in \{s\}} \sum_{a \in \{a\}} N_{x, s, a} \cdot \rho_{x, s, a} \cdot \alpha_{x, s, a}}{\sum_{x \in \{x\}} \sum_{s \in \{s\}} \sum_{a \in \{a\}} N_{x, s, a} \cdot \rho_{x, s, a}}.
 \end{align}
 
 For recent infections we also use a binomial working likelihood
@@ -162,27 +162,22 @@ We include ANC testing data for the year of the most recent survey $Y[T_1]$.
 Let $W^\text{ANC}_{\{x\}, Y[t]}$ be the number of ANC clients, $X^\text{ANC}_{\{x\}, Y[t]}$ the number of those with ascertained status, $Y^\text{ANC}_{\{x\}, Y[t]}$ the number of those with positive status (either known or tested) and $Z^\text{ANC}_{\{x\}, Y[t]}$ the number of ANC clients already on ART prior to first ANC, such that $W^\text{ANC}_{x, Y[t]} \geq X^\text{ANC}_{x, Y[t]} \geq Y^\text{ANC}_{x, Y[t]} \geq Z^\text{ANC}_{x, Y[t]}$
 When ANC testing data are only available for part of a given year, we denote $M^\text{ANC}_{Y[t]} \in \{1, \ldots, 12\}$ the number of months of reported data reflected in counts for year $Y[t]$.
 
-<!-- * Likelihood for number of ANC clients specified only^[Why?] for year $Y[T_2]$ as -->
-<!-- $$ -->
-<!-- W_{\{x\} Y[T_2]}^{\text{ANC}} \sim \text{Pois} \left( \frac{M_{Y[T 2]}^{\text{ANC}}}{12} \sum_{x \in\{x\}} \sum_{a \in\{15, \ldots 45\}} \Psi_{x, a, T_2} \right) -->
-<!-- $$ -->
-
 The observed number of HIV positive and already on ART among ANC clients at $Y[T_1]$ is modelled by
 \begin{align*}
-Y_{\{x\} Y[T_1]}^{\text{ANC}} &\sim \text{Bin} \left(X_{\{x\} Y[T_1]}^{\text{ANC}}, \rho_{\{x\},\{15, \ldots 45\}, t}^{\text{ANC}}\right) \\
-Z_{\{x\} Y[T_1]}^{\text{ANC}} &\sim \text{Bin} \left(Y_{\{x\} Y[T_1]}^{\text{ANC}}, \alpha_{\{x\},\{15, \ldots 45\}, t}^{\text{ANC}}\right)
+Y_{\{x\} Y[T_1]}^{\text{ANC}} &\sim \text{Bin} \left(X_{\{x\} Y[T_1]}^{\text{ANC}}, \rho_{\{x\},\{15, \ldots 45\}}^{\text{ANC}}\right) \\
+Z_{\{x\} Y[T_1]}^{\text{ANC}} &\sim \text{Bin} \left(Y_{\{x\} Y[T_1]}^{\text{ANC}}, \alpha_{\{x\},\{15, \ldots 45\}}^{\text{ANC}}\right)
 \end{align*}
 where predicted prevalence and ART coverage are aggregated weighted by the predicted number of pregnant women by age $\Psi_{x, a}$
 \begin{align*}
-\rho_{\{x\}\{a\}, t}^{\text{ANC}} &= \frac{\sum_{x \in\{x\}} \sum_{a \in\{a\}} \Psi_{x, a} \cdot \rho_{x, a}^{\text{ANC}}}{\sum_{x \in\{x\}} \sum_{a \in\{a\}} \Psi_{x, a}} \\
-\alpha_{\{x\}\{a\}, t}^{\text{ANC}} &= \frac{\sum_{x \in\{x\}} \sum_{a \in\{a\}} \Psi_{x, a} \cdot \rho_{x, a}^{\text{ANC}} \cdot \alpha_{x, a}^{\text{ANC}}}{\sum_{x \in\{x\}} \sum_{a \in\{a\}} \Psi_{x, a} \cdot \rho_{x, a}^{\text{ANC}}}
+\rho_{\{x\}\{a\}}^{\text{ANC}} &= \frac{\sum_{x \in\{x\}} \sum_{a \in\{a\}} \Psi_{x, a} \cdot \rho_{x, a}^{\text{ANC}}}{\sum_{x \in\{x\}} \sum_{a \in\{a\}} \Psi_{x, a}} \\
+\alpha_{\{x\}\{a\}}^{\text{ANC}} &= \frac{\sum_{x \in\{x\}} \sum_{a \in\{a\}} \Psi_{x, a} \cdot \rho_{x, a}^{\text{ANC}} \cdot \alpha_{x, a}^{\text{ANC}}}{\sum_{x \in\{x\}} \sum_{a \in\{a\}} \Psi_{x, a} \cdot \rho_{x, a}^{\text{ANC}}}
 \end{align*}
 
 ### Number receiving ART
 
-Let $\dot A_{\{x\}, \{s\}, \{a\}, t}$ be data for the number receiving ART
+Let $\dot A_{\{x\}, \{s\}, \{a\}}$ be data for the number receiving ART
 $$
-\dot A_{\{x\}, \{s\}, \{a\}, t} = \sum_{s \in \{s\}} \sum_{a \in \{a\}} \sum_{x \in \{x\}} \sum_{x \sim x', x = x'} \dot A_{x', x, s, a},
+\dot A_{\{x\}, \{s\}, \{a\}} = \sum_{s \in \{s\}} \sum_{a \in \{a\}} \sum_{x \in \{x\}} \sum_{x \sim x', x = x'} \dot A_{x', x, s, a},
 $$
 We model the unobserved numbers of ART clients travelling from $x'$ to $x$ as
 $$
@@ -191,15 +186,15 @@ $$
 where $\pi_{x', x, s, a} = \rho_{x', s, a} \cdot \alpha_{x', s, a} \cdot \gamma_{x', x, s, a}$.
 This likelihood is approximated using a normal for the sum of binomials by
 $$
-\dot A_{\{x\}, \{s\}, \{a\}, t} \sim \mathcal{N}(\tilde) A_{\{x\}, \{s\}, \{a\}, t}, \sigma^{\tilde A}_{\{x\}, \{s\}, \{a\}, t})
+\dot A_{\{x\}, \{s\}, \{a\}} \sim \mathcal{N}(\tilde A_{\{x\}, \{s\}, \{a\}}, \sigma^{\tilde A}_{\{x\}, \{s\}, \{a\}})
 $$
 where
 $$
-\tilde{A}_{\{x\},\{s\}\{a\}, t} = \sum_{s \in\{s\}} \sum_{a \in\{a\}} \sum_{x \in\{x\}} \sum_{x \sim x', x = x'} N_{x', s, a} \cdot \pi_{x', x, s, a},
+\tilde{A}_{\{x\},\{s\}\{a\}} = \sum_{s \in\{s\}} \sum_{a \in\{a\}} \sum_{x \in\{x\}} \sum_{x \sim x', x = x'} N_{x', s, a} \cdot \pi_{x', x, s, a},
 $$
 and
 $$
-\sigma_{\{x\},\{s\}\{a\}, t}^{\tilde{A}} = \sqrt{\sum_{s \in\{s\}} \sum_{a \in\{a\}} \sum_{x \in\{x\}} \sum_{x \sim x', x = x'} N_{x', s, a} \cdot \pi_{x', x, s, a} \cdot \left(1-\pi_{x', x, s, a}\right)}.
+\sigma_{\{x\},\{s\}\{a\}}^{\tilde{A}} = \sqrt{\sum_{s \in\{s\}} \sum_{a \in\{a\}} \sum_{x \in\{x\}} \sum_{x \sim x', x = x'} N_{x', s, a} \cdot \pi_{x', x, s, a} \cdot \left(1-\pi_{x', x, s, a}\right)}.
 $$
 
 ## Identifiability constaints
@@ -211,7 +206,7 @@ In particular:
 * If no ART data (survey or ART programme) are available at $T_1$ but data on ART coverage among ANC clients are available, the level of ART coverage is not identifiable, but spatial variation is identifiable.
 In this instance, overall ART coverage is determined by the Spectrum offset, and only area random effects are estimated
 $$
-\text{logit} \left(\alpha_{x, s, a, T_1} \right) = u_x^\alpha+\eta_{R_x, s, a}^\alpha \\
+\text{logit} \left(\alpha_{x, s, a} \right) = u_x^\alpha + \eta_{R_x, s, a}^\alpha \\
 $$
 * If survey data on recent HIV infection are not included in the model, then $\beta_0^\lambda = \beta_S^{\lambda, s = \text{M}} = u_x^\lambda = 0$. The sex ratio for HIV incidence is determined by the sex incidence rate ratio from Spectrum in the same years and the incidence rate in all districts is modelled assuming the same average HIV transmission rate for untreated adults, but varies according to district estimates of HIV prevalence and ART coverage.
 
