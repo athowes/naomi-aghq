@@ -77,13 +77,8 @@ $$
 $$
 $\omega$ is the average reduction in HIV transmission rate per 1% increase in population ART coverage and is fixed at $\omega = 0.7$ via the EPP model, $u_x^\lambda \sim \mathcal{N}(0, \sigma^\lambda)$ with $\sigma^\lambda \sim \mathcal{N}^+(0, 1)$ are IID spatial random effects, and $\eta^\lambda_{R_x, s, a}$ specify log incidence rate ratios by sex and age group calculated from Spectrum model output
 
-### ANC testing cascade
+### ANC testing
 
-For women 15-49 the predicted number of ANC clients $\Psi_{x, a}$ is a log-linear model
-$$
-\log (\Psi_{x, a}) = \log (N_{x, \text{F}, a}) + \psi_{R_x, a} + \beta^\psi + u_x^\psi
-$$
-where $N_{x, \text{F}, a}$ are the female population sizes, $\psi_{R_x, a}$ are ASFR in Spectrum region $R_x$ at time $t$, $\beta^\psi$ are the log rate ratio for the number of ANC clients relative to the predicted fertility, $u_x^\psi \sim \mathcal{N}(0, \sigma^\psi)$ are district random effects.
 HIV prevalence $\rho_{x, a}^\text{ANC}$ and ART coverage $\alpha_{x, a}^\text{ANC}$ among pregnant women modelled with logit-linear models
 \begin{align}
 \text{logit}(\rho_{x, a}^{\text{ANC}}) &= \text{logit}(\rho_{x, F, a}) + \beta^{\rho^{\text{ANC}}} + u_x^{\rho^{\text{ANC}}} + \eta_{R_x, a}^{\rho^{\text{ANC}}} \\
@@ -92,7 +87,7 @@ HIV prevalence $\rho_{x, a}^\text{ANC}$ and ART coverage $\alpha_{x, a}^\text{AN
 
 where $\eta_{R_x, a}^{\theta^{\text{ANC}}}$ for $\theta \in \{\rho, \alpha\}$ are offsets for the log fertility rate ratios for HIV positive women compared to HIV negative women and for women on ART to HIV positive women not on ART, calculated from Spectrum model outputs for region $R_x$, $\beta^{\theta^{\text{ANC}}}$ for $\theta \in \{\rho, \alpha\}$ are the average differences between population and ANC outcomes after removing the offset, and $u_x^{\theta^{\text{ANC}}} \sim \mathcal{N}(0, \sigma_X^{\theta^{\text{ANC}}})$ for $\theta \in \{\rho, \alpha\}$ are district random effects.
   
-### ANC attendance
+### ART attendance
 
 Let $\gamma_{x, x'} \in [0, 1]$ be the probability that a person of ART residing in district $x$ recieves ART in district $x'$.
 We assume that $\gamma_{x, x'} = 0$ for $x \notin \{x, \text{ne}(x)\}$ such that individuals seek treatment only in their residing district and its neighbours $\text{ne}(x) = \{x': x' \sim x\}$, where $\sim$ is an adjacency relation and $\sum_{x' \in \{x, \text{ne}(x)\}} \gamma_{x, x'} = 1$.
@@ -115,13 +110,6 @@ $$
 and the total attending ART facilities in district $x'$ are
 $$
 \tilde A_{x', s, a} = \sum_{x \in \{x', \text{ne}(x')\}} A_{x, x', s, a}.
-$$
-
-### Awareness of HIV status
-
-The proportion of HIV positive adults aware of their HIV status is $v_{x, s, a}$, and the proportion of untreated HIV positive adults aware of their HIV status is $\tilde \nu_{x, s, a}$ such that
-$$
-v_{x, s, a} = \alpha_{x, s, a} + \frac{\tilde v_{R_x, s, a}}{1 - \alpha_{x, s, a}}.
 $$
 
 ## Likelihood specification
