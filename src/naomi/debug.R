@@ -22,9 +22,11 @@ control <- control
 validate_control(control, type = "tmb")
 validate_transformation(transformation)
 transformation <- make_transformation(transformation)
+
 thetanames <- NULL
-if (exists("par", ff))
-  thetanames <- make.unique(names(ff$par), sep = "")
+
+if (exists("par", ff)) thetanames <- make.unique(names(ff$par), sep = "")
+
 if (control$numhessian) {
   ff$he <- function(theta) numDeriv::jacobian(ff$gr, theta, method = "Richardson")
 }
@@ -62,56 +64,46 @@ class(out) <- "aghq"
 d <- length(startingvalue)
 marginals <- vector(mode = "list", length = d)
 
+save.image(file = "line65.rda")
+
 if (control$method_summaries[1] == "correct") {
   for (j in 1:d) marginals[[j]] <- aghq:::marginal_posterior.aghq(out, j, method = "correct")
 } else {
   for (j in 1:d) marginals[[j]] <- aghq:::marginal_posterior.aghq(out, j, method = "reuse")
 }
 
-out$marginals <- marginals
-out
+j <- 17
+marginals[[j]] <- aghq:::marginal_posterior.aghq(out, j, method = "correct")
+
+# Error in rescale.NIGrid(thegrid, m = m, C = Matrix::forceSymmetric(solve(H)),  :
+#   (in rescale) no appropriate covariance matrix C
+
+# Expose aghq:::marginal_posterior.aghq(out, j = 17, method = "correct") here
+
+quad <- out
+j <- 17
+qq <- NULL
+method <- "correct"
 
 method <- method[1]
 if (method == "auto") method <- "reuse"
-if (method == "reuse") return(marginal_posterior.list(quad$optresults, get_numquadpoints(quad), j, ...))
+if (method == "reuse") return(marginal_posterior.list(quad$optresults, get_numquadpoints(quad), j))
 
 S <- get_param_dim(quad)
 idxorder <- c(j, (1:S)[-j])
 thetaminusj <- (1:S)[-j]
-if (is.null(qq)) {
-  mm <- get_mode(quad)[idxorder]
-  HH <- get_hessian(quad)[idxorder, idxorder]
-  gg <- mvQuad::createNIGrid(1, "GHe", get_numquadpoints(quad))
-  mvQuad::rescale(gg, m = mm[1], C = solve(HH)[1, 1], dec.type = 2)
-  qqq <- as.numeric(mvQuad::getNodes(gg))
-  out <- vector(mode = "list", length = length(qqq))
-  for (i in 1:length(qqq)) {
-    out[[i]] <- marginal_posterior.aghq(quad = quad, j = j, qq = qqq[i], method = "correct", ...)
-  }
-  out <- Reduce(rbind, out)
-} else {
-  cname <- colnames(get_nodesandweights(quad))[j]
-  if (S == 1) {
-    out <- data.frame(qq, quad$optresults$ff$fn(qq) -
-                        get_log_normconst(quad))
-    colnames(out) <- c(cname, "logmargpost")
-    return(out)
-  }
-  fn <- function(theta) quad$optresults$ff$fn(splice(theta,
-                                                     qq, j))
-  gr <- function(theta) quad$optresults$ff$gr(splice(theta,
-                                                     qq, j))[-j]
-  he <- function(theta) quad$optresults$ff$he(splice(theta,
-                                                     qq, j))[-j, -j]
-  ffm <- list(fn = fn, gr = gr, he = he)
-  newcontrol <- quad$control
-  newcontrol$onlynormconst <- TRUE
-  newcontrol$negate <- FALSE
-  lognumerator <- get_log_normconst(aghq(ffm, get_numquadpoints(quad),
-                                         get_mode(quad)[-j], control = newcontrol))
-  out <- data.frame(qq, lognumerator - get_log_normconst(quad))
-  colnames(out) <- c(cname, "logmargpost")
+
+mm <- get_mode(quad)[idxorder]
+HH <- get_hessian(quad)[idxorder, idxorder]
+gg <- mvQuad::createNIGrid(1, "GHe", get_numquadpoints(quad))
+mvQuad::rescale(gg, m = mm[1], C = solve(HH)[1, 1], dec.type = 2)
+qqq <- as.numeric(mvQuad::getNodes(gg))
+out <- vector(mode = "list", length = length(qqq))
+for (i in 1:length(qqq)) {
+  out[[i]] <- aghq:::marginal_posterior.aghq(quad = quad, j = j, qq = qqq[i], method = "correct")
 }
+out <- Reduce(rbind, out)
+
 out
 
 if (control$onlynormconst) return(quad)
