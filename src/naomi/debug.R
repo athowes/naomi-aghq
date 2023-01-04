@@ -9,7 +9,7 @@ map <- NULL
 stopifnot(inherits(tmb_input, "naomi_tmb_input"))
 obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map)
 
-# quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, k = 2, basegrid = sparse_grid, control = control)
+# Start of expose quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, k = 2, basegrid = sparse_grid, control = control)
 
 ff <- obj
 k <- 2
@@ -31,7 +31,7 @@ if (control$numhessian) {
   ff$he <- function(theta) numDeriv::jacobian(ff$gr, theta, method = "Richardson")
 }
 
-# quad <- aghq(ff = ff, k = k, transformation = transformation, startingvalue = startingvalue, optresults = optresults, basegrid = basegrid, control = control)
+# Start of expose quad <- aghq(ff = ff, k = k, transformation = transformation, startingvalue = startingvalue, optresults = optresults, basegrid = basegrid, control = control)
 
 validate_control(control)
 validate_transformation(transformation)
@@ -99,12 +99,61 @@ gg <- mvQuad::createNIGrid(1, "GHe", get_numquadpoints(quad))
 mvQuad::rescale(gg, m = mm[1], C = solve(HH)[1, 1], dec.type = 2)
 qqq <- as.numeric(mvQuad::getNodes(gg))
 out <- vector(mode = "list", length = length(qqq))
+
 for (i in 1:length(qqq)) {
   out[[i]] <- aghq:::marginal_posterior.aghq(quad = quad, j = j, qq = qqq[i], method = "correct")
 }
+
+# Start of expose aghq:::marginal_posterior.aghq(quad = quad, j = j, qq = qqq[1], method = "correct")
+
+i <- 1
+aghq:::marginal_posterior.aghq(quad = quad, j = j, qq = qqq[i], method = "correct")
+
+quad <- quad
+j <- j
+qq <- qqq[i]
+method <- "correct"
+
+method <- method[1]
+if (method == "auto") method <- "reuse"
+if (method == "reuse") return(marginal_posterior.list(quad$optresults, get_numquadpoints(quad), j))
+S <- get_param_dim(quad)
+idxorder <- c(j, (1:S)[-j])
+thetaminusj <- (1:S)[-j]
+
+cname <- colnames(get_nodesandweights(quad))[j]
+
+if (S == 1) {
+  out <- data.frame(qq, quad$optresults$ff$fn(qq) - get_log_normconst(quad))
+  colnames(out) <- c(cname, "logmargpost")
+  return(out)
+}
+
+fn <- function(theta) quad$optresults$ff$fn(splice(theta, qq, j))
+gr <- function(theta) quad$optresults$ff$gr(splice(theta, qq, j))[-j]
+he <- function(theta) quad$optresults$ff$he(splice(theta, qq, j))[-j, -j]
+
+ffm <- list(fn = fn, gr = gr, he = he)
+newcontrol <- quad$control
+newcontrol$onlynormconst <- TRUE
+newcontrol$negate <- FALSE
+
+km <- aghq::get_numquadpoints(quad)
+
+quadm <- aghq(ffm, k = km, aghq::get_mode(quad)[-j], control = newcontrol)
+lognumerator <- get_log_normconst(quadm)
+out <- data.frame(qq, lognumerator - get_log_normconst(quad))
+colnames(out) <- c(cname, "logmargpost")
+
+out
+
+# End of expose aghq:::marginal_posterior.aghq(quad = quad, j = j, qq = qqq[1], method = "correct")
+
 out <- Reduce(rbind, out)
 
 out
+
+# End of expose quad <- aghq(ff = ff, k = k, transformation = transformation, startingvalue = startingvalue, optresults = optresults, basegrid = basegrid, control = control)
 
 if (control$onlynormconst) return(quad)
 
@@ -138,3 +187,5 @@ class(quad) <- c("marginallaplace", "aghq")
 
 quad$obj <- obj
 quad
+
+# End of expose quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, k = 2, basegrid = sparse_grid, control = control)
