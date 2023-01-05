@@ -9,7 +9,7 @@ map <- NULL
 stopifnot(inherits(tmb_input, "naomi_tmb_input"))
 obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map)
 
-# Start of expose quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, k = 2, basegrid = sparse_grid, control = control)
+# Start of expose quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, k = 2, basegrid = sparse_grid, control = control) ----
 
 ff <- obj
 k <- 2
@@ -31,7 +31,7 @@ if (control$numhessian) {
   ff$he <- function(theta) numDeriv::jacobian(ff$gr, theta, method = "Richardson")
 }
 
-# Start of expose quad <- aghq(ff = ff, k = k, transformation = transformation, startingvalue = startingvalue, optresults = optresults, basegrid = basegrid, control = control)
+# Start of expose quad <- aghq(ff = ff, k = k, transformation = transformation, startingvalue = startingvalue, optresults = optresults, basegrid = basegrid, control = control) ----
 
 validate_control(control)
 validate_transformation(transformation)
@@ -64,7 +64,7 @@ class(out) <- "aghq"
 d <- length(startingvalue)
 marginals <- vector(mode = "list", length = d)
 
-save.image(file = "line65.rda")
+# save.image(file = "env.rdata")
 
 if (control$method_summaries[1] == "correct") {
   for (j in 1:d) marginals[[j]] <- aghq:::marginal_posterior.aghq(out, j, method = "correct")
@@ -78,7 +78,7 @@ marginals[[j]] <- aghq:::marginal_posterior.aghq(out, j, method = "correct")
 # Error in rescale.NIGrid(thegrid, m = m, C = Matrix::forceSymmetric(solve(H)),  :
 #   (in rescale) no appropriate covariance matrix C
 
-# Expose aghq:::marginal_posterior.aghq(out, j = 17, method = "correct") here
+# Start of expose aghq:::marginal_posterior.aghq(out, j = 17, method = "correct") ----
 
 quad <- out
 j <- 17
@@ -104,56 +104,91 @@ for (i in 1:length(qqq)) {
   out[[i]] <- aghq:::marginal_posterior.aghq(quad = quad, j = j, qq = qqq[i], method = "correct")
 }
 
-# Start of expose aghq:::marginal_posterior.aghq(quad = quad, j = j, qq = qqq[1], method = "correct")
+# Start of expose aghq:::marginal_posterior.aghq(quad = quad, j = j, qq = qqq[1], method = "correct") ----
 
 i <- 1
-aghq:::marginal_posterior.aghq(quad = quad, j = j, qq = qqq[i], method = "correct")
-
 quad <- quad
 j <- j
 qq <- qqq[i]
 method <- "correct"
 
 method <- method[1]
-if (method == "auto") method <- "reuse"
-if (method == "reuse") return(marginal_posterior.list(quad$optresults, get_numquadpoints(quad), j))
+
 S <- get_param_dim(quad)
 idxorder <- c(j, (1:S)[-j])
 thetaminusj <- (1:S)[-j]
 
 cname <- colnames(get_nodesandweights(quad))[j]
 
-if (S == 1) {
-  out <- data.frame(qq, quad$optresults$ff$fn(qq) - get_log_normconst(quad))
-  colnames(out) <- c(cname, "logmargpost")
-  return(out)
-}
-
-fn <- function(theta) quad$optresults$ff$fn(splice(theta, qq, j))
-gr <- function(theta) quad$optresults$ff$gr(splice(theta, qq, j))[-j]
-he <- function(theta) quad$optresults$ff$he(splice(theta, qq, j))[-j, -j]
+fn <- function(theta) quad$optresults$ff$fn(aghq:::splice(theta, qq, j))
+gr <- function(theta) quad$optresults$ff$gr(aghq:::splice(theta, qq, j))[-j]
+he <- function(theta) quad$optresults$ff$he(aghq:::splice(theta, qq, j))[-j, -j]
 
 ffm <- list(fn = fn, gr = gr, he = he)
 newcontrol <- quad$control
 newcontrol$onlynormconst <- TRUE
 newcontrol$negate <- FALSE
 
-km <- aghq::get_numquadpoints(quad)
+lognumerator <- get_log_normconst(aghq(ffm, get_numquadpoints(quad), get_mode(quad)[-j], control = newcontrol))
 
-quadm <- aghq(ffm, k = km, aghq::get_mode(quad)[-j], control = newcontrol)
+# Start expose quadm <- aghq(ffm, k = aghq::get_numquadpoints(quad), aghq::get_mode(quad)[-j], control = newcontrol)
+
+ff <- ffm
+k <- aghq::get_numquadpoints(quad)
+startingvalue <- aghq::get_mode(quad)[-j]
+control <- newcontrol
+basegrid <- NULL
+optresults <- NULL
+transformation <- default_transformation()
+
+validate_control(control)
+validate_transformation(transformation)
+transformation <- make_transformation(transformation)
+
+if (is.null(optresults)) utils::capture.output(optresults <- aghq::optimize_theta(ff, startingvalue, control))
+
+normalized_posterior <- normalize_logpost(optresults, k, basegrid = basegrid, ndConstruction = control$ndConstruction)
+
+# Start expose normalized_posterior <- normalize_logpost(optresults, k, basegrid = basegrid, ndConstruction = control$ndConstruction)
+
+optresults <- optresults
+whichfirst <- 1
+k <- k
+basegrid <- basegrid
+ndConstruction <- control$ndConstruction
+
+S <- length(optresults$mode)
+
+thegrid <- mvQuad::createNIGrid(dim = S, type = "GHe", level = k, ndConstruction = ndConstruction)
+
+idxorder <- c(whichfirst, (1:S)[-whichfirst])
+
+m <- optresults$mode[idxorder]
+H <- optresults$hessian[idxorder, idxorder]
+
+mvQuad::rescale(thegrid, m = m, C = Matrix::forceSymmetric(solve(H)), dec.type = 2)
+
+#' Error is here!
+#' H is not symmetric, as evidenced by imaginary eigenvalues
+eigen(H, only.values = TRUE)
+
+#' The asymmetry is relatively isolated
+sum(abs(H - Matrix::forceSymmetric(H)))
+plot(abs(H - Matrix::forceSymmetric(H))[order(abs(H - Matrix::forceSymmetric(H)))])
+
+if (control$onlynormconst) quadm <- normalized_posterior$lognormconst
+
 lognumerator <- get_log_normconst(quadm)
 out <- data.frame(qq, lognumerator - get_log_normconst(quad))
 colnames(out) <- c(cname, "logmargpost")
 
-out
-
-# End of expose aghq:::marginal_posterior.aghq(quad = quad, j = j, qq = qqq[1], method = "correct")
+# End of expose aghq:::marginal_posterior.aghq(quad = quad, j = j, qq = qqq[1], method = "correct") ----
 
 out <- Reduce(rbind, out)
 
 out
 
-# End of expose quad <- aghq(ff = ff, k = k, transformation = transformation, startingvalue = startingvalue, optresults = optresults, basegrid = basegrid, control = control)
+# End of expose quad <- aghq(ff = ff, k = k, transformation = transformation, startingvalue = startingvalue, optresults = optresults, basegrid = basegrid, control = control) ----
 
 if (control$onlynormconst) return(quad)
 
@@ -188,4 +223,4 @@ class(quad) <- c("marginallaplace", "aghq")
 quad$obj <- obj
 quad
 
-# End of expose quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, k = 2, basegrid = sparse_grid, control = control)
+# End of expose quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, k = 2, basegrid = sparse_grid, control = control) ----

@@ -131,7 +131,7 @@ control <- aghq::default_control_tmb()
 control$method_summaries <- "correct"
 control$ndConstruction <- "sparse"
 
-#' START debug.R
+#' Start debug.R
 
 start_sparse_quad <- Sys.time()
 sparse_quad <- fit_aghq(tmb_inputs, k = 2, basegrid = sparse_grid, control = control)
