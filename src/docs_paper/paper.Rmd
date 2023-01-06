@@ -64,21 +64,22 @@ output:
 
 # Introduction
 
-Mounting an effective public health response to the HIV epidemic requires accurate, timely HIV indicator estimates at a sufficiently fine-scale resolution.
-Producing these estimates is a challenging task, as all available data sources have shortcomings.
-Nationally-representative household surveys are the most statistically reliable data source, but due to their high cost to run, in most countries they only occur infrequently.
-Other data sources, such as routine health surveillance of antenatal care clinics, are more real-time but based on a biased sample of the population.
+Mounting an effective public health response to the HIV epidemic requires accurate, timely HIV indicator estimates at a sufficiently fine-scale resolution to make targetted interventions.
+Producing these estimates is a challenging task, as all available data sources have shortcomings which must be overcome.
+Nationally-representative household surveys provide the most statistically reliable data, but due to their high cost to run, in most countries they only occur infrequently.
+Other data sources, such as routine health surveillance of antenatal care clinics, are more real-time but based on limited or biased samples of the population.
 To meet these challenges, the Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV prevalence, HIV incidence, and coverage of antiretroviral treatment (ART) at a district-level.
-Software (\url{https://naomi.unaids.org}) has been developed for Naomi, which allows countries to input their data and generate estimates in a yearly process supported by UNAIDS.
+Software (\url{https://naomi.unaids.org}) has been developed for Naomi, allowing countries to input their data and generate estimates in a yearly process supported by UNAIDS.
 
-The complexity of the model presents a difficult Bayesian inference problem.
+Situational reqruiements combined with the complexity of the model present a difficult Bayesian inference problem.
 Any inferential strategy must be fast, as well as easy to run in production by country teams, ruling out prohibitively slow Markov chain Monte Carlo (MCMC) approaches.
 Inference is currently conducted using an empirical Bayes approach, with a Gaussian approximation to the latent field, via the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
-Owing to its speed and flexibility, `TMB` is gaining popularity spatial statistics [@osgoodzimmerman2021statistical].
+Owing to its speed and flexibility, `TMB` has recently been gaining popularity spatial statistics [@osgoodzimmerman2021statistical].
 Inference in `TMB` is based on optimisation of a \textsf{C++} template function, with the option available to use a Laplace approximation to integrate out any subset of the function arguments.
 For the Naomi model, we use this option to integrate out the latent field parameters.
 Taking inspiration from the AD Model Builder (ADMB) package [@fournier2012ad], `TMB` uses automatic differentiation [@baydin2017automatic] to calculate the derivatives required for numerical optimisation routines and the Laplace approximation.
 Although this approach has favourable computational properties, we have found the inferences generated for the Naomi model to sometimes be inaccurate.
+As such, we have been motivated to find a more accurate approach, which is flexible enough to be compatible with the model and fast enough to be run in production by country teams.
 
 To obtain fast, accurate inferences for the Naomi model we develop a new inference methodology which combines the simplified integrated nested Laplace approximation (INLA) approach of @wood2020simplified with adaptive Gauss-Hermite quadrature (AGHQ).
 INLA is an approach to approximate Bayesian inference based on nested Laplace approximations and numerical quadrature.
@@ -89,22 +90,22 @@ ELGMs build on latent Gaussian models (LGMs) by allowing each element of the lin
 We combine simplified INLA with AGHQ, a quadrature rule based on the theory of polynomial interpolation which adapts to the integrand based on the Hessian at the mode.
 Though no theory yet exists for the nested case, the first stochastic convergence results for adaptive quadrature rules were recently obtained by @bilodeau2021stochastic using AGHQ.
 We implement our method as an extension of the `aghq` \textsf{R} package [@stringer2021implementing].
-As `aghq` is designed to naturally interface with `TMB`, use of the method is easy when provided a \textsf{C++} user template for the log-posterior.
+`aghq` is designed to naturally interface with `TMB`, so use of our method is simple when provided a \textsf{C++} user template for the log-posterior.
 
 The remainder of this paper is organised as follows.
-In Section \ref{sec:naomi} we describe a modified version of the Naomi model that we consider.
+In Section \ref{sec:naomi} we describe the modified version of the Naomi model that we consider.
 Section \ref{sec:fastinferencemethods} outlines our approach to fast, accurate Bayesian inference using simplified INLA and AGHQ.
 As a case-study, we fit the modified Naomi model on data from Malawi, and compare the accuracy of inferences in Section \ref{sec:naomi}.
-In this section, we also demonstrating a Bayesian workflow.
+In this section, we also demonstrate a Bayesian workflow, illustrating that these concepts are not only applicable in a simulation-based inference setting.
 Finally, in Section \ref{sec:conclusions} we discuss our conclusions, how our method might be used in other models, and directions for future research.
 
 # A modified Naomi model\label{sec:naomi}
 
 @eaton2021naomi specify a joint model linking small-area estimation models of HIV prevalence from household surveys, HIV prevalence from antenatal care clinics, and antiretroviral therapy (ART) coverage from routine health data collection.
-Modelling data from multiple sources concurrently is beneficial as it mitigates the limitations of any single source, increases statistical power and prompts investigation into data conflicts.
+Modelling data from multiple sources concurrently in this way mitigates the limitations of any single data source, increases statistical power and prompts investigation into data conflicts.
 
-Let $x$ index district, $a$ index five-year age band, $s$ index sex and $t$ index time.
-For each country, the full model is defined over three time points: $T_1$, the time of the most recent household survey with HIV testing; $T_2$, the current time period; and $T_3$, a short term projection period.
+Consider a country in sub-Saharan Africa, and let $x$ index district, $a$ index five-year age band, $s$ index sex and $t$ index time.
+The full model is defined over three time points: $T_1$, the time of the most recent household survey with HIV testing; $T_2$, the current time period; and $T_3$, a short term projection period.
 We consider a simplified version defined only at $T_1$, omiting all temporal projection.
 In this section, we provide an overview of the modified model, highlighting the aspects which make it a challenge for existing inferential approaches.
 Full mathematical details of this modified model, as well as a \textsf{C++} template for the log-posterior, are provided in the appendix.
