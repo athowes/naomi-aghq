@@ -37,21 +37,6 @@ validate_control(control)
 validate_transformation(transformation)
 transformation <- make_transformation(transformation)
 
-if (!is.null(basegrid)) {
-  if (missing(k)) {
-    k <- max(as.numeric(basegrid$level))
-  }
-  else {
-    k2 <- max(as.numeric(basegrid$level))
-    if (k != k2) {
-      warning(paste0("You provided a basegrid and a specified number of quadrature points k. You do not need to specify k if you supply a basegrid. Further, they don't match: your grid has k = ",
-                     k2, ", but you specified k = ", k, ". Proceeding with k = ",
-                     k2, ", from the supplied grid.\n"))
-      k <- k2
-    }
-  }
-}
-
 if (is.null(optresults)) utils::capture.output(optresults <- optimize_theta(ff, startingvalue, control))
 
 normalized_posterior <- normalize_logpost(optresults, k, basegrid = basegrid, ndConstruction = control$ndConstruction)
@@ -173,8 +158,23 @@ mvQuad::rescale(thegrid, m = m, C = Matrix::forceSymmetric(solve(H)), dec.type =
 eigen(H, only.values = TRUE)
 
 #' The asymmetry is relatively isolated
-sum(abs(H - Matrix::forceSymmetric(H)))
-plot(abs(H - Matrix::forceSymmetric(H))[order(abs(H - Matrix::forceSymmetric(H)))])
+skew_part <- H - Matrix::forceSymmetric(H)
+image(skew_part)
+
+sum(skew_part)
+plot(abs(skew_part)[order(abs(skew_part))])
+
+#' Which parameter name does theta17 correspond to?
+thetanames[17]
+
+#' Which elements of the Hessian are very asymmetric? Look at the 10 largest
+asymmetric_indices <- head(order(abs(skew_part), decreasing = TRUE), n = 10)
+skew_part[asymmetric_indices]
+
+data.frame(row = asymmetric_indices %% nrow(H), col = asymmetric_indices %/% nrow(H) + 1)
+
+#' What is the 10th parameter where the greatest asymmetries are?
+thetanames[10]
 
 if (control$onlynormconst) quadm <- normalized_posterior$lognormconst
 
