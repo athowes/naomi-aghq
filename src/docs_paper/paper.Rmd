@@ -103,35 +103,73 @@ Finally, in Section \ref{sec:conclusions} we discuss our conclusions, how our me
 @eaton2021naomi specify a joint model linking small-area estimation models of HIV prevalence from household surveys, HIV prevalence from antenatal care clinics, and antiretroviral therapy (ART) coverage from routine health data collection.
 Modelling data from multiple sources concurrently is beneficial as it mitigates the limitations of any single source, increases statistical power and prompts investigation into data conflicts.
 
+Let $x$ index district, $a$ index five-year age band, $s$ index sex and $t$ index time.
 For each country, the full model is defined over three time points: $T_1$, the time of the most recent household survey with HIV testing; $T_2$, the current time period; and $T_3$, a short term projection period.
-We consider a simplified version of the full model which is defined only at $T_1$ and omits temporal projection.
+We consider a simplified version defined only at $T_1$, omiting all temporal projection.
 In this section, we provide an overview of the modified model, highlighting the aspects which make it a challenge for existing inferential approaches.
 Full mathematical details of this modified model, as well as a \textsf{C++} template for the log-posterior, are provided in the appendix.
 
-## Process model
+## Household survey component
 
-Let $i$ index the coarsest district-age-sex division included in the model.
-Let $N_i$ be the population size and consider the following three indicators: HIV prevalence $\rho_i \in [0, 1]$, ART coverage $\alpha_i \in [0, 1]$, and annual HIV incidence rate $\lambda_i > 0$.
-
-We specify independent mixed effects models for HIV prevalence and ART coverage on the logit scale such that
-\begin{align}
+Consider a household survey occurring at $T_1$, and let $i$ index the coarsest district-age-sex division included in the model.
+The data we observe may be aggregated over indices $i$, so we let $\mathcal{I}$ be a set of $i$ for which observations are reported.
+Let $N_i$ be the population size, and consider the following three indicators: HIV prevalence $\rho_i \in [0, 1]$, ART coverage $\alpha_i \in [0, 1]$, and annual HIV incidence rate $\lambda_i > 0$.
+We specify independent mixed effects models for HIV prevalence and ART coverage in the general population on the logit scale such that
+\begin{align*}
 \text{logit}(\rho_i) &= \eta^\rho_i, \\
 \text{logit}(\alpha_i) &= \eta^\alpha_i,
-\end{align}
+\end{align*}
 for certain choice of linear predictors $\eta^\rho_i$ and $\eta^\alpha_i$.
-For the HIV incidence rate we use a mixed effects model on the log scale where the linear predictor depends on $\{\rho_i, \alpha_i\}_{i \in \mathcal{I}}$
+For the HIV incidence rate we use a mixed effects model on the log scale
 $$
-\log(\lambda_i) = \eta^\rho_i(\{\rho_i, \alpha_i\}_{i \in \mathcal{I}}).
+\log(\lambda_i) = \eta^\lambda_i(\{\rho_i, \alpha_i\}_{i \in \mathcal{I}}),
 $$
+where the linear predictor depends on $\{\rho_i, \alpha_i\}_{i \in \mathcal{I}}$.
 
-## Likelihood
-
-Consider a household survey occurring at $T_1$.
-Let $\mathcal{I}$ be a set of $i$ for which observations are reported.
-For each $\mathcal{I}$, we calculate the weighted observations $\hat \theta_\mathcal{I}$ for $\theta \in \{\rho, \alpha, \kappa\}$ with respective Kish effective sample sizes $M^{\hat \theta}_\mathcal{I}$, and observed number of cases
+Let $\kappa_i$ be the proportion recently infected among HIV positive persons.
+For each set of observed strata indices $\mathcal{I}$, we calculate the weighted observations $\hat \theta_\mathcal{I}$ for $\theta \in \{\rho, \alpha, \kappa\}$ with respective Kish effective sample sizes 
+$$
+M^{\hat \theta}_\mathcal{I} = \frac{\left(\sum_j w_j\right)^2}{\sum_j w_j^2},
+$$
+where $j$ index individuals in all strata $i \in \mathcal{I}$, with corresponding survey weights $w_j$.
+The observed number of indicator cases is then
 $$
 Y^{\hat \theta}_{\mathcal{I}} = M^{\hat \theta}_{\mathcal{I}} \cdot \hat \theta_{\mathcal{I}}.
 $$
+For $\theta \in \{\rho, \alpha, \kappa\}$ we model these aggregate observations using a binomial working likelihood
+$$
+Y^{\hat \theta}_{\mathcal{I}} \sim \text{xBin}(M^{\hat \theta}_{\mathcal{I}}, \theta_{\mathcal{I}}),
+$$
+where $\theta_{\mathcal{I}}$ are the following weighted aggregates
+\begin{align*}
+\rho_{\mathcal{I}} = \frac{\sum_{i \in \mathcal{I}} N_i \rho_i}{\sum_{i \in \mathcal{I}} N_i}, \\
+\alpha_{\mathcal{I}} = \frac{\sum_{i \in \mathcal{I}} N_i \rho_i \alpha_i}{\sum_{i \in \mathcal{I}} N_i \rho_i}, \\
+\kappa_{\mathcal{I}} = \frac{\sum_{i \in \mathcal{I}} N_i \rho_i \kappa_i}{\sum_{i \in \mathcal{I}} N_i \rho_i}.
+\end{align*}
+We link the proportion recently infected among HIV positive persons $\kappa_i$ to HIV incidence $\lambda_i$ by
+$$
+\kappa_i = 1- \exp \left( - \lambda \cdot \frac{1 - \rho_i}{\rho_i} \cdot (\Omega_T - \beta_T) - \beta_T \right),
+$$
+where $\Omega_T$ is the mean duration of recent infection and $\beta_T$ is the false recent ratio.
+
+## ANC testing component
+
+We model HIV prevalence $\rho^\text{ANC}_i$ and ART coverage $\alpha^\text{ANC}_i$ among pregnant women as being offset on the logit scale from the general population indicator as follows
+\begin{align*}
+\text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho_i) + \tilde{\eta}^{\rho^\text{ANC}}_i, \\
+\text{logit}(\alpha^\text{ANC}_i) &= \text{logit}(\alpha_i) + \tilde{\eta}^{\rho^\text{ANC}}_i.
+\end{align*}
+Process section to be written.
+
+Likelihood section to be written.
+
+## ART attendance component
+
+Let $\gamma_{x, x'} \in [0, 1]$ be the probability that a person on ART residing in district $x$ recieves ART in district $x'$.
+Process section to be written.
+
+Let $\dot A_i$ be the number of people receiving ART.
+Likelihood section to be written.
 
 # Fast approximate inference method\label{sec:fastinferencemethods}
 
