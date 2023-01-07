@@ -63,12 +63,12 @@ naomi_data <- select_naomi_data(
 #' Naomi with packageVersion("naomi"), and if required, install version 2.8.5.
 #' with devtools::install_github("mrc-ide/naomi", ref = "e9de40f")
 
-compile("naomi.cpp")
-dyn.load(dynlib("naomi"))
+## compile("naomi.cpp")
+## dyn.load(dynlib("naomi"))
 
 #' Want to replace the above with
-# compile("naomi_simple.cpp")
-# dyn.load(dynlib("naomi_simple"))
+compile("naomi_simple.cpp")
+dyn.load(dynlib("naomi_simple"))
 
 #' The replace all of the following fitting, uncertainty generation, and model output
 #' with equivalent versions using naomi_simple rather than naomi. The end state should
@@ -76,8 +76,11 @@ dyn.load(dynlib("naomi"))
 #' assuming that removing projection does not change the estimates at the time of survey
 #' (and that indicators below corresponds to T1 not T2 or T3 say).
 
+tmb_inputs <- prepare_tmb_inputs(naomi_data)
+tmb_inputs_simple <- local_exclude_inputs(tmb_inputs)
+
 #' Fit TMB model
-fit <- local_fit_tmb(tmb_inputs, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL)
+fit <- local_fit_tmb(tmb_inputs_simple, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL, DLL = "naomi_simple")
 
 #' Add uncertainty
 fit <- local_sample_tmb(fit, nsample = 2000)
