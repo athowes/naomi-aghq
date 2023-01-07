@@ -86,7 +86,7 @@ fit <- local_fit_tmb(tmb_inputs_simple, outer_verbose = TRUE, inner_verbose = FA
 fit <- local_sample_tmb(fit, nsample = 2000)
 
 #' Calculate model outputs
-outputs <- output_package(fit, naomi_data)
+outputs <- local_output_package_naomi_simple(fit, naomi_data)
 
 indicators <- add_output_labels(outputs) %>%
   left_join(outputs$meta_area %>% select(area_level, area_id, center_x, center_y)) %>%

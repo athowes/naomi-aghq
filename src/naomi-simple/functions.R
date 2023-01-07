@@ -367,3 +367,187 @@ fit_tmbstan <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map =
 fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, ...) {
   return("Under development!")
 }
+
+
+#' Version of output_package() to extract only T1
+local_output_package_naomi_simple <- function(naomi_fit, naomi_data, na.rm = FALSE) {
+
+  stopifnot(is(naomi_fit, "naomi_fit"))
+  stopifnot(is(naomi_data, "naomi_data"))
+
+  indicators <- local_extract_indicators_naomi_simple(naomi_fit, naomi_data, na.rm = na.rm)
+
+  art_attendance <- local_extract_art_attendance_naomi_simple(naomi_fit, naomi_data, na.rm = na.rm)
+
+  meta_area <- naomi_data$areas %>%
+    dplyr::filter(area_id %in% unique(naomi_data$mf_out$area_id)) %>%
+    dplyr::select(area_level, area_level_label, area_id, area_name,
+                  parent_area_id, spectrum_region_code, area_sort_order,
+                  center_x, center_y, geometry) %>%
+    sf::st_as_sf()
+
+  meta_period <- naomi:::get_period_metadata(naomi_data$calendar_quarter1)
+  meta_age_group <- naomi:::get_age_groups()
+
+  ## # Fitting outputs
+  fit <- list()
+  fit$model_options <- naomi_data$model_options
+  fit$data_options <- naomi_data$data_options
+  fit$calibration_options <- naomi_data$calibration_options
+  fit$spectrum_calibration <- naomi_data$spectrum_calibration
+
+  meta_indicator <- get_meta_indicator()
+  meta_indicator <- dplyr::filter(meta_indicator, indicator %in% indicators$indicator)
+
+  inputs_outputs <- align_inputs_outputs(naomi_data, indicators, meta_area)
+
+  val <- list(
+    indicators = indicators,
+    art_attendance = art_attendance,
+    meta_area = meta_area,
+    meta_age_group = meta_age_group,
+    meta_period = meta_period,
+    meta_indicator = meta_indicator,
+    fit = fit,
+    inputs_outputs = inputs_outputs
+  )
+
+  class(val) <- "naomi_output"
+
+  val
+}
+
+
+#' Version of extract_indicators for T1 only
+#' 
+
+local_extract_indicators_naomi_simple <- function(naomi_fit, naomi_mf, na.rm = FALSE) {
+
+  get_est <- function(varname,
+                      indicator,
+                      calendar_quarter,
+                      mf = naomi_mf$mf_out) {
+    v <- dplyr::mutate(
+                  mf,
+                  calendar_quarter = calendar_quarter,
+                  indicator = indicator)
+
+    tryCatch(
+      if(!is.null(naomi_fit$sample)) {
+        v <- naomi:::add_stats(v, naomi_fit$mode[[varname]], naomi_fit$sample[[varname]], na.rm = na.rm)
+      } else {
+        v <- naomi:::add_stats(v, naomi_fit$mode[[varname]], na.rm = na.rm)
+      },
+      "error" = function(e) {
+        stop(paste0("Error simulating output for indicator:", varname, ". Please contact support for troubleshooting."))
+      })
+
+    v
+  }
+
+  indicators_t1 <- c("population_t1_out" = "population",
+                     "rho_t1_out" = "prevalence",
+                     "plhiv_t1_out" = "plhiv",
+                     "alpha_t1_out" = "art_coverage",
+                     "artnum_t1_out" = "art_current_residents",
+                     "artattend_t1_out" = "art_current",
+                     "untreated_plhiv_num_t1_out" = "untreated_plhiv_num",
+                     "plhiv_attend_t1_out" = "plhiv_attend",
+                     "untreated_plhiv_attend_t1_out" = "untreated_plhiv_attend",
+                     "lambda_t1_out" = "incidence",
+                     "infections_t1_out" = "infections")
+
+  indicator_est_t1 <- Map(get_est, names(indicators_t1), indicators_t1, naomi_mf$calendar_quarter1)
+  indicator_est_t1 <- dplyr::bind_rows(indicator_est_t1)
+
+  indicators_anc_t1 <- c("anc_clients_t1_out" = "anc_clients",
+                         "anc_plhiv_t1_out" = "anc_plhiv",
+                         "anc_already_art_t1_out" = "anc_already_art",
+                         "anc_art_new_t1_out" = "anc_art_new",
+                         "anc_known_pos_t1_out" = "anc_known_pos",
+                         "anc_tested_pos_t1_out" = "anc_tested_pos",
+                         "anc_tested_neg_t1_out" = "anc_tested_neg",
+                         "anc_rho_t1_out" = "anc_prevalence",
+                         "anc_alpha_t1_out" = "anc_art_coverage")
+
+  indicator_anc_est_t1 <- Map(get_est, names(indicators_anc_t1), indicators_anc_t1,
+                              naomi_mf$calendar_quarter1, list(naomi_mf$mf_anc_out))
+  indicator_anc_est_t1 <- dplyr::bind_rows(indicator_anc_est_t1)
+
+  mf_anc_out <- naomi_mf$mf_areas %>%
+    dplyr::transmute(area_id,
+                     sex = "female",
+                     age_group = "Y015_049")
+
+  out <- dplyr::bind_rows(
+                  indicator_est_t1,
+                  indicator_anc_est_t1
+  )
+
+  dplyr::select(out, names(naomi_mf$mf_out),
+                calendar_quarter, indicator, mean, se, median, mode, lower, upper)
+}
+
+local_extract_art_attendance_naomi_simple <- function(naomi_fit, naomi_mf, na.rm = FALSE) {
+
+  mode <- naomi_fit$mode
+
+  mfout <- naomi_mf$mf_out %>%
+    dplyr::mutate(out_idx = dplyr::row_number())
+
+  v <- naomi_mf$mf_artattend %>%
+    dplyr::select(reside_area_id, attend_area_id) %>%
+    dplyr::mutate(sex = "both",
+                  age_group = "Y000_999") %>%
+    dplyr::left_join(
+             dplyr::rename(mfout, reside_area_id = area_id, reside_out_idx = out_idx),
+             by = c("reside_area_id", "sex", "age_group")
+           ) %>%
+    dplyr::left_join(
+             dplyr::rename(mfout, attend_area_id = area_id, attend_out_idx = out_idx),
+             by = c("attend_area_id", "sex", "age_group")
+           )
+
+  if(!is.null(mode)) {
+    m_artattend_ij_t1 <- mode$artattend_ij_t1_out
+    m_artnum_reside_t1 <- mode$artnum_t1_out[v$reside_out_idx]
+    m_artnum_attend_t1 <- mode$artattend_t1_out[v$attend_out_idx]
+  } else {
+    m_artattend_ij_t1 <- NULL
+  }
+
+  if(!is.null(m_artattend_ij_t1)) {
+    m_prop_residents_t1 <- m_artattend_ij_t1 / m_artnum_reside_t1
+    m_prop_attendees_t1 <- m_artattend_ij_t1 / m_artnum_attend_t1
+  } else {
+    m_prop_residents_t1 <- NULL
+    m_prop_attendees_t1 <- NULL
+  }
+
+  if(!is.null(naomi_fit$sample)) {
+
+    s_artattend_ij_t1 <- naomi_fit$sample$artattend_ij_t1_out
+    s_artnum_reside_t1 <- naomi_fit$sample$artnum_t1_out[v$reside_out_idx, ]
+    s_artnum_attend_t1 <- naomi_fit$sample$artattend_t1_out[v$attend_out_idx, ]
+  } else {
+    s_artattend_ij_t1 <- NULL
+  }
+
+  if(!is.null(s_artattend_ij_t1)) {
+    s_prop_residents_t1 <- s_artattend_ij_t1 / s_artnum_reside_t1
+    s_prop_attendees_t1 <- s_artattend_ij_t1 / s_artnum_attend_t1
+  } else {
+    s_prop_residents_t1 <- NULL
+    s_prop_attendees_t1 <- NULL
+  }
+
+  v$reside_out_idx <- NULL
+  v$attend_out_idx <- NULL
+
+  v_t1 <- dplyr::mutate(v, calendar_quarter = naomi_mf$calendar_quarter1)
+  v_t1 <- naomi:::add_stats(v_t1, m_artattend_ij_t1, s_artattend_ij_t1, "artnum_", na.rm = na.rm)
+  v_t1 <- naomi:::add_stats(v_t1, m_prop_residents_t1, s_prop_residents_t1, "prop_residents_", na.rm = na.rm)
+  v_t1 <- naomi:::add_stats(v_t1, m_prop_attendees_t1, s_prop_attendees_t1, "prop_attendees_", na.rm = na.rm)
+
+  dplyr::bind_rows(v_t1)
+}
