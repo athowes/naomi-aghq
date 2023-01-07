@@ -1,5 +1,4 @@
-#' A local version of naomi::make_tmb_obj
-#' [NEEDS TO BE EDITED TO WORK WITH DLL = "naomi_simple"]
+#' A local version of naomi::make_tmb_obj, edited to work with DLL = "naomi_simple"
 local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, progress = NULL, map = NULL, DLL = "naomi_simple") {
   # Begin expose naomi:::make_tmb_obj
   # https://github.com/mrc-ide/naomi/blob/e9de40f12cf2e652f78966bb351fa5718ecd7867/R/tmb-model.R#L496
@@ -44,7 +43,6 @@ local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, prog
   )
 
   if (DLL == "naomi_simple") {
-
     exclude_random_pars <- c(
       "beta_alpha_t2",
       "beta_asfr",
@@ -61,13 +59,6 @@ local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, prog
     )
 
     integrate_out <- setdiff(integrate_out, exclude_random_pars)
-    
-  }
-      
-
-  if(DLL == "naomi_beta_rho_index") {
-    integrate_out <- integrate_out[!integrate_out == "beta_rho"]
-    integrate_out <- c("beta_rho_i", "beta_rho_minus_i", integrate_out)
   }
 
   obj <- TMB::MakeADFun(
@@ -88,7 +79,6 @@ local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, prog
 }
 
 #' Exclude parameters and data not required by naomi_simple model
-#' 
 local_exclude_inputs <- function(tmb_inputs) {
 
   simple_include_data <- c(
@@ -222,8 +212,7 @@ local_exclude_inputs <- function(tmb_inputs) {
 }
 
 
-#' A local version of naomi::fit_tmb
-#' [NEEDS TO BE EDITED TO WORK WITH DLL = "naomi_simple"]
+#' A local version of naomi::fit_tmb, edited to work with DLL = "naomi_simple"
 local_fit_tmb <- function(tmb_input, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL, map = NULL, DLL = "naomi") {
   # Begin expose naomi::fit_tmb
   # https://github.com/mrc-ide/naomi/blob/e9de40f12cf2e652f78966bb351fa5718ecd7867/R/tmb-model.R#L557
@@ -266,7 +255,6 @@ local_fit_tmb <- function(tmb_input, outer_verbose = TRUE, inner_verbose = FALSE
 }
 
 #' A local version of naomi::sample_tmb
-#' #' [NEEDS TO BE EDITED TO WORK WITH DLL = "naomi_simple"]
 local_sample_tmb <- function(fit, nsample = 1000, rng_seed = NULL, random_only = TRUE, verbose = FALSE) {
   # Begin expose naomi::sample_tmb
   # https://github.com/mrc-ide/naomi/blob/65ac94517b910ac517a45f41e824824e1907a3c4/R/tmb-model.R#L624
@@ -368,7 +356,6 @@ fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NU
   return("Under development!")
 }
 
-
 #' Version of output_package() to extract only T1
 local_output_package_naomi_simple <- function(naomi_fit, naomi_data, na.rm = FALSE) {
 
@@ -389,7 +376,7 @@ local_output_package_naomi_simple <- function(naomi_fit, naomi_data, na.rm = FAL
   meta_period <- naomi:::get_period_metadata(naomi_data$calendar_quarter1)
   meta_age_group <- naomi:::get_age_groups()
 
-  ## # Fitting outputs
+  # Fitting outputs
   fit <- list()
   fit$model_options <- naomi_data$model_options
   fit$data_options <- naomi_data$data_options
@@ -417,10 +404,7 @@ local_output_package_naomi_simple <- function(naomi_fit, naomi_data, na.rm = FAL
   val
 }
 
-
 #' Version of extract_indicators for T1 only
-#' 
-
 local_extract_indicators_naomi_simple <- function(naomi_fit, naomi_mf, na.rm = FALSE) {
 
   get_est <- function(varname,
