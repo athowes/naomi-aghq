@@ -32,13 +32,13 @@ We restrict our attention to the time period $t = T_1$ of the most recent nation
 Let $s \in \{\text{F}, \text{M}\}$ be sex, and $a \in \{\text{0-5}, \text{5-10}, \ldots, \text{75-80}, 80+\}$ be five-year age bands.
 As short-hand, we write $a = l$ to refer to the age band with lower bound $l$, e.g. $a = 20$ for $a = \text{20-25}$.
 We index the following quantities by district, sex and age-band: population size $N_{x, s, a}$, HIV prevalence $\rho_{x, s, a}$, ART coverage $\alpha_{x, s, a}$, annual HIV incidence rate $\lambda_{x, s, a}$, and proportion of HIV positive persons recently infected $\kappa_{x, s, a}$.
-Sometimes data are observed at an aggregate level, rather then the level of granularity at which the model operates.
+Sometimes data are observed at an aggregate level, rather than the modelled level of granularity.
 In this instance, we use $\{\cdot\}$ to generically refer to a aggregate set over which an observation is made, e.g. $\{a\} = \{\text{15-19}, \ldots, \text{45-49}\}$ for adults.
 
 ### Structured random effects
 
 Consider a generic random effect $u$.
-We use use structured random effects to share information across units assessed as being similar, such as districts next to each other or adjacent age-bands.
+We use use structured random effects to share information across units assessed as being similar, such as neighbouring districts or adjacent age-bands.
 We use $u \sim \text{ICAR}(\sigma)$ to refer to the Besag intrinsic conditional auto-regressive model (ICAR) [@besag1991bayesian] with full conditionals
 $$
 u_i \, | \, u_{-i} \sim \mathcal{N} \left(\frac{\sum_{j: j \sim i} u_j}{n_{\delta i}}, \frac{\sigma^2}{n_{\delta i}}\right),
@@ -159,6 +159,12 @@ For PHIA surveys this is $\Omega_{T_0} = 130 \text{ days}$ and $\sigma^{\Omega_T
 For PHIA surveys we assume there is no false recency, such that $\beta_{T_0} = 0.0$ and $\sigma^{\beta_T} = 0.0$.
 
 ### ANC testing data
+
+For women 15-49 the predicted number of ANC clients $\Psi_{x, a}$ is a log-linear model
+$$
+\log (\Psi_{x, a}) = \log (N_{x, \text{F}, a}) + \psi_{R_x, a} + \beta^\psi + u_x^\psi
+$$
+where $N_{x, \text{F}, a}$ are the female population sizes, $\psi_{R_x, a}$ are ASFR in Spectrum region $R_x$ at time $t$, $\beta^\psi$ are the log rate ratio for the number of ANC clients relative to the predicted fertility, $u_x^\psi \sim \mathcal{N}(0, \sigma^\psi)$ are district random effects.
 
 We include ANC testing data for the year of the most recent survey $Y[T_1]$.
 Let $W^\text{ANC}_{\{x\}, Y[t]}$ be the number of ANC clients, $X^\text{ANC}_{\{x\}, Y[t]}$ the number of those with ascertained status, $Y^\text{ANC}_{\{x\}, Y[t]}$ the number of those with positive status (either known or tested) and $Z^\text{ANC}_{\{x\}, Y[t]}$ the number of ANC clients already on ART prior to first ANC, such that $W^\text{ANC}_{x, Y[t]} \geq X^\text{ANC}_{x, Y[t]} \geq Y^\text{ANC}_{x, Y[t]} \geq Z^\text{ANC}_{x, Y[t]}$
