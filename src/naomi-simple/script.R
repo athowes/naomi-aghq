@@ -100,21 +100,21 @@ dev.off()
 
 #' aghq
 
-#' k = 1 empirical Bayes approach
+#' k = 1 empirical Bayes approach, takes ~1 minute
 start_eb_quad <- Sys.time()
 eb_quad <- fit_aghq(tmb_inputs, k = 1)
 end_eb_quad <- Sys.time()
-time_eb_quad <- end_eb_quad - start_eb_quad
+(time_eb_quad <- end_eb_quad - start_eb_quad)
 
 #' Add uncertainty
 eb_quad <- sample_aghq(eb_quad, M = 2000)
 
 #' The number of hyperparameters is 24, as compared with 31 for the full model
-n_hyper <- length(fit$obj$env$par) - length(fit$obj$env$random)
+(n_hyper <- length(fit$obj$env$par) - length(fit$obj$env$random))
 
 #' With k = 2 and ndConstruction = "sparse" it's 49 points, and takes ~45 minutes
 sparse_grid_2 <- mvQuad::createNIGrid(n_hyper, "GHe", 2, "sparse")
-mvQuad::size(sparse_grid_2)$gridpoints
+(mvQuad::size(sparse_grid_2)$gridpoints)
 
 control <- aghq::default_control_tmb()
 control$method_summaries <- "correct"
@@ -123,27 +123,24 @@ control$ndConstruction <- "sparse"
 start_sparse_quad <- Sys.time()
 sparse_quad <- fit_aghq(tmb_inputs, k = 2, basegrid = sparse_grid_2, control = control)
 end_sparse_quad <- Sys.time()
-time_sparse_quad <- end_sparse_quad - start_sparse_quad
+(time_sparse_quad <- end_sparse_quad - start_sparse_quad)
 
 saveRDS(sparse_quad, "sparse_quad.rds")
 
 #' With k = 3 and ndConstruction = "sparse" it's... 1225 points
 sparse_grid_3 <- mvQuad::createNIGrid(n_hyper, "GHe", 3, "sparse")
-mvQuad::size(sparse_grid_3)$gridpoints
+(mvQuad::size(sparse_grid_3)$gridpoints)
 
 #' tmbstan
 
-#' 1. Four chains of 100 with four cores takes ~X minutes
-#' 2. Four chains of 1000 with four cores takes ~Y minutes
-#' 3. Four chains of 4000 with four cores takes ~Z hours
+#' 1. Four chains of 100 with four cores takes ~1.5 minutes
+#' 2. Four chains of 1000 with four cores takes ~20 minutes
+#' 3. Four chains of 4000 with four cores takes ~1.5 hours
 #' I have saved the results of (?.) under the name mcmc.rds for access without waiting!
 
 start_mcmc <- Sys.time()
-mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = 100, cores = 4)
+mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = 4000, cores = 4)
 end_mcmc <- Sys.time()
-time_mcmc <- end_mcmc - start_mcmc
+(time_mcmc <- end_mcmc - start_mcmc)
 
-#' Start expose fit_tmbstan
-stopifnot(inherits(tmb_inputs, "naomi_tmb_input"))
-obj <- local_make_tmb_obj(tmb_inputs$data, tmb_inputs$par_init, calc_outputs = 0L, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple")
-fit <- tmbstan::tmbstan(obj, chains = 4, iter = 100, cores = 4)
+saveRDS(mcmc, "mcmc.rds")

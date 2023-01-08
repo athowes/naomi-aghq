@@ -301,8 +301,7 @@ local_sample_tmb <- function(fit, nsample = 1000, rng_seed = NULL, random_only =
 }
 
 #' Inference for the Naomi model using aghq, edited to work with DLL = "naomi_simple"
-#' [NEEDS TO BE EDITED TO WORK WITH DLL = "naomi_simple"]
-fit_aghq <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple") {
+fit_aghq <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple", ...) {
   stopifnot(inherits(tmb_input, "naomi_tmb_input"))
   obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL)
   quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, ...)
@@ -311,7 +310,6 @@ fit_aghq <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NU
 }
 
 #' Uncertainty for the Naomi model using aghq
-#' [NEEDS TO BE EDITED TO WORK WITH DLL = "naomi_simple"]
 sample_aghq <- function(quad, M, verbose = TRUE) {
   # Note that with k = 1, sample_marginal just returns the mode for the hypers
   if (verbose) print("Sampling from aghq")
@@ -469,6 +467,7 @@ local_extract_indicators_naomi_simple <- function(naomi_fit, naomi_mf, na.rm = F
                 calendar_quarter, indicator, mean, se, median, mode, lower, upper)
 }
 
+#' Version of extract_art_attendance for T1 only
 local_extract_art_attendance_naomi_simple <- function(naomi_fit, naomi_mf, na.rm = FALSE) {
 
   mode <- naomi_fit$mode

@@ -16,6 +16,8 @@ artefacts:
 resources:
   - naomi.cpp
   - naomi_simple.cpp
+  - mcmc.rds
+  - sparse_quad.rds
 
 packages:
   - dplyr
