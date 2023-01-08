@@ -120,12 +120,14 @@ control <- aghq::default_control_tmb()
 control$method_summaries <- "correct"
 control$ndConstruction <- "sparse"
 
-start_sparse_quad <- Sys.time()
-sparse_quad <- fit_aghq(tmb_inputs, k = 2, basegrid = sparse_grid_2, control = control)
-end_sparse_quad <- Sys.time()
-(time_sparse_quad <- end_sparse_quad - start_sparse_quad)
+# start_sparse_quad <- Sys.time()
+# sparse_quad <- fit_aghq(tmb_inputs, k = 2, basegrid = sparse_grid_2, control = control)
+# end_sparse_quad <- Sys.time()
+# (time_sparse_quad <- end_sparse_quad - start_sparse_quad)
 
-saveRDS(sparse_quad, "sparse_quad.rds")
+# saveRDS(sparse_quad, "sparse_quad.rds")
+
+sparse_quad <- readRDS("sparse_quad.rds")
 
 #' With k = 3 and ndConstruction = "sparse" it's... 1225 points
 sparse_grid_3 <- mvQuad::createNIGrid(n_hyper, "GHe", 3, "sparse")
@@ -138,9 +140,111 @@ sparse_grid_3 <- mvQuad::createNIGrid(n_hyper, "GHe", 3, "sparse")
 #' 3. Four chains of 4000 with four cores takes ~1.5 hours
 #' I have saved the results of (?.) under the name mcmc.rds for access without waiting!
 
-start_mcmc <- Sys.time()
-mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = 4000, cores = 4)
-end_mcmc <- Sys.time()
-(time_mcmc <- end_mcmc - start_mcmc)
+# start_mcmc <- Sys.time()
+# mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = 4000, cores = 4)
+# end_mcmc <- Sys.time()
+# (time_mcmc <- end_mcmc - start_mcmc)
 
-saveRDS(mcmc, "mcmc.rds")
+# saveRDS(mcmc, "mcmc.rds")
+
+mcmc <- readRDS("mcmc.rds")
+
+#' MCMC diagnostic checks
+
+bayesplot::color_scheme_set("viridisA")
+ggplot2::theme_set(theme_minimal())
+
+#' Rhat
+#' Looking for values less than 1.1 here
+
+rhats <- bayesplot::rhat(mcmc)
+bayesplot::mcmc_rhat(rhats)
+
+(big_rhats <- rhats[rhats > 1.5])
+
+length(big_rhats)
+
+#' 10 out of 32 districts with Rhat > 1.5 here
+(sum(str_starts(names(big_rhats), "u_rho_as")))
+
+#' ESS ratio
+#' Worry about values less than 0.1 here... which they all are :clown:
+
+ratios <- bayesplot::neff_ratio(mcmc)
+bayesplot::mcmc_neff(ratios)
+
+#' Autocorrelation
+#' High values of autocorrelation in the chains
+
+bayesplot::mcmc_acf(mcmc, pars = vars(starts_with("beta")))
+
+#' Univariate traceplots
+#' Assess these visually
+
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("beta")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("logit")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("log_sigma")))
+
+#' Prevalence model
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_x[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_xs[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("us_rho_x[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("us_rho_xs[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_a[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_as[")))
+
+#' ART model
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_x[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_xs[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("us_alpha_x[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("us_alpha_xs[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_a[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_as[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_xa[")))
+
+#' Other
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_lambda_x[")))
+
+#' ANC model
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_anc_rho_x[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_anc_alpha_x[")))
+bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("log_or_gamma["))) #' N.B. these are from the ANC attendance model
+
+#' Pairs plots
+
+#' Prior suspicion (from Jeff, Tim, Rachel) that the ART attendance model is unidentifiable
+#' Let's have a look at the pairs plot for neighbouring districts and the log_or_gamma parameter
+nb <- area_merged %>%
+  filter(area_level == max(area_level)) %>%
+  bsae::sf_to_nb()
+
+neighbours_pairs_plot <- function(par, i) {
+  neighbour_pars <- paste0(par, "[", c(i, nb[[i]]), "]")
+  bayesplot::mcmc_pairs(mcmc, pars = neighbour_pars, diag_fun = "hist", off_diag_fun = "hex")
+}
+
+area_merged %>%
+  filter(area_level == max(area_level)) %>%
+  print(n = Inf)
+
+neighbours_pairs_plot("log_or_gamma", 5) #' Nkhata Bay and neighbours
+neighbours_pairs_plot("log_or_gamma", 26) #' Blantyre and neighbours
+
+#' NUTS specific assessment
+
+np <- bayesplot::nuts_params(mcmc)
+
+#' Number of divergent transitions
+#' In this instance it's zero, so no need to do further divergent transition investigation
+np %>%
+  filter(Parameter == "divergent__") %>%
+  summarise(n_divergent = sum(Value))
+
+bayesplot::mcmc_nuts_divergence(np, bayesplot::log_posterior(mcmc))
+
+#' Energy plots
+
+#' Ideally these two histograms would be the same (Betancourt 2017)
+#' The histograms are quite different, in a way suggesting the chains may not be
+#' fully exploring the tails of the target distribution
+bayesplot::mcmc_nuts_energy(np)
