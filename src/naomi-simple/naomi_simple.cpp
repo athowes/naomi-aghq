@@ -1,4 +1,4 @@
-#define TMB_LIB_INIT R_init_naomi
+// #define TMB_LIB_INIT R_init_naomi_simple
 #include <TMB.hpp>
 
 
@@ -321,7 +321,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(u_alpha_xa);
   val -= dnorm(u_alpha_xa, 0.0, sigma_alpha_xa, true).sum();
 
-  
+
   // * HIV incidence model *
 
   PARAMETER(OmegaT_raw);
@@ -339,7 +339,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(ui_lambda_x);
   val -= sum(dnorm(ui_lambda_x, 0.0, sigma_lambda_x, true));
 
-  
+
   // * ANC testing model *
 
   // ANC prevalence and ART coverage random effects

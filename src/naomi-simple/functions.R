@@ -211,7 +211,6 @@ local_exclude_inputs <- function(tmb_inputs) {
   tmb_inputs
 }
 
-
 #' A local version of naomi::fit_tmb, edited to work with DLL = "naomi_simple"
 local_fit_tmb <- function(tmb_input, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL, map = NULL, DLL = "naomi") {
   # Begin expose naomi::fit_tmb
@@ -301,11 +300,11 @@ local_sample_tmb <- function(fit, nsample = 1000, rng_seed = NULL, random_only =
   # End expose naomi::sample_tmb
 }
 
-#' Inference for the Naomi model using aghq
+#' Inference for the Naomi model using aghq, edited to work with DLL = "naomi_simple"
 #' [NEEDS TO BE EDITED TO WORK WITH DLL = "naomi_simple"]
-fit_aghq <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, ...) {
+fit_aghq <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple") {
   stopifnot(inherits(tmb_input, "naomi_tmb_input"))
-  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map)
+  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL)
   quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, ...)
   quad$obj <- obj
   quad
@@ -341,18 +340,16 @@ sample_aghq <- function(quad, M, verbose = TRUE) {
   quad
 }
 
-#' Inference for the Naomi model using tmbstan
-#' [NEEDS TO BE EDITED TO WORK WITH DLL = "naomi_simple"]
-fit_tmbstan <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, ...) {
+#' Inference for the Naomi model using tmbstan, edited to work with DLL = "naomi_simple"
+fit_tmbstan <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple", ...) {
   stopifnot(inherits(tmb_input, "naomi_tmb_input"))
-  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map)
+  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL)
   fit <- tmbstan::tmbstan(obj, ...)
   fit
 }
 
-#' Inference for the Naomi model using aghq plus Laplace marginals
-#' [NEEDS TO BE EDITED TO WORK WITH DLL = "naomi_simple"]
-fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, ...) {
+#' Inference for the Naomi model using aghq plus Laplace marginals, edited to work with DLL = "naomi_simple"
+fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple",  ...) {
   return("Under development!")
 }
 
