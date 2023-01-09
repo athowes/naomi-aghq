@@ -248,3 +248,159 @@ bayesplot::mcmc_nuts_divergence(np, bayesplot::log_posterior(mcmc))
 #' The histograms are quite different, in a way suggesting the chains may not be
 #' fully exploring the tails of the target distribution
 bayesplot::mcmc_nuts_energy(np)
+
+#' Comparison
+
+#' All of the possible parameter names as follows
+names(fit$obj$env$par)
+
+#' Univariate plots
+
+histogram_plot <- function(par) {
+  df_compare <- rbind(
+    data.frame(method = "TMB", samples = as.numeric(fit$sample[[par]])),
+    data.frame(method = "aghq", samples = as.numeric(eb_quad$sample[[par]])),
+    data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(mcmc, pars = par))))
+  )
+
+  df_compare %>%
+    group_by(method) %>%
+    summarise(n = n())
+
+  ggplot(df_compare, aes(x = samples, fill = method, col = method)) +
+    geom_histogram(aes(y = ..density..), alpha = 0.5, position = "identity") +
+    theme_minimal() +
+    facet_grid(method~.) +
+    labs(x = paste0(par), y = "Density", fill = "Method") +
+    scale_color_manual(values = multi.utils::cbpalette()) +
+    scale_fill_manual(values = multi.utils::cbpalette()) +
+    theme(legend.position = "none")
+}
+
+histogram_plot("beta_anc_rho")
+
+#' Kolmogorov Smirnov tests
+
+to_ks_df <- function(par, fit, quad, mcmc) {
+  tmb <- t(fit$sample[[par]])
+  aghq <- t(quad$sample[[par]])
+  tmbstan <- rstan::extract(mcmc, pars = par)[[par]]
+
+  n <- ncol(tmbstan)
+  ks_tmb <- numeric(n)
+  ks_aghq <- numeric(n)
+  for(i in 1:n) {
+    ks_tmb[i] <- inf.utils::ks_test(tmb[, i], tmbstan[, i])$D
+    ks_aghq[i] <- inf.utils::ks_test(aghq[, i], tmbstan[, i])$D
+  }
+
+  rbind(
+    data.frame(method = "TMB", ks = ks_tmb, par = par, index = 1:n),
+    data.frame(method = "aghq", ks = ks_aghq, par = par, index = 1:n)
+  )
+}
+
+to_ks_df_2 <- function(par, fit, quad, mcmc) {
+  all_par_names <- names(fit$obj$env$par)
+  par_names <- all_par_names[stringr::str_starts(all_par_names, par)]
+  unique_par_names <- unique(par_names)
+
+  tmb <- fit$sample[unique_par_names]
+  tmb <- lapply(tmb, function(x) as.data.frame(t(x)))
+
+  aghq <- quad$sample[unique_par_names]
+  aghq <- lapply(aghq, function(x) as.data.frame(t(x)))
+
+  tmbstan <- rstan::extract(mcmc, pars = unique_par_names)
+  tmbstan <- lapply(tmbstan, function(x) as.data.frame(x))
+
+  table <- table(par_names)
+  unique_par_names <- unique(par_names)
+
+  for(par in unique_par_names) {
+    par_length <- table[par]
+    if(par_length > 1) {
+      par_colnames <- paste0(par, "[", 1:par_length, "]")
+    } else {
+      par_colnames <- paste0(par)
+    }
+    colnames(tmb[[par]]) <- par_colnames
+    colnames(aghq[[par]]) <- par_colnames
+    colnames(tmbstan[[par]]) <- par_colnames
+  }
+
+  tmb <- dplyr::bind_cols(tmb)
+  aghq <- dplyr::bind_cols(aghq)
+  tmbstan <- dplyr::bind_cols(tmbstan)
+
+  n <- ncol(tmbstan)
+  ks_tmb <- numeric(n)
+  ks_aghq <- numeric(n)
+  for(i in 1:n) {
+    ks_tmb[i] <- inf.utils::ks_test(tmb[, i], tmbstan[, i])$D
+    ks_aghq[i] <- inf.utils::ks_test(aghq[, i], tmbstan[, i])$D
+  }
+
+  rbind(
+    data.frame(method = "TMB", ks = ks_tmb, par = names(tmbstan), index = 1:n),
+    data.frame(method = "aghq", ks = ks_aghq, par = names(tmbstan), index = 1:n)
+  )
+}
+
+plot_ks_df <- function(ks_df) {
+  wide_ks_df <- pivot_wider(ks_df, names_from = "method", values_from = "ks") %>%
+    mutate(ks_diff = TMB - aghq)
+
+  mean_ks_diff <- mean(wide_ks_df$ks_diff)
+
+  boxplot <- wide_ks_df %>%
+    ggplot(aes(x = ks_diff)) +
+    geom_boxplot(width = 0.5) +
+    coord_flip() +
+    labs(
+      title = paste0("Mean KS difference is ", mean_ks_diff),
+      subtitle = ">0 then TMB more different to tmbstan, <0 then aghq more different",
+      x = "KS(TMB, tmbstan) - KS(aghq, tmbstan)"
+    ) +
+    theme_minimal()
+
+  scatterplot <- ggplot(wide_ks_df, aes(x = TMB, y = aghq)) +
+    geom_point(alpha = 0.5) +
+    xlim(0, 0.5) +
+    ylim(0, 0.5) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+    labs(
+      title = paste0("KS tests for ", ks_df$par, " of length ", max(ks_df$index)),
+      subtitle = "Values along y = x have similar KS",
+      x = "KS(aghq, tmbstan)", y = "KS(TMB, tmbstan)"
+    ) +
+    theme_minimal()
+
+  cowplot::plot_grid(scatterplot, boxplot, ncol = 2, rel_widths = c(1.3, 1))
+}
+
+ks_helper <- function(par) to_ks_df(par, fit = fit, quad = eb_quad, mcmc = mcmc) %>% plot_ks_df()
+ks_helper_2 <- function(par) to_ks_df_2(par, fit = fit, quad = eb_quad, mcmc = mcmc) %>% plot_ks_df()
+
+ks_helper_2("beta")
+ks_helper_2("logit")
+ks_helper_2("log_sigma")
+
+ks_helper("u_rho_x")
+ks_helper("u_rho_xs")
+ks_helper("us_rho_x")
+ks_helper("us_rho_xs")
+ks_helper("u_rho_a")
+ks_helper("u_rho_as")
+
+ks_helper("u_alpha_x")
+ks_helper("u_alpha_xs")
+ks_helper("us_alpha_x")
+ks_helper("us_alpha_xs")
+ks_helper("u_alpha_a")
+ks_helper("u_alpha_as")
+ks_helper("u_alpha_xa")
+
+ks_helper("ui_anc_rho_x")
+ks_helper("ui_anc_alpha_x")
+ks_helper("log_or_gamma")

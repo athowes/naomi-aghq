@@ -324,8 +324,8 @@ to_ks_df <- function(par, fit, quad, mcmc) {
   }
 
   rbind(
-    data.frame(method = "TMB", ks = ks_tmb, par = par, index = 1:length(ks_tmb)),
-    data.frame(method = "aghq", ks = ks_aghq, par = par, index = 1:length(ks_aghq))
+    data.frame(method = "TMB", ks = ks_tmb, par = par, index = 1:n),
+    data.frame(method = "aghq", ks = ks_aghq, par = par, index = 1:n)
   )
 }
 
