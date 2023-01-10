@@ -129,6 +129,11 @@ control$ndConstruction <- "sparse"
 
 sparse_quad <- readRDS("sparse_quad.rds")
 
+#' Add uncertainty
+sparse_quad <- sample_aghq(sparse_quad, M = 2000)
+
+aghq::sample_marginal(sparse_quad, M = 10)
+
 #' With k = 3 and ndConstruction = "sparse" it's... 1225 points
 sparse_grid_3 <- mvQuad::createNIGrid(n_hyper, "GHe", 3, "sparse")
 (mvQuad::size(sparse_grid_3)$gridpoints)
@@ -138,16 +143,19 @@ sparse_grid_3 <- mvQuad::createNIGrid(n_hyper, "GHe", 3, "sparse")
 #' 1. Four chains of 100 with four cores takes ~1.5 minutes
 #' 2. Four chains of 1000 with four cores takes ~20 minutes
 #' 3. Four chains of 4000 with four cores takes ~1.5 hours
+#' 4. Four chains of 8000 with four cours takes ~3 hours
 #' I have saved the results of (?.) under the name mcmc.rds for access without waiting!
 
+niter <- 8000
+
 # start_mcmc <- Sys.time()
-# mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = 4000, cores = 4)
+# mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = niter, cores = 4)
 # end_mcmc <- Sys.time()
 # (time_mcmc <- end_mcmc - start_mcmc)
 
-# saveRDS(mcmc, "mcmc.rds")
+# saveRDS(mcmc, paste0("mcmc_", niter, ".rds"))
 
-mcmc <- readRDS("mcmc.rds")
+mcmc <- readRDS(paste0("mcmc_", niter, ".rds"))
 
 #' MCMC diagnostic checks
 
@@ -160,12 +168,9 @@ ggplot2::theme_set(theme_minimal())
 rhats <- bayesplot::rhat(mcmc)
 bayesplot::mcmc_rhat(rhats)
 
-(big_rhats <- rhats[rhats > 1.5])
+(big_rhats <- rhats[rhats > 1.1])
 
-length(big_rhats)
-
-#' 10 out of 32 districts with Rhat > 1.5 here
-(sum(str_starts(names(big_rhats), "u_rho_as")))
+length(big_rhats) / length(rhats)
 
 #' ESS ratio
 #' Worry about values less than 0.1 here... which they all are :clown:
@@ -284,7 +289,7 @@ histogram_plot("beta_anc_rho")
 to_ks_df <- function(par, fit, quad, mcmc) {
   tmb <- t(fit$sample[[par]])
   aghq <- t(quad$sample[[par]])
-  tmbstan <- rstan::extract(mcmc, pars = par)[[par]]
+  tmbstan <- as.data.frame(rstan::extract(mcmc, pars = par)[[par]])
 
   n <- ncol(tmbstan)
   ks_tmb <- numeric(n)
@@ -379,8 +384,8 @@ plot_ks_df <- function(ks_df) {
   cowplot::plot_grid(scatterplot, boxplot, ncol = 2, rel_widths = c(1.3, 1))
 }
 
-ks_helper <- function(par) to_ks_df(par, fit = fit, quad = eb_quad, mcmc = mcmc) %>% plot_ks_df()
-ks_helper_2 <- function(par) to_ks_df_2(par, fit = fit, quad = eb_quad, mcmc = mcmc) %>% plot_ks_df()
+ks_helper <- function(par) to_ks_df(par, fit = fit, quad = sparse_quad, mcmc = mcmc) %>% plot_ks_df()
+ks_helper_2 <- function(par) to_ks_df_2(par, fit = fit, quad = sparse_quad, mcmc = mcmc) %>% plot_ks_df()
 
 ks_helper_2("beta")
 ks_helper_2("logit")
@@ -404,3 +409,23 @@ ks_helper("u_alpha_xa")
 ks_helper("ui_anc_rho_x")
 ks_helper("ui_anc_alpha_x")
 ks_helper("log_or_gamma")
+
+#' Output summary table
+
+lapply(unique(names(fit$obj$env$par)), function(par) {
+  to_ks_df(par, fit = fit, quad = eb_quad, mcmc = mcmc) %>%
+    group_by(method) %>%
+    summarise(ks = mean(ks), par = par[1])
+}) %>%
+  bind_rows() %>%
+  pivot_wider(names_from = "method", values_from = "ks") %>%
+  rename(
+    "Parameter" = "par",
+    "KS(aghq, tmbstan)" = "aghq",
+    "KS(TMB, tmbstan)" = "TMB",
+  ) %>%
+  gt::gt() %>%
+  gt::fmt_number(
+    columns = starts_with("KS"),
+    decimals = 3
+  )
