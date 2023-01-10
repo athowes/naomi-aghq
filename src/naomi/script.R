@@ -149,14 +149,16 @@ time_sparse_quad <- end_sparse_quad - start_sparse_quad
 #' 3. Four chains of 4000 with four cores takes ~3 hours
 #' I have saved the results of (3.) under the name mcmc.rds for access without waiting 3 hours!
 
+niter <- 4000
+
 # start_mcmc <- Sys.time()
-# mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = 4000, cores = 4)
+# mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = niter, cores = 4)
 # end_mcmc <- Sys.time()
 # time_mcmc <- end_mcmc - start_mcmc
 
-# saveRDS(mcmc, "mcmc.rds")
+# saveRDS(mcmc, paste0("mcmc_", niter, ".rds"))
 
-mcmc <- readRDS("mcmc.rds")
+mcmc <- readRDS(paste0("mcmc_", niter, ".rds"))
 
 #' MCMC diagnostic checks
 

@@ -8,15 +8,11 @@ artefacts:
       description: Plots
       filenames:
         - 15-19-prev.pdf
-  - data:
-      description: TMB template for simplified Naomi
-      filenames:
-        - naomi_simple.cpp
 
 resources:
   - naomi.cpp
   - naomi_simple.cpp
-  - mcmc.rds
+  - mcmc_4000.rds
   - sparse_quad.rds
 
 packages:

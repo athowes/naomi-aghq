@@ -8,14 +8,10 @@ artefacts:
       description: Plots
       filenames:
         - 15-19-prev.pdf
-  - data:
-      description: TMB template for Naomi
-      filenames:
-        - naomi.cpp
 
 resources:
   - naomi.cpp
-  - mcmc.rds
+  - mcmc_4000.rds
   - naomi_beta_rho_index.cpp
 
 packages:
