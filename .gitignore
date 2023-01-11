@@ -2,13 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
-
 *.so
 *.o
-
 # Orderly will store data in a sqlite database, by default orderly.sqlite
 *.sqlite
-
 draft
 data
 archive
@@ -16,5 +13,6 @@ store
 bundle-input
 bundle-output
 context
-
 .DS_Store
+bundles
+README.html
