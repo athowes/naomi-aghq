@@ -20,7 +20,7 @@ resources:
   - imsart-nameyear.bst
   - imsart.cls
   - imsart.sty
-  - naomi.cpp
+  - naomi_simple.cpp
 
 packages:
   - rmarkdown

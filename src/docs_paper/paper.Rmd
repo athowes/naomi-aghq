@@ -37,7 +37,7 @@ affiliation:
     name: MRC Centre for Global Infectious Disease Analysis, School of Public Health, Imperial College London
     authorsLabels: e4
 abstract: |
-  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of interest, including HIV prevalence, HIV incidence and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. We propose a new inference method which combines the simplified integrated nested Laplace approximation approach of @wood2020simplified with adaptive Gauss-Hermite quadrature to enable fast and accurate inference for Naomi and other extended latent Gaussian models. Using data from Malawi, our method provides substantially more accurate inferences than the empirical Bayes Gaussian approximation approach used currently, and is comparable to Hamiltonian Monte Carlo with the No-U-Turn sampler. By extending the \texttt{aghq} \textsc{R} package we facilitate flexible and easy use of our method when provided a \texttt{TMB} \textsf{C++} template for the model's log-posterior.
+  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of policy interest, including HIV prevalence, HIV incidence and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. We propose a new inference method which combines the simplified integrated nested Laplace approximation approach of @wood2020simplified with adaptive Gauss-Hermite quadrature to enable fast and accurate inference for Naomi and other extended latent Gaussian models. Using data from Malawi, our method provides substantially more accurate inferences than the empirical Bayes Gaussian approximation approach which is currently in use, and is comparable to Hamiltonian Monte Carlo with the No-U-Turn sampler. By extending the \texttt{aghq} \textsc{R} package we facilitate flexible and easy use of our method when provided a \texttt{TMB} \textsf{C++} template for the model's log-posterior.
 keyword-subclass: | 
  \begin{keyword}[class=MSC2020] % It must be define for aap, aop, aos journals. For aoas, sts is not used
  \kwd[Primary ]{00X00}
@@ -72,7 +72,7 @@ To meet these challenges, the Naomi small-area estimation model [@eaton2021naomi
 Concurrent modelling of data mitigates the limitations of any single data source, increases statistical power and prompts investigation into any conflicting information.
 Software (\url{https://naomi.unaids.org}) has been developed for Naomi, allowing countries to input their data and generate estimates in a yearly process supported by UNAIDS.
 
-Situational requirements combined with the complexity of the model present a difficult Bayesian inference problem.
+The use case requirements for the model, combined with its relative complexity, present a difficult Bayesian inference problem.
 Any inferential strategy must be fast, as well as easy to run in production by country teams, ruling out prohibitively slow Markov chain Monte Carlo (MCMC) approaches.
 Inference is currently conducted using an empirical Bayes approach, with a Gaussian approximation to the latent field, via the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
 Owing to its speed and flexibility, `TMB` has recently been gaining popularity spatial statistics [@osgoodzimmerman2021statistical].
@@ -104,18 +104,17 @@ Finally, in Section \ref{sec:conclusions} we discuss our conclusions, how our me
 
 @eaton2021naomi specify a joint model linking small-area estimation models of HIV prevalence from household surveys, HIV prevalence from antenatal care clinics, and antiretroviral therapy (ART) coverage from routine health data collection.
 The model is defined over three time points: $T_1$ the time of the most recent household survey with HIV testing; $T_2$, the current time period; and $T_3$, a short term projection period.
-We consider a simplified version of the model which is defined only at $T_1$, omitting temporal projection to $T_2$ and $T_3$.
-Below we provide an overview of the three components in the simplified model, highlighting aspects which make it a challenge for existing inferential approaches.
-More complete mathematical details of this simplified model, as well as a \textsf{C++} template for the log-posterior, are provided in the appendix.
+We consider a simplified version of the model which is defined only at $T_1$ omitting temporal projection to $T_2$ and $T_3$.
+Below we provide an overview of the three components in the simplified model, highlighting the aspects which make it a challenge for existing inferential approaches.
+A more complete mathematical description of the simplified model, as well as a \textsf{C++} template for the log-posterior, are provided in the appendix.
 
 ## Household survey component
 
-Consider a country in sub-Saharan Africa where a household survey has taken place at $T_1$.
-Let $x$ index district, $a$ index five-year age band, $s$ index sex and $t$ index time.
+Consider a country in sub-Saharan Africa where a household survey has taken place during the quarter $T_1$.
+Let $x$ index district, $a$ five-year age band, $s$ sex and $t$ time.
 For ease of notation, let $i$ index the coarsest district-age-sex division included in the model.
 The data we observe may be aggregated over indices $i$, so we let $\mathcal{I}$ be a set of $i$ for which observations are reported.
-Let $N_i$ be the population size, and consider the following three indicators: HIV prevalence $\rho_i \in [0, 1]$, ART coverage $\alpha_i \in [0, 1]$, and annual HIV incidence rate $\lambda_i > 0$.
-
+Let $N_i \in \mathbb{N}$ be the population size, $\rho_i \in [0, 1]$ be HIV prevalence, $\alpha_i \in [0, 1]$ be ART coverage, and $\lambda_i > 0$ be the annual HIV incidence rate.
 We specify independent mixed effects models for HIV prevalence and ART coverage in the general population on the logit scale such that
 \begin{align*}
 \text{logit}(\rho_i) &= \eta^\rho_i, \\
@@ -126,14 +125,13 @@ For the HIV incidence rate we use a mixed effects model on the log scale
 $$
 \log(\lambda_i) = \eta^\lambda_i(\{\rho_i, \alpha_i\}_{i \in \mathcal{I}}),
 $$
-where the linear predictor depends on $\{\rho_i, \alpha_i\}_{i \in \mathcal{I}}$.
-
+where the linear predictor depends on $\{\rho_i, \alpha_i\}_{i \in \mathcal{I}}$ for some $\mathcal{I}$.
 Let $\kappa_i$ be the proportion recently infected among HIV positive persons.
 For each set of observed strata indices $\mathcal{I}$, we calculate the weighted observations $\hat \theta_\mathcal{I}$ for $\theta \in \{\rho, \alpha, \kappa\}$ with respective Kish effective sample sizes 
 $$
 M^{\hat \theta}_\mathcal{I} = \frac{\left(\sum_j w_j\right)^2}{\sum_j w_j^2},
 $$
-where $j$ index individuals in all strata $i \in \mathcal{I}$, with corresponding survey weights $w_j$.
+where $j$ indexes individuals across all strata $i \in \mathcal{I}$, with corresponding survey weights $w_j$.
 The observed number of indicator cases is then
 $$
 Y^{\hat \theta}_{\mathcal{I}} = M^{\hat \theta}_{\mathcal{I}} \cdot \hat \theta_{\mathcal{I}}.
@@ -142,40 +140,44 @@ For $\theta \in \{\rho, \alpha, \kappa\}$ we model these aggregate observations 
 $$
 Y^{\hat \theta}_{\mathcal{I}} \sim \text{xBin}(M^{\hat \theta}_{\mathcal{I}}, \theta_{\mathcal{I}}),
 $$
-where $\theta_{\mathcal{I}}$ are the following weighted aggregates
+where $\theta_{\mathcal{I}}$ are the following appropriately weighted aggregates
 \begin{align*}
 \rho_{\mathcal{I}} = \frac{\sum_{i \in \mathcal{I}} N_i \rho_i}{\sum_{i \in \mathcal{I}} N_i}, \\
 \alpha_{\mathcal{I}} = \frac{\sum_{i \in \mathcal{I}} N_i \rho_i \alpha_i}{\sum_{i \in \mathcal{I}} N_i \rho_i}, \\
 \kappa_{\mathcal{I}} = \frac{\sum_{i \in \mathcal{I}} N_i \rho_i \kappa_i}{\sum_{i \in \mathcal{I}} N_i \rho_i}.
 \end{align*}
-We link the proportion recently infected among HIV positive persons $\kappa_i$ to HIV incidence $\lambda_i$ by
+To link the proportion recently infected among HIV positive persons $\kappa_i$ to HIV incidence $\lambda_i$ we use
 $$
 \kappa_i = 1- \exp \left( - \lambda \cdot \frac{1 - \rho_i}{\rho_i} \cdot (\Omega_T - \beta_T) - \beta_T \right),
 $$
-where $\Omega_T$ is the mean duration of recent infection and $\beta_T$ is the false recent ratio.
+where the mean duration of recent infection $\Omega_T$ and  is the false recent ratio $\beta_T$ are strongly informed by priors for the particular survey.
 
 ## ANC testing component
 
 We model HIV prevalence $\rho^\text{ANC}_i$ and ART coverage $\alpha^\text{ANC}_i$ among pregnant women as being offset on the logit scale from the general population indicator as follows
 \begin{align*}
-\text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho_i) + \tilde{\eta}^{\rho^\text{ANC}}_i, \\
-\text{logit}(\alpha^\text{ANC}_i) &= \text{logit}(\alpha_i) + \tilde{\eta}^{\rho^\text{ANC}}_i.
+\text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho_i) + \eta^{\rho^\text{ANC}}_i, \\
+\text{logit}(\alpha^\text{ANC}_i) &= \text{logit}(\alpha_i) + \eta^{\rho^\text{ANC}}_i.
 \end{align*}
-
-Let $W^\text{ANC}_i$ be the number of ANC clients, $X^\text{ANC}_i$ the number of those with ascertained status, $Y^\text{ANC}_i$ the number of those with positive status, and $Z^\text{ANC}_i$ the number of ANC clients already on ART prior to their first ANC visit.
-ANC data from the year of the most recent survey is included in the model.
-
-For women 15-49 the predicted number of ANC clients $\Psi_i$ is a log-linear model
-$$
-\log (\Psi_i) = \log (N_i) + \tilde \eta^\Psi
-$$
+We inform these processes using the following aggregate ANC data from the year of the most recent survey: the number of ANC clients with ascertained status $X^\text{ANC}_\mathcal{I}$, the number of those with positive status $Y^\text{ANC}_\mathcal{I}$, and the number of ANC clients already on ART prior to their first ANC visit $Z^\text{ANC}_\mathcal{I}$.
+We use the binomial working likelihoods
+\begin{align*}
+Y^\text{ANC}_\mathcal{I} &\sim \text{Bin}(Y^\text{ANC}_\mathcal{I}, \alpha^\text{ANC}_{\mathcal{I}}) \\
+Z^\text{ANC}_\mathcal{I} &\sim \text{Bin}(Y^\text{ANC}_\mathcal{I}, \alpha^\text{ANC}_{\mathcal{I}}),
+\end{align*}
+where again we use weighted aggregates
+\begin{align*}
+\rho^\text{ANC}_{\mathcal{I}} = \frac{\sum_{i \in \mathcal{I}} \Psi_i \rho_i^\text{ANC}}{\sum_{i \in \mathcal{I}} \Psi_i}, \\
+\alpha^\text{ANC}_{\mathcal{I}} = \frac{\sum_{i \in \mathcal{I}} \Psi_i \rho^\text{ANC} \alpha^\text{ANC}_i}{\sum_{i \in \mathcal{I}} \Psi_i \rho_i^\text{ANC}},
+\end{align*}
+with $\Psi_i$ the number of pregnant women.
 
 ## ART attendance component
 
-Let $\gamma_{x, x'} \in [0, 1]$ be the probability that a person on ART residing in district $x$ recieves ART in district $x'$.
+Let $\gamma_{x, x'} \in [0, 1]$ be the probability that a person on ART residing in district $x$ receives ART in district $x'$.
+We assume that $\gamma_{x, x'} = 0$ unless $x = x'$ or the two districts are adjacent $x \sim x'$.
 
-Let $\dot A_i$ be the number of people receiving ART.
-Likelihood section to be written.
+Let $\dot A_\mathcal{I}$ be the number of people receiving ART.
 
 # Fast approximate inference methods\label{sec:fastinferencemethods}
 
