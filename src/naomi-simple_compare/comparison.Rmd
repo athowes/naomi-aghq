@@ -1,0 +1,55 @@
+---
+title: "MCMC convergence diagnostics"
+author:
+- name: Adam Howes
+output:
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    df_print: paged
+    code_folding: show
+    theme: lumen
+abstract: |
+  **Background**  We have run the simplified Naomi model using a range of inference methods.
+  
+  **Task** In this report, we compare the accuracy of the posterior distributions obtained from these inference methods.
+---
+
+```{r}
+tmb <- readRDS("depends/tmb.rds")
+tmbstan <- readRDS("depends/tmbstan.rds")
+```
+
+# Time taken
+
+```{r}
+data.frame(
+  "TMB" = tmb$time,
+  "tmbstan" = tmbstan$time
+)
+```
+
+# Histogram
+
+```{r}
+#' To write!
+```
+
+# KS
+
+```{r}
+#' To write!
+```
+
+# MMD
+
+```{r}
+#' To write!
+```
+
+# PSIS
+
+```{r}
+#' To write!
+```
