@@ -1,5 +1,5 @@
 ---
-title: "MCMC convergence diagnostics`"
+title: "MCMC convergence diagnostics"
 author:
 - name: Adam Howes
 output:
@@ -118,12 +118,21 @@ neighbours_pairs_plot <- function(par, i) {
   bayesplot::mcmc_pairs(mcmc, pars = neighbour_pars, diag_fun = "hist", off_diag_fun = "hex")
 }
 
-area_merged %>%
-  filter(area_level == max(area_level)) %>%
-  print(n = Inf)
+# area_merged %>%
+#   filter(area_level == max(area_level)) %>%
+#   print(n = Inf)
+```
 
-neighbours_pairs_plot("log_or_gamma", 5) #' Nkhata Bay and neighbours
-neighbours_pairs_plot("log_or_gamma", 26) #' Blantyre and neighbours
+Here are Nkhata Bay and neighbours:
+
+```{r}
+neighbours_pairs_plot("log_or_gamma", 5) 
+```
+
+And here are Blantyre and neighbours:
+
+```{r}
+neighbours_pairs_plot("log_or_gamma", 26)
 ```
 
 # NUTS specific assessment
