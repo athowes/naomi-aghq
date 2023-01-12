@@ -89,7 +89,7 @@ if(tmb) {
 
   end <- Sys.time()
 
-  out <- list(fit = fit, outputs = outputs, time = start - end)
+  out <- list(fit = fit, outputs = outputs, time = end - start)
   saveRDS(out, "out.rds")
 }
 
