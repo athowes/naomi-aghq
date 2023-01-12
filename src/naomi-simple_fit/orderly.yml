@@ -1,0 +1,52 @@
+script: script.R
+
+sources:
+  - functions.R
+
+artefacts:
+  - data:
+      description: Inference output
+      filenames:
+        - output.rds
+
+parameters:
+  #' Run inference with TMB? Yes or no
+  tmb:
+    default: FALSE
+  #' Run inference with aghq? Yes or no
+  aghq:
+    default: FALSE
+  #' Default number of grid points per hyperparameter dimension for aghq
+  k:
+    default: 2
+  #' Run inference with tmbstan? Yes or no
+  tmbstan:
+    default: FALSE
+  #' Default number of iterations for tmbstan, with four chains
+  niter:
+    default: 1000
+  nsample:
+    default: 1000
+
+resources:
+  - naomi_simple.cpp
+  - sparse_quad.rds
+  - sparse-sampling.R
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - INLA
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - TMB
+  - glmmTMB
+  - tmbstan
+  - rstan
+  - aghq
+  - sf
+  - naomi
