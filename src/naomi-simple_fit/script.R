@@ -108,7 +108,7 @@ if(aghq) {
   (mvQuad::size(mvQuad::createNIGrid(n_hyper, "GHe", 3, "sparse"))$gridpoints)
 
   #' Fit AGHQ model
-  quad <- fit_aghq(tmb_inputs, k = k)
+  quad <- fit_aghq(tmb_inputs, k = 1)
 
   #' Add uncertainty
   quad <- sample_aghq(quad, M = nsample)

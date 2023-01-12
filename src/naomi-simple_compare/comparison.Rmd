@@ -18,6 +18,7 @@ abstract: |
 
 ```{r}
 tmb <- readRDS("depends/tmb.rds")
+aghq <- readRDS("depends/aghq.rds")
 tmbstan <- readRDS("depends/tmbstan.rds")
 ```
 
@@ -26,6 +27,7 @@ tmbstan <- readRDS("depends/tmbstan.rds")
 ```{r}
 data.frame(
   "TMB" = tmb$time,
+  "aghq" = aghq$time,
   "tmbstan" = tmbstan$time
 )
 ```

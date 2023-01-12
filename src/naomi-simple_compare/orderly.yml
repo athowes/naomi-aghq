@@ -23,10 +23,14 @@ packages:
 
 depends:
   - naomi-simple_fit:
-      id: latest(parameter:tmbstan == TRUE)
-      use:
-        depends/tmbstan.rds: out.rds
-  - naomi-simple_fit:
       id: latest(parameter:tmb == TRUE)
       use:
         depends/tmb.rds: out.rds
+  - naomi-simple_fit:
+      id: latest(parameter:aghq == TRUE)
+      use:
+        depends/aghq.rds: out.rds
+  - naomi-simple_fit:
+      id: latest(parameter:tmbstan == TRUE)
+      use:
+        depends/tmbstan.rds: out.rds
