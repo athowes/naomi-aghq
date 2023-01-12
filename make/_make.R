@@ -29,6 +29,8 @@ orderly::orderly_commit(id)
 id <- orderly::orderly_run("naomi-simple_fit", parameters = list(tmbstan = TRUE))
 orderly::orderly_commit(id)
 
+run_commit_push("naomi-simple_mcmc")
+
 #' Statistical methods development
 run_commit_push("dev_sinla") #' Without experiments
 

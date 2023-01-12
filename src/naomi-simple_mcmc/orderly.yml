@@ -1,0 +1,28 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Notebook assessing if the MCMC converged
+      filenames:
+        - mcmc-convergence.html
+
+resources:
+  - mcmc-convergence.Rmd
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - rstan
+  - bayesplot
+
+depends:
+  naomi-simple_fit:
+    id: latest(parameter:tmbstan == TRUE)
+    use:
+      depends/out.rds: out.rds
