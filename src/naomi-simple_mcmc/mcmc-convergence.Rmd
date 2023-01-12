@@ -11,51 +11,75 @@ output:
     code_folding: show
     theme: lumen
 abstract: |
-  **Background** 
+  **Background** In the report `naomi-simple_fit` with parameter `tmbstan = TRUE`, we used the NUTS algorithm to perform MCMC inference for the simplified Naomi model.
   
-  **Task** 
+  **Task** Here we assess whether or not the results of the MCMC are suitable using a range of diagnostic tools.
 ---
+
+We start by obtaining results from the latest version of `naomi-simple_fit` with `tmbstan = TRUE`.
 
 ```{r}
 out <- readRDS("depends/out.rds")
-
 mcmc <- out$mcmc
+```
 
+This MCMC took `r as.numeric(out$time)` minutes to run
+
+```{r}
 bayesplot::color_scheme_set("viridisA")
 ggplot2::theme_set(theme_minimal())
+```
 
-#' Rhat
-#' Looking for values less than 1.1 here
+# $\hat R$
+
+We are looking for values of $\hat R$ less than 1.1 here. 
+
+```{r}
 rhats <- bayesplot::rhat(mcmc)
 bayesplot::mcmc_rhat(rhats)
 (big_rhats <- rhats[rhats > 1.1])
 length(big_rhats) / length(rhats)
+```
 
-#' ESS ratio
-#' Worry about values less than 0.1 here... which they all are :clown:
+# ESS ratio
+
+Reasonable to be worried about values less than 0.1 here.
+
+```{r}
 ratios <- bayesplot::neff_ratio(mcmc)
 bayesplot::mcmc_neff(ratios)
+```
 
-#' Autocorrelation
-#' High values of autocorrelation in the chains
+# Autocorrelation
+
+How much autocorrelation is there in the chains?
+
+```{r}
 bayesplot::mcmc_acf(mcmc, pars = vars(starts_with("beta")))
+```
 
-#' Univariate traceplots
+# Univariate traceplots
 
-#' Assess these visually
+```{r}
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("beta")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("logit")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("log_sigma")))
+```
 
-#' Prevalence model
+## Prevalence model
+
+```{r}
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_x[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_xs[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("us_rho_x[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("us_rho_xs[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_a[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_rho_as[")))
+```
 
-#' ART model
+## ART model
+
+```{r}
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_x[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_xs[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("us_alpha_x[")))
@@ -63,18 +87,28 @@ bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("us_alpha_xs[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_a[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_as[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("u_alpha_xa[")))
+```
 
-#' Other
+## Other
+
+```{r}
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_lambda_x[")))
+```
 
-#' ANC model
+## ANC model
+
+```{r}
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_anc_rho_x[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("ui_anc_alpha_x[")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("log_or_gamma["))) #' N.B. these are from the ANC attendance model
+```
 
-#' Pairs plots
-#' Prior suspicion (from Jeff, Tim, Rachel) that the ART attendance model is unidentifiable
-#' Let's have a look at the pairs plot for neighbouring districts and the log_or_gamma parameter
+# Pairs plots
+
+There is a prior suspicion (from Jeff, Tim, Rachel) that the ART attendance model is unidentifiable.
+Let's have a look at the pairs plot for neighbouring districts and the `log_or_gamma` parameter.
+
+```{r}
 nb <- area_merged %>%
   filter(area_level == max(area_level)) %>%
   bsae::sf_to_nb()
@@ -87,23 +121,30 @@ neighbours_pairs_plot <- function(par, i) {
 area_merged %>%
   filter(area_level == max(area_level)) %>%
   print(n = Inf)
+
 neighbours_pairs_plot("log_or_gamma", 5) #' Nkhata Bay and neighbours
 neighbours_pairs_plot("log_or_gamma", 26) #' Blantyre and neighbours
+```
 
-#' NUTS specific assessment
+# NUTS specific assessment
+
+```{r}
 np <- bayesplot::nuts_params(mcmc)
+```
 
-#' Number of divergent transitions
-#' In this instance it's zero, so no need to do further divergent transition investigation
+Are there any divergent transitions?
+
+```{r}
 np %>%
   filter(Parameter == "divergent__") %>%
   summarise(n_divergent = sum(Value))
 
 bayesplot::mcmc_nuts_divergence(np, bayesplot::log_posterior(mcmc))
+```
 
-#' Energy plots
-#' Ideally these two histograms would be the same (Betancourt 2017)
-#' The histograms are quite different, in a way suggesting the chains may not be
-#' fully exploring the tails of the target distribution
+We can also use energy plots (Betancourt 2017): ideally these two histograms would be the same 
+When the histograms are quite different, it may suggest the chains are not fully exploring the tails of the target distribution.
+
+```{r}
 bayesplot::mcmc_nuts_energy(np)
 ```
