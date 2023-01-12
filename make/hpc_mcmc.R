@@ -62,7 +62,6 @@ ctx <- context::context_save(
   package_sources = src
 )
 
-#' Error happens here
 obj <- didehpc::queue_didehpc(ctx, config = config)
 
 #' Test that queue works correctly
