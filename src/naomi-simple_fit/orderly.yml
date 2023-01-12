@@ -7,7 +7,7 @@ artefacts:
   - data:
       description: Inference output
       filenames:
-        - output.rds
+        - out.rds
 
 parameters:
   #' Run inference with TMB? Yes or no

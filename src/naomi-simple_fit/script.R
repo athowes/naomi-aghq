@@ -1,6 +1,6 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("naomi-simple", parameters = list(tmb = TRUE))
-# setwd("src/naomi-simple")
+# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(aghq = TRUE))
+# setwd("src/naomi-simple_fit")
 
 if(tmb + aghq + tmbstan != 1) {
   stop("Choose exactly one of TMB, ahgq, or tmbstan to run. Don't be greedy. I'll know.")
@@ -90,7 +90,6 @@ if(tmb) {
   end <- Sys.time()
 
   out <- list(fit = fit, outputs = outputs, time = start - end)
-
   saveRDS(out, "out.rds")
 }
 
@@ -98,17 +97,15 @@ if(aghq) {
   start <- Sys.time()
 
   #' The number of hyperparameters is 24, as compared with 31 for the full model
-  (n_hyper <- length(fit$obj$env$par) - length(fit$obj$env$random))
+  n_hyper <- 24
 
   #' k = 1 empirical Bayes approach, takes ~1 minute
 
   #' k = 2 and ndConstruction = "sparse" it's 49 points, and takes ~45 minutes
-  sparse_grid_2 <- mvQuad::createNIGrid(n_hyper, "GHe", 2, "sparse")
-  (mvQuad::size(sparse_grid_2)$gridpoints)
+  (mvQuad::size(mvQuad::createNIGrid(n_hyper, "GHe", 2, "sparse"))$gridpoints)
 
   #' k = 3 and ndConstruction = "sparse" it's 1225 points
-  sparse_grid_3 <- mvQuad::createNIGrid(n_hyper, "GHe", 3, "sparse")
-  (mvQuad::size(sparse_grid_3)$gridpoints)
+  (mvQuad::size(mvQuad::createNIGrid(n_hyper, "GHe", 3, "sparse"))$gridpoints)
 
   #' Fit AGHQ model
   quad <- fit_aghq(tmb_inputs, k = k)
@@ -126,7 +123,6 @@ if(aghq) {
   end <- Sys.time()
 
   out <- list(quad = quad, time = end - start)
-
   saveRDS(out, "out.rds")
 }
 
@@ -143,7 +139,6 @@ if(tmbstan) {
   end <- Sys.time()
 
   out <- list(mcmc = mcmc, time = end - start)
-
   saveRDS(out, "out.rds")
 }
 
