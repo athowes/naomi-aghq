@@ -25,13 +25,15 @@ parameters:
   #' Default number of iterations for tmbstan, with four chains
   niter:
     default: 1000
+  #' Thinning parameter for tmbstan
+  nthin:
+    default: 1
+  #' Number of samples to draw from the fitted model (not applicable to tmbstan)
   nsample:
     default: 1000
 
 resources:
   - naomi_simple.cpp
-  - sparse_quad.rds
-  - sparse-sampling.R
 
 packages:
   - dplyr
