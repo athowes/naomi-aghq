@@ -21,10 +21,6 @@ recent_bundle <- dplyr::filter(folder$list(), created == max(created))
 
 #' B
 root <- "/Volumes/ath19"
-
-#' Test path
-# root <- "/Volumes/ath19-test"
-
 setwd(root)
 repo_location <- paste0("~/Documents/waterloo/", repo, "/")
 
@@ -44,7 +40,8 @@ packages <- list(loaded = c("orderly", orderly_packages))
 config <- didehpc::didehpc_config(
   workdir = path_bundles,
   credentials = "ath19",
-  cluster = "fi--didemrchnb"
+  cluster = "fi--didemrchnb",
+  template = "24Core",
   # "fi--dideclusthn"
   # "fi--didemrchnb"
 )
@@ -69,7 +66,7 @@ t$result()
 
 #' Run larger job
 path <- file.path(recent_bundle$name)
-output_path <- "output"
+output_path <- file.path("/output")
 
 t <- obj$enqueue(orderly::orderly_bundle_run(
   path = path,
