@@ -1,3 +1,9 @@
+#' It was suggested by Seth than 4,000 iterations would be a manageable number to keep
+#' This corresponds to four chains of 1000 after thinning. Running locally, it takes
+#' 3 hours to generate 4,000 x 4 iterations, but the ESS here is very low, sub 5%. To
+#' run 20,000 x 4 iterations on the cluster it should take around 13.5 hours, then
+#' we could set nthin = 20 to only keep every 20th iteration, ending up with 1,000 x 4.
+
 #' A. On local machine:
 #' 1. Create bundle
 #' 2. Upload to sharepoint somewhere with spud
@@ -27,6 +33,10 @@ recent_bundle <- dplyr::filter(folder$list(), created == max(created))
 
 #' B
 root <- "/Volumes/ath19"
+
+#' Test path
+# root <- "/Volumes/ath19-test"
+
 setwd(root)
 repo_location <- paste0("~/Documents/waterloo/", repo, "/")
 
@@ -83,9 +93,10 @@ t$result()
 
 #' Come back to jobs after closing R
 ctx_info <- context::context_info("context")
-recent_ctx <- filter(ctx_info, created == max(created))
+recent_ctx <- dplyr::filter(ctx_info, created == max(created))
 ctx <- context::context_load(context::context_read(recent_ctx$id, "context"))
 queue <- didehpc::queue_didehpc(ctx)
+queue$task_list()
 t <- queue$task_get("ee0741f836805787c902f8b8f126c4cb")
 
 t$status()
