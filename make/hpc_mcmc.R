@@ -23,7 +23,7 @@ bundle <- orderly::orderly_bundle_pack(path = path_bundles, name = report, param
 spud <- spud::sharepoint$new("https://imperiallondon.sharepoint.com/")
 folder <- spud$folder("HIVInferenceGroup-WP", paste0("Shared Documents/orderly/", repo, "/", path_bundles), verify = TRUE)
 folder$upload(path = bundle$path)
-recent_bundle <- folder$list() %>% filter(created == max(created))
+recent_bundle <- dplyr::filter(folder$list(), created == max(created))
 
 #' B
 root <- "/Volumes/ath19"
@@ -80,6 +80,16 @@ t <- obj$enqueue(orderly::orderly_bundle_run(
 
 t$status()
 t$result()
+
+#' Come back to jobs after closing R
+ctx_info <- context::context_info("context")
+recent_ctx <- filter(ctx_info, created == max(created))
+ctx <- context::context_load(context::context_read(recent_ctx$id, "context"))
+queue <- didehpc::queue_didehpc(ctx)
+t <- queue$task_get("ee0741f836805787c902f8b8f126c4cb")
+
+t$status()
+t$log()
 
 #' C
 bundle_output_location <- file.path(root, path_bundles, output_path, t$result()$filename)
