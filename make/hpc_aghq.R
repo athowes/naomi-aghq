@@ -1,14 +1,10 @@
-#' It was suggested by Seth than 4,000 iterations would be a manageable number to keep
-#' This corresponds to four chains of 1000 after thinning. Running locally, it takes
-#' 3 hours to generate 4,000 x 4 iterations, but the ESS here is very low, sub 5%. To
-#' run 20,000 x 4 iterations on the cluster it should take around 13.5 hours, then
-#' we could set nthin = 20 to only keep every 20th iteration, ending up with 1,000 x 4.
+#' Running AGHQ with k = 3 and a sparse grid
 
 repo <- "elgm-inf"
 report <- "naomi-simple_fit"
 path_bundles <- "bundles"
-param <- list(tmbstan = TRUE, niter = 20000, nthin = 20)
-param <- list(tmbstan = TRUE) #' For testing
+param <- list(aghq = TRUE, k = 3)
+param <- list(aghq = TRUE) #' For testing
 
 #' A1.
 bundle <- orderly::orderly_bundle_pack(path = path_bundles, name = report, parameters = param)
@@ -21,10 +17,6 @@ recent_bundle <- dplyr::filter(folder$list(), created == max(created))
 
 #' B
 root <- "/Volumes/ath19"
-
-#' Test path
-# root <- "/Volumes/ath19-test"
-
 setwd(root)
 repo_location <- paste0("~/Documents/waterloo/", repo, "/")
 
@@ -85,7 +77,7 @@ recent_ctx <- dplyr::filter(ctx_info, created == max(created))
 ctx <- context::context_load(context::context_read(recent_ctx$id, "context"))
 queue <- didehpc::queue_didehpc(ctx)
 queue$task_list()
-t <- queue$task_get("ee0741f836805787c902f8b8f126c4cb")
+t <- queue$task_get("string-here")
 
 t$status()
 t$log()
