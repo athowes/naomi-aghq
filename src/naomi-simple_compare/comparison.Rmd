@@ -43,28 +43,6 @@ data.frame(
 # Histogram
 
 ```{r}
-histogram_plot <- function(par) {
-  df_compare <- rbind(
-    data.frame(method = "TMB", samples = as.numeric(tmb$fit$sample[[par]])),
-    data.frame(method = "aghq", samples = as.numeric(aghq$quad$sample[[par]])),
-    data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(tmbstan$mcmc, pars = par))))
-  )
-  
-  df_compare %>%
-    group_by(method) %>%
-    summarise(n = n())
-  
-  ggplot(df_compare, aes(x = samples, fill = method, col = method)) +
-    geom_histogram(aes(y = after_stat(density)), alpha = 0.5, position = "identity") +
-    theme_minimal() +
-    facet_grid(method~.) +
-    labs(x = paste0(par), y = "Density", fill = "Method") +
-    scale_color_manual(values = multi.utils::cbpalette()) +
-    scale_fill_manual(values = multi.utils::cbpalette()) +
-    theme(legend.position = "none") +
-    labs(title = paste0(par))
-}
-
 histogram_plot("beta_anc_rho")
 ```
 
@@ -73,109 +51,11 @@ histogram_plot("beta_anc_rho")
 ## Individual parameters
 
 ```{r}
-to_ks_df <- function(par) {
-  samples_tmb <- t(tmb$fit$sample[[par]])
-  samples_aghq <- t(aghq$quad$sample[[par]])
-  samples_tmbstan <- as.data.frame(rstan::extract(tmbstan$mcmc, pars = par)[[par]])
+ks_helper <- function(par) to_ks_df(par) %>% ks_plot(par = par)
 
-  n <- ncol(samples_tmbstan)
-  ks_tmb <- numeric(n)
-  ks_aghq <- numeric(n)
-  for(i in 1:n) {
-    ks_tmb[i] <- inf.utils::ks_test(samples_tmb[, i], samples_tmbstan[, i])$D
-    ks_aghq[i] <- inf.utils::ks_test(samples_aghq[, i], samples_tmbstan[, i])$D
-  }
-
- rbind(
-   data.frame(method = "TMB", ks = ks_tmb, par = par, index = 1:n),
-   data.frame(method = "aghq", ks = ks_aghq, par = par, index = 1:n)
-  )
-}
-
-to_ks_df_2 <- function(par) {
-  all_par_names <- names(tmb$fit$obj$env$par)
-  par_names <- all_par_names[stringr::str_starts(all_par_names, par)]
-  unique_par_names <- unique(par_names)
-  
-  samples_tmb <- tmb$fit$sample[unique_par_names]
-  samples_tmb <- lapply(samples_tmb, function(x) as.data.frame(t(x)))
-  
-  samples_aghq <- aghq$quad$sample[unique_par_names]
-  samples_aghq <- lapply(samples_aghq, function(x) as.data.frame(t(x)))
-  
-  samples_tmbstan <- rstan::extract(tmbstan$mcmc, pars = unique_par_names)
-  samples_tmbstan <- lapply(samples_tmbstan, function(x) as.data.frame(x))
-  
-  table <- table(par_names)
-  unique_par_names <- unique(par_names)
-  for(par in unique_par_names) {
-    par_length <- table[par]
-    if(par_length > 1) {
-      par_colnames <- paste0(par, "[", 1:par_length, "]")
-    } else {
-      par_colnames <- paste0(par)
-    }
-    colnames(samples_tmb[[par]]) <- par_colnames
-    colnames(samples_aghq[[par]]) <- par_colnames
-    colnames(samples_tmbstan[[par]]) <- par_colnames
-  }
-  
-  samples_tmb <- dplyr::bind_cols(samples_tmb)
-  samples_aghq <- dplyr::bind_cols(samples_aghq)
-  samples_tmbstan <- dplyr::bind_cols(samples_tmbstan)
-  
-  n <- ncol(samples_tmbstan)
-  ks_tmb <- numeric(n)
-  ks_aghq <- numeric(n)
-  for(i in 1:n) {
-    ks_tmb[i] <- inf.utils::ks_test(samples_tmb[, i], samples_tmbstan[, i])$D
-    ks_aghq[i] <- inf.utils::ks_test(samples_aghq[, i], samples_tmbstan[, i])$D
-  }
-  
-  rbind(
-    data.frame(method = "TMB", ks = ks_tmb, par = names(samples_tmbstan), index = 1:n),
-    data.frame(method = "aghq", ks = ks_aghq, par = names(samples_tmbstan), index = 1:n)
-  )
-}
-
-plot_ks_df <- function(ks_df) {
-  wide_ks_df <- pivot_wider(ks_df, names_from = "method", values_from = "ks") %>%
-    mutate(ks_diff = TMB - aghq)
-
-  mean_ks_diff <- mean(wide_ks_df$ks_diff)
-
-  boxplot <- wide_ks_df %>%
-    ggplot(aes(x = ks_diff)) +
-    geom_boxplot(width = 0.5) +
-    coord_flip() +
-    labs(
-      title = paste0("Mean KS difference is ", mean_ks_diff),
-      subtitle = ">0 then TMB more different to tmbstan, <0 then aghq more different",
-      x = "KS(TMB, tmbstan) - KS(aghq, tmbstan)"
-    ) +
-    theme_minimal()
-
-  scatterplot <- ggplot(wide_ks_df, aes(x = TMB, y = aghq)) +
-    geom_point(alpha = 0.5) +
-    xlim(0, 0.5) +
-    ylim(0, 0.5) +
-    geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
-    labs(
-      title = paste0("KS tests for ", ks_df$par, " of length ", max(ks_df$index)),
-      subtitle = "Values along y = x have similar KS",
-      x = "KS(aghq, tmbstan)", y = "KS(TMB, tmbstan)"
-    ) +
-    theme_minimal()
-
-  cowplot::plot_grid(scatterplot, boxplot, ncol = 2, rel_widths = c(1.3, 1))
-}
-
-ks_helper <- function(par) to_ks_df(par) %>% plot_ks_df()
-ks_helper_2 <- function(par) to_ks_df_2(par) %>% plot_ks_df()
-
-ks_helper_2("beta")
-ks_helper_2("logit")
-ks_helper_2("log_sigma")
+ks_helper("beta")
+ks_helper("logit")
+ks_helper("log_sigma")
 
 ks_helper("u_rho_x")
 ks_helper("u_rho_xs")
@@ -200,10 +80,10 @@ ks_helper("log_or_gamma")
 ## Summary table
 
 ```{r}
-ks_summary_table <- lapply(unique(names(tmb$fit$obj$env$par)), function(par) {
-  to_ks_df(par) %>%
+ks_summary <- lapply(unique(names(tmb$fit$obj$env$par)), function(x) {
+  to_ks_df(x) %>%
     group_by(method) %>%
-    summarise(ks = mean(ks), par = par[1])
+    summarise(ks = mean(ks), par = x)
 }) %>%
   bind_rows() %>%
   pivot_wider(names_from = "method", values_from = "ks") %>%
@@ -213,19 +93,28 @@ ks_summary_table <- lapply(unique(names(tmb$fit$obj$env$par)), function(par) {
     "KS(TMB, tmbstan)" = "TMB",
   )
 
-ks_summary_table %>%
+ks_summary %>%
   gt::gt() %>%
   gt::fmt_number(
     columns = starts_with("KS"),
     decimals = 3
   )
 
-ggplot(ks_summary_table, aes(x = `KS(TMB, tmbstan)`, y = `KS(aghq, tmbstan)`)) +
+ggplot(ks_summary, aes(x = `KS(TMB, tmbstan)`, y = `KS(aghq, tmbstan)`)) +
   geom_point(alpha = 0.5) +
   xlim(0, 1) +
   ylim(0, 1) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
-  theme_minimal()
+  labs(x = "KS(aghq, tmbstan)", y = "KS(TMB, tmbstan)") +
+  theme_minimal() 
+
+ks_summary %>%
+  mutate(`KS difference` = `KS(TMB, tmbstan)` - `KS(aghq, tmbstan)`) %>%
+  ggplot(aes(x = `KS difference`)) +
+    geom_boxplot(width = 0.5) +
+    coord_flip() +
+    labs(x = "KS(TMB, tmbstan) - KS(aghq, tmbstan)") +
+    theme_minimal()
 ```
 
 # MMD

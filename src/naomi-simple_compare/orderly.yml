@@ -1,5 +1,8 @@
 script: script.R
 
+sources:
+  - functions.R
+
 artefacts:
   - data:
       description: Notebook assessing if the MCMC converged
