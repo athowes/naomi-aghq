@@ -8,7 +8,7 @@ repo <- "elgm-inf"
 report <- "naomi-simple_fit"
 path_bundles <- "bundles"
 param <- list(tmbstan = TRUE, niter = 20000, nthin = 20)
-param <- list(tmbstan = TRUE) #' For testing
+# param <- list(tmbstan = TRUE) #' For testing
 
 #' A1.
 bundle <- orderly::orderly_bundle_pack(path = path_bundles, name = report, parameters = param)
@@ -42,13 +42,14 @@ config <- didehpc::didehpc_config(
   credentials = "ath19",
   cluster = "fi--didemrchnb",
   template = "24Core",
+  cores = 4,
   # "fi--dideclusthn"
   # "fi--didemrchnb"
 )
 
-#' aghq, naomi from Github
+#' aghq, naomi, TMB from Github
 src <- conan::conan_sources(
-  packages = c("github::awstringer1/aghq", "github::mrc-ide/naomi")
+  packages = c("github::awstringer1/aghq", "github::mrc-ide/naomi", "github::athowes/TMB")
 )
 
 ctx <- context::context_save(
@@ -88,5 +89,5 @@ t$status()
 t$log()
 
 #' C
-bundle_output_location <- file.path(root, path_bundles, output_path, t$result()$filename)
+bundle_output_location <- file.path(root, "output", t$result()$filename)
 orderly::orderly_bundle_import(path = bundle_output_location, root = repo_location)
