@@ -220,6 +220,23 @@ $$
 
 \newpage
 
+# MCMC convergence and suitability
+
+We assessed MCMC convergence and suitability using a range of graphical and numerical tests.
+These included the potential scale reduction factor $\hat R$, bulk and tail effective sample size (ESS), autocorrelation decay plots, univariate traceplots, pairs density plots, and NUTS specific divergent transition and energy assessments.
+
+For the time being, this analysis is available from `athowes.github.io/elgm-inf/mcmc-convergence`.
+Once the MCMC results are finalised, the analysis will be moved to this appendix and expanded upon.
+The following draft text and references may be useful in that expanded write-up.
+
+* Improved $\hat R$ statistic from @vehtari2021rank. Recommended only to use the sample if the value is less than 1.05.
+* ESS and autocorrelation related to efficiency
+* Traceplots helpful for diagnosis of problems
+* Pairs density plots helpful for understanding relationships between parameters, including possible indentifiability issues
+* Energy plot from @betancourt2017conceptual
+
+\newpage
+
 # \textsc{C++} template
 
 ```{cpp, echo=TRUE, eval=FALSE, output.var="ex", code=readLines("naomi_simple.cpp")}
