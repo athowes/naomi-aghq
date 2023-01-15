@@ -17,5 +17,38 @@ abstract: |
 ---
 
 ```{r}
-#' Yes!
+tmb <- readRDS("depends/tmb.rds")
+
+outputs <- tmb$outputs
+
+indicators <- naomi::add_output_labels(outputs) %>%
+  left_join(outputs$meta_area %>% select(area_level, area_id, center_x, center_y)) %>%
+  sf::st_as_sf()
+
+indicators %>%
+  filter(
+    age_group == "Y015_049",
+    indicator == "prevalence",
+    area_level == 4
+  ) %>%
+  ggplot(aes(fill = mode)) +
+  geom_sf() +
+  viridis::scale_fill_viridis(labels = scales::percent_format()) +
+  naomi::th_map() +
+  facet_wrap(~sex)
+
+indicators %>%
+  filter(
+    age_group == "Y015_049",
+    indicator == "prevalence",
+    area_level == 4
+  ) %>%
+  names()
 ```
+
+Next steps here are:
+
+* Add column to `indicators` with the "raw" value of the indicator
+* Add column to `indicators` with the quantile of the raw value within samples from the posterior
+* Start outputting `tmb$outputs` for the other inference methods
+* Use existing or own functions to produce coverage histograms and ECDF difference plots
