@@ -31,6 +31,7 @@ orderly::orderly_commit(id)
 
 run_commit_push("naomi-simple_mcmc")
 run_commit_push("naomi-simple_compare")
+run_commit_push("naomi-simple_model-checks")
 
 #' Statistical methods development
 run_commit_push("dev_sinla") #' Without experiments

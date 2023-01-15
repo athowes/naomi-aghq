@@ -1,0 +1,39 @@
+script: script.R
+
+sources:
+  - functions.R
+
+artefacts:
+  - data:
+      description: Notebook assessing the fit of the model to data
+      filenames:
+        - model-checks.html
+
+resources:
+  - model-checks.Rmd
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - rstan
+  - bayesplot
+
+depends:
+  - naomi-simple_fit:
+      id: latest(parameter:tmb == TRUE)
+      use:
+        depends/tmb.rds: out.rds
+  - naomi-simple_fit:
+      id: latest(parameter:aghq == TRUE)
+      use:
+        depends/aghq.rds: out.rds
+  - naomi-simple_fit:
+      id: latest(parameter:tmbstan == TRUE)
+      use:
+        depends/tmbstan.rds: out.rds

@@ -1,0 +1,21 @@
+---
+title: "Model checking for simplified Naomi"
+author:
+- name: Adam Howes
+output:
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    df_print: paged
+    code_folding: show
+    theme: lumen
+abstract: |
+  **Background**  We have run the simplified Naomi model using a range of inference methods.
+  
+  **Task** We check the appropriateness of the model for the data.
+---
+
+```{r}
+#' Yes!
+```
