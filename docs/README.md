@@ -12,7 +12,7 @@
 * [posterior-comparison](https://athowes.github.io/elgm-inf/posterior-comparison.html): exploring methods (Kolmogorov-Smirnov, simulation-based calibration, Pareto smoothed importance sampling, maximum mean discrepancy) for comparison of posterior distributions from approximate Bayesian inference methods
 * [mcmc-convergence](https://athowes.github.io/elgm-inf/mcmc-convergence.html): assessing MCMC (NUTS using `tmbstan`) convergence for the simplified Naomi model
 * [comparison](https://athowes.github.io/elgm-inf/comparison.html): comparison of inference methods for the simplified Naomi model
-* [model-checks](https://athowes.github.io/elgm-inf/comparison.html): checking the fit of the simplified Naomi model to data
+* [model-checks](https://athowes.github.io/elgm-inf/model-checks.html): checking the fit of the simplified Naomi model to data
 
 ## Experiments
 
