@@ -1,5 +1,5 @@
 ---
-title: "MCMC convergence diagnostics"
+title: "Inference methods comparison for the simplified Naomi model"
 author:
 - name: Adam Howes
 output:
