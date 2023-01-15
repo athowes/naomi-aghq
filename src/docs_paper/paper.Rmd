@@ -337,7 +337,16 @@ We performed posterior predictive checks to assess the coverage of our estimates
 
 ## Inference comparison
 
-We used three methods to assess the accuracy posterior distributions produced by each inferential method: (1) Kolmogorov-Smirnov (KS) tests performed on posterior marginals for the maximum difference between the two empirical cumulative distribution functions, (2) maximum mean discrepancy (MMD), and (3) Pareto-smoothed importance sampling (PSIS).
+We used three methods to assess the accuracy of posterior distributions produced by each inferential method: (1) Kolmogorov-Smirnov tests, (2) maximum mean discrepancy, and (3) Pareto-smoothed importance sampling.
+
+Let $\{\theta_i\}_{i = 1}^n$ be posterior marginal samples with empirical cumulative distribution (ECDF) function $F(\vartheta) = \frac{1}{n} \sum_{i = 1}^n \mathbb{I}_{\theta_i \leq \vartheta}$.
+The two-sample Kolmogorov-Smirnov (KS) test statistic is given by the maximum absolute difference between two ECDFs.
+We compare the two KS statistics
+\begin{align*}
+D_\texttt{aghq} &= \sup_\vartheta | F_\texttt{tmbstan}(\vartheta) - F_\texttt{aghq}(\vartheta)|, \\
+D_\texttt{TMB} &= \sup_\vartheta | F_\texttt{tmbstan}(\vartheta) - F_\texttt{TMB}(\vartheta)|.
+\end{align*}
+
 See results in Table \ref{tab:results}.
 
 \begin{table}[]
