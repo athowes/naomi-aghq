@@ -23,7 +23,7 @@ out <- readRDS("depends/out.rds")
 mcmc <- out$mcmc
 ```
 
-This MCMC took `r as.numeric(out$time)` minutes to run
+This MCMC took `r out$time` to run
 
 ```{r}
 bayesplot::color_scheme_set("viridisA")
@@ -109,6 +109,8 @@ There is a prior suspicion (from Jeff, Tim, Rachel) that the ART attendance mode
 Let's have a look at the pairs plot for neighbouring districts and the `log_or_gamma` parameter.
 
 ```{r}
+area_merged <- sf::read_sf(system.file("extdata/demo_areas.geojson", package = "naomi"))
+
 nb <- area_merged %>%
   filter(area_level == max(area_level)) %>%
   bsae::sf_to_nb()

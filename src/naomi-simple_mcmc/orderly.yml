@@ -20,6 +20,7 @@ packages:
   - Matrix
   - rstan
   - bayesplot
+  - sf
 
 depends:
   naomi-simple_fit:

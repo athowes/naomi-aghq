@@ -83,7 +83,7 @@ recent_ctx <- dplyr::filter(ctx_info, created == max(created))
 ctx <- context::context_load(context::context_read(recent_ctx$id, "context"))
 queue <- didehpc::queue_didehpc(ctx)
 queue$task_list()
-t <- queue$task_get("ee0741f836805787c902f8b8f126c4cb")
+t <- queue$task_get("f5cc7e5aa225fa54b1c6fdb8cae41c6d")
 
 t$status()
 t$log()
