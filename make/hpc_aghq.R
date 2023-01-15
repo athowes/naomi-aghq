@@ -3,8 +3,8 @@
 repo <- "elgm-inf"
 report <- "naomi-simple_fit"
 path_bundles <- "bundles"
-param <- list(aghq = TRUE, k = 3)
-param <- list(aghq = TRUE) #' For testing
+param <- list(aghq = TRUE, k = 3, ndConstruction = "sparse")
+# param <- list(aghq = TRUE) #' For testing
 
 #' A1.
 bundle <- orderly::orderly_bundle_pack(path = path_bundles, name = report, parameters = param)

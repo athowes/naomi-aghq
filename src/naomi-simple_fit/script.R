@@ -1,5 +1,5 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(aghq = TRUE))
+# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(tmbstan = TRUE))
 # setwd("src/naomi-simple_fit")
 
 if(tmb + aghq + tmbstan != 1) {
@@ -99,26 +99,34 @@ if(aghq) {
   #' The number of hyperparameters is 24, as compared with 31 for the full model
   n_hyper <- 24
 
-  #' k = 1 empirical Bayes approach, takes ~1 minute
+  if(!(ndConstruction %in% c("product", "sparse"))) {
+    warning('ndConstuction must be either "product" or "sparse"')
+  }
 
-  #' k = 2 and ndConstruction = "sparse" it's 49 points, and takes ~45 minutes
-  (mvQuad::size(mvQuad::createNIGrid(n_hyper, "GHe", 2, "sparse"))$gridpoints)
+  if(ndConstruction == "product") {
+    #' Fit AGHQ model
+    quad <- fit_aghq(tmb_inputs, k = k)
 
-  #' k = 3 and ndConstruction = "sparse" it's 1225 points
-  (mvQuad::size(mvQuad::createNIGrid(n_hyper, "GHe", 3, "sparse"))$gridpoints)
+    #' Add uncertainty
+    quad <- sample_aghq(quad, M = nsample)
+  }
 
-  #' Fit AGHQ model
-  quad <- fit_aghq(tmb_inputs, k = k)
+  if(ndConstruction == "sparse") {
+    sparse_grid <- mvQuad::createNIGrid(n_hyper, "GHe", k, "sparse")
 
-  #' Add uncertainty
-  quad <- sample_aghq(quad, M = nsample)
+    control <- aghq::default_control_tmb()
+    control$method_summaries <- "correct"
+    control$ndConstruction <- "sparse"
 
-  #' Error sampling from sparse quadratures at the moment due to negative weights
-  # control <- aghq::default_control_tmb()
-  # control$method_summaries <- "correct"
-  # control$ndConstruction <- "sparse"
-  # sparse_quad <- fit_aghq(tmb_inputs, k = 2, basegrid = sparse_grid_2, control = control)
-  # sparse_quad <- sample_aghq(sparse_quad, M = nsample)
+    quad <- fit_aghq(tmb_inputs, k = k, basegrid = sparse_grid, control = control)
+
+    #' Error sampling from sparse quadratures at the moment due to negative weights
+    # sparse_quad <- sample_aghq(sparse_quad, M = nsample)
+
+    #' Notes on sparse grid sizes and time taken:
+    #' * k = 2 and ndConstruction = "sparse" is 49 points, and takes ~45 minutes
+    #' * k = 3 and ndConstruction = "sparse" it's 1225 points, and I haven't run yet
+  }
 
   end <- Sys.time()
 

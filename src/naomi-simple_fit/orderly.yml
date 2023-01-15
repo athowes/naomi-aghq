@@ -19,6 +19,9 @@ parameters:
   #' Default number of grid points per hyperparameter dimension for aghq
   k:
     default: 2
+  #' Type of grid to use for aghq, either product or sparse
+  ndConstruction:
+    default: "product"
   #' Run inference with tmbstan? Yes or no
   tmbstan:
     default: FALSE
