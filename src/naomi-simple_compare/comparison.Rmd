@@ -18,10 +18,27 @@ abstract: |
 
 # Background
 
+We compare the inference results from `TMB`, `aghq` and `tmbstan`.
+Import these inference results as follows:
+
 ```{r}
 tmb <- readRDS("depends/tmb.rds")
 aghq <- readRDS("depends/aghq.rds")
 tmbstan <- readRDS("depends/tmbstan.rds")
+```
+
+For more information about the conditions under which these results were generated, see:
+
+```{r}
+depends <- yaml::read_yaml("orderly.yml")$depends
+
+for(i in seq_along(depends)) {
+  report_name <- names(depends[[i]])
+  print(paste0("Inference results obtained from ", report_name, " with the query ", depends[[i]][[report_name]]$id))
+  report_id <- orderly::orderly_search(query = depends[[i]][[report_name]]$id, report_name)
+  print(paste0("Obtained report had ID ", report_id, " and was run with the following parameters:"))
+  print(orderly::orderly_info(report_id, report_name)$parameters)
+}
 ```
 
 All of the possible parameter names are as follows:
