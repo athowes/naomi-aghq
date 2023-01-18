@@ -64,18 +64,18 @@ output:
 
 # Introduction
 
-Mounting an effective public health response to the HIV epidemic requires accurate, timely HIV indicator estimates at a sufficiently fine-scale resolution to make targetted interventions.
-Producing these estimates is a challenging task beccause all available data sources have shortcomings which must be overcome.
-Nationally-representative household surveys provide the most statistically reliable data, but due to their high cost to run, in most countries they occur only infrequently.
-Other data sources, such as routine health surveillance of antenatal care clinics, are more real-time but based on limited or biased samples of the population.
-To meet these challenges, the Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV prevalence, HIV incidence, and coverage of antiretroviral treatment (ART) at a district-level.
+Mounting an effective public health response to the HIV epidemic requires accurate, timely HIV indicator estimates at the level of geographic resolution at which heath systems are planned and delivered.
+Producing these estimates is challenging because all available data sources have shortcomings which must be overcome.
+Nationally-representative household surveys provide the most statistically reliable data, but due to their high cost, in most countries they occur only every five years or so, with limited sample size at the district level.
+Other data sources, such as routine health surveillance of antenatal care clinics, are more real-time but based on limited or non-representative samples of the population.
+To meet these challenges, the Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV indicators at a district-level.
 Simultaneous modelling of the data mitigates the limitations of any single source, increases statistical power, and prompts investigation into any conflicting information.
 Software (\url{https://naomi.unaids.org}) has been developed for Naomi, allowing countries to input their data and interactively generate estimates in a yearly process supported by UNAIDS.
 The creation of estimates by country teams, rather than external agencies, is a noteworthy feature of the HIV response.
-Drawing on expertise closest to the data generating process, improves the accuracy of the process, as well as strengthening trust and ownership of the estimates.
+Drawing on expertise closest to the data being modelled improves the accuracy of the process, as well as strengthening trust and ownership of the estimates.
 
 The use case requirements for the model, combined with its relative complexity, present a difficult Bayesian inference problem.
-Any inferential strategy must be fast, as well as easy to run in production by country teams, ruling out prohibitively slow Markov chain Monte Carlo (MCMC) approaches.
+Any inferential strategy must be fast enough for interactive review and iteration of modelling results, as well as easy to run in production by country teams, ruling out prohibitively slow Markov chain Monte Carlo (MCMC) approaches.
 Inference is currently conducted using an empirical Bayes approach, with a Gaussian approximation to the latent field, via the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
 Owing to its speed and flexibility, `TMB` has recently been gaining popularity more broadly in spatial statistics [@osgoodzimmerman2021statistical].
 Inference in `TMB` is based on optimisation of a \textsf{C++} template function, with the option available to use a Laplace approximation to integrate out any subset of the function arguments, which for the Naomi model, we use for the high-dimensional latent field parameters.
@@ -85,7 +85,7 @@ This has motivated us to look for a more accurate approach, which is flexible en
 
 To obtain fast, accurate inferences for the Naomi model we develop a new inference methodology which combines the simplified integrated nested Laplace approximation (INLA) approach of @wood2020simplified with adaptive Gauss-Hermite quadrature (AGHQ).
 INLA is an approach to approximate Bayesian inference based on nested Laplace approximations and numerical quadrature.
-The central innovation of @rue2009approximate is an approximation which enables accurate latent field posterior marginals without explicitly computing the full Laplace approximation for each element.
+The key innovation of @rue2009approximate is an approximation which enables accurate latent field posterior marginals without explicitly computing the full Laplace approximation for each element.
 Simplified INLA [@wood2020simplified] extends INLA by relaxing the sparsity assumptions on the latent field required for this approximation to be accurate.
 This extension facilitates inference for models like Naomi, which fall within the extended latent Gaussian model (ELGM) [@stringer2022fast] class, and were not previously amenable to inference with INLA.
 ELGMs build on latent Gaussian models (LGMs) by allowing each element of the linear predictor to depend on any subset of elements from the latent field.
@@ -95,25 +95,25 @@ We implement our method as an extension of the `aghq` \textsf{R} package [@strin
 Since `aghq` is designed to naturally interface with `TMB`, use of our method is simple when provided a \textsf{C++} user template for the log-posterior.
 
 The remainder of this paper is organised as follows.
-In Section \ref{sec:naomi} we describe a simplified version of the Naomi model that we consider in this paper.
+Section \ref{sec:naomi} describes a simplified version of the Naomi model that we consider in this paper.
 Section \ref{sec:fastinferencemethods} outlines our approach to fast, accurate Bayesian inference using simplified INLA and AGHQ.
-As a case-study, we fit the simplified Naomi model on data from Malawi, and compare the accuracy of inferences in Section \ref{sec:naomi}.
+As a case-study, we compare the accuracy of our inference method to `TMB` and `tmbstan` for the simplified Naomi model fit to data from Malawi, in Section \ref{sec:naomi}.
 We also demonstrate a Bayesian workflow, illustrating the applicability of these tools in a deterministic inference setting.
 Finally, in Section \ref{sec:conclusions} we discuss our conclusions, how we anticipate our method might be useful for other models, and directions for future research.
 
 # A simplified Naomi model\label{sec:naomi}
 
-@eaton2021naomi specify a joint model linking small-area estimation models of HIV prevalence from household surveys, HIV prevalence from antenatal care clinics, and antiretroviral therapy (ART) coverage from routine health data collection.
-The model is defined over three time points: $T_1$ the time of the most recent household survey with HIV testing; $T_2$, the current time period; and $T_3$, a short term projection period.
-We consider a simplified version of the model which is defined only at $T_1$ omitting temporal projection to $T_2$ and $T_3$.
+@eaton2021naomi specify a joint model linking small-area estimation models of HIV prevalence from household surveys, HIV prevalence among pregnant women from antenatal care clinics, and antiretroviral therapy (ART) coverage from routine health data collection.
+The full model is defined over three time points: $T_1$ the time of the most recent household survey with HIV testing; $T_2$, the current time period; and $T_3$, a short term projection period.
+We consider a simplified version of the model which is defined only at $T_1$ omitting nowcasting of $T_2$ and temporal projection to $T_3$.
 Below we provide an overview of the three components in the simplified model, highlighting the aspects which make it a challenge for existing inferential approaches.
 A more complete mathematical description of the simplified model, as well as a \textsf{C++} template for the log-posterior, are provided in the appendix.
 
 ## Household survey component
 
-Consider a country in sub-Saharan Africa where a household survey has taken place during the quarter $T_1$.
-Let $x$ index district, $a$ five-year age band, $s$ sex and $t$ time.
-For ease of notation, let $i$ index the coarsest district-age-sex division included in the model.
+Consider a country in sub-Saharan Africa where a household survey has taken place during at time $T_1$.
+Let $x$ index district, $a$ five-year age band, and $s$ sex and.
+For ease of notation, let $i$ index the finest district-age-sex division included in the model.
 The data we observe may be aggregated over indices $i$, so we let $\mathcal{I}$ be a set of $i$ for which observations are reported.
 Let $N_i \in \mathbb{N}$ be the population size, $\rho_i \in [0, 1]$ be HIV prevalence, $\alpha_i \in [0, 1]$ be ART coverage, and $\lambda_i > 0$ be the annual HIV incidence rate.
 We specify independent mixed effects models for HIV prevalence and ART coverage in the general population on the logit scale such that
@@ -151,7 +151,7 @@ To link the proportion recently infected among HIV positive persons $\kappa_i$ t
 $$
 \kappa_i = 1- \exp \left( - \lambda \cdot \frac{1 - \rho_i}{\rho_i} \cdot (\Omega_T - \beta_T) - \beta_T \right),
 $$
-where the mean duration of recent infection $\Omega_T$ and  is the false recent ratio $\beta_T$ are strongly informed by priors for the particular survey.
+where the mean duration of recent infection $\Omega_T$ and false recent ratio $\beta_T$ are strongly informed by priors for the particular survey.
 
 ## ANC testing component
 
@@ -160,7 +160,7 @@ We model HIV prevalence $\rho^\text{ANC}_i$ and ART coverage $\alpha^\text{ANC}_
 \text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho_i) + \eta^{\rho^\text{ANC}}_i, \\
 \text{logit}(\alpha^\text{ANC}_i) &= \text{logit}(\alpha_i) + \eta^{\rho^\text{ANC}}_i.
 \end{align*}
-We inform these processes using the following aggregate ANC data from the year of the most recent survey: the number of ANC clients with ascertained status $X^\text{ANC}_\mathcal{I}$, the number of those with positive status $Y^\text{ANC}_\mathcal{I}$, and the number of ANC clients already on ART prior to their first ANC visit $Z^\text{ANC}_\mathcal{I}$.
+We inform these processes by specifying likelihoods for the following aggregate ANC data from the year of the most recent survey: the number of ANC clients with ascertained status $X^\text{ANC}_\mathcal{I}$, the number of those with positive status $Y^\text{ANC}_\mathcal{I}$, and the number of ANC clients already on ART prior to their first ANC visit $Z^\text{ANC}_\mathcal{I}$.
 We use the binomial working likelihoods
 \begin{align*}
 Y^\text{ANC}_\mathcal{I} &\sim \text{Bin}(Y^\text{ANC}_\mathcal{I}, \alpha^\text{ANC}_{\mathcal{I}}) \\
@@ -202,6 +202,7 @@ We consider approximations to the posterior marginals of each latent random vari
 
 ## Algorithm\label{sec:algorithm}
 
+<!-- To-do: define what exactly $p(\y, \x, \btheta)$ is -->
 Given a \textsf{C++} user template `model.cpp` for the negative unnormalised log posterior $- \log p(\y, \x, \btheta)$, we obtain the posterior marginal approximations $\{ \tilde p(x_i \, | \, \y) \}_{i = 1}^n$ and $\tilde p(\theta_j \, | \, \y)_{j = 1}^m$ via the following algorithm, comprised of nested applications of Laplace approximation and adaptive Gauss-Hermite quadrature.
 
 <!-- 1. Use a Laplace approximation to obtain the unnormalised $\tilde p_\text{LA}(\btheta, \y)$ -->
@@ -259,13 +260,13 @@ Given a \textsf{C++} user template `model.cpp` for the negative unnormalised log
 
 ## Algorithm\label{sec:algorithm}
 
-1. Calculate
+1. Calculate the mode, Hessian at the mode, and lower Cholesky
 \begin{align*}
 \hat{\btheta} &= \argmax_{\btheta} {\tilde p_\text{LA}(\btheta, \y)}, \\
 \mathbf{H} &= \frac{\partial^2}{\partial \btheta \partial \btheta^\top} - \log \tilde p_\text{LA}(\btheta, \y) \rvert_{\btheta = \hat \btheta} \\
 \mathbf{H}^{-1} &= \mathbf{L} \mathbf{L}^\top,
 \end{align*}
-where
+of the Laplace approximation
 $$
 \tilde p_\text{LA}(\btheta, \y) = \frac{p(\y, \x, \btheta)}{\tilde p_\text{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat \x(\btheta)}
 $$
@@ -274,13 +275,7 @@ where $\tilde p_\text{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \
 \hat \x(\btheta) &= \argmin_\x - \log p(\y, \x, \btheta), \\
 \mathbf{H}(\btheta) &= \frac{\partial^2}{\partial x \partial x^\top} - \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}.
 \end{align*}
-2. Generate a set of nodes $\z \in \mathcal{Q}(m, k)$ and weights $\omega: \z \in \mathcal{Q}(m, k) \to \mathbb{R}$ from a Gauss-Hermite quadrature rule with $m = \dim(\btheta)$, $k$ nodes per dimension, as follows
-\begin{align*}
-\btheta(\z) &= \hat{\btheta} + \mathbf{L} \z, \\
-\hat{\btheta} &= \argmax_{\btheta} {\tilde p_\text{LA}(\btheta, \y)}, \\
-\mathbf{H} &= \frac{\partial^2}{\partial \btheta \partial \btheta^\top} - \log \tilde p_\text{LA}(\btheta, \y) \rvert_{\btheta = \hat \btheta} \\
-\mathbf{H}^{-1} &= \mathbf{L} \mathbf{L}^\top.
-\end{align*}
+2. Generate a set of nodes $\z \in \mathcal{Q}(m, k)$ and weights $\omega: \z \in \mathcal{Q}(m, k) \to \mathbb{R}$ from a Gauss-Hermite quadrature rule with $m = \dim(\btheta)$, and $k$ nodes per dimension, which are then adapted based on the mode and lower Choleksy via $\btheta(\z) = \hat{\btheta} + \mathbf{L} \z$.
 We typically set $k = 3$ such that there are $3^m$ nodes in total.
 3. Use this quadrature rule to calculate $\tilde p_{\text{AQ}}(\y)$ as follows
 $$
@@ -371,6 +366,7 @@ NUTS & 0 & 0 & 0 \\
 * We developed an approximate Bayesian inference algorithm to solve a challenging problem in the small-area estimation of HIV in low resource settings
 * Following further testing, we anticipate adding our inference method as an option for 
 * The flexibility of our method implementation, including compatibility with any `TMB` \textsc{C++} template, allows broader use, as well as investigation of, deterministic inference methods than had previously been possible. We are excited about exploration of its accuracy for the following challenging model structures which could not previously be fit: list of model types here.
+* Our approach is similar to that of `inlabru` [@bachl2019inlabru] in the following ways, and different in the following other ways
 * We demonstrated a Bayesian workflow for deterministic inference methods
 
 # Acknowledgements {-}
