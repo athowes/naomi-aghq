@@ -134,6 +134,22 @@ ks_summary %>%
     theme_minimal()
 ```
 
+## Investigation into large KS values
+
+The following parameters have KS values greater than 0.5 in both dimensions.
+
+```{r}
+(big_ks <- ks_summary %>%
+  filter(`KS(aghq, tmbstan)` > 0.5, `KS(TMB, tmbstan)` > 0.5) %>%
+  pull(Parameter))
+```
+
+Let's look into this further by plotting the histograms:
+
+```{r}
+lapply(big_ks, histogram_plot)
+```
+
 # MMD
 
 ```{r}
