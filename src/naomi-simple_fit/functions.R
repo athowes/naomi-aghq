@@ -264,11 +264,14 @@ local_sample_tmb <- function(fit, nsample = 1000, rng_seed = NULL, random_only =
   if (to_tape) fit$obj$retape(FALSE)
   if (!random_only) {
     if (verbose) print("Calculating joint precision")
-    hess <- sdreport_joint_precision(fit$obj, fit$par.fixed)
+    hess <- naomi:::sdreport_joint_precision(fit$obj, fit$par.fixed)
     if (verbose) print("Inverting precision for joint covariance")
     cov <- solve(hess)
+    if (!isSymmetric(cov, tol = sqrt(.Machine$double.eps), check.attributes = FALSE)) {
+      stop("cov must be a symmetric matrix")
+    }
     if (verbose) print("Drawing sample")
-    smp <- mvtnorm::rmvnorm(nsample, fit$par.full, cov)
+    smp <- mvtnorm::rmvnorm(n = nsample, mean = fit$par.full, sigma = cov, method = "eigen", checkSymmetry = FALSE)
   } else {
     r <- fit$obj$env$random # Indices of the random effects
     par_f <- fit$par.full[-r] # Mode of the fixed effects

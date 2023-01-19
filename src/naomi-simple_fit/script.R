@@ -1,5 +1,5 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(tmbstan = TRUE))
+# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(tmb = TRUE))
 # setwd("src/naomi-simple_fit")
 
 if(tmb + aghq + tmbstan != 1) {
@@ -82,7 +82,7 @@ if(tmb) {
   fit <- local_fit_tmb(tmb_inputs_simple, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL, DLL = "naomi_simple")
 
   #' Add uncertainty
-  fit <- local_sample_tmb(fit, nsample = nsample)
+  fit <- local_sample_tmb(fit, random_only = FALSE, nsample = nsample)
 
   #' Calculate model outputs
   outputs <- local_output_package_naomi_simple(fit, naomi_data)

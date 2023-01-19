@@ -96,7 +96,7 @@ ks_plot <- function(ks_df, par) {
     labs(
       title = paste0("KS tests for ", par, " of length ", max(ks_df$index)),
       subtitle = "Values along y = x have similar KS",
-      x = "KS(aghq, tmbstan)", y = "KS(TMB, tmbstan)"
+      x = "KS(TMB, tmbstan)", y = "KS(aghq, tmbstan)"
     ) +
     theme_minimal()
 

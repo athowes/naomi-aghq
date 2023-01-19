@@ -122,7 +122,7 @@ ggplot(ks_summary, aes(x = `KS(TMB, tmbstan)`, y = `KS(aghq, tmbstan)`)) +
   xlim(0, 1) +
   ylim(0, 1) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
-  labs(x = "KS(aghq, tmbstan)", y = "KS(TMB, tmbstan)") +
+  labs(x = "KS(TMB, tmbstan)", y = "KS(aghq, tmbstan)") +
   theme_minimal() 
 
 ks_summary %>%
