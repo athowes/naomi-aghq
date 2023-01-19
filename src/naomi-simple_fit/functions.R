@@ -315,6 +315,7 @@ fit_aghq <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NU
 #' Uncertainty for the Naomi model using aghq
 sample_aghq <- function(quad, M, verbose = TRUE) {
   # Note that with k = 1, sample_marginal just returns the mode for the hypers
+  # This needs to be debugged, maybe?
   if (verbose) print("Sampling from aghq")
   samp <- aghq::sample_marginal(quad, M)
 
@@ -323,10 +324,11 @@ sample_aghq <- function(quad, M, verbose = TRUE) {
   r <- quad$obj$env$random
   smp <- matrix(0, M, length(quad$obj$env$par))
   smp[, r] <- unname(t(samp$samps))
-  smp[, -r] <- unname(t(samp$theta))
+  names(samp$thetasamples) <- names(samp$theta)
+  smp[, -r] <- unname(as.matrix(bind_rows(samp$thetasamples)))
   smp <- as.data.frame(smp)
   colnames(smp)[r] <- rownames(samp$samps)
-  colnames(smp)[-r] <- names(samp$theta)
+  colnames(smp)[-r] <- names(samp$thetasamples)
 
   # This part is the same as TMB
   if (verbose) print("Simulating from model")

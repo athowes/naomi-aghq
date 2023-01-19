@@ -140,7 +140,7 @@ The following parameters have KS values greater than 0.5 in both dimensions.
 
 ```{r}
 (big_ks <- ks_summary %>%
-  filter(`KS(aghq, tmbstan)` > 0.5, `KS(TMB, tmbstan)` > 0.5) %>%
+  filter(`KS(aghq, tmbstan)` + `KS(TMB, tmbstan)` > 0.5) %>%
   pull(Parameter))
 ```
 
