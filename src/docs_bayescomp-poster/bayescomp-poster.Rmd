@@ -1,13 +1,13 @@
 ---
-main_topsize: 0.18
+main_topsize: 0.08
 main_bottomsize: 0.03
-poster_height: "48in"
-poster_width: "36in"
+poster_height: "36in"
+poster_width: "48in"
 font_family: "Open Sans"
 # Essentials
-title: Integrated nested Laplace approximations for extended latent Gaussian models, with application to the Naomi HIV model
+title: Integrated nested Laplace approximations for extended latent Gaussian models with application to the Naomi HIV model
 author:
-  - name: '**Adam Howes**'
+  - name: "Adam Howes"
     affil: 1, 2
     main: true
     twitter: adamhowes
@@ -27,21 +27,23 @@ affiliation:
     address: Department of Statistics and Actuarial Science, University of Waterloo
   - num: 4
     address: Department of Computer Science, University of Oxford
-main_findings: "Simplified INLA, automatic differentiation and adaptive Gauss-Hermite quadrature for fast and accurate approximate inference"
 logoleft_name: "IMP_ML_W_N.png"
-# logoright_name: "UNAIDS-reverse-EN.gif"
+logoright_name: "UW_ML_W_N.png"
 # Style & formatting
 column_numbers: 3
-title_textsize: "60px"
-author_textsize: "1.17em"
+title_textsize: "65px"
+author_textsize: "45px"
 authorextra_textsize: "35px"
 affiliation_textsize: "25px"
-affiliation_textcol: '#00000080'
 caption_fontsize: "20px"
+# Title box
+title_textcol: "#ffffff"
+author_textcol: "#ffffff"
+affiliation_textcol: "#ffffff"
 # Main
 main_fontfamily: "Open Sans"
 # Poster body options
-primary_colour: '#38761C'
+primary_colour: '#3b77D8'
 secondary_colour: '#3b77D8'
 accent_colour: "#5d19c4"
 body_bgcol: "#ffffff"
@@ -52,42 +54,58 @@ sectitle_textsize: "40px"
 # Standard options
 bibliography: citations.bib
 output: 
-  posterdown::posterdown_betterport:
+  posterdown::posterdown_html:
     self_contained: false
     pandoc_args: --mathjax
     highlight: espresso
     number_sections: false
 ---
 
-<!-- Using LaTeX to create spacing -->
-$$\\[0.15in]$$
+## Summary
 
-## The Naomi model
+* Approximate Bayesian inference method using adaptive Gauss-Hermite quadrature and Laplace approximation
+* Implemented as a part of the `aghq` package, allowing easy use for any model with a `TMB` C++ user template
+* Motivated by a challenging problem in evidence synthesis for small-area estimation of HIV
 
-$$\\[0.15in]$$
+<!-- 38761C -->
+
+## The Naomi HIV model
+
+* Spatio-temporal small-area estimation model of HIV indicators which combines data from household surveys, antenatal care clincs, and routine service provision of antiretroviral therapy [@eaton2021naomi]
+* Yearly estimation process where the model is run interactively by country teams using the web-app `naomi.unaids.org`
+* Inference currently conducted with empirical Bayes and a Gaussian approximation to the latent field using Template Model Builder `TMB` [@kristensen2016tmb]
+* Model incompatible with the `R-INLA` implementation of integrated nested Laplace approximations [@rue2009approximate] and takes days to get accurate answers with Markov chain Monte Carlo via `tmbstan` [@monnahan2018no]
+* Fits into the recently described class of extended latent Gaussian models [@stringer2022fast]
 
 ## Inference procedure
 
 ### Laplace approximation
 
+* Integrate out variables using a Gaussian approximation in the denominator
+$$
+p(\theta, y) \approx \tilde p_\text{LA}(\theta, y)
+$$
+where 
+
 ### Adaptive Gauss-Hermite Quadrature
 
-Approximate integrals by 
-$$
-\int_\Theta p(\theta) \text{d} \theta \approx \lvert L \rvert \sum_{z \in \mathcal{Q}(m, k)} p(\hat \theta + Lz) \omega(z)
-$$
-with **Gauss-Hermite quadrature** rule $z \in \mathcal{Q}(m, k)$ **adapted** based upon the mode $\hat \theta = \text{argmax}_{\theta \in \Theta} \in p(\theta)$ and lower Cholesky $LL^\top = - \partial_\theta^2 \log p(\theta) \rvert_{\theta = \hat \theta}$ of the target.
+* Approximate integrals by $\int_\Theta p(\theta) \text{d} \theta \approx \lvert L \rvert \sum_{z \in \mathcal{Q}(m, k)} p(\hat \theta + Lz) \omega(z)$ with Gauss-Hermite quadrature rule $z \in \mathcal{Q}(m, k)$ adapted based upon the mode $\hat \theta = \text{argmax}_{\theta \in \Theta} \in p(\theta)$ and lower Cholesky $LL^\top = - \partial_\theta^2 \log p(\theta) \rvert_{\theta = \hat \theta}$ of the target
 
 ### Our algorithm
 
 Given C++ user template for $- \log p(y, x, \theta)$:
 
-## Comparison
+```{r echo=FALSE, fig.align='center', out.width='100%'}
+knitr::include_graphics("algorithm-flowchart.png")
+```
 
-## Conclusions
+## Inference comparison
+
+* Compare posterior inferences from `TMB`, `aghq` and `tmbstan` using Kolmogorov-Smirnov tests on posterior marginals
+* Find that...
 
 <font size="6"> **Funding** AH was supported by the EPSRC and Bill & Melinda Gates Foundation. This research was supported by the MRC Centre for Global Infectious Disease Analysis. </font>
 
 ## References
 
-<div id="refs" class="references"></div>
+<font size="6"> <div id="refs" class="references"></div> </font>
