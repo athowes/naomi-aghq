@@ -36,7 +36,9 @@ packages <- list(loaded = c("orderly", orderly_packages))
 config <- didehpc::didehpc_config(
   workdir = path_bundles,
   credentials = "ath19",
-  cluster = "fi--didemrchnb"
+  cluster = "fi--didemrchnb",
+  template = "24Core",
+  cores = 4
   # "fi--dideclusthn"
   # "fi--didemrchnb"
 )
