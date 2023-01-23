@@ -18,7 +18,7 @@ local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, prog
 
   if(DLL == "naomi_beta_rho_index") {
     integrate_out <- integrate_out[!integrate_out == "beta_rho"]
-    integrate_out <- c("beta_rho_i", "beta_rho_minus_i", integrate_out)
+    integrate_out <- c("beta_rho_minus_i", integrate_out)
   }
 
   obj <- TMB::MakeADFun(

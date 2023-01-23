@@ -134,6 +134,10 @@ if(aghq) {
   saveRDS(out, "out.rds")
 }
 
+if(adam) {
+  #' AGHQ with Laplace marginals here
+}
+
 if(tmbstan) {
   start <- Sys.time()
 
