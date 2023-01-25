@@ -86,6 +86,8 @@ for (i in 1:nrow(distinctthetas)) {
   modesandhessians[i, "H"] <- list(list(H))
 }
 
+modesandhessians$weights <- quad$normalized_posterior$nodesandweights$weights
+
 quad$modesandhessians <- modesandhessians
 class(quad) <- c("marginallaplace", "aghq")
 quad$obj <- obj
@@ -104,17 +106,20 @@ dyn.load(dynlib("naomi_simple_beta_rho_index"))
 #' So to do this I need to add i to the data passed in
 str(tmb_inputs_simple)
 
+#' Create a new data object, so as to be a little less confusing
+tmb_inputs_simple_i <- tmb_inputs_simple
+
 #' Just put it to the first index for now
-tmb_inputs_simple$data$i <- 1
+tmb_inputs_simple_i$data$i <- 1
 
 #' Change the initialisation values to remove beta_rho
-tmb_inputs_simple$par_init$beta_rho <- NULL
-tmb_inputs_simple$par_init$beta_rho_minus_i <- 0
-tmb_inputs_simple$par_init$beta_rho_i <- 0
+tmb_inputs_simple_i$par_init$beta_rho <- NULL
+tmb_inputs_simple_i$par_init$beta_rho_minus_i <- 0
+tmb_inputs_simple_i$par_init$beta_rho_i <- 0
 
 #' Expose local_make_tmb_obj
-data <- tmb_inputs_simple$data
-par <- tmb_inputs_simple$par_init
+data <- tmb_inputs_simple_i$data
+par <- tmb_inputs_simple_i$par_init
 calc_outputs <- 0L
 outer_verbose <- TRUE
 inner_verbose <- FALSE
@@ -129,29 +134,11 @@ data$calc_outputs <- as.integer(calc_outputs)
 
 #' Same as naomi_simple but with beta_rho_minus_i rather than beta_rho
 integrate_out <- c(
-  "beta_rho_minus_i",
-  "beta_alpha",
-  "beta_lambda",
-  "beta_anc_rho",
-  "beta_anc_alpha",
-  "u_rho_x",
-  "us_rho_x",
-  "u_rho_xs",
-  "us_rho_xs",
-  "u_rho_a",
-  "u_rho_as",
-  "u_rho_xa",
-  "u_alpha_x",
-  "us_alpha_x",
-  "u_alpha_xs",
-  "us_alpha_xs",
-  "u_alpha_a",
-  "u_alpha_as",
-  "u_alpha_xa",
-  "ui_lambda_x",
-  "ui_anc_rho_x",
-  "ui_anc_alpha_x",
-  "log_or_gamma"
+  "beta_rho_minus_i", "beta_alpha", "beta_lambda", "beta_anc_rho",
+  "beta_anc_alpha", "u_rho_x", "us_rho_x", "u_rho_xs", "us_rho_xs",
+  "u_rho_a", "u_rho_as", "u_rho_xa", "u_alpha_x", "us_alpha_x",
+  "u_alpha_xs", "us_alpha_xs", "u_alpha_a", "u_alpha_as", "u_alpha_xa",
+  "ui_lambda_x", "ui_anc_rho_x", "ui_anc_alpha_x", "log_or_gamma"
 )
 
 obj <- TMB::MakeADFun(
@@ -166,3 +153,65 @@ obj <- TMB::MakeADFun(
 if (!is.null(progress)) {
   obj$fn <- naomi:::report_progress(obj$fn, progress)
 }
+
+#' A function to choose the points at which to evaluate the Laplace marginal
+#'
+#' @param modeandhessian The row of `modesandhessians` containing the node which is the mode of the Laplace approximation
+#' @param i The index of the latent field to choose
+#' @param k The number of AGHQ grid points to choose
+spline_nodes <- function(modeandhessian, i, k = 7) {
+  mode_i <- modeandhessian[["mode"]][[1]][i]
+  sd_i <- sqrt(1 / modeandhessian[["H"]][[1]][i, i])
+
+  #' Create Gauss-Hermite quadrature
+  gg <- mvQuad::createNIGrid(dim = 1, type = "GHe", level = k)
+
+  #' Adapt to mode_i and sd_i
+  mvQuad::rescale(gg, m = mode_i, C = sd_i^2)
+
+  #' Return the set of x input values
+  mvQuad::getNodes(gg)
+}
+
+theta_mode_location <- which.max(quad$normalized_posterior$nodesandweights$logpost_normalized)
+modeandhessian <- modesandhessians[theta_mode_location, ]
+
+#' The set of input values that we'd like to calculate the log-probability at
+nodes <- spline_nodes(modeandhessian, 1, k = 7)
+
+plot(nodes)
+
+#' Check the order of parameters in obj
+obj$par
+
+laplace_marginal <- function(x) {
+  lp <- vector(mode = "numeric", length = nrow(modesandhessians))
+
+  #' Can loop over z once we're doing something beyond EB
+  z <- 1
+  theta <- as.numeric(modesandhessians[z, thetanames])
+
+  lp[z] <- as.numeric(- obj$fn(c(x, theta))) + log(modesandhessians$weights[z])
+  matrixStats::logSumExp(lp) - quad$normalized_posterior$lognormconst
+}
+
+#' The log-probabilities at the set of input values
+lps <- sapply(nodes, laplace_marginal)
+
+#' Lagrange polynomial interpolant of the marginal posterior
+#'
+#' @param nodes Set of input values
+#' @lps Log-probabilities at nodes
+plot_marginal_spline <- function(nodes, lps) {
+  ss <- splines::interpSpline(nodes, lps, bSpline = TRUE, sparse = TRUE)
+  interpolant <- function(x) { as.numeric(stats::predict(ss, x)$y) }
+  finegrid <- seq(-5, 5, by = 0.1)
+  df <- data.frame(x = finegrid, y = exp(interpolant(finegrid)))
+
+  ggplot(df, aes(x = x, y = y)) +
+    geom_line() +
+    theme_minimal() +
+    labs(x = "x", y = "Posterior")
+}
+
+plot_marginal_spline(nodes, lps)
