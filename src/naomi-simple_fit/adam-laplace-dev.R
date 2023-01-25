@@ -1,5 +1,23 @@
 #' Start of if(adam) loop
 
+#' TODO list
+#' * [ ] Expose internals of `fit_aghq` and run through
+#' * [ ] Expose internals of `sample_aghq` to get a feel again for how the latent field and hyperparameter marginals are being used and run through
+#'   * Blocker: can't fit `aghq` with `k > 1`.
+#'     * Possible solution: lower `area_level` to 3 rather than 4. Won't fix `k^{#dim hyper}` problem
+#'     * Possible solution: create version of `naomi_simple.cpp` with fewer `{#dim hyper}`
+#' * [x] Create TMB template and objective function for one named latent field parameter and index
+#' * [ ] Attain Laplace marginal for one named latent field parameter with empirical Bayes hypers
+#' * [ ] Attain Laplace marginal for one named latent field parameter with dense grid hypers
+#' * [ ] Attain Laplace marginal for one named latent field parameter with spare grid hypers
+#'   * This may be literally the same thing as with dense grid hypers
+#' * [ ] Generalise code to sweep over all indices of one named latent field parameter
+#' * [ ] Generalise code to sweep over all latent field parameters
+#' * [ ] Create function `fit_name_here` which brings this all together
+#' * [ ] Fit `k = 1` with Laplace marginals
+#' * [ ] Fit `k = 2` sparse with Laplace marginals
+#' * [ ] Insert results of `k = 3` sparse into `fit_name_here` to get Laplace marginals
+
 #' Let's begin by just trying to get the Laplace marginals working for one parameter
 #' Baby steps!
 
