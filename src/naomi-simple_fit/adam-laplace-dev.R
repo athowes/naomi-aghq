@@ -1,7 +1,7 @@
 #' Start of if(adam) loop
 
 #' TODO list
-#' * [ ] Expose internals of `fit_aghq` and run through
+#' * [x] Expose internals of `fit_aghq` and run through
 #' * [ ] Expose internals of `sample_aghq` to get a feel again for how the latent field and hyperparameter marginals are being used and run through
 #'   * Blocker: can't fit `aghq` with `k > 1`.
 #'     * Possible solution: lower `area_level` to 3 rather than 4. Won't fix `k^{#dim hyper}` problem
@@ -17,6 +17,81 @@
 #' * [ ] Fit `k = 1` with Laplace marginals
 #' * [ ] Fit `k = 2` sparse with Laplace marginals
 #' * [ ] Insert results of `k = 3` sparse into `fit_name_here` to get Laplace marginals
+
+#' Start with EB
+k <- 1
+
+#' Start expose fit_aghq(tmb_inputs, k = k)
+tmb_input <- tmb_inputs
+k <- k
+inner_verbose <- FALSE
+progress <- NULL
+map <- NULL
+DLL <- "naomi_simple"
+
+stopifnot(inherits(tmb_input, "naomi_tmb_input"))
+obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL)
+
+#' Start expose aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, ...)
+ff <- obj
+startingvalue <- obj$par
+transformation <- aghq::default_transformation()
+optresults <- NULL
+basegrid <- NULL
+control <- aghq::default_control_tmb()
+
+validate_control(control, type = "tmb")
+validate_transformation(transformation)
+
+transformation <- make_transformation(transformation)
+
+thetanames <- NULL
+
+if (exists("par", ff)) thetanames <- make.unique(names(ff$par), sep = "")
+
+if (control$numhessian) {
+  ff$he <- function(theta) numDeriv::jacobian(ff$gr, theta, method = "Richardson")
+}
+
+quad <- aghq(
+  ff = ff, k = k, transformation = transformation,
+  startingvalue = startingvalue, optresults = optresults,
+  basegrid = basegrid, control = control
+)
+
+if (control$onlynormconst) return(quad)
+
+distinctthetas <- quad$normalized_posterior$nodesandweights[, grep("theta", colnames(quad$normalized_posterior$nodesandweights))]
+
+if (!is.data.frame(distinctthetas)) distinctthetas <- data.frame(theta1 = distinctthetas)
+modesandhessians <- distinctthetas
+
+if (is.null(thetanames)) {
+  thetanames <- colnames(distinctthetas)
+} else {
+  colnames(modesandhessians) <- thetanames
+  colnames(quad$normalized_posterior$nodesandweights)[grep("theta", colnames(quad$normalized_posterior$nodesandweights))] <- thetanames
+}
+
+modesandhessians$mode <- vector(mode = "list", length = nrow(distinctthetas))
+modesandhessians$H <- vector(mode = "list", length = nrow(distinctthetas))
+
+for (i in 1:nrow(distinctthetas)) {
+  theta <- as.numeric(modesandhessians[i, thetanames])
+  ff$fn(theta)
+  mm <- ff$env$last.par
+  modesandhessians[i, "mode"] <- list(list(mm[ff$env$random]))
+  H <- ff$env$spHess(mm, random = TRUE)
+  H <- rlang::duplicate(H)
+  modesandhessians[i, "H"] <- list(list(H))
+}
+
+quad$modesandhessians <- modesandhessians
+class(quad) <- c("marginallaplace", "aghq")
+quad$obj <- obj
+
+#' modesandhessians has 1 column for each hyper, and then 1 for the mode of the latents and 1 for the Hessian of the latents
+stopifnot(ncol(modesandhessians) == length(thetanames) + 2)
 
 #' Let's begin by just trying to get the Laplace marginals working for one parameter
 #' Baby steps!
