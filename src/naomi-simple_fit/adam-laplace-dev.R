@@ -7,10 +7,8 @@
 #'     * Possible solution: lower `area_level` to 3 rather than 4. Won't fix `k^{#dim hyper}` problem
 #'     * Possible solution: create version of `naomi_simple.cpp` with fewer `{#dim hyper}`
 #' * [x] Create TMB template and objective function for one named latent field parameter and index
-#' * [ ] Attain Laplace marginal for one named latent field parameter with empirical Bayes hypers
-#' * [ ] Attain Laplace marginal for one named latent field parameter with dense grid hypers
-#' * [ ] Attain Laplace marginal for one named latent field parameter with spare grid hypers
-#'   * This may be literally the same thing as with dense grid hypers
+#' * [x] Attain Laplace marginal for one named latent field parameter with empirical Bayes hypers
+#' * [x] Attain Laplace marginal for one named latent field parameter with grid hypers
 #' * [ ] Generalise code to sweep over all indices of one named latent field parameter
 #' * [ ] Generalise code to sweep over all latent field parameters
 #' * [ ] Create function `fit_name_here` which brings this all together
@@ -18,12 +16,21 @@
 #' * [ ] Fit `k = 2` sparse with Laplace marginals
 #' * [ ] Insert results of `k = 3` sparse into `fit_name_here` to get Laplace marginals
 
-#' Start with EB
-k <- 1
+#' Try with k = 2 and sparse grid
+n_hyper <- 24
+k <- 2
 
-#' Start expose fit_aghq(tmb_inputs, k = k)
+sparse_grid <- mvQuad::createNIGrid(n_hyper, "GHe", k, "sparse")
+
+control <- aghq::default_control_tmb()
+control$method_summaries <- "correct"
+control$ndConstruction <- "sparse"
+
+#' Start expose fit_aghq(tmb_inputs, k = k, basegrid = sparse_grid, control = control)
 tmb_input <- tmb_inputs
 k <- k
+basegrid <- sparse_grid
+control <- control
 inner_verbose <- FALSE
 progress <- NULL
 map <- NULL
@@ -37,8 +44,8 @@ ff <- obj
 startingvalue <- obj$par
 transformation <- aghq::default_transformation()
 optresults <- NULL
-basegrid <- NULL
-control <- aghq::default_control_tmb()
+basegrid <- basegrid
+control <- control
 
 validate_control(control, type = "tmb")
 validate_transformation(transformation)
@@ -59,7 +66,9 @@ quad <- aghq(
   basegrid = basegrid, control = control
 )
 
-if (control$onlynormconst) return(quad)
+#' Save environment here for safety / time saving
+save.image(file = "adam-laplace-dev-72.rdata")
+load(file = "adam-laplace-dev-72.rdata")
 
 distinctthetas <- quad$normalized_posterior$nodesandweights[, grep("theta", colnames(quad$normalized_posterior$nodesandweights))]
 
@@ -92,8 +101,8 @@ quad$modesandhessians <- modesandhessians
 class(quad) <- c("marginallaplace", "aghq")
 quad$obj <- obj
 
-#' modesandhessians has 1 column for each hyper, and then 1 for the mode of the latents and 1 for the Hessian of the latents
-stopifnot(ncol(modesandhessians) == length(thetanames) + 2)
+#' modesandhessians has 1 column for each hyper, and then 1 for the mode of the latents, 1 for the Hessian of the latents, and 1 for the weights
+stopifnot(ncol(modesandhessians) == length(thetanames) + 3)
 
 #' Let's begin by just trying to get the Laplace marginals working for one parameter
 #' Baby steps!
@@ -184,15 +193,38 @@ plot(nodes)
 #' Check the order of parameters in obj
 obj$par
 
+#' For sparse grids, some of the weights are negative. This breaks the logSumExp()
+#' approach unless modifications are made. The workaround is to split the sum into
+#' cases when the weights are positive and cases when the weights are negative.
+#'
+#' Calculate log(exp(lp1) - exp(lp2))
+#' Note that `expm1(lp)` is the same as `exp(lp) - 1`
+logDiffExp <- function(lp1, lp2) {
+  if(length(lp2) == 0) return(lp1)
+  if(lp2 > lp1) {
+    stop(
+      "Error: the output of this function would be negative. As probabilities can't be negative, this likely isn't what you want."
+    )
+  }
+  lp2 + log(expm1(lp1 - lp2))
+}
+
+logSumExpWeights <- function(lp, w) {
+  logDiffExp(
+    lp1 = matrixStats::logSumExp(log(w[w > 0]) + lp[w > 0]),
+    lp2 = matrixStats::logSumExp(log(-w[w < 0]) + lp[w < 0])
+  )
+}
+
 laplace_marginal <- function(x) {
   lp <- vector(mode = "numeric", length = nrow(modesandhessians))
 
-  #' Can loop over z once we're doing something beyond EB
-  z <- 1
-  theta <- as.numeric(modesandhessians[z, thetanames])
+  for(z in 1:nrow(modesandhessians)) {
+    theta <- as.numeric(modesandhessians[z, thetanames])
+    lp[z] <- as.numeric(- obj$fn(c(x, theta)))
+  }
 
-  lp[z] <- as.numeric(- obj$fn(c(x, theta))) + log(modesandhessians$weights[z])
-  matrixStats::logSumExp(lp) - quad$normalized_posterior$lognormconst
+  logSumExpWeights(lp, w = modesandhessians$weights) - quad$normalized_posterior$lognormconst
 }
 
 #' The log-probabilities at the set of input values
@@ -215,3 +247,4 @@ plot_marginal_spline <- function(nodes, lps) {
 }
 
 plot_marginal_spline(nodes, lps)
+plot(nodes, lps)
