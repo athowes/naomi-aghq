@@ -1,5 +1,5 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(aghq = TRUE))
+# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(aghq = TRUE, area_level = 4))
 # setwd("src/naomi-simple_fit")
 
 if(tmb + aghq + tmbstan != 1) {
@@ -17,7 +17,7 @@ spec <- naomi::extract_pjnz_naomi(pjnz)
 
 #' Settings
 scope <- "MWI"
-level <- 4
+level <- area_level #' Default is 4
 calendar_quarter_t1 <- "CY2016Q1"
 calendar_quarter_t2 <- "CY2018Q3"
 calendar_quarter_t3 <- "CY2019Q4"

@@ -34,6 +34,11 @@ parameters:
   #' Number of samples to draw from the fitted model (not applicable to tmbstan)
   nsample:
     default: 1000
+  #' The level at which the model is run. This can be used to make computation
+  #' easier or harder. The default is 4, but by making it e.g. 3 then everything
+  #' should run a lot faster because there will be fewer areas
+  area_level:
+    default: 4
 
 resources:
   - naomi_simple.cpp
