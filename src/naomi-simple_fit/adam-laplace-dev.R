@@ -170,7 +170,7 @@ if (!is.null(progress)) {
 #' @param k The number of AGHQ grid points to choose
 spline_nodes <- function(modeandhessian, i, k = 7) {
   mode_i <- modeandhessian[["mode"]][[1]][i]
-  sd_i <- sqrt(1 / modeandhessian[["H"]][[1]][i, i])
+  sd_i <- sqrt(diag(solve(modeandhessian[["H"]][[1]]))[i])
 
   #' Create Gauss-Hermite quadrature
   gg <- mvQuad::createNIGrid(dim = 1, type = "GHe", level = k)
@@ -185,10 +185,10 @@ spline_nodes <- function(modeandhessian, i, k = 7) {
 theta_mode_location <- which.max(quad$normalized_posterior$nodesandweights$logpost_normalized)
 modeandhessian <- modesandhessians[theta_mode_location, ]
 
-#' The set of input values that we'd like to calculate the log-probability at
-nodes <- spline_nodes(modeandhessian, 1, k = 7)
+modeandhessian$mode
 
-plot(nodes)
+#' The set of input values that we'd like to calculate the log-probability at
+nodes <- spline_nodes(modeandhessian, 1, k = 5)
 
 #' Check the order of parameters in obj
 obj$par
@@ -229,6 +229,13 @@ laplace_marginal <- function(x) {
 
 #' The log-probabilities at the set of input values
 lps <- sapply(nodes, laplace_marginal)
+
+lps <- vector(mode = "numeric", length = 5)
+lps[1] <- laplace_marginal(nodes[1])
+lps[2] <- laplace_marginal(nodes[2])
+lps[3] <- laplace_marginal(nodes[3])
+lps[4] <- laplace_marginal(nodes[4])
+lps[5] <- laplace_marginal(nodes[5])
 
 #' Lagrange polynomial interpolant of the marginal posterior
 #'
