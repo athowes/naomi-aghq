@@ -238,12 +238,21 @@ laplace_marginal <- function(x) {
 #' The log-probabilities at the set of input values
 lps <- sapply(nodes, laplace_marginal)
 
-lps <- vector(mode = "numeric", length = 5)
+lps <- vector(mode = "numeric", length = length(nodes))
+
+start <- Sys.time()
 lps[1] <- laplace_marginal(nodes[1])
+end <- Sys.time()
+end - start
+
 lps[2] <- laplace_marginal(nodes[2])
 lps[3] <- laplace_marginal(nodes[3])
 lps[4] <- laplace_marginal(nodes[4])
 lps[5] <- laplace_marginal(nodes[5])
+lps[6] <- laplace_marginal(nodes[6])
+lps[7] <- laplace_marginal(nodes[7])
+
+exp(lps)
 
 #' Lagrange polynomial interpolant of the marginal posterior
 #'
@@ -262,4 +271,22 @@ plot_marginal_spline <- function(nodes, lps) {
 }
 
 plot_marginal_spline(nodes, lps)
-plot(nodes, lps)
+
+#' Workplan for fixing these marginals
+#' * [ ] Generate Gaussian marginals to compare to. Usually this would be done with
+#'       a multinomial sample from the nodes, then sampling from the Gaussian. However
+#'       here we have negative weights, and no way as of yet to take a multinomial
+#'       sample when some of the weights are negative. A work-around for this would
+#'       be to just use the Gaussian approximation at the mode or similar.
+#' * [ ] Dig in to understand what's going wrong when the laplace_marginal errors
+#'       due to the negative weighted posterior outweighing the positive weighted
+#'       posterior in some location.
+#' * [ ] Try to start the optimisation within for(z in ...) loop for each evaluation
+#'       of `obj$fn` as as close to the eventual optima as possible -- likely at the
+#'       mode of the Gaussian approximation if that's possible. It might be by using
+#'       the `random.start` option, but not as it's intended.
+#' * [ ] Scope out the possibility for more control over the evaluation of `obj$fn`,
+#'       especially the matrix algebra. This can be started by first understanding
+#'       the internals of `?MakeADFun`. Could it be replaced with relying on `obj$gr`
+#'       and `obj$he` and the Laplace approximation computed outside of TMB, with
+#'       parts replaced to speed it up as required.
