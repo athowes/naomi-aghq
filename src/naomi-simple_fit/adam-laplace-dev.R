@@ -165,7 +165,9 @@ if (!is.null(progress)) {
 
 #' A function to choose the points at which to evaluate the Laplace marginal
 #'
-#' @param modeandhessian The row of `modesandhessians` containing the node which is the mode of the Laplace approximation
+#' @param modeandhessian The row of `modesandhessians` containing the node which
+#' is the mode of the Laplace approximation, or alternatively just the node which
+#' has the highest log posterior evaluation.
 #' @param i The index of the latent field to choose
 #' @param k The number of AGHQ grid points to choose
 spline_nodes <- function(modeandhessian, i, k = 7) {
@@ -185,20 +187,31 @@ spline_nodes <- function(modeandhessian, i, k = 7) {
 theta_mode_location <- which.max(quad$normalized_posterior$nodesandweights$logpost_normalized)
 modeandhessian <- modesandhessians[theta_mode_location, ]
 
-modeandhessian$mode
-
 #' The set of input values that we'd like to calculate the log-probability at
-nodes <- spline_nodes(modeandhessian, 1, k = 5)
+nodes <- spline_nodes(modeandhessian, 1, k = 7)
 
 #' Check the order of parameters in obj
 obj$par
 
 #' For sparse grids, some of the weights are negative. This breaks the logSumExp()
 #' approach unless modifications are made. The workaround is to split the sum into
-#' cases when the weights are positive and cases when the weights are negative.
-#'
-#' Calculate log(exp(lp1) - exp(lp2))
-#' Note that `expm1(lp)` is the same as `exp(lp) - 1`
+#' cases when the weights are positive and cases when the weights are negative. In
+#' particular, suppose that not all parts of some vector `x = (x1, ..., xm)` are
+#' positive. Call the positive parts `xP` and the negative parts `xN`. Then
+#' `sum(x)` is the difference between `sum(|xP|)` and `sum(|xN|)`
+logSumExpWeights <- function(lp, w) {
+  logDiffExp(
+    lp1 = matrixStats::logSumExp(log(w[w > 0]) + lp[w > 0]),
+    lp2 = matrixStats::logSumExp(log(-w[w < 0]) + lp[w < 0])
+  )
+}
+
+#' Where we make use of calculating `log(exp(lp1) - exp(lp2))` by the following trick:
+#' `log(exp(lp1) - exp(lp2)) =`
+#' `log(exp(lp2) * [exp(lp1) / exp(lp2)] - exp(lp2) [exp(lp2) / exp(lp2)]) =`
+#' `log(exp(lp2) * [exp(lp1 - lp2) - 1]) =`
+#' `lp2 + log[exp(lp1 - lp2) - 1] =`
+#' `lp2 + log(expm1(lp1 - lp2))`
 logDiffExp <- function(lp1, lp2) {
   if(length(lp2) == 0) return(lp1)
   if(lp2 > lp1) {
@@ -209,12 +222,7 @@ logDiffExp <- function(lp1, lp2) {
   lp2 + log(expm1(lp1 - lp2))
 }
 
-logSumExpWeights <- function(lp, w) {
-  logDiffExp(
-    lp1 = matrixStats::logSumExp(log(w[w > 0]) + lp[w > 0]),
-    lp2 = matrixStats::logSumExp(log(-w[w < 0]) + lp[w < 0])
-  )
-}
+stopifnot(abs(logSumExpWeights(lp = c(log(0.5), log(0.1)), w = c(1, -0.1)) - log(0.5 * 1 + 0.1 * -0.1)) < 10e-15)
 
 laplace_marginal <- function(x) {
   lp <- vector(mode = "numeric", length = nrow(modesandhessians))
