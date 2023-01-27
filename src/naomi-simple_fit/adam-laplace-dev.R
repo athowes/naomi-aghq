@@ -171,14 +171,19 @@ if (!is.null(progress)) {
 #' @param i The index of the latent field to choose
 #' @param k The number of AGHQ grid points to choose
 spline_nodes <- function(modeandhessian, i, k = 7) {
-  mode_i <- modeandhessian[["mode"]][[1]][i]
-  sd_i <- sqrt(diag(solve(modeandhessian[["H"]][[1]]))[i])
+
+  mode <- modeandhessian[["mode"]][[1]]
+  mode_i <- mode[i]
+  H <- modeandhessian[["H"]][[1]]
+  LL <- Cholesky(H, LDL = FALSE)
+  # var_i <- diag(solve(H))[i]
+  var_i <- (colSums(solve(expand(LL)$L)^2))[i]
 
   #' Create Gauss-Hermite quadrature
   gg <- mvQuad::createNIGrid(dim = 1, type = "GHe", level = k)
 
   #' Adapt to mode_i and sd_i
-  mvQuad::rescale(gg, m = mode_i, C = sd_i^2)
+  mvQuad::rescale(gg, m = mode_i, C = var_i)
 
   #' Return the set of x input values
   mvQuad::getNodes(gg)
@@ -273,20 +278,32 @@ plot_marginal_spline <- function(nodes, lps) {
 plot_marginal_spline(nodes, lps)
 
 #' Workplan for fixing these marginals
-#' * [ ] Generate Gaussian marginals to compare to. Usually this would be done with
+#' * [ ] 1. Generate Gaussian marginals to compare to. Usually this would be done with
 #'       a multinomial sample from the nodes, then sampling from the Gaussian. However
 #'       here we have negative weights, and no way as of yet to take a multinomial
 #'       sample when some of the weights are negative. A work-around for this would
 #'       be to just use the Gaussian approximation at the mode or similar.
-#' * [ ] Dig in to understand what's going wrong when the laplace_marginal errors
+#' * [ ] 2. Dig in to understand what's going wrong when the laplace_marginal errors
 #'       due to the negative weighted posterior outweighing the positive weighted
 #'       posterior in some location.
-#' * [ ] Try to start the optimisation within for(z in ...) loop for each evaluation
+#' * [ ] 3. Try to start the optimisation within for(z in ...) loop for each evaluation
 #'       of `obj$fn` as as close to the eventual optima as possible -- likely at the
 #'       mode of the Gaussian approximation if that's possible. It might be by using
 #'       the `random.start` option, but not as it's intended.
-#' * [ ] Scope out the possibility for more control over the evaluation of `obj$fn`,
+#' * [ ] 4. Scope out the possibility for more control over the evaluation of `obj$fn`,
 #'       especially the matrix algebra. This can be started by first understanding
 #'       the internals of `?MakeADFun`. Could it be replaced with relying on `obj$gr`
 #'       and `obj$he` and the Laplace approximation computed outside of TMB, with
 #'       parts replaced to speed it up as required.
+#' * [ ] 5. Use the suggested cheaper code to calculate the diagonal of the inverse
+#'       Hessian
+
+#' 5.
+H <- modeandhessian[["H"]][[1]]
+LL <- Cholesky(H, LDL = FALSE)
+dd1 <- diag(solve(H))
+dd2 <- colSums(solve(expand(LL)$L)^2)
+sum(abs(dd1 - dd2)) #' Different answers?
+
+#' 1.
+modeandhessian$
