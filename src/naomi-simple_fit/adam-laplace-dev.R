@@ -261,10 +261,10 @@ ends <- vector(mode = "numeric", length = length(nodes))
 times <- vector(mode = "numeric", length = length(nodes))
 
 for(i in seq_along(nodes)) {
-  start[i] <- Sys.time()
+  starts[i] <- Sys.time()
   lps[i] <- laplace_marginal(nodes[i])
-  end[i] <- Sys.time()
-  times[i] <- end[i] - start[i]
+  ends[i] <- Sys.time()
+  times[i] <- ends[i] - starts[i]
 }
 
 #' Lagrange polynomial interpolant of the marginal posterior
@@ -286,12 +286,12 @@ plot_marginal_spline <- function(nodes, lps) {
 plot_marginal_spline(nodes, lps)
 
 #' Workplan for fixing these marginals
-#' * [ ] 1. Generate Gaussian marginals to compare to. Usually this would be done with
+#' * [x] 1. Generate Gaussian marginals to compare to. Usually this would be done with
 #'       a multinomial sample from the nodes, then sampling from the Gaussian. However
 #'       here we have negative weights, and no way as of yet to take a multinomial
 #'       sample when some of the weights are negative. A work-around for this would
 #'       be to just use the Gaussian approximation at the mode or similar.
-#' * [ ] 2. Dig in to understand what's going wrong when the laplace_marginal errors
+#' * [x] 2. Dig in to understand what's going wrong when the laplace_marginal errors
 #'       due to the negative weighted posterior outweighing the positive weighted
 #'       posterior in some location.
 #' * [x] 3. Try to start the optimisation within for(z in ...) loop for each evaluation
@@ -307,17 +307,67 @@ plot_marginal_spline(nodes, lps)
 #' * [ ] 5. Use the suggested cheaper code to calculate the diagonal of the inverse
 #'       Hessian
 
+#' 1.
+H <- modeandhessian[["H"]][[1]]
+var_i <- diag(solve(H))[i]
+
+beta_rho <- readRDS("depends/beta_rho.rds")
+
+#' This is what the posterior marginal should look like (from aghq, TMB, tmbstan)
+plot <- beta_rho %>%
+  ggplot(aes(x = samples, fill = method, col = method)) +
+  geom_density(aes(y = after_stat(density)), alpha = 0.05, position = "identity") +
+  theme_minimal() +
+  labs(x = "beta_rho[1]", y = "Density", col = "Method") +
+  scale_color_manual(values = multi.utils::cbpalette()) +
+  scale_fill_manual(values = multi.utils::cbpalette()) +
+  guides(fill = FALSE)
+
+plot +
+  geom_point(
+    data = data.frame(x = nodes, y = exp(lps)) %>%
+      filter(!is.na(lps)),
+    aes(x = x, y = y),
+    inherit.aes = FALSE
+  ) +
+  geom_text(
+    x = -10, y = 0.35,
+    label = "Black points represent Laplace marginal evaluations",
+    inherit.aes = FALSE
+  )
+
+#' 2.
+#' This is the node which NAs, but why?
+laplace_marginal(nodes[3])
+
+x <- nodes[3]
+
+lp <- vector(mode = "numeric", length = nrow(modesandhessians))
+random <- obj$env$random   #' Indices of random effects
+
+for(z in 1:nrow(modesandhessians)) {
+  theta <- as.numeric(modesandhessians[z, thetanames])
+  mode <- modesandhessians[z, "mode"][[1]][-1]
+  obj$env$last.par[random] <- mode
+  lp[z] <- as.numeric(- obj$fn(c(x, theta)))
+}
+
+lp_normalised <- lp - quad$normalized_posterior$lognormconst
+
+logSumExpWeights(lp_normalised, w = modesandhessians$weights)
+
+lp1 <- matrixStats::logSumExp(log(modesandhessians$weights[modesandhessians$weights > 0]) + lp_normalised[modesandhessians$weights > 0])
+lp2 <- matrixStats::logSumExp(log(-modesandhessians$weights[modesandhessians$weights < 0]) + lp_normalised[modesandhessians$weights < 0])
+
+data.frame(x = modesandhessians$weights, y = lp_normalised) %>%
+  ggplot(aes(x = x, y = y)) +
+    geom_point() +
+    labs(x = "Weight", y = "Log-posterior") +
+    theme_minimal()
+
 #' 5.
 H <- modeandhessian[["H"]][[1]]
 LL <- Cholesky(H, LDL = FALSE)
 dd1 <- diag(solve(H))
 dd2 <- colSums(solve(expand(LL)$L)^2)
 sum(abs(dd1 - dd2)) #' Different answers?
-
-#' 1.
-i <- 1
-mode_i <- modeandhessian$mode[[1]][i]
-H <- modeandhessian[["H"]][[1]]
-var_i <- diag(solve(H))[i]
-samples <- rnorm(1000, mean = mode_i, sd = sqrt(var_i))
-hist(samples)
