@@ -111,9 +111,7 @@ compile("naomi_simple_beta_rho_index.cpp")
 dyn.load(dynlib("naomi_simple_beta_rho_index"))
 
 #' I have adapted naomi_simple_beta_rho_index to have DATA_INTEGER(i) which will
-#' tell the template which index of i we are going to be Laplace approximating
-#' So to do this I need to add i to the data passed in
-str(tmb_inputs_simple)
+#' tell the template which index of i we are going to be Laplace approximating.
 
 #' Create a new data object, so as to be a little less confusing
 tmb_inputs_simple_i <- tmb_inputs_simple
@@ -150,13 +148,17 @@ integrate_out <- c(
   "ui_lambda_x", "ui_anc_rho_x", "ui_anc_alpha_x", "log_or_gamma"
 )
 
+#' Set-up so that the initial random effects are chosen to be the parameter of the
+#' latest likelihood evaluation. I will later manipulate this option to put whatever
+#' random effects I'd like to start with as the "latest" likelihood evaluation
 obj <- TMB::MakeADFun(
   data = data,
   parameters = par,
   DLL = DLL,
   silent = !inner_verbose,
   random = integrate_out,
-  map = map
+  map = map,
+  random.start = expression(last.par[random])
 )
 
 if (!is.null(progress)) {
@@ -175,9 +177,9 @@ spline_nodes <- function(modeandhessian, i, k = 7) {
   mode <- modeandhessian[["mode"]][[1]]
   mode_i <- mode[i]
   H <- modeandhessian[["H"]][[1]]
-  LL <- Cholesky(H, LDL = FALSE)
-  # var_i <- diag(solve(H))[i]
-  var_i <- (colSums(solve(expand(LL)$L)^2))[i]
+  var_i <- diag(solve(H))[i]
+  # LL <- Cholesky(H, LDL = FALSE)
+  # var_i <- (colSums(solve(expand(LL)$L)^2))[i]
 
   #' Create Gauss-Hermite quadrature
   gg <- mvQuad::createNIGrid(dim = 1, type = "GHe", level = k)
@@ -193,7 +195,7 @@ theta_mode_location <- which.max(quad$normalized_posterior$nodesandweights$logpo
 modeandhessian <- modesandhessians[theta_mode_location, ]
 
 #' The set of input values that we'd like to calculate the log-probability at
-nodes <- spline_nodes(modeandhessian, 1, k = 7)
+(nodes <- spline_nodes(modeandhessian, 1, k = 7))
 
 #' Check the order of parameters in obj
 obj$par
@@ -220,44 +222,50 @@ logSumExpWeights <- function(lp, w) {
 logDiffExp <- function(lp1, lp2) {
   if(length(lp2) == 0) return(lp1)
   if(lp2 > lp1) {
-    stop(
-      "Error: the output of this function would be negative. As probabilities can't be negative, this likely isn't what you want."
+    warning(
+      "Error: the output of this function would be negative. As probabilities can't be negative, this likely isn't what you want. Returning an NA."
     )
+    return(NA)
   }
-  lp2 + log(expm1(lp1 - lp2))
+  return(lp2 + log(expm1(lp1 - lp2)))
 }
 
+#' A rough unit test that the logSumExpWeights function does as it is intended
+#' to do -- that is the logarithm of a weighted sum
 stopifnot(abs(logSumExpWeights(lp = c(log(0.5), log(0.1)), w = c(1, -0.1)) - log(0.5 * 1 + 0.1 * -0.1)) < 10e-15)
 
 laplace_marginal <- function(x) {
   lp <- vector(mode = "numeric", length = nrow(modesandhessians))
+  random <- obj$env$random   #' Indices of random effects
 
   for(z in 1:nrow(modesandhessians)) {
     theta <- as.numeric(modesandhessians[z, thetanames])
+    #' Get the mode of the random effects at the hyperparameter node location
+    #' and set things such that obj$fn is initialised there using last.par.
+    #' The -1 removes the element of beta_rho that we are Laplace approximating
+    #' and has been moved out of the random into the hyper
+    mode <- modesandhessians[z, "mode"][[1]][-1]
+    obj$env$last.par[random] <- mode
     lp[z] <- as.numeric(- obj$fn(c(x, theta)))
   }
 
   logSumExpWeights(lp, w = modesandhessians$weights) - quad$normalized_posterior$lognormconst
 }
 
-#' The log-probabilities at the set of input values
-lps <- sapply(nodes, laplace_marginal)
-
+#' The log-probabilities at the set of input values. I'm also timing how long it
+#' takes, as this will determine how viable this method is when moving to all
+#' 500 or so marginals
 lps <- vector(mode = "numeric", length = length(nodes))
+starts <- vector(mode = "numeric", length = length(nodes))
+ends <- vector(mode = "numeric", length = length(nodes))
+times <- vector(mode = "numeric", length = length(nodes))
 
-start <- Sys.time()
-lps[1] <- laplace_marginal(nodes[1])
-end <- Sys.time()
-end - start
-
-lps[2] <- laplace_marginal(nodes[2])
-lps[3] <- laplace_marginal(nodes[3])
-lps[4] <- laplace_marginal(nodes[4])
-lps[5] <- laplace_marginal(nodes[5])
-lps[6] <- laplace_marginal(nodes[6])
-lps[7] <- laplace_marginal(nodes[7])
-
-exp(lps)
+for(i in seq_along(nodes)) {
+  start[i] <- Sys.time()
+  lps[i] <- laplace_marginal(nodes[i])
+  end[i] <- Sys.time()
+  times[i] <- end[i] - start[i]
+}
 
 #' Lagrange polynomial interpolant of the marginal posterior
 #'
@@ -286,10 +294,11 @@ plot_marginal_spline(nodes, lps)
 #' * [ ] 2. Dig in to understand what's going wrong when the laplace_marginal errors
 #'       due to the negative weighted posterior outweighing the positive weighted
 #'       posterior in some location.
-#' * [ ] 3. Try to start the optimisation within for(z in ...) loop for each evaluation
+#' * [x] 3. Try to start the optimisation within for(z in ...) loop for each evaluation
 #'       of `obj$fn` as as close to the eventual optima as possible -- likely at the
 #'       mode of the Gaussian approximation if that's possible. It might be by using
 #'       the `random.start` option, but not as it's intended.
+#'       * [ ] Benchmark exactly how much cheaper that has made things.
 #' * [ ] 4. Scope out the possibility for more control over the evaluation of `obj$fn`,
 #'       especially the matrix algebra. This can be started by first understanding
 #'       the internals of `?MakeADFun`. Could it be replaced with relying on `obj$gr`
@@ -306,4 +315,9 @@ dd2 <- colSums(solve(expand(LL)$L)^2)
 sum(abs(dd1 - dd2)) #' Different answers?
 
 #' 1.
-modeandhessian$
+i <- 1
+mode_i <- modeandhessian$mode[[1]][i]
+H <- modeandhessian[["H"]][[1]]
+var_i <- diag(solve(H))[i]
+samples <- rnorm(1000, mean = mode_i, sd = sqrt(var_i))
+hist(samples)
