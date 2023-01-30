@@ -30,7 +30,7 @@ depends:
       use:
         depends/tmb.rds: out.rds
   - naomi-simple_fit:
-      id: latest(parameter:aghq == TRUE)
+      id: latest(parameter:aghq == TRUE && parameter:k == 1)
       use:
         depends/aghq.rds: out.rds
   - naomi-simple_fit:

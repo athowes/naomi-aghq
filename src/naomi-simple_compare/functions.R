@@ -1,24 +1,44 @@
 #' Create a facetted histogram plot of the named parameter using samples from each of the three methods
-histogram_plot <- function(par) {
-  df_compare <- rbind(
-    data.frame(method = "TMB", samples = as.numeric(tmb$fit$sample[[par]])),
-    data.frame(method = "aghq", samples = as.numeric(aghq$quad$sample[[par]])),
-    data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(tmbstan$mcmc, pars = par))))
-  )
+histogram_plot <- function(par, i = NULL) {
+  if(!is.null(i)) {
+    par_name <- paste0(par, "[", i, "]")
 
-  df_compare %>%
-    group_by(method) %>%
-    summarise(n = n())
+    df_compare <- rbind(
+      data.frame(method = "TMB", samples = as.numeric(tmb$fit$sample[[par]][i, ])),
+      data.frame(method = "aghq", samples = as.numeric(aghq$quad$sample[[par]][i, ])),
+      data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(tmbstan$mcmc, pars = par)[[par]][, i])))
+    )
+  } else {
+    par_name <- paste0(par)
+
+    df_compare <- rbind(
+      data.frame(method = "TMB", samples = as.numeric(tmb$fit$sample[[par]])),
+      data.frame(method = "aghq", samples = as.numeric(aghq$quad$sample[[par]])),
+      data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(tmbstan$mcmc, pars = par))))
+    )
+  }
+
+  mean <- df_compare %>%
+    filter(method == "tmbstan") %>%
+    summarise(mean = mean(samples)) %>%
+    pull(mean) %>%
+    round(digits = 3)
+
+  sd <- df_compare %>%
+    filter(method == "tmbstan") %>%
+    summarise(sd = sd(samples)) %>%
+    pull(sd) %>%
+    round(digits = 3)
 
   ggplot(df_compare, aes(x = samples, fill = method, col = method)) +
     geom_histogram(aes(y = after_stat(density)), alpha = 0.5, position = "identity", bins = 30) +
     theme_minimal() +
     facet_grid(method~.) +
-    labs(x = paste0(par), y = "Density", fill = "Method") +
+    labs(x = par_name, y = "Density", fill = "Method") +
     scale_color_manual(values = multi.utils::cbpalette()) +
     scale_fill_manual(values = multi.utils::cbpalette()) +
     theme(legend.position = "none") +
-    labs(title = paste0(par))
+    labs(title = par_name, subtitle = paste0("Mean = ", mean, ", SD = ", sd, " (from tmbstan)"))
 }
 
 #' Create a dataframe of samples from TMB, aghq and tmbstan for any parameters starting with par

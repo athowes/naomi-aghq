@@ -60,6 +60,7 @@ data.frame(
 # Histogram
 
 ```{r}
+histogram_plot("beta_rho", i = 1)
 histogram_plot("beta_anc_rho")
 ```
 
