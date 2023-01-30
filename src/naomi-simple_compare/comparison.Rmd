@@ -60,7 +60,10 @@ data.frame(
 # Histogram
 
 ```{r}
-histogram_plot("beta_rho", i = 1)
+beta_rho <- histogram_plot("beta_rho", i = 1, return_df = TRUE)
+beta_rho$plot
+saveRDS(beta_rho$df, "beta_rho.rds")
+
 histogram_plot("beta_anc_rho")
 ```
 

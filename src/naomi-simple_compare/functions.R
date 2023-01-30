@@ -1,5 +1,5 @@
 #' Create a facetted histogram plot of the named parameter using samples from each of the three methods
-histogram_plot <- function(par, i = NULL) {
+histogram_plot <- function(par, i = NULL, return_df = FALSE) {
   if(!is.null(i)) {
     par_name <- paste0(par, "[", i, "]")
 
@@ -30,7 +30,7 @@ histogram_plot <- function(par, i = NULL) {
     pull(sd) %>%
     round(digits = 3)
 
-  ggplot(df_compare, aes(x = samples, fill = method, col = method)) +
+  plot <- ggplot(df_compare, aes(x = samples, fill = method, col = method)) +
     geom_histogram(aes(y = after_stat(density)), alpha = 0.5, position = "identity", bins = 30) +
     theme_minimal() +
     facet_grid(method~.) +
@@ -39,6 +39,10 @@ histogram_plot <- function(par, i = NULL) {
     scale_fill_manual(values = multi.utils::cbpalette()) +
     theme(legend.position = "none") +
     labs(title = par_name, subtitle = paste0("Mean = ", mean, ", SD = ", sd, " (from tmbstan)"))
+
+  if(return_df) {
+    return(list(plot = plot, df = df_compare))
+  }
 }
 
 #' Create a dataframe of samples from TMB, aghq and tmbstan for any parameters starting with par

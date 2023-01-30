@@ -8,6 +8,10 @@ artefacts:
       description: Notebook assessing if the MCMC converged
       filenames:
         - comparison.html
+  - data:
+      description: Comparison dataframe for the beta_rho[1] parameter
+      filenames:
+        - beta_rho.rds
 
 resources:
   - comparison.Rmd
