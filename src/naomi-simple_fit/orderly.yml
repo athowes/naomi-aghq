@@ -58,3 +58,10 @@ packages:
   - aghq
   - sf
   - naomi
+
+
+depends:
+  naomi-simple_compare:
+    id: latest
+    use:
+      depends/beta_rho.rds: beta_rho.rds
