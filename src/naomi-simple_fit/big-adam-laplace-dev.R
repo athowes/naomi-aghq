@@ -91,7 +91,6 @@ quad$obj <- obj
 stopifnot(ncol(modesandhessians) == length(thetanames) + 3)
 
 #' Let's begin by just trying to get the Laplace marginals working for one parameter
-#' Baby steps!
 
 compile("naomi_simple_beta_rho_index.cpp")
 dyn.load(dynlib("naomi_simple_beta_rho_index"))
@@ -134,9 +133,6 @@ integrate_out <- c(
   "ui_lambda_x", "ui_anc_rho_x", "ui_anc_alpha_x", "log_or_gamma"
 )
 
-#' Set-up so that the initial random effects are chosen to be the parameter of the
-#' latest likelihood evaluation. I will later manipulate this option to put whatever
-#' random effects I'd like to start with as the "latest" likelihood evaluation
 obj <- TMB::MakeADFun(
   data = data,
   parameters = par,
@@ -151,32 +147,6 @@ if (!is.null(progress)) {
   obj$fn <- naomi:::report_progress(obj$fn, progress)
 }
 
-#' A function to choose the points at which to evaluate the Laplace marginal
-#'
-#' @param modeandhessian The row of `modesandhessians` containing the node which
-#' is the mode of the Laplace approximation, or alternatively just the node which
-#' has the highest log posterior evaluation.
-#' @param i The index of the latent field to choose
-#' @param k The number of AGHQ grid points to choose
-spline_nodes <- function(modeandhessian, i, k = 7) {
-
-  mode <- modeandhessian[["mode"]][[1]]
-  mode_i <- mode[i]
-  H <- modeandhessian[["H"]][[1]]
-  var_i <- diag(solve(H))[i]
-  # LL <- Cholesky(H, LDL = FALSE)
-  # var_i <- (colSums(solve(expand(LL)$L)^2))[i]
-
-  #' Create Gauss-Hermite quadrature
-  gg <- mvQuad::createNIGrid(dim = 1, type = "GHe", level = k)
-
-  #' Adapt to mode_i and sd_i
-  mvQuad::rescale(gg, m = mode_i, C = var_i)
-
-  #' Return the set of x input values
-  mvQuad::getNodes(gg)
-}
-
 theta_mode_location <- which.max(quad$normalized_posterior$nodesandweights$logpost_normalized)
 modeandhessian <- modesandhessians[theta_mode_location, ]
 
@@ -185,40 +155,6 @@ modeandhessian <- modesandhessians[theta_mode_location, ]
 
 #' Check the order of parameters in obj
 obj$par
-
-#' For sparse grids, some of the weights are negative. This breaks the logSumExp()
-#' approach unless modifications are made. The workaround is to split the sum into
-#' cases when the weights are positive and cases when the weights are negative. In
-#' particular, suppose that not all parts of some vector `x = (x1, ..., xm)` are
-#' positive. Call the positive parts `xP` and the negative parts `xN`. Then
-#' `sum(x)` is the difference between `sum(|xP|)` and `sum(|xN|)`
-logSumExpWeights <- function(lp, w) {
-  logDiffExp(
-    lp1 = matrixStats::logSumExp(log(w[w > 0]) + lp[w > 0]),
-    lp2 = matrixStats::logSumExp(log(-w[w < 0]) + lp[w < 0])
-  )
-}
-
-#' Where we make use of calculating `log(exp(lp1) - exp(lp2))` by the following trick:
-#' `log(exp(lp1) - exp(lp2)) =`
-#' `log(exp(lp2) * [exp(lp1) / exp(lp2)] - exp(lp2) [exp(lp2) / exp(lp2)]) =`
-#' `log(exp(lp2) * [exp(lp1 - lp2) - 1]) =`
-#' `lp2 + log[exp(lp1 - lp2) - 1] =`
-#' `lp2 + log(expm1(lp1 - lp2))`
-logDiffExp <- function(lp1, lp2) {
-  if(length(lp2) == 0) return(lp1)
-  if(lp2 > lp1) {
-    warning(
-      "Error: the output of this function would be negative. As probabilities can't be negative, this likely isn't what you want. Returning an NA."
-    )
-    return(NA)
-  }
-  return(lp2 + log(expm1(lp1 - lp2)))
-}
-
-#' A rough unit test that the logSumExpWeights function does as it is intended
-#' to do -- that is the logarithm of a weighted sum
-stopifnot(abs(logSumExpWeights(lp = c(log(0.5), log(0.1)), w = c(1, -0.1)) - log(0.5 * 1 + 0.1 * -0.1)) < 10e-15)
 
 laplace_marginal <- function(x) {
   lp <- vector(mode = "numeric", length = nrow(modesandhessians))
@@ -251,22 +187,6 @@ for(i in seq_along(nodes)) {
   lps[i] <- laplace_marginal(nodes[i])
   ends[i] <- Sys.time()
   times[i] <- ends[i] - starts[i]
-}
-
-#' Lagrange polynomial interpolant of the marginal posterior
-#'
-#' @param nodes Set of input values
-#' @lps Log-probabilities at nodes
-plot_marginal_spline <- function(nodes, lps) {
-  ss <- splines::interpSpline(nodes, lps, bSpline = TRUE, sparse = TRUE)
-  interpolant <- function(x) { as.numeric(stats::predict(ss, x)$y) }
-  finegrid <- seq(-5, 5, by = 0.1)
-  df <- data.frame(x = finegrid, y = exp(interpolant(finegrid)))
-
-  ggplot(df, aes(x = x, y = y)) +
-    geom_line() +
-    theme_minimal() +
-    labs(x = "x", y = "Posterior")
 }
 
 plot_marginal_spline(nodes, lps)

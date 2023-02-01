@@ -500,3 +500,79 @@ local_extract_art_attendance_naomi_simple <- function(naomi_fit, naomi_mf, na.rm
 
   dplyr::bind_rows(v_t1)
 }
+
+#' A function to choose the points at which to evaluate the Laplace marginal
+#'
+#' @param modeandhessian The row of `modesandhessians` containing the node which
+#' is the mode of the Laplace approximation, or alternatively just the node which
+#' has the highest log posterior evaluation.
+#' @param i The index of the latent field to choose
+#' @param k The number of AGHQ grid points to choose
+spline_nodes <- function(modeandhessian, i, k = 7) {
+
+  mode <- modeandhessian[["mode"]][[1]]
+  mode_i <- mode[i]
+  H <- modeandhessian[["H"]][[1]]
+  var_i <- diag(solve(H))[i]
+  # LL <- Cholesky(H, LDL = FALSE)
+  # var_i <- (colSums(solve(expand(LL)$L)^2))[i]
+
+  #' Create Gauss-Hermite quadrature
+  gg <- mvQuad::createNIGrid(dim = 1, type = "GHe", level = k)
+
+  #' Adapt to mode_i and sd_i
+  mvQuad::rescale(gg, m = mode_i, C = var_i)
+
+  #' Return the set of x input values
+  mvQuad::getNodes(gg)
+}
+
+#' For sparse grids, some of the weights are negative. This breaks the logSumExp()
+#' approach unless modifications are made. The workaround is to split the sum into
+#' cases when the weights are positive and cases when the weights are negative. In
+#' particular, suppose that not all parts of some vector `x = (x1, ..., xm)` are
+#' positive. Call the positive parts `xP` and the negative parts `xN`. Then
+#' `sum(x)` is the difference between `sum(|xP|)` and `sum(|xN|)`
+logSumExpWeights <- function(lp, w) {
+  logDiffExp(
+    lp1 = matrixStats::logSumExp(log(w[w > 0]) + lp[w > 0]),
+    lp2 = matrixStats::logSumExp(log(-w[w < 0]) + lp[w < 0])
+  )
+}
+
+#' Where we make use of calculating `log(exp(lp1) - exp(lp2))` by the following trick:
+#' `log(exp(lp1) - exp(lp2)) =`
+#' `log(exp(lp2) * [exp(lp1) / exp(lp2)] - exp(lp2) [exp(lp2) / exp(lp2)]) =`
+#' `log(exp(lp2) * [exp(lp1 - lp2) - 1]) =`
+#' `lp2 + log[exp(lp1 - lp2) - 1] =`
+#' `lp2 + log(expm1(lp1 - lp2))`
+logDiffExp <- function(lp1, lp2) {
+  if(length(lp2) == 0) return(lp1)
+  if(lp2 > lp1) {
+    warning(
+      "Error: the output of this function would be negative. As probabilities can't be negative, this likely isn't what you want. Returning an NA."
+    )
+    return(NA)
+  }
+  return(lp2 + log(expm1(lp1 - lp2)))
+}
+
+#' A rough unit test that the logSumExpWeights function does as it is intended
+#' to do -- that is the logarithm of a weighted sum
+stopifnot(abs(logSumExpWeights(lp = c(log(0.5), log(0.1)), w = c(1, -0.1)) - log(0.5 * 1 + 0.1 * -0.1)) < 10e-15)
+
+#' Lagrange polynomial interpolant of the marginal posterior
+#'
+#' @param nodes Set of input values
+#' @lps Log-probabilities at nodes
+plot_marginal_spline <- function(nodes, lps, lower = -5, upper = 5) {
+  ss <- splines::interpSpline(nodes, lps, bSpline = TRUE, sparse = TRUE)
+  interpolant <- function(x) { as.numeric(stats::predict(ss, x)$y) }
+  finegrid <- seq(lower, upper, by = 0.1)
+  df <- data.frame(x = finegrid, y = exp(interpolant(finegrid)))
+
+  ggplot(df, aes(x = x, y = y)) +
+    geom_line() +
+    theme_minimal() +
+    labs(x = "x", y = "Posterior")
+}
