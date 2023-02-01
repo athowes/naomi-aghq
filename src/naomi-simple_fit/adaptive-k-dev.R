@@ -48,3 +48,6 @@ for(i in seq_along(hypers)) {
 
 #' Is there a way to take a product of mvQuad grids outside of the function?
 grids[[1]]
+
+#' Actually it looks like there is a way to do this natrually with mvQuad::createNIGrid
+#' See the argument `level.trans`
