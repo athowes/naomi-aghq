@@ -1,21 +1,5 @@
 #' Start of if(adam) loop
 
-#' TODO list
-#' * [x] Expose internals of `fit_aghq` and run through
-#' * [ ] Expose internals of `sample_aghq` to get a feel again for how the latent field and hyperparameter marginals are being used and run through
-#'   * Blocker: can't fit `aghq` with `k > 1`.
-#'     * Possible solution: lower `area_level` to 3 rather than 4. Won't fix `k^{#dim hyper}` problem
-#'     * Possible solution: create version of `naomi_simple.cpp` with fewer `{#dim hyper}`
-#' * [x] Create TMB template and objective function for one named latent field parameter and index
-#' * [x] Attain Laplace marginal for one named latent field parameter with empirical Bayes hypers
-#' * [x] Attain Laplace marginal for one named latent field parameter with grid hypers
-#' * [ ] Generalise code to sweep over all indices of one named latent field parameter
-#' * [ ] Generalise code to sweep over all latent field parameters
-#' * [ ] Create function `fit_name_here` which brings this all together
-#' * [ ] Fit `k = 1` with Laplace marginals
-#' * [ ] Fit `k = 2` sparse with Laplace marginals
-#' * [ ] Insert results of `k = 3` sparse into `fit_name_here` to get Laplace marginals
-
 #' Try with k = 2 and sparse grid
 n_hyper <- 24
 k <- 2
@@ -285,29 +269,7 @@ plot_marginal_spline <- function(nodes, lps) {
 
 plot_marginal_spline(nodes, lps)
 
-#' Workplan for fixing these marginals
-#' * [x] 1. Generate Gaussian marginals to compare to. Usually this would be done with
-#'       a multinomial sample from the nodes, then sampling from the Gaussian. However
-#'       here we have negative weights, and no way as of yet to take a multinomial
-#'       sample when some of the weights are negative. A work-around for this would
-#'       be to just use the Gaussian approximation at the mode or similar.
-#' * [x] 2. Dig in to understand what's going wrong when the laplace_marginal errors
-#'       due to the negative weighted posterior outweighing the positive weighted
-#'       posterior in some location.
-#' * [x] 3. Try to start the optimisation within for(z in ...) loop for each evaluation
-#'       of `obj$fn` as as close to the eventual optima as possible -- likely at the
-#'       mode of the Gaussian approximation if that's possible. It might be by using
-#'       the `random.start` option, but not as it's intended.
-#'       * [ ] Benchmark exactly how much cheaper that has made things.
-#' * [ ] 4. Scope out the possibility for more control over the evaluation of `obj$fn`,
-#'       especially the matrix algebra. This can be started by first understanding
-#'       the internals of `?MakeADFun`. Could it be replaced with relying on `obj$gr`
-#'       and `obj$he` and the Laplace approximation computed outside of TMB, with
-#'       parts replaced to speed it up as required.
-#' * [ ] 5. Use the suggested cheaper code to calculate the diagonal of the inverse
-#'       Hessian
-
-#' 1.
+#' Comparison to inference results from other methods
 H <- modeandhessian[["H"]][[1]]
 var_i <- diag(solve(H))[i]
 
@@ -336,8 +298,7 @@ plot +
     inherit.aes = FALSE
   )
 
-#' 2.
-#' This is the node which NAs, but why?
+#' Trying to understand the node which give NA results
 laplace_marginal(nodes[3])
 
 x <- nodes[3]
@@ -365,7 +326,7 @@ data.frame(x = modesandhessians$weights, y = lp_normalised) %>%
     labs(x = "Weight", y = "Log-posterior") +
     theme_minimal()
 
-#' 5.
+#' Aiming to get the marginal standard deviation without inverting the whole Hessian
 H <- modeandhessian[["H"]][[1]]
 LL <- Cholesky(H, LDL = FALSE)
 dd1 <- diag(solve(H))
