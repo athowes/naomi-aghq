@@ -1,3 +1,5 @@
+#' Big in the sense of biting off more than I can chew
+
 #' Start of if(adam) loop
 
 #' Try with k = 2 and sparse grid
