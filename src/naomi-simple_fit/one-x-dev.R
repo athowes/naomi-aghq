@@ -64,3 +64,31 @@ obj <- TMB::MakeADFun(
 if (!is.null(progress)) {
   obj$fn <- naomi:::report_progress(obj$fn, progress)
 }
+
+#' The set of input values that we'd like to calculate the log-probability at
+#' For k = 1 there is only one row in modesandhessians so we can just pass that
+(nodes <- spline_nodes(modeandhessian = modesandhessians, 1, k = 7))
+
+#' Can be quite simple because there are no weights and it's just EB
+laplace_marginal <- function(x, i) {
+  random <- obj$env$random
+  theta <- as.numeric(modesandhessians[thetanames])
+  mode <- modesandhessians[["mode"]][[1]][-i]
+  obj$env$last.par[random] <- mode
+  lp <- as.numeric(- obj$fn(c(x, theta))) + log(modesandhessians$weights)
+  lp - quad$normalized_posterior$lognormconst
+}
+
+lps <- vector(mode = "numeric", length = length(nodes))
+starts <- vector(mode = "numeric", length = length(nodes))
+ends <- vector(mode = "numeric", length = length(nodes))
+times <- vector(mode = "numeric", length = length(nodes))
+
+for(i in seq_along(nodes)) {
+  starts[i] <- Sys.time()
+  lps[i] <- laplace_marginal(nodes[i], i = 1)
+  ends[i] <- Sys.time()
+  times[i] <- ends[i] - starts[i]
+}
+
+plot_marginal_spline(nodes, lps, lower = min(nodes) - 1, upper = max(nodes) + 1)
