@@ -67,7 +67,7 @@ if (!is.null(progress)) {
 
 #' The set of input values that we'd like to calculate the log-probability at
 #' For k = 1 there is only one row in modesandhessians so we can just pass that
-(nodes <- spline_nodes(modeandhessian = modesandhessians, 1, k = 7))
+(nodes <- spline_nodes(modeandhessian = modesandhessians, tmb_inputs_simple_i$data$i, k = 7))
 
 #' Can be quite simple because there are no weights and it's just EB
 laplace_marginal <- function(x, i) {
@@ -86,9 +86,56 @@ times <- vector(mode = "numeric", length = length(nodes))
 
 for(i in seq_along(nodes)) {
   starts[i] <- Sys.time()
-  lps[i] <- laplace_marginal(nodes[i], i = 1)
+  lps[i] <- laplace_marginal(nodes[i], i = tmb_inputs_simple_i$data$i)
   ends[i] <- Sys.time()
   times[i] <- ends[i] - starts[i]
 }
 
 plot_marginal_spline(nodes, lps, lower = min(nodes) - 1, upper = max(nodes) + 1)
+
+df <- data.frame(
+  index = i,
+  par = xnames[i],
+  x = spline_nodes(modeandhessian = modesandhessians, i = i, k = 5)
+) %>%
+  dplyr::mutate(lp = purrr::map_dbl(x, laplace_marginal, i = i))
+
+#' Loop this over index i
+laplace_marginal_df <- function(i) {
+
+  data$i <- i
+
+  obj <- TMB::MakeADFun(
+    data = data,
+    parameters = par,
+    DLL = DLL,
+    silent = !inner_verbose,
+    random = "x_minus_i",
+    map = map,
+    random.start = expression(last.par[random])
+  )
+
+  random <- obj$env$random
+  theta <- as.numeric(modesandhessians[thetanames])
+  mode <- modesandhessians[["mode"]][[1]][-i]
+  obj$env$last.par[random] <- mode
+
+  f <- function(x) {
+    lp <- as.numeric(- obj$fn(c(x, theta))) + log(modesandhessians$weights)
+    lp - quad$normalized_posterior$lognormconst
+  }
+
+  data.frame(
+    index = i,
+    par = xnames[i],
+    x = spline_nodes(modeandhessian = modesandhessians, i = i, k = 5)
+  ) %>%
+    dplyr::mutate(lp = purrr::map_dbl(x, f))
+}
+
+start <- Sys.time()
+marginals <- purrr::map(.x = 1:10, .f = laplace_marginal_df)
+end <- Sys.time()
+end - start
+
+marginals <- bind_rows(marginals)
