@@ -133,6 +133,30 @@ laplace_marginal_df <- function(i) {
     dplyr::mutate(lp = purrr::map_dbl(x, f))
 }
 
+#' Version with DATA_UPDATE used
+# laplace_marginal_df <- function(i) {
+#
+#   data$i <- i
+#   obj$env$data$i <- i
+#
+#   random <- obj$env$random
+#   theta <- as.numeric(modesandhessians[thetanames])
+#   mode <- modesandhessians[["mode"]][[1]][-i]
+#   obj$env$last.par[random] <- mode
+#
+#   f <- function(x) {
+#     lp <- as.numeric(- obj$fn(c(x, theta))) + log(modesandhessians$weights)
+#     lp - quad$normalized_posterior$lognormconst
+#   }
+#
+#   data.frame(
+#     index = i,
+#     par = xnames[i],
+#     x = spline_nodes(modeandhessian = modesandhessians, i = i, k = 5)
+#   ) %>%
+#     dplyr::mutate(lp = purrr::map_dbl(x, f))
+# }
+
 start <- Sys.time()
 marginals <- purrr::map(.x = 1:10, .f = laplace_marginal_df)
 end <- Sys.time()

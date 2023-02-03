@@ -172,6 +172,7 @@ Type objective_function<Type>::operator() ()
   DATA_IVECTOR(x_lengths); // Length of each subvector of x
   DATA_IVECTOR(x_starts); // Start index of each subvector of x
   DATA_INTEGER(i); // Index i
+  // DATA_UPDATE(i); // Data update macro: currently not working
   PARAMETER(x_i);
   PARAMETER_VECTOR(x_minus_i);
 
