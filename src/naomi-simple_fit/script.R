@@ -72,6 +72,9 @@ naomi_data <- select_naomi_data(
 compile("naomi_simple.cpp")
 dyn.load(dynlib("naomi_simple"))
 
+compile("naomi_simple_x_index.cpp")
+dyn.load(dynlib("naomi_simple_x_index"))
+
 tmb_inputs <- prepare_tmb_inputs(naomi_data)
 tmb_inputs_simple <- local_exclude_inputs(tmb_inputs)
 
