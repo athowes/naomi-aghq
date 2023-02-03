@@ -163,3 +163,38 @@ end <- Sys.time()
 end - start
 
 marginals <- bind_rows(marginals)
+marginals
+
+#' How to sample from these marginals?
+compute_pdf_and_cdf <- function(nodes, lps) {
+  rn <- range(nodes)
+  rnl <- diff(rn)
+  min <- min(rn) - rnl / 2
+  max <- max(rn) + rnl / 2
+
+  ss <- splines::interpSpline(nodes, lps, bSpline = TRUE, sparse = TRUE)
+  interpolant <- function(x) { as.numeric(stats::predict(ss, x)$y) }
+
+  finegrid <- seq(min, max, length.out = 1000)
+
+  df <- data.frame(
+    x = finegrid,
+    pdf = exp(interpolant(finegrid)),
+    cdf = cumsum(exp(interpolant(finegrid))) * c(0, diff(finegrid))
+  )
+
+  return(df)
+}
+
+df <- compute_pdf_and_cdf(nodes, lps)
+
+sample_marginal <- function(df, M) {
+  M <- 1000
+  q <- stats::runif(M)
+  samples <- numeric(M)
+  for(i in 1:M) samples[i] <- df$x[max(which(df$cdf < q[i]))]
+  return(samples)
+}
+
+samples <- sample_marginal(df, M = 1000)
+samples
