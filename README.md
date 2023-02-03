@@ -8,8 +8,6 @@ We propose a new inference method which combines the simplified integrated neste
 Using data from Malawi, our method provides substantially more accurate inferences than the empirical Bayes Gaussian approximation approach used currently, and is comparable to Hamiltonian Monte Carlo with the No-U-Turn sampler.
 By extending the [`aghq`](https://github.com/awstringer1/aghq) package ([Stringer, 2021](https://arxiv.org/abs/2101.04468)) we facilitate flexible and easy use of our method when provided a [`TMB`](https://kaskr.github.io/adcomp/_book/Introduction.html) C++ template for the log-posterior.
 
-![Flowchart describing the algorithm (a work in progress!).](algorithm-flowchart.png)
-
 ## R package dependencies
 
 This repository is supported by the [`inf.utils`](https://github.com/athowes/inf.utils) package, which can be installed from Github via:
