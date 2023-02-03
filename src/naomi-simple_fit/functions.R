@@ -233,6 +233,7 @@ fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NU
   stopifnot(inherits(tmb_input, "naomi_tmb_input"))
   obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL)
   quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, k = 1)
+  quad$obj <- obj
 
   random <- obj$env$random
   x_names <- names(obj$env$par[random])
@@ -272,7 +273,12 @@ fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NU
   }
 
   out <- purrr::map(.x = 1:10, .f = .f)
-  out <- dplyr::bind_rows(out)
+
+  laplace_marginals <- purrr::map(.x = 1:10, .f = .f)
+  laplace_marginals <- dplyr::bind_rows(out)
+
+  out <- list("quad" = quad, "laplace_marginals" = laplace_marginals)
+  return(out)
 }
 
 #' Version of output_package() to extract only T1

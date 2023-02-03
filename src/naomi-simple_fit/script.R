@@ -139,6 +139,10 @@ if(aghq) {
 
 if(adam) {
   #' AGHQ with Laplace marginals here
+  adam <- fit_adam(tmb_inputs)
+
+  #' TODO
+  # adam <- sample_adam(adam)
 }
 
 if(tmbstan) {
