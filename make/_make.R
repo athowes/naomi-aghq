@@ -25,6 +25,10 @@ orderly::orderly_commit(id)
 id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 1, ndConstruction = "product"))
 orderly::orderly_commit(id)
 
+#' Simplfied Naomi with aghq, k = 1, and Laplace marginals (a.k.a. adam, for some reason)
+id <- orderly::orderly_run("naomi-simple_fit", parameters = list(adam = TRUE))
+orderly::orderly_commit(id)
+
 #' Simplfied Naomi with tmbstan, and niter = 1000
 id <- orderly::orderly_run("naomi-simple_fit", parameters = list(tmbstan = TRUE))
 orderly::orderly_commit(id)

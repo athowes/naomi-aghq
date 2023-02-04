@@ -138,11 +138,18 @@ if(aghq) {
 }
 
 if(adam) {
+  start <- Sys.time()
+
   #' AGHQ k = 1 with Laplace marginals here
   adam <- fit_adam(tmb_inputs)
 
   #' Add uncertainty
   adam <- sample_adam(adam, M = nsample)
+
+  end <- Sys.time()
+
+  out <- list(adam = adam, time = end - start)
+  saveRDS(out, "out.rds")
 }
 
 if(tmbstan) {

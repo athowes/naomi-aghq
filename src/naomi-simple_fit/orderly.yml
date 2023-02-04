@@ -45,6 +45,7 @@ parameters:
 
 resources:
   - naomi_simple.cpp
+  - naomi_simple_x_index.cpp
 
 packages:
   - dplyr
