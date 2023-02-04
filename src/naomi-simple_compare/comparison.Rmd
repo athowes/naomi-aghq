@@ -24,6 +24,7 @@ Import these inference results as follows:
 ```{r}
 tmb <- readRDS("depends/tmb.rds")
 aghq <- readRDS("depends/aghq.rds")
+adam <- readRDS("depends/adam.rds")
 tmbstan <- readRDS("depends/tmbstan.rds")
 ```
 
@@ -53,8 +54,11 @@ unique(names(tmb$fit$obj$env$par))
 data.frame(
   "TMB" = tmb$time,
   "aghq" = aghq$time,
+  "adam" = adam$time,
   "tmbstan" = tmbstan$time
 )
+
+adam <- adam$adam
 ```
 
 # Histogram
@@ -72,30 +76,61 @@ histogram_plot("beta_anc_rho")
 ## Individual parameters
 
 ```{r}
-ks_helper <- function(par) to_ks_df(par) %>% ks_plot(par = par)
+ks_helper <- function(par, ...) {
+  to_ks_df(par) %>% ks_plot(par, ...)
+}
 
 ks_helper("beta")
 ks_helper("logit")
 ks_helper("log_sigma")
 
 ks_helper("u_rho_x")
+ks_helper("u_rho_x", method1 = "TMB", method2 = "adam")
+
 ks_helper("u_rho_xs")
+ks_helper("u_rho_xs", method1 = "TMB", method2 = "adam")
+
 ks_helper("us_rho_x")
+ks_helper("us_rho_x", method1 = "TMB", method2 = "adam")
+
 ks_helper("us_rho_xs")
+ks_helper("us_rho_xs", method1 = "TMB", method2 = "adam")
+
 ks_helper("u_rho_a")
+ks_helper("u_rho_a", method1 = "TMB", method2 = "adam")
+
 ks_helper("u_rho_as")
+ks_helper("u_rho_as", method1 = "TMB", method2 = "adam")
 
 ks_helper("u_alpha_x")
+ks_helper("u_alpha_x", method1 = "TMB", method2 = "adam")
+
 ks_helper("u_alpha_xs")
+ks_helper("u_alpha_xs", method1 = "TMB", method2 = "adam")
+
 ks_helper("us_alpha_x")
+ks_helper("us_alpha_x", method1 = "TMB", method2 = "adam")
+
 ks_helper("us_alpha_xs")
+ks_helper("us_alpha_xs", method1 = "TMB", method2 = "adam")
+
 ks_helper("u_alpha_a")
+ks_helper("u_alpha_a", method1 = "TMB", method2 = "adam")
+
 ks_helper("u_alpha_as")
+ks_helper("u_alpha_as", method1 = "TMB", method2 = "adam")
+
 ks_helper("u_alpha_xa")
+ks_helper("u_alpha_xa", method1 = "TMB", method2 = "adam")
 
 ks_helper("ui_anc_rho_x")
+ks_helper("ui_anc_rho_x", method1 = "TMB", method2 = "adam")
+
 ks_helper("ui_anc_alpha_x")
+ks_helper("ui_anc_alpha_x", method1 = "TMB", method2 = "adam")
+
 ks_helper("log_or_gamma")
+ks_helper("log_or_gamma", method1 = "TMB", method2 = "adam")
 ```
 
 ## Summary table

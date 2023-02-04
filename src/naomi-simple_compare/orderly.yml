@@ -5,7 +5,7 @@ sources:
 
 artefacts:
   - data:
-      description: Notebook assessing if the MCMC converged
+      description: Notebook comparing inferences
       filenames:
         - comparison.html
   - data:
@@ -37,6 +37,10 @@ depends:
       id: latest(parameter:aghq == TRUE && parameter:k == 1)
       use:
         depends/aghq.rds: out.rds
+  - naomi-simple_fit:
+      id: latest(parameter:adam == TRUE)
+      use:
+        depends/adam.rds: out.rds
   - naomi-simple_fit:
       id: latest(parameter:tmbstan == TRUE)
       use:

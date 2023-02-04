@@ -1,4 +1,4 @@
-#' Create a facetted histogram plot of the named parameter using samples from each of the three methods
+#' Create a facetted histogram plot of the named parameter using samples from each of the four methods
 histogram_plot <- function(par, i = NULL, return_df = FALSE) {
   if(!is.null(i)) {
     par_name <- paste0(par, "[", i, "]")
@@ -6,6 +6,7 @@ histogram_plot <- function(par, i = NULL, return_df = FALSE) {
     df_compare <- rbind(
       data.frame(method = "TMB", samples = as.numeric(tmb$fit$sample[[par]][i, ])),
       data.frame(method = "aghq", samples = as.numeric(aghq$quad$sample[[par]][i, ])),
+      data.frame(method = "adam", samples = as.numeric(adam$sample[[par]][i, ])),
       data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(tmbstan$mcmc, pars = par)[[par]][, i])))
     )
   } else {
@@ -14,6 +15,7 @@ histogram_plot <- function(par, i = NULL, return_df = FALSE) {
     df_compare <- rbind(
       data.frame(method = "TMB", samples = as.numeric(tmb$fit$sample[[par]])),
       data.frame(method = "aghq", samples = as.numeric(aghq$quad$sample[[par]])),
+      data.frame(method = "adam", samples = as.numeric(adam$sample[[par]])),
       data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(tmbstan$mcmc, pars = par))))
     )
   }
@@ -45,7 +47,7 @@ histogram_plot <- function(par, i = NULL, return_df = FALSE) {
   }
 }
 
-#' Create a dataframe of samples from TMB, aghq and tmbstan for any parameters starting with par
+#' Create a dataframe of samples from TMB, aghq, adam and tmbstan for any parameters starting with par
 to_ks_df <- function(par) {
   all_par_names <- names(tmb$fit$obj$env$par)
   par_names <- all_par_names[stringr::str_starts(all_par_names, par)]
@@ -53,6 +55,9 @@ to_ks_df <- function(par) {
 
   samples_tmb <- tmb$fit$sample[unique_par_names]
   samples_tmb <- lapply(samples_tmb, function(x) as.data.frame(t(x)))
+
+  samples_adam <- adam$sample[unique_par_names]
+  samples_adam <- lapply(samples_adam, function(x) as.data.frame(t(x)))
 
   samples_aghq <- aghq$quad$sample[unique_par_names]
   samples_aghq <- lapply(samples_aghq, function(x) as.data.frame(t(x)))
@@ -71,32 +76,35 @@ to_ks_df <- function(par) {
     }
     colnames(samples_tmb[[par]]) <- par_colnames
     colnames(samples_aghq[[par]]) <- par_colnames
+    colnames(samples_adam[[par]]) <- par_colnames
     colnames(samples_tmbstan[[par]]) <- par_colnames
   }
 
   samples_tmb <- dplyr::bind_cols(samples_tmb)
   samples_aghq <- dplyr::bind_cols(samples_aghq)
+  samples_adam <- dplyr::bind_cols(samples_adam)
   samples_tmbstan <- dplyr::bind_cols(samples_tmbstan)
 
   n <- ncol(samples_tmbstan)
   ks_tmb <- numeric(n)
+  ks_adam <- numeric(n)
   ks_aghq <- numeric(n)
   for(i in 1:n) {
     ks_tmb[i] <- inf.utils::ks_test(samples_tmb[, i], samples_tmbstan[, i])$D
+    ks_adam[i] <- inf.utils::ks_test(samples_adam[, i], samples_tmbstan[, i])$D
     ks_aghq[i] <- inf.utils::ks_test(samples_aghq[, i], samples_tmbstan[, i])$D
   }
 
   rbind(
     data.frame(method = "TMB", ks = ks_tmb, par = names(samples_tmbstan), index = 1:n),
-    data.frame(method = "aghq", ks = ks_aghq, par = names(samples_tmbstan), index = 1:n)
+    data.frame(method = "aghq", ks = ks_aghq, par = names(samples_tmbstan), index = 1:n),
+    data.frame(method = "adam", ks = ks_adam, par = names(samples_tmbstan), index = 1:n)
   )
 }
 
-
-ks_plot <- function(ks_df, par) {
-  wide_ks_df <- pivot_wider(ks_df, names_from = "method", values_from = "ks") %>%
-    mutate(ks_diff = TMB - aghq)
-
+ks_plot <- function(ks_df, par, method1 = "TMB", method2 = "aghq") {
+  wide_ks_df <- pivot_wider(ks_df, names_from = "method", values_from = "ks")
+  wide_ks_df$ks_diff <- wide_ks_df[[method1]] - wide_ks_df[[method2]]
   mean_ks_diff <- mean(wide_ks_df$ks_diff)
 
   boxplot <- wide_ks_df %>%
@@ -105,22 +113,24 @@ ks_plot <- function(ks_df, par) {
     coord_flip() +
     labs(
       title = paste0("Mean KS difference is ", mean_ks_diff),
-      subtitle = ">0 then TMB more different to tmbstan, <0 then aghq more different",
-      x = "KS(TMB, tmbstan) - KS(aghq, tmbstan)"
+      subtitle = paste0(">0 then ", method1, " more different to tmbstan, <0 then ", method2, " more different"),
+      x = paste0("KS(", method1, ", tmbstan) - KS(", method2,", tmbstan)")
     ) +
     theme_minimal()
 
-  xy_length <- min(1, max(wide_ks_df$TMB, wide_ks_df$aghq) + 0.05)
+  xy_length <- min(1, max(wide_ks_df[[method1]], wide_ks_df[[method2]]) + 0.05)
 
-  scatterplot <- ggplot(wide_ks_df, aes(x = TMB, y = aghq)) +
+  scatterplot <- ggplot(wide_ks_df, aes(x = .data[[method1]], y = .data[[method2]])) +
     geom_point(alpha = 0.5) +
+    annotate(geom = "polygon", x = c(-Inf, Inf, Inf), y = c(-Inf, Inf, -Inf), fill = multi.utils::cbpalette()[3], alpha = 0.1) +
+    annotate(geom = "polygon", x = c(-Inf, Inf, -Inf), y = c(-Inf, Inf, Inf), fill = multi.utils::cbpalette()[5], alpha = 0.1) +
     xlim(0, xy_length) +
     ylim(0, xy_length) +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
     labs(
       title = paste0("KS tests for ", par, " of length ", max(ks_df$index)),
       subtitle = "Values along y = x have similar KS",
-      x = "KS(TMB, tmbstan)", y = "KS(aghq, tmbstan)"
+      x = paste0("KS(", method1, ", tmbstan)"), y = paste0("KS(", method2,", tmbstan)")
     ) +
     theme_minimal()
 
