@@ -37,7 +37,7 @@ affiliation:
     name: MRC Centre for Global Infectious Disease Analysis, School of Public Health, Imperial College London
     authorsLabels: e4
 abstract: |
-  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of policy interest, including HIV prevalence, HIV incidence and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. We propose a new inference method which combines the simplified integrated nested Laplace approximation approach of @wood2020simplified with adaptive Gauss-Hermite quadrature to enable fast and accurate inference for Naomi and other extended latent Gaussian models. Using data from Malawi, our method provides substantially more accurate inferences than the empirical Bayes Gaussian approximation approach which is currently in use, and is comparable to Hamiltonian Monte Carlo with the No-U-Turn sampler. By extending the \texttt{aghq} \textsc{R} package we facilitate flexible and easy use of our method when provided a \texttt{TMB} \textsf{C++} template for the model's log-posterior.
+  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of policy interest, including HIV prevalence, HIV incidence and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. Inference for Naomi is currently conducted using an empirical Bayes Gaussian approximation via Template Model Builder \texttt{TMB}. We propose a new inference method which combines the simplified integrated nested Laplace approximation approach of @wood2020simplified with adaptive Gauss-Hermite quadrature to enable fast and accurate inference for Naomi and other extended latent Gaussian models. Using data from Malawi, our method provides substantially more accurate inferences than default \texttt{TMB}, and is comparable to Hamiltonian Monte Carlo with the No-U-Turn sampler but substantially faster. By extending the \texttt{aghq} \textsc{R} package we facilitate flexible and easy use of our method when provided a \texttt{TMB} \textsf{C++} template for the model's log-posterior, enabling inference via integrated nested Laplace approximations for a larger class of models than was previously possible.
 keyword-subclass: | 
  \begin{keyword}[class=MSC2020] % It must be define for aap, aop, aos journals. For aoas, sts is not used
  \kwd[Primary ]{00X00}
@@ -61,6 +61,9 @@ output:
     includes:
       in_header: preamble.tex
 ---
+
+<!-- Most published papers will not exceed 20 pages -->
+<!-- We strongly encourage submission of data sets, computer algorithms and supporting material -->
 
 # Introduction
 
@@ -258,8 +261,6 @@ Given a \textsf{C++} user template `model.cpp` for the negative unnormalised log
 <!-- The above omiited "forward" algorithm section is written as you would do to calculate things in code. -->
 <!-- The "backward" algorithm section to follow is written as you would to have everything defined before it's used. -->
 
-## Algorithm\label{sec:algorithm}
-
 1. Calculate the mode, Hessian at the mode, and lower Cholesky
 \begin{align*}
 \hat{\btheta} &= \argmax_{\btheta} {\tilde p_\text{LA}(\btheta, \y)}, \\
@@ -277,18 +278,18 @@ where $\tilde p_\text{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \
 \end{align*}
 2. Generate a set of nodes $\z \in \mathcal{Q}(m, k)$ and weights $\omega: \z \in \mathcal{Q}(m, k) \to \mathbb{R}$ from a Gauss-Hermite quadrature rule with $m = \dim(\btheta)$, and $k$ nodes per dimension, which are then adapted based on the mode and lower Choleksy via $\btheta(\z) = \hat{\btheta} + \mathbf{L} \z$.
 We typically set $k = 3$ such that there are $3^m$ nodes in total.
-3. Use this quadrature rule to calculate $\tilde p_{\text{AQ}}(\y)$ as follows
+3. Use this quadrature rule to calculate the normalising constant $\tilde p_{\text{AQ}}(\y)$ as follows
 $$
 \tilde p_{\text{AQ}}(\y) = \sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\text{LA}(\btheta(\z), \y) \omega(\z).
 $$
-4. For $x_i \in \{\ldots\}$ and $\btheta \in \{ \btheta(\z) \}_{\z \in \mathcal{Q}(m, k)}$ calculate the modes and Hessians
+4. For $i = 1, \ldots, n$ generate a set of nodes $\mathcal{X}_i$ via a Gauss-Hermite quadrature rule in one-dimension adapted based on the mode $\hat \x(\btheta)_i$ and standard deviation $\sqrt{\text{diag}[\mathbf{H}(\btheta)^{-1}]_i}$ to evaluate each latent field marginal Laplace approximation at.
+5. For $x_i \in \mathcal{X}_i$ and $\btheta \in \{ \btheta(\z) \}_{\z \in \mathcal{Q}(m, k)}$ calculate the modes and Hessians
 \begin{align*}
 \hat \x_{-i}(x_i, \btheta) &= \argmin_{\x_{-i}} - \log p(\y, x_i, \x_{-i}, \btheta), \\
 \mathbf{H}_{-i, -i}(x_i, \btheta) &= \frac{\partial^2}{\partial \x_{-i} \partial \x_{-i}^\top} - \log p(\y, x_i, \x_{-i}, \btheta) \rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)},
 \end{align*}
 where optimisation to obtain $\hat \x_{-i}(x_i, \btheta)$ may be initialised at $\hat \x(\btheta)_{-i}$.
-
-5. For each $x_i$ calculate
+6. For $x_i \in \mathcal{X}_i$ calculate
 $$
 \tilde p_\text{AQ}(x_i \, | \, \y) = \frac{\tilde p_\text{LA}(x_i, \y)}{p_{\text{AQ}}(\y)}.
 $$
@@ -300,11 +301,13 @@ and
 $$
 \tilde p_\text{LA}(x_i, \btheta, \y) = \frac{p(x_i, \x_{-i}, \btheta, \y)}{\tilde p_\text{G}(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)}.
 $$
+7. Given $\{x_i, \tilde p_\text{AQ}(x_i \, | \, \y)\}_{x_i \in \mathcal{X}_i}$ create a spline interpolant to each posterior marginal on the log-scale, from which samples or relevant posterior summaries can be obtained.
 
 # Application to data from Malawi\label{sec:results}
 
 Using a single `TMB` template, we fit the simplified Naomi model to data from Malawi using four inferential approaches: (1) empirical Bayes combined with a Gaussian approximation, (2) AGHQ combined with a Gaussian approximation, (3) AGHQ combined with a Laplace approximation and (4) the Hamiltonian Monte Carlo (HMC) algorithm No-U-Turn Sampling (NUTS).
 The \textsc{R} [@r] code used to produce all results we describe is available at `github.com/athowes/elgm-inf`.
+We used `sf` [@pebesma2018sf] for handling of spatial data, `orderly` [@orderly] for reproducible research, `ggplot2` for data visualisation [@wickham2016ggplot2] and `rticles` [@allaire2022rticles] for reporting via `rmarkdown` [@allaire2022rmarkdown].
 
 \begin{table}[]
 \small
@@ -371,7 +374,7 @@ NUTS & 0 & 0 & 0 \\
 
 # Acknowledgements {-}
 
-AH was supported by the EPSRC Centre for Doctoral Training in Modern Statistics and Statistical Machine Learning (EP/S023151/1).
+AH was supported by the EPSRC Centre for Doctoral Training in Modern Statistics and Statistical Machine Learning (EP/S023151/1), and conducted part of this research while an International Visiting Graduate Student at the University of Waterloo (GRANT).
 AH and JWE were supported by the Bill and Melinda Gates Foundation (OPP1190661, OPP1164897).
 AS was supported by...
 SRF was supported by the EPSRC (EP/V002910/2).
