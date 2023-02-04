@@ -1,4 +1,12 @@
-#' Big in the sense of biting off more than I can chew
+#' This development script attempts to get AGHQ with Laplace marignals working
+#' for AGHQ k = 2 with sparse grid. It's big in the sense of biting off more than
+#' I can chew. The hypothetical culprit for what's going wrong wrong here is that
+#' the sparse weights, which sometimes are negative, are not suitable for reusing
+#' within the next integration. Possible next steps could be to confirm somehow
+#' that these sparse weights would cause a problem, or to try some alternative
+#' "sparse"-like grid integration strategies that do not produce negative weights.
+#' Possible "sparse"-like strategies include CCD and the adaptive choice of k by
+#' dimension idea that I had and started playing with in adaptive-k-dev.R
 
 #' Start of if(adam) loop
 
@@ -53,8 +61,8 @@ quad <- aghq(
 )
 
 #' Save environment here for safety / time saving
-save.image(file = "adam-laplace-dev-72.rdata")
-load(file = "adam-laplace-dev-72.rdata")
+save.image(file = "big-adam-laplace-dev-72.rdata")
+load(file = "big-adam-laplace-dev-72.rdata")
 
 distinctthetas <- quad$normalized_posterior$nodesandweights[, grep("theta", colnames(quad$normalized_posterior$nodesandweights))]
 

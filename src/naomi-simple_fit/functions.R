@@ -281,6 +281,11 @@ fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NU
   return(out)
 }
 
+#' Uncertainty for the Naomi model using adam
+sample_adam <- function(adam, M, verbose = TRUE) {
+  #' TODO
+}
+
 #' Version of output_package() to extract only T1
 local_output_package_naomi_simple <- function(naomi_fit, naomi_data, na.rm = FALSE) {
 

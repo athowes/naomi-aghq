@@ -1,3 +1,9 @@
+#' This development script is to explore the idea of using a different value of k
+#' for each hyperparameter to build a product grid which in the end is not prohibitively
+#' expensive. The first method I thought of to select the value of k for a particular
+#' dimension was based on the standard deviation of that hyperparameter when fitted
+#' with a cheaper model e.g. TMB empirical Bayes plus Gaussian approximation.
+
 #' Given TMB fit chose k for each dimension
 hypers <- names(fit$par)
 

@@ -1,4 +1,5 @@
-#' Work on concatenating all the latent field into one x
+#' Here I work on concatenating all the latent field into one x so that Laplace
+#' marginals can easily be obtained for for all i just by putting random = "x_minus_i"
 
 quad <- readRDS("depends/out.rds")$quad
 
