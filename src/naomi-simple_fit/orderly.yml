@@ -31,6 +31,9 @@ parameters:
   #' Thinning parameter for tmbstan
   nthin:
     default: 1
+  #' Run inference with new method under development? Yes or no
+  adam:
+    default: FALSE
   #' Number of samples to draw from the fitted model (not applicable to tmbstan)
   nsample:
     default: 1000

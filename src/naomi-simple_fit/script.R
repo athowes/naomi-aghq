@@ -1,9 +1,9 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(aghq = TRUE, area_level = 4))
+# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(adam = TRUE, area_level = 4))
 # setwd("src/naomi-simple_fit")
 
-if(tmb + aghq + tmbstan != 1) {
-  stop("Choose exactly one of TMB, ahgq, or tmbstan to run. Don't be greedy. I'll know.")
+if(tmb + aghq + adam + tmbstan != 1) {
+  stop("Choose exactly one of TMB, ahgq, adam, or tmbstan to run. Don't be greedy. I'll know.")
 }
 
 #' Obtain data
@@ -128,7 +128,7 @@ if(aghq) {
 
     #' Notes on sparse grid sizes and time taken:
     #' * k = 2 and ndConstruction = "sparse" is 49 points, and takes ~45 minutes
-    #' * k = 3 and ndConstruction = "sparse" it's 1225 points, and I haven't run yet
+    #' * k = 3 and ndConstruction = "sparse" it's 1225 points, and takes ~10 hours (on a cluster)
   }
 
   end <- Sys.time()
@@ -138,11 +138,11 @@ if(aghq) {
 }
 
 if(adam) {
-  #' AGHQ with Laplace marginals here
+  #' AGHQ k = 1 with Laplace marginals here
   adam <- fit_adam(tmb_inputs)
 
-  #' TODO
-  # adam <- sample_adam(adam)
+  #' Add uncertainty
+  adam <- sample_adam(adam, M = nsample)
 }
 
 if(tmbstan) {
