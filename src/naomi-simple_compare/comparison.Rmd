@@ -45,7 +45,7 @@ for(i in seq_along(depends)) {
 All of the possible parameter names are as follows:
 
 ```{r}
-unique(names(tmb$fit$obj$env$par))
+pars <- unique(names(tmb$fit$obj$env$par))
 ```
 
 # Time taken
@@ -61,111 +61,170 @@ data.frame(
 adam <- adam$adam
 ```
 
-# Histogram
+# Histograms {.tabset .tabset-fade}
 
 ```{r}
 beta_rho <- histogram_and_ecdf("beta_rho", i = 1, return_df = TRUE)
-beta_rho$plot
 saveRDS(beta_rho$df, "beta_rho.rds")
-
-histogram_and_ecdf("beta_anc_rho")
 ```
+
+## `beta`
 
 ```{r}
-par <- "beta_rho"
-i <- 1
-par_name <- paste0(par, "[", i, "]")
-
-df_compare <- rbind(
-  data.frame(method = "TMB", samples = as.numeric(tmb$fit$sample[[par]][i, ])),
-  data.frame(method = "aghq", samples = as.numeric(aghq$quad$sample[[par]][i, ])),
-  data.frame(method = "adam", samples = as.numeric(adam$sample[[par]][i, ])),
-  data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(tmbstan$mcmc, pars = par)[[par]][, i])))
-)
-
-grid <- seq(from = min(df_compare$samples), to = max(df_compare$samples), by = 0.1)
-
-tmb_ecdf <- stats::ecdf(filter(df_compare, method == "TMB") %>% pull(samples))
-tmb_ecdf_df <- data.frame(x = grid, ecdf = tmb_ecdf(grid), method = "TMB")
-
-aghq_ecdf <- stats::ecdf(filter(df_compare, method == "aghq") %>% pull(samples))
-aghq_ecdf_df <- data.frame(x = grid, ecdf = aghq_ecdf(grid), method = "aghq")
-
-adam_ecdf <- stats::ecdf(filter(df_compare, method == "adam") %>% pull(samples))
-adam_ecdf_df <- data.frame(x = grid, ecdf = adam_ecdf(grid), method = "adam")
- 
-tmbstan_ecdf <- stats::ecdf(filter(df_compare, method == "tmbstan") %>% pull(samples))
-tmbstan_ecdf_df <- data.frame(x = grid, ecdf = tmbstan_ecdf(grid), method = "tmbstan")
-
-bind_rows(tmb_ecdf_df, aghq_ecdf_df, adam_ecdf_df, tmbstan_ecdf_df) %>%
-  mutate(method = forcats::fct_relevel(method, levels = c("TMB", "aghq", "adam", "tmbstan"))) %>%
-  ggplot(aes(x = x, y = ecdf, col = method)) +
-    geom_line() +
-    scale_color_manual(values = multi.utils::cbpalette()) +
-    labs(x = "", y = "ECDF") +
-    theme_minimal()
-
+lapply(pars[stringr::str_starts(pars, "beta")], histogram_and_ecdf)
 ```
 
+## `logit`
 
-# KS
+```{r}
+lapply(pars[stringr::str_starts(pars, "logit")], histogram_and_ecdf)
+```
 
-## Individual parameters
+## `log_sigma`
+
+```{r}
+lapply(pars[stringr::str_starts(pars, "log_sigma")], histogram_and_ecdf)
+```
+
+# KS plots 
+
+## Individual parameters {.tabset .tabset-fade}
 
 ```{r}
 ks_helper <- function(par, ...) {
   to_ks_df(par) %>% ks_plot(par, ...)
 }
+```
 
+### `beta`
+
+```{r}
 ks_helper("beta")
-ks_helper("logit")
-ks_helper("log_sigma")
+ks_helper("beta", method1 = "TMB", method2 = "adam")
+```
 
+### `logit`
+
+```{r}
+ks_helper("logit")
+ks_helper("logit", method1 = "TMB", method2 = "adam")
+```
+
+### `log_sigma`
+
+```{r}
+ks_helper("log_sigma")
+ks_helper("log_sigma", method1 = "TMB", method2 = "adam")
+```
+
+### `u_rho_x`
+
+```{r}
 ks_helper("u_rho_x")
 ks_helper("u_rho_x", method1 = "TMB", method2 = "adam")
+```
 
+### `u_rho_xs`
+
+```{r}
 ks_helper("u_rho_xs")
 ks_helper("u_rho_xs", method1 = "TMB", method2 = "adam")
+```
 
+### `us_rho_x`
+
+```{r}
 ks_helper("us_rho_x")
 ks_helper("us_rho_x", method1 = "TMB", method2 = "adam")
+```
 
+### `us_rho_xs`
+
+```{r}
 ks_helper("us_rho_xs")
 ks_helper("us_rho_xs", method1 = "TMB", method2 = "adam")
+```
 
+### `u_rho_a`
+
+```{r}
 ks_helper("u_rho_a")
 ks_helper("u_rho_a", method1 = "TMB", method2 = "adam")
+```
 
+### `u_rho_as`
+
+```{r}
 ks_helper("u_rho_as")
 ks_helper("u_rho_as", method1 = "TMB", method2 = "adam")
+```
 
+### `u_alpha_x`
+
+```{r}
 ks_helper("u_alpha_x")
 ks_helper("u_alpha_x", method1 = "TMB", method2 = "adam")
+```
 
+### `u_alpha_xs`
+
+```{r}
 ks_helper("u_alpha_xs")
 ks_helper("u_alpha_xs", method1 = "TMB", method2 = "adam")
+```
 
+### `us_alpha_x`
+
+```{r}
 ks_helper("us_alpha_x")
 ks_helper("us_alpha_x", method1 = "TMB", method2 = "adam")
+```
 
+### `us_alpha_xs`
+
+```{r}
 ks_helper("us_alpha_xs")
 ks_helper("us_alpha_xs", method1 = "TMB", method2 = "adam")
+```
 
+### `u_alpha_a`
+
+```{r}
 ks_helper("u_alpha_a")
 ks_helper("u_alpha_a", method1 = "TMB", method2 = "adam")
+```
 
+### `u_alpha_as`
+
+```{r}
 ks_helper("u_alpha_as")
 ks_helper("u_alpha_as", method1 = "TMB", method2 = "adam")
+```
 
+### `u_alpha_xa`
+
+```{r}
 ks_helper("u_alpha_xa")
 ks_helper("u_alpha_xa", method1 = "TMB", method2 = "adam")
+```
 
+### `ui_anc_rho_x`
+
+```{r}
 ks_helper("ui_anc_rho_x")
 ks_helper("ui_anc_rho_x", method1 = "TMB", method2 = "adam")
+```
 
+### `ui_anc_alpha_x`
+
+```{r}
 ks_helper("ui_anc_alpha_x")
 ks_helper("ui_anc_alpha_x", method1 = "TMB", method2 = "adam")
+```
 
+### `log_or_gamma`
+
+```{r}
 ks_helper("log_or_gamma")
 ks_helper("log_or_gamma", method1 = "TMB", method2 = "adam")
 ```
@@ -182,6 +241,7 @@ ks_summary <- lapply(unique(names(tmb$fit$obj$env$par)), function(x) {
   pivot_wider(names_from = "method", values_from = "ks") %>%
   rename(
     "Parameter" = "par",
+    "KS(adam, tmbstan)" = "adam",
     "KS(aghq, tmbstan)" = "aghq",
     "KS(TMB, tmbstan)" = "TMB",
   )
@@ -218,12 +278,6 @@ The following parameters have KS values greater than 0.5 in both dimensions.
 (big_ks <- ks_summary %>%
   filter(`KS(aghq, tmbstan)` + `KS(TMB, tmbstan)` > 0.5) %>%
   pull(Parameter))
-```
-
-Let's look into this further by plotting the histograms:
-
-```{r}
-lapply(big_ks, histogram_plot)
 ```
 
 # MMD

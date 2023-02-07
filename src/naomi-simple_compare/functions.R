@@ -21,7 +21,7 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
     )
   }
 
-  df_compare <- mutate(df_compare, method = forcats::fct_relevel(method, levels = c("TMB", "aghq", "adam", "tmbstan")))
+  df_compare$method <- factor(df_compare$method, levels = c("TMB", "aghq", "adam", "tmbstan"))
 
   mean <- df_compare %>%
     filter(method == "tmbstan") %>%
@@ -45,6 +45,8 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
     theme(legend.position = "none") +
     labs(title = par_name, subtitle = paste0("Mean = ", mean, ", SD = ", sd, " (from tmbstan)"))
 
+  grid <- seq(from = min(df_compare$samples), to = max(df_compare$samples), length.out = 1000)
+
   tmb_ecdf <- stats::ecdf(filter(df_compare, method == "TMB") %>% pull(samples))
   tmb_ecdf_df <- data.frame(x = grid, ecdf = tmb_ecdf(grid), method = "TMB")
 
@@ -57,9 +59,11 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
   tmbstan_ecdf <- stats::ecdf(filter(df_compare, method == "tmbstan") %>% pull(samples))
   tmbstan_ecdf_df <- data.frame(x = grid, ecdf = tmbstan_ecdf(grid), method = "tmbstan")
 
-  ecdf_plot <- bind_rows(tmb_ecdf_df, aghq_ecdf_df, adam_ecdf_df, tmbstan_ecdf_df) %>%
-    mutate(method = forcats::fct_relevel(method, levels = c("TMB", "aghq", "adam", "tmbstan"))) %>%
-    ggplot(aes(x = x, y = ecdf, col = method)) +
+  ecdf_df <- bind_rows(tmb_ecdf_df, aghq_ecdf_df, adam_ecdf_df, tmbstan_ecdf_df)
+
+  ecdf_df$method <- factor(ecdf_df$method, levels = c("TMB", "aghq", "adam", "tmbstan"))
+
+  ecdf_plot <- ggplot(ecdf_df, aes(x = x, y = ecdf, col = method)) +
     geom_line() +
     scale_color_manual(values = multi.utils::cbpalette()) +
     labs(x = "", y = "ECDF") +
@@ -70,6 +74,8 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
 
   if(return_df) {
     return(list(plot = plot, df = df_compare))
+  } else {
+    plot
   }
 }
 
