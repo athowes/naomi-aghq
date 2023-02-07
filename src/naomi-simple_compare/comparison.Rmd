@@ -86,6 +86,109 @@ lapply(pars[stringr::str_starts(pars, "logit")], histogram_and_ecdf)
 lapply(pars[stringr::str_starts(pars, "log_sigma")], histogram_and_ecdf)
 ```
 
+## `u_rho_x`
+
+```{r}
+histogram_and_ecdf_helper <- function(par) lapply(1:sum(names(tmb$fit$obj$env$par) == par), histogram_and_ecdf, par = par)
+histogram_and_ecdf_helper("u_rho_x")
+```
+
+## `u_rho_x`
+
+```{r}
+histogram_and_ecdf_helper("u_rho_x")
+```
+
+## `us_rho_x`
+
+```{r}
+histogram_and_ecdf_helper("us_rho_x")
+```
+
+## `u_rho_xs`
+
+```{r}
+histogram_and_ecdf_helper("u_rho_xs")
+```
+
+## `us_rho_xs`
+
+```{r}
+histogram_and_ecdf_helper("us_rho_xs")
+```
+
+## `u_rho_as`
+
+```{r}
+histogram_and_ecdf_helper("u_rho_as")
+```
+
+## `u_alpha_x`
+
+```{r}
+histogram_and_ecdf_helper("u_alpha_x")
+```
+
+## `us_alpha_x`
+
+```{r}
+histogram_and_ecdf_helper("us_alpha_x")
+```
+
+## `u_alpha_xs`
+
+```{r}
+histogram_and_ecdf_helper("u_alpha_xs")
+```
+
+## `us_alpha_xs`
+
+```{r}
+histogram_and_ecdf_helper("us_alpha_xs")
+```
+
+## `u_alpha_a`
+
+```{r}
+histogram_and_ecdf_helper("u_alpha_a")
+```
+
+## `u_alpha_as`
+
+```{r}
+histogram_and_ecdf_helper("u_alpha_as")
+```
+
+## `u_alpha_xa`
+
+```{r}
+histogram_and_ecdf_helper("u_alpha_xa")
+```
+
+## `ui_lambda_x`
+
+```{r}
+histogram_and_ecdf_helper("ui_lambda_x")
+```
+
+## `ui_anc_rho_x`
+
+```{r}
+histogram_and_ecdf_helper("ui_anc_rho_x")
+```
+
+## `ui_anc_alpha_x`
+
+```{r}
+histogram_and_ecdf_helper("ui_anc_alpha_x")
+```
+
+## `log_or_gamma`
+
+```{r}
+histogram_and_ecdf_helper("log_or_gamma")
+```
+
 # KS plots 
 
 ## Individual parameters {.tabset .tabset-fade}
