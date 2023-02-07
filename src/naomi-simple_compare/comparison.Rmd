@@ -64,12 +64,49 @@ adam <- adam$adam
 # Histogram
 
 ```{r}
-beta_rho <- histogram_plot("beta_rho", i = 1, return_df = TRUE)
+beta_rho <- histogram_and_ecdf("beta_rho", i = 1, return_df = TRUE)
 beta_rho$plot
 saveRDS(beta_rho$df, "beta_rho.rds")
 
-histogram_plot("beta_anc_rho")
+histogram_and_ecdf("beta_anc_rho")
 ```
+
+```{r}
+par <- "beta_rho"
+i <- 1
+par_name <- paste0(par, "[", i, "]")
+
+df_compare <- rbind(
+  data.frame(method = "TMB", samples = as.numeric(tmb$fit$sample[[par]][i, ])),
+  data.frame(method = "aghq", samples = as.numeric(aghq$quad$sample[[par]][i, ])),
+  data.frame(method = "adam", samples = as.numeric(adam$sample[[par]][i, ])),
+  data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(tmbstan$mcmc, pars = par)[[par]][, i])))
+)
+
+grid <- seq(from = min(df_compare$samples), to = max(df_compare$samples), by = 0.1)
+
+tmb_ecdf <- stats::ecdf(filter(df_compare, method == "TMB") %>% pull(samples))
+tmb_ecdf_df <- data.frame(x = grid, ecdf = tmb_ecdf(grid), method = "TMB")
+
+aghq_ecdf <- stats::ecdf(filter(df_compare, method == "aghq") %>% pull(samples))
+aghq_ecdf_df <- data.frame(x = grid, ecdf = aghq_ecdf(grid), method = "aghq")
+
+adam_ecdf <- stats::ecdf(filter(df_compare, method == "adam") %>% pull(samples))
+adam_ecdf_df <- data.frame(x = grid, ecdf = adam_ecdf(grid), method = "adam")
+ 
+tmbstan_ecdf <- stats::ecdf(filter(df_compare, method == "tmbstan") %>% pull(samples))
+tmbstan_ecdf_df <- data.frame(x = grid, ecdf = tmbstan_ecdf(grid), method = "tmbstan")
+
+bind_rows(tmb_ecdf_df, aghq_ecdf_df, adam_ecdf_df, tmbstan_ecdf_df) %>%
+  mutate(method = forcats::fct_relevel(method, levels = c("TMB", "aghq", "adam", "tmbstan"))) %>%
+  ggplot(aes(x = x, y = ecdf, col = method)) +
+    geom_line() +
+    scale_color_manual(values = multi.utils::cbpalette()) +
+    labs(x = "", y = "ECDF") +
+    theme_minimal()
+
+```
+
 
 # KS
 

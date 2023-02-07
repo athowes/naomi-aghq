@@ -1,5 +1,6 @@
 #' Create a facetted histogram plot of the named parameter using samples from each of the four methods
-histogram_plot <- function(par, i = NULL, return_df = FALSE) {
+#' As well as an ECDF plot
+histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
   if(!is.null(i)) {
     par_name <- paste0(par, "[", i, "]")
 
@@ -20,6 +21,8 @@ histogram_plot <- function(par, i = NULL, return_df = FALSE) {
     )
   }
 
+  df_compare <- mutate(df_compare, method = forcats::fct_relevel(method, levels = c("TMB", "aghq", "adam", "tmbstan")))
+
   mean <- df_compare %>%
     filter(method == "tmbstan") %>%
     summarise(mean = mean(samples)) %>%
@@ -32,7 +35,7 @@ histogram_plot <- function(par, i = NULL, return_df = FALSE) {
     pull(sd) %>%
     round(digits = 3)
 
-  plot <- ggplot(df_compare, aes(x = samples, fill = method, col = method)) +
+  histogram_plot <- ggplot(df_compare, aes(x = samples, fill = method, col = method)) +
     geom_histogram(aes(y = after_stat(density)), alpha = 0.5, position = "identity", bins = 30) +
     theme_minimal() +
     facet_grid(method~.) +
@@ -41,6 +44,29 @@ histogram_plot <- function(par, i = NULL, return_df = FALSE) {
     scale_fill_manual(values = multi.utils::cbpalette()) +
     theme(legend.position = "none") +
     labs(title = par_name, subtitle = paste0("Mean = ", mean, ", SD = ", sd, " (from tmbstan)"))
+
+  tmb_ecdf <- stats::ecdf(filter(df_compare, method == "TMB") %>% pull(samples))
+  tmb_ecdf_df <- data.frame(x = grid, ecdf = tmb_ecdf(grid), method = "TMB")
+
+  aghq_ecdf <- stats::ecdf(filter(df_compare, method == "aghq") %>% pull(samples))
+  aghq_ecdf_df <- data.frame(x = grid, ecdf = aghq_ecdf(grid), method = "aghq")
+
+  adam_ecdf <- stats::ecdf(filter(df_compare, method == "adam") %>% pull(samples))
+  adam_ecdf_df <- data.frame(x = grid, ecdf = adam_ecdf(grid), method = "adam")
+
+  tmbstan_ecdf <- stats::ecdf(filter(df_compare, method == "tmbstan") %>% pull(samples))
+  tmbstan_ecdf_df <- data.frame(x = grid, ecdf = tmbstan_ecdf(grid), method = "tmbstan")
+
+  ecdf_plot <- bind_rows(tmb_ecdf_df, aghq_ecdf_df, adam_ecdf_df, tmbstan_ecdf_df) %>%
+    mutate(method = forcats::fct_relevel(method, levels = c("TMB", "aghq", "adam", "tmbstan"))) %>%
+    ggplot(aes(x = x, y = ecdf, col = method)) +
+    geom_line() +
+    scale_color_manual(values = multi.utils::cbpalette()) +
+    labs(x = "", y = "ECDF") +
+    guides(col = "none") +
+    theme_minimal()
+
+  plot <- cowplot::plot_grid(histogram_plot, ecdf_plot, rel_widths = c(0.5, 0.5))
 
   if(return_df) {
     return(list(plot = plot, df = df_compare))
