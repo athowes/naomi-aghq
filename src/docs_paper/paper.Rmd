@@ -214,7 +214,7 @@ Extended latent Gaussian models (ELGMs) [@stringer2022fast] relax the restrictio
 Instead, the structured additive predictor is redefined as $\bmeta = (\eta)_{i \in [N_n]}$, where $N_n \in \mathbb{N}$ depends on, but may not be equal to, $n$.
 Each mean response $\mu_i$ now depends on some subset $\mathcal{J}_i \subseteq [N_n]$ of indices of $\bmeta$, with $\cup_{i = 1}^n \mathcal{J}_i = [N_n]$ and $1 \leq |\mathcal{J}_i| \leq N_n$.
 The inverse link function $g(\cdot)$ is redefined for each observation to be a possibly many-to-one mapping $g_i: \mathbb{R}^{|\mathcal{J}_i|} \to \mathbb{R}$, such that $\mu_i = g_i(\bmeta_{\mathcal{J}_i})$.
-Importantly, this allows for the presence of more non-linearity in the model than is allowed in LGMs.
+Importantly, this allows for the presence of more non-linearity.
 ELGMs are then of the form
 \begin{align*}
 y_i &\sim p(y_i \, | \, \bmeta_{\mathcal{J}_i}, \btheta_1), \quad i \in [n] \\
@@ -222,7 +222,14 @@ y_i &\sim p(y_i \, | \, \bmeta_{\mathcal{J}_i}, \btheta_1), \quad i \in [n] \\
 \eta_j &= \beta_0 + \sum_{l = 1}^{p} \beta_j z_{ji} + \sum_{k = 1}^{r} f_k(u_{ki}), \quad j \in [N_n].
 \end{align*}
 
-The Naomi model falls into the ELGM class as follows.
+Naomi is not an LGM, and instead falls into the ELGM class, for the following reasons:
+
+1. In the household survey component, the HIV incidence rate depends on the HIV prevalence and ART coverage linear predictors.
+2. In the ANC testing component, the HIV prevalence and ART coverage depend upon the household survey component.
+Specifically, $|\mathcal{J}_i| = 2$ such that for $\theta \in \{\rho, \alpha\}$ then
+$$
+\mu_i = g_i(\eta^\theta_i, \eta^{\theta^{\text{ANC}}}_i) = \text{logit}^{-1}(\eta^\theta_i + \eta^{\theta^{\text{ANC}}}_i)
+$$
 
 # Fast approximate inference methods\label{sec:fastinferencemethods}
 
