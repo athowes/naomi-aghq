@@ -284,8 +284,9 @@ fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NU
 sample_adam <- function(adam, M, verbose = TRUE) {
   if (verbose) print("Sampling from adam")
   r <- adam$quad$obj$env$random
-  d <- length(random)
-  x_names <- names(adam$quad$obj$env$par[random])
+  d <- length(r)
+  x_names <- names(adam$quad$obj$env$par[r])
+  theta_names <- names(adam$quad$obj$env$par[-r])
   samps <- matrix(data = NA, nrow = d, ncol = M)
   rownames(samps) <- x_names
 
@@ -304,10 +305,12 @@ sample_adam <- function(adam, M, verbose = TRUE) {
   for(j in 1:length(adam$quad$marginals)) {
     marginal <- adam$quad$marginals[[j]]
     colnames(marginal)[grep("theta", colnames(marginal))] <- "theta"
-    pdf_and_cdf <- compute_pdf_and_cdf(marginal$theta, marginal$logmargpost)
+    # Don't normalise because maybe just one point
+    pdf_and_cdf <- compute_pdf_and_cdf(marginal$theta, marginal$logmargpost, normalise = FALSE)
     thetasamples[[j]] <- unname(sample_cdf(pdf_and_cdf, M = M))
   }
 
+  samp <- list()
   samp$samps <- samps
   samp$thetasamples <- thetasamples
 
@@ -315,11 +318,11 @@ sample_adam <- function(adam, M, verbose = TRUE) {
   if (verbose) print("Rearranging samples")
   smp <- matrix(0, M, length(adam$quad$obj$env$par))
   smp[, r] <- unname(t(samp$samps))
-  names(samp$thetasamples) <- names(samp$theta)
+  names(samp$thetasamples) <- theta_names
   smp[, -r] <- unname(as.matrix(bind_rows(samp$thetasamples)))
   smp <- as.data.frame(smp)
-  colnames(smp)[r] <- rownames(samp$samps)
-  colnames(smp)[-r] <- names(samp$thetasamples)
+  colnames(smp)[r] <- x_names
+  colnames(smp)[-r] <- theta_names
 
   # This part is the same as TMB
   if (verbose) print("Simulating from model")
@@ -591,7 +594,14 @@ plot_marginal_spline <- function(nodes, lps, lower = -5, upper = 5) {
     labs(x = "x", y = "Posterior")
 }
 
-compute_pdf_and_cdf <- function(nodes, lps, method = "auto") {
+trapezoid_rule_log <- function(x, spacing) {
+  w <- rep(spacing, length(x))
+  w[1] <- w[1] / 2
+  w[length(x)] <- w[length(x)] / 2
+  matrixStats::logSumExp(log(w) + x)
+}
+
+compute_pdf_and_cdf <- function(nodes, lps, method = "auto", normalise = TRUE) {
   k <- length(nodes)
   if(k >= 4) method <- "spline"
   if(k < 4) method <- "polynomial"
@@ -610,12 +620,19 @@ compute_pdf_and_cdf <- function(nodes, lps, method = "auto") {
     interpolant <- as.function(polynom::poly.calc(x = nodes, y = lps))
   }
 
-  finegrid <- seq(from = min, to = max, length.out = 1000)
+  finegrid <- seq(min, max, length.out = 1000)
+  lps <- interpolant(finegrid)
+
+  if(normalise) {
+    #' Make sure that the log probabilities produce a normalised PDF
+    logC <- trapezoid_rule_log(lps, spacing = finegrid[2] - finegrid[1])
+    lps <- lps - logC
+  }
 
   df <- data.frame(
     x = finegrid,
-    pdf = exp(interpolant(finegrid)),
-    cdf = cumsum(exp(interpolant(finegrid))) * c(0, diff(finegrid))
+    pdf = exp(lps),
+    cdf = cumsum(exp(lps)) * c(0, diff(finegrid))
   )
 
   return(df)
