@@ -18,7 +18,7 @@ abstract: |
 
 # Background
 
-We compare the inference results from `TMB`, `aghq` and `tmbstan`.
+We compare the inference results from `TMB`, `aghq`, `adam`, and `tmbstan`.
 Import these inference results as follows:
 
 ```{r}
@@ -68,10 +68,35 @@ beta_rho <- histogram_and_ecdf("beta_rho", i = 1, return_df = TRUE)
 saveRDS(beta_rho$df, "beta_rho.rds")
 ```
 
-## `beta`
+## `beta_rho`
 
 ```{r}
-lapply(pars[stringr::str_starts(pars, "beta")], histogram_and_ecdf)
+histogram_and_ecdf_helper <- function(par) lapply(1:sum(names(tmb$fit$obj$env$par) == par), histogram_and_ecdf, par = par)
+histogram_and_ecdf_helper("beta_rho")
+```
+
+## `beta_alpha`
+
+```{r}
+histogram_and_ecdf_helper("beta_alpha")
+```
+
+## `beta_lambda`
+
+```{r}
+histogram_and_ecdf_helper("beta_lambda")
+```
+
+## `beta_anc_rho`
+
+```{r}
+histogram_and_ecdf("beta_anc_rho")
+```
+
+## `beta_anc_alpha`
+
+```{r}
+histogram_and_ecdf("beta_anc_alpha")
 ```
 
 ## `logit`
@@ -89,7 +114,6 @@ lapply(pars[stringr::str_starts(pars, "log_sigma")], histogram_and_ecdf)
 ## `u_rho_x`
 
 ```{r}
-histogram_and_ecdf_helper <- function(par) lapply(1:sum(names(tmb$fit$obj$env$par) == par), histogram_and_ecdf, par = par)
 histogram_and_ecdf_helper("u_rho_x")
 ```
 
