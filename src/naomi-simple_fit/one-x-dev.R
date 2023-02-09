@@ -166,6 +166,13 @@ end - start
 marginals <- bind_rows(marginals)
 marginals
 
+trapezoid_rule_log <- function(x, spacing) {
+  w <- rep(spacing, length(x))
+  w[1] <- w[1] / 2
+  w[length(x)] <- w[length(x)] / 2
+  matrixStats::logSumExp(log(w) + x)
+}
+
 #' How to sample from these marginals?
 compute_pdf_and_cdf <- function(nodes, lps) {
   rn <- range(nodes)
@@ -177,11 +184,14 @@ compute_pdf_and_cdf <- function(nodes, lps) {
   interpolant <- function(x) { as.numeric(stats::predict(ss, x)$y) }
 
   finegrid <- seq(min, max, length.out = 1000)
+  lps <- interpolant(finegrid)
+  logC <- trapezoid_rule_log(lps, spacing = finegrid[2] - finegrid[1])
+  lps <- lps - logC
 
   df <- data.frame(
     x = finegrid,
-    pdf = exp(interpolant(finegrid)),
-    cdf = cumsum(exp(interpolant(finegrid))) * c(0, diff(finegrid))
+    pdf = exp(lps),
+    cdf = cumsum(exp(lps)) * c(0, diff(finegrid))
   )
 
   return(df)
