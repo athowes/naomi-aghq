@@ -30,7 +30,7 @@ tmb_inputs_simple_i$par_init[unique(xnames)] <- NULL
 x_starts <- cumsum(x_lengths) - x_lengths
 tmb_inputs_simple_i$data$x_lengths <- as.numeric(x_lengths)
 tmb_inputs_simple_i$data$x_starts <- as.numeric(x_starts)
-tmb_inputs_simple_i$data$i <- 1
+tmb_inputs_simple_i$data$i <- 7 #' "beta_anc_rho"
 
 #' Change the DLL to the x_index version
 DLL <- "naomi_simple_x_index"
@@ -198,4 +198,26 @@ sample_marginal <- function(df, M) {
 }
 
 samples <- sample_marginal(df, M = 1000)
-samples
+plot(samples)
+
+df <- df %>% mutate(col = pdf > 0.5)
+
+ggplot(df, aes(x = x, y = pdf, col = col)) +
+  geom_point() +
+  theme_minimal() +
+  labs(y = "PDF", col = "")
+
+x_max <- df %>%
+  filter(col) %>%
+  pull(x) %>%
+  max()
+
+x_min <- df %>%
+  filter(col) %>%
+  pull(x) %>%
+  min()
+
+sum(samples > x_max)
+sum(samples < x_min)
+
+max(df$cdf)
