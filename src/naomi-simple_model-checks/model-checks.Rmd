@@ -52,3 +52,22 @@ Next steps here are:
 * Add column to `indicators` with the quantile of the raw value within samples from the posterior
 * Start outputting `tmb$outputs` for the other inference methods
 * Use existing or own functions to produce coverage histograms and ECDF difference plots
+
+Discussion talking to Rachel:
+
+* Can use samples from `tmb$fit$sample`
+* Issue about one survey or two. Inclusion of two for the Malawi demo is more of a special case
+
+Have the following samples from `rho_t1_out`:
+
+```{r}
+str(tmb$fit$sample$rho_t1_out)
+```
+
+Want to somehow line these up with the data from `tmb$outputs$inputs_outputs` or `tmb$outputs$indicators`.
+Should be looking for some kind of `mf_out` object:
+
+```{r}
+str(tmb$outputs$fit)
+```
+
