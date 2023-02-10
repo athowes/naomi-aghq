@@ -70,7 +70,7 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
     guides(col = "none") +
     theme_minimal()
 
-  plot <- cowplot::plot_grid(histogram_plot, ecdf_plot, rel_widths = c(0.5, 0.5))
+  plot <- histogram_plot + ecdf_plot
 
   if(return_df) {
     return(list(plot = plot, df = df_compare))
@@ -139,14 +139,13 @@ ks_plot <- function(ks_df, par, method1 = "TMB", method2 = "aghq") {
   wide_ks_df$ks_diff <- wide_ks_df[[method1]] - wide_ks_df[[method2]]
   mean_ks_diff <- mean(wide_ks_df$ks_diff)
 
-  boxplot <- wide_ks_df %>%
-    ggplot(aes(x = ks_diff)) +
-    geom_boxplot(width = 0.5) +
-    coord_flip() +
+  jitterplot <- wide_ks_df %>%
+    ggplot(aes(x = "", y = ks_diff)) +
+    geom_jitter(width = 0.1, alpha = 0.5) +
     labs(
       title = paste0("Mean KS difference is ", mean_ks_diff),
       subtitle = paste0(">0 then ", method1, " more different to tmbstan, <0 then ", method2, " more different"),
-      x = paste0("KS(", method1, ", tmbstan) - KS(", method2,", tmbstan)")
+      x = "", y = paste0("KS(", method1, ", tmbstan) - KS(", method2,", tmbstan)")
     ) +
     theme_minimal()
 
@@ -166,5 +165,5 @@ ks_plot <- function(ks_df, par, method1 = "TMB", method2 = "aghq") {
     ) +
     theme_minimal()
 
-  cowplot::plot_grid(scatterplot, boxplot, ncol = 2, rel_widths = c(1.3, 1))
+  scatterplot + jitterplot
 }

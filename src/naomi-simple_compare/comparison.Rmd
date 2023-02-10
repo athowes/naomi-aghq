@@ -380,21 +380,63 @@ ks_summary %>%
     decimals = 3
   )
 
-ggplot(ks_summary, aes(x = `KS(TMB, tmbstan)`, y = `KS(aghq, tmbstan)`)) +
-  geom_point(alpha = 0.5) +
-  xlim(0, 1) +
-  ylim(0, 1) +
-  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
-  labs(x = "KS(TMB, tmbstan)", y = "KS(aghq, tmbstan)") +
-  theme_minimal() 
+r <- adam$quad$obj$env$random
+x_names <- names(adam$quad$obj$env$par[r])
+theta_names <- names(adam$quad$obj$env$par[-r])
 
-ks_summary %>%
-  mutate(`KS difference` = `KS(TMB, tmbstan)` - `KS(aghq, tmbstan)`) %>%
-  ggplot(aes(x = `KS difference`)) +
-    geom_boxplot(width = 0.5) +
-    coord_flip() +
-    labs(x = "KS(TMB, tmbstan) - KS(aghq, tmbstan)") +
+dict <- data.frame(
+  Parameter = c(x_names, theta_names),
+  Type = c(rep("Latent field", length(x_names)), rep("Hyperparameters", length(theta_names)))
+)
+
+ks_summary <- ks_summary %>%
+  left_join(dict, by = "Parameter")
+
+summary_ks_plot <- function(ks_summary, method1, method2) {
+  ks_method1 <- paste0("KS(", method1, ", tmbstan)")
+  ks_method2 <- paste0("KS(", method2, ", tmbstan)")
+  
+  scatterplot <- ggplot(ks_summary, aes(x = .data[[ks_method1]], y = .data[[ks_method2]])) +
+    geom_point(alpha = 0.2) +
+    annotate(geom = "polygon", x = c(-Inf, Inf, Inf), y = c(-Inf, Inf, -Inf), fill = multi.utils::cbpalette()[3], alpha = 0.1) +
+    annotate(geom = "polygon", x = c(-Inf, Inf, -Inf), y = c(-Inf, Inf, Inf), fill = multi.utils::cbpalette()[5], alpha = 0.1) +
+    xlim(0, 1) +
+    ylim(0, 1) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+    labs(x = ks_method1, y = ks_method2) +
+    theme_minimal() 
+
+  ks_summary[["KS difference"]] <- ks_summary[[ks_method1]] - ks_summary[[ks_method2]]
+  
+  jitterplot <- ggplot(ks_summary, aes(x = Type, y = `KS difference`)) +
+    geom_jitter(width = 0.1, alpha = 0.2) +
+    labs(x = "", y = paste0(ks_method1, " - ", ks_method2)) +
     theme_minimal()
+
+  scatterplot + jitterplot
+}
+
+summary_ks_plot(ks_summary, "TMB", "aghq")
+summary_ks_plot(ks_summary, "TMB", "adam")
+summary_ks_plot(ks_summary, "aghq", "adam")
+
+(ks_summary_out <- ks_summary %>%
+  group_by(Type) %>%
+  summarise(
+    TMB = mean(`KS(TMB, tmbstan)`),
+    aghq = mean(`KS(aghq, tmbstan)`),
+    adam = mean(`KS(adam, tmbstan)`)
+  ))
+```
+
+Save some things for output:
+
+```{r}
+pdf("ks_summary_tmb_adam.pdf", h = 4, w = 6.25)
+summary_ks_plot(ks_summary, "TMB", "adam")
+dev.off()
+
+saveRDS(ks_summary_out, "ks_summary_out.rds")
 ```
 
 ## Investigation into large KS values

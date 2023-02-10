@@ -12,6 +12,11 @@ artefacts:
       description: Comparison dataframe for the beta_rho[1] parameter
       filenames:
         - beta_rho.rds
+  - data:
+      description: KS test summary output
+      filenames:
+        - ks_summary_tmb_adam.pdf
+        - ks_summary_out.rds
 
 resources:
   - comparison.Rmd
@@ -27,6 +32,7 @@ packages:
   - Matrix
   - rstan
   - bayesplot
+  - patchwork
 
 depends:
   - naomi-simple_fit:
