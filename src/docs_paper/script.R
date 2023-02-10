@@ -21,6 +21,8 @@ convert_pdf_png <- function(name) {
 }
 
 #' For paper.Rmd
+convert_pdf_png("ks_summary_tmb_adam")
+
 #' For appendix.Rmd
 
 #' Render documents

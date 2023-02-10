@@ -62,6 +62,19 @@ output:
       in_header: preamble.tex
 ---
 
+```{r echo = FALSE}
+options(scipen = 100)
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  dpi = 320,
+  cache = TRUE,
+  out.width = "95%",
+  fig.align = 'center'
+)
+```
+
 <!-- Most published papers will not exceed 20 pages -->
 <!-- We strongly encourage submission of data sets, computer algorithms and supporting material -->
 
@@ -123,37 +136,26 @@ A more complete mathematical description of the simplified model, as well as a \
 
 ## Household survey component
 
-Consider a country in sub-Saharan Africa where a household survey with complex survey design has taken place during at time $T_1$.
+Consider a country in sub-Saharan Africa where a household survey with complex survey design has taken place at time $T_1$.
 Let $x$ index district, $a$ five-year age band, and $s$ sex.
 For ease of notation, let $i$ index the finest district-age-sex division included in the model.
 The data we observe may be aggregated over indices $i$, so we let $\mathcal{I}$ be a set of $i$ for which observations are reported.
 Let $N_i \in \mathbb{N}$ be the population size, $\rho_i \in [0, 1]$ be HIV prevalence, $\alpha_i \in [0, 1]$ be antiretroviral therapy (ART) coverage, and $\lambda_i > 0$ be the annual HIV incidence rate.
-We specify independent mixed effects models for HIV prevalence and ART coverage in the general population on the logit scale such that
+Independent mixed effects models for HIV prevalence and ART coverage in the general population are specified on the logit scale such that
 \begin{align*}
 \text{logit}(\rho_i) &= \eta^\rho_i, \\
 \text{logit}(\alpha_i) &= \eta^\alpha_i,
 \end{align*}
 for certain choice of linear predictors $\eta^\rho_i$ and $\eta^\alpha_i$.
-For the HIV incidence rate we use a mixed effects model on the log scale
-$$
-\log(\lambda_i) = \eta^\lambda_i(\{\rho_i, \alpha_i\}_{i \in \mathcal{I}}),
-$$
-where the linear predictor depends on $\{\rho_i, \alpha_i\}_{i \in \mathcal{I}}$ for some $\mathcal{I}$.
+For the HIV incidence rate we use a mixed effects model on the log scale $\log(\lambda_i) = \eta^\lambda_i(\{\rho_i, \alpha_i\}_{i \in \mathcal{I}})$, where the linear predictor depends on $\{\rho_i, \alpha_i\}_{i \in \mathcal{I}}$ for some $\mathcal{I}$.
 Let $\kappa_i$ be the proportion recently infected among HIV positive persons.
 For each set of observed strata indices $\mathcal{I}$, we calculate the weighted observations $\hat \theta_\mathcal{I}$ for $\theta \in \{\rho, \alpha, \kappa\}$ with respective Kish effective sample sizes 
 $$
 M^{\hat \theta}_\mathcal{I} = \frac{\left(\sum_j w_j\right)^2}{\sum_j w_j^2},
 $$
 where $j$ indexes individuals across all strata $i \in \mathcal{I}$, with corresponding survey weights $w_j$.
-The observed number of indicator cases is then
-$$
-Y^{\hat \theta}_{\mathcal{I}} = M^{\hat \theta}_{\mathcal{I}} \cdot \hat \theta_{\mathcal{I}}.
-$$
-For $\theta \in \{\rho, \alpha, \kappa\}$ we model these aggregate observations using a binomial working likelihood
-$$
-Y^{\hat \theta}_{\mathcal{I}} \sim \text{xBin}(M^{\hat \theta}_{\mathcal{I}}, \theta_{\mathcal{I}}),
-$$
-where $\theta_{\mathcal{I}}$ are the following appropriately weighted aggregates
+The observed number of indicator cases is then $Y^{\hat \theta}_{\mathcal{I}} = M^{\hat \theta}_{\mathcal{I}} \cdot \hat \theta_{\mathcal{I}}$.
+For $\theta \in \{\rho, \alpha, \kappa\}$ we model these aggregate observations using a binomial working likelihood $Y^{\hat \theta}_{\mathcal{I}} \sim \text{xBin}(M^{\hat \theta}_{\mathcal{I}}, \theta_{\mathcal{I}})$, where $\theta_{\mathcal{I}}$ are the following appropriately weighted aggregates
 \begin{align*}
 \rho_{\mathcal{I}} = \frac{\sum_{i \in \mathcal{I}} N_i \rho_i}{\sum_{i \in \mathcal{I}} N_i}, \\
 \alpha_{\mathcal{I}} = \frac{\sum_{i \in \mathcal{I}} N_i \rho_i \alpha_i}{\sum_{i \in \mathcal{I}} N_i \rho_i}, \\
@@ -191,7 +193,8 @@ People living with HIV may choose to access ART services outside of the district
 Let $\gamma_{x, x'} \in [0, 1]$ be the probability that a person on ART residing in district $x$ receives ART in district $x'$.
 We assume that $\gamma_{x, x'} = 0$ unless $x = x'$ or the two districts are adjacent $x \sim x'$, and model $\gamma_{x, x'}$ using a multinomial logistic regression model where $\tilde \gamma_{x, x'}$ are the log-odds.
 
-Let $\dot A_\mathcal{I}$ be the number of people receiving ART.
+Let $\dot A_\mathcal{I} = \sum_{x \sim x', x = x'} \dot A_{x', x}$ be the number of people receiving ART.
+Model $\dot A_\mathcal{I} \sim \mathcal{N}(\tilde A_\mathcal{I}, \sigma^{\tilde A_\mathcal{I}})$ using a normal distribution with mean $\sum_{x \sim x', x = x'} N_{x'} \pi_{x', x}$ and standard deviation $\sigma^{\tilde A_\mathcal{I}}) = \sqrt{\sum_{x \sim x', x = x'} N_{x'} \pi_{x', x} (1 - \pi_{x', x})}$.
 
 # Extended Latent Gaussian models\label{sec:elgm}
 
@@ -346,9 +349,10 @@ $$
 
 # Application to data from Malawi\label{sec:results}
 
-Using a common `TMB` template, we fit the simplified Naomi model to data from Malawi using four inferential approaches: (1) EB combined with a Gaussian approximation using `TMB`, (2) AGHQ combined with a Gaussian approximation using `aghq`, (3) AGHQ combined with a Laplace approximation by extending `aghq` and (4) the Hamiltonian Monte Carlo (HMC) algorithm No-U-Turn Sampling (NUTS) using `tmbstan`.
+Using one `TMB` template (available in the appendix), we fit the simplified Naomi model to data from Malawi using four inferential approaches: (1) EB combined with a Gaussian approximation using `TMB`, (2) AGHQ combined with a Gaussian approximation using `aghq`, (3) AGHQ combined with a Laplace approximation by extending `aghq` and (4) the Hamiltonian Monte Carlo (HMC) algorithm No-U-Turn Sampling (NUTS) using `tmbstan`.
 Details regarding particular settings used for each inferential method are provided in Table \ref{tab:inference-methods}.
-The \textsc{R} [@r] code used to produce all results we describe is available at `github.com/athowes/elgm-inf`.
+
+The \textsc{R} [@r] code used to produce all results we describe below is available at `github.com/athowes/elgm-inf`.
 We used `orderly` [@orderly] for reproducible research, `ggplot2` for data visualisation [@wickham2016ggplot2] and `rticles` [@allaire2022rticles] for reporting via `rmarkdown` [@allaire2022rmarkdown].
 
 \begin{table}[]
@@ -357,7 +361,7 @@ We used `orderly` [@orderly] for reproducible research, `ggplot2` for data visua
 \toprule
 Inferential method & Details \\
 \midrule
-1. EB, Gaussian & 0, $1000$ samples \\
+1. EB, Gaussian & $1000$ samples \\
 2. AGHQ, Gaussian & $k = 1$, $1000$ samples \\
 3. AGHQ, Laplace & $k = 1$, $l = 5$, $1000$ samples \\
 4. NUTS & $4$ chains of $20000$ iterations with the first $10000$ iterations of each chain discarded as warmup, then thinned by a factor of $20$. HMC parameters set to default for \texttt{rstan}. \\
@@ -392,6 +396,16 @@ For each method $\{\texttt{TMB}, \texttt{aghq}, \texttt{adam}\}$ we compare the 
 D_\texttt{method} = \sup_\vartheta | F_\texttt{tmbstan}(\vartheta) - F_\texttt{method}(\vartheta)|.
 \end{equation*}
 See a summary of the results in Table 1 and Plot 1, and full results available in the appendix.
+
+```{r}
+knitr::include_graphics("depends/ks_summary_tmb_adam.png")
+```
+
+```{r}
+ks_summary <- readRDS("depends/ks_summary_out.rds")
+
+gt::gt(ks_summary)
+```
 
 ### Maximum mean discrepancy
 
