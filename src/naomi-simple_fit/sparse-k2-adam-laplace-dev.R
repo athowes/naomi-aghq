@@ -61,8 +61,8 @@ quad <- aghq(
 )
 
 #' Save environment here for safety / time saving
-save.image(file = "big-adam-laplace-dev-72.rdata")
-load(file = "big-adam-laplace-dev-72.rdata")
+save.image(file = "sparse-k2-adam-laplace-dev-72.rdata")
+load(file = "sparse-k2-adam-laplace-dev-72.rdata")
 
 distinctthetas <- quad$normalized_posterior$nodesandweights[, grep("theta", colnames(quad$normalized_posterior$nodesandweights))]
 
