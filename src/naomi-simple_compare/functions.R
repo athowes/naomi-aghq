@@ -43,7 +43,7 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
     geom_histogram(aes(y = after_stat(density)), alpha = 0.5, position = "identity", bins = 30) +
     theme_minimal() +
     facet_grid(method~.) +
-    labs(x = par_name, y = "Density", fill = "Method") +
+    labs(y = "Density", fill = "Method") +
     scale_color_manual(values = colours) +
     scale_fill_manual(values = colours) +
     theme(legend.position = "none") +
@@ -82,11 +82,11 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
   ecdf_plot <- ggplot(ecdf_df, aes(x = x, y = ecdf_diff, col = method)) +
     geom_line() +
     geom_abline(intercept = ks_tmb, slope = 0, col = colours[1], linetype = "dashed", alpha = 0.8) +
-    annotate("text", x = 1.05 * max(ecdf_df$x), y = ks_tmb, label = ks_labeller(ks_tmb), col = colours[1], alpha = 0.8) +
+    annotate("text", x = 1.1 * max(ecdf_df$x), y = ks_tmb, label = ks_labeller(ks_tmb), col = colours[1], alpha = 0.8) +
     geom_abline(intercept = ks_aghq, slope = 0, col = colours[2], linetype = "dashed", alpha = 0.8) +
-    annotate("text", x = 1.05 * max(ecdf_df$x), y = ks_aghq, label = ks_labeller(ks_aghq), col = colours[2], alpha = 0.8) +
+    annotate("text", x = 1.1 * max(ecdf_df$x), y = ks_aghq, label = ks_labeller(ks_aghq), col = colours[2], alpha = 0.8) +
     geom_abline(intercept = ks_adam, slope = 0, col = colours[3], linetype = "dashed", alpha = 0.8) +
-    annotate("text", x = 1.05 * max(ecdf_df$x), y = ks_adam, label = ks_labeller(ks_adam), col = colours[3], alpha = 0.8) +
+    annotate("text", x = 1.1 * max(ecdf_df$x), y = ks_adam, label = ks_labeller(ks_adam), col = colours[3], alpha = 0.8) +
     scale_color_manual(values = colours) +
     labs(x = "", y = "ECDF difference") +
     guides(col = "none") +
@@ -104,25 +104,29 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
 }
 
 #' Create a dataframe of samples from TMB, aghq, adam and tmbstan for any parameters starting with par
-to_ks_df <- function(par) {
-  all_par_names <- names(tmb$fit$obj$env$par)
-  par_names <- all_par_names[stringr::str_starts(all_par_names, par)]
+to_ks_df <- function(par, starts_with = FALSE) {
+  par_names <- par
+
+  if(starts_with) {
+    all_par_names <- names(tmb$fit$obj$env$par)
+    par_names <- all_par_names[stringr::str_starts(all_par_names, par)]
+  }
+
   unique_par_names <- unique(par_names)
 
   samples_tmb <- tmb$fit$sample[unique_par_names]
   samples_tmb <- lapply(samples_tmb, function(x) as.data.frame(t(x)))
 
-  samples_adam <- adam$sample[unique_par_names]
-  samples_adam <- lapply(samples_adam, function(x) as.data.frame(t(x)))
-
   samples_aghq <- aghq$quad$sample[unique_par_names]
   samples_aghq <- lapply(samples_aghq, function(x) as.data.frame(t(x)))
+
+  samples_adam <- adam$sample[unique_par_names]
+  samples_adam <- lapply(samples_adam, function(x) as.data.frame(t(x)))
 
   samples_tmbstan <- rstan::extract(tmbstan$mcmc, pars = unique_par_names)
   samples_tmbstan <- lapply(samples_tmbstan, function(x) as.data.frame(x))
 
   table <- table(par_names)
-  unique_par_names <- unique(par_names)
   for(par in unique_par_names) {
     par_length <- table[par]
     if(par_length > 1) {
@@ -143,12 +147,12 @@ to_ks_df <- function(par) {
 
   n <- ncol(samples_tmbstan)
   ks_tmb <- numeric(n)
-  ks_adam <- numeric(n)
   ks_aghq <- numeric(n)
+  ks_adam <- numeric(n)
   for(i in 1:n) {
     ks_tmb[i] <- inf.utils::ks_test(samples_tmb[, i], samples_tmbstan[, i])$D
-    ks_adam[i] <- inf.utils::ks_test(samples_adam[, i], samples_tmbstan[, i])$D
     ks_aghq[i] <- inf.utils::ks_test(samples_aghq[, i], samples_tmbstan[, i])$D
+    ks_adam[i] <- inf.utils::ks_test(samples_adam[, i], samples_tmbstan[, i])$D
   }
 
   rbind(
@@ -167,8 +171,8 @@ ks_plot <- function(ks_df, par, method1 = "TMB", method2 = "aghq") {
     ggplot(aes(x = "", y = ks_diff)) +
     geom_jitter(width = 0.1, alpha = 0.5) +
     labs(
-      title = paste0("Mean KS difference is ", mean_ks_diff),
-      subtitle = paste0(">0 then ", method1, " more different to tmbstan, <0 then ", method2, " more different"),
+      title = paste0("Mean KS difference* is ", round(mean_ks_diff, 3)),
+      caption = paste0("*If >0 then ", method1, " more different to tmbstan, and if <0 then ", method2, " more different"),
       x = "", y = paste0("KS(", method1, ", tmbstan) - KS(", method2,", tmbstan)")
     ) +
     theme_minimal()
@@ -177,14 +181,13 @@ ks_plot <- function(ks_df, par, method1 = "TMB", method2 = "aghq") {
 
   scatterplot <- ggplot(wide_ks_df, aes(x = .data[[method1]], y = .data[[method2]])) +
     geom_point(alpha = 0.5) +
-    annotate(geom = "polygon", x = c(-Inf, Inf, Inf), y = c(-Inf, Inf, -Inf), fill = multi.utils::cbpalette()[3], alpha = 0.1) +
-    annotate(geom = "polygon", x = c(-Inf, Inf, -Inf), y = c(-Inf, Inf, Inf), fill = multi.utils::cbpalette()[5], alpha = 0.1) +
+    annotate(geom = "polygon", x = c(-Inf, Inf, Inf), y = c(-Inf, Inf, -Inf), fill = multi.utils::cbpalette()[2], alpha = 0.2) +
+    annotate(geom = "polygon", x = c(-Inf, Inf, -Inf), y = c(-Inf, Inf, Inf), fill = multi.utils::cbpalette()[6], alpha = 0.2) +
     xlim(0, xy_length) +
     ylim(0, xy_length) +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
     labs(
       title = paste0("KS tests for ", par, " of length ", max(ks_df$index)),
-      subtitle = "Values along y = x have similar KS",
       x = paste0("KS(", method1, ", tmbstan)"), y = paste0("KS(", method2,", tmbstan)")
     ) +
     theme_minimal()

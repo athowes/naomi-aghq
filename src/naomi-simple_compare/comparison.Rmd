@@ -79,13 +79,14 @@ data.frame(
 adam <- adam$adam
 ```
 
-# Histograms and empirical cumulative distribution plots {.tabset .tabset-fade}
+# Histograms and ECDF difference plots {.tabset .tabset-fade}
 
-We create histograms and empirical cumulative distribution function (ECDF) plots of the samples from each method.
+We create histograms and empirical cumulative distribution function (ECDF) difference plots of the samples from each method.
 All of the possible parameter names are as follows:
 
 ```{r}
 pars <- unique(names(tmb$fit$obj$env$par))
+pars
 ```
 
 We will produce plots about the following subset of them.
@@ -251,30 +252,30 @@ histogram_and_ecdf_helper("log_or_gamma")
 ## Individual parameters {.tabset .tabset-fade}
 
 ```{r}
-ks_helper <- function(par, ...) {
-  to_ks_df(par) %>% ks_plot(par, ...)
+ks_helper <- function(par, sw = FALSE, ...) {
+  to_ks_df(par, starts_with = sw) %>% ks_plot(par, ...)
 }
 ```
 
 ### `beta`
 
 ```{r}
-ks_helper("beta")
-ks_helper("beta", method1 = "TMB", method2 = "adam")
+ks_helper("beta", sw = TRUE)
+ks_helper("beta", sw = TRUE, method1 = "TMB", method2 = "TMB")
 ```
 
 ### `logit`
 
 ```{r}
-ks_helper("logit")
-ks_helper("logit", method1 = "TMB", method2 = "adam")
+ks_helper("logit", sw = TRUE)
+ks_helper("logit", sw = TRUE, method1 = "TMB", method2 = "adam")
 ```
 
 ### `log_sigma`
 
 ```{r}
-ks_helper("log_sigma")
-ks_helper("log_sigma", method1 = "TMB", method2 = "adam")
+ks_helper("log_sigma", sw = TRUE)
+ks_helper("log_sigma", sw = TRUE , method1 = "TMB", method2 = "adam")
 ```
 
 ### `u_rho_x`
@@ -392,10 +393,13 @@ ks_helper("log_or_gamma", method1 = "TMB", method2 = "adam")
 ## Summary table
 
 ```{r}
+options(dplyr.summarise.inform = FALSE)
+
 ks_summary <- lapply(unique(names(tmb$fit$obj$env$par)), function(x) {
   to_ks_df(x) %>%
-    group_by(method) %>%
-    summarise(ks = mean(ks), par = x)
+    group_by(method, index) %>%
+    summarise(ks = mean(ks), par = x) %>%
+    ungroup()
 }) %>%
   bind_rows() %>%
   pivot_wider(names_from = "method", values_from = "ks") %>%
@@ -406,47 +410,84 @@ ks_summary <- lapply(unique(names(tmb$fit$obj$env$par)), function(x) {
     "KS(TMB, tmbstan)" = "TMB",
   )
 
-ks_summary %>%
-  gt::gt() %>%
-  gt::fmt_number(
-    columns = starts_with("KS"),
-    decimals = 3
-  )
-
 r <- adam$quad$obj$env$random
 x_names <- names(adam$quad$obj$env$par[r])
 theta_names <- names(adam$quad$obj$env$par[-r])
 
 dict <- data.frame(
-  Parameter = c(x_names, theta_names),
-  Type = c(rep("Latent field", length(x_names)), rep("Hyperparameters", length(theta_names)))
+  Parameter = c(unique(x_names), unique(theta_names)),
+  Type = c(rep("Latent field", length(unique(x_names))), rep("Hyper", length(unique(theta_names))))
 )
 
 ks_summary <- ks_summary %>%
   left_join(dict, by = "Parameter")
+```
 
+Values in green are the lowest KS difference for that particular parameter:
+
+```{r}
+ks_summary %>%
+  gt::gt() %>%
+  gt::fmt_number(
+    columns = starts_with("KS"),
+    decimals = 3
+  ) %>%
+  gt::tab_style(
+    style = cell_fill(color = "#009E73"),
+    locations = cells_body(
+      columns = `KS(adam, tmbstan)`,
+      rows = `KS(adam, tmbstan)` < `KS(aghq, tmbstan)` & `KS(adam, tmbstan)` < `KS(TMB, tmbstan)`
+    )
+  ) %>%
+    gt::tab_style(
+    style = cell_fill(color = "#009E73"),
+    locations = cells_body(
+      columns = `KS(aghq, tmbstan)`,
+      rows = `KS(aghq, tmbstan)` < `KS(adam, tmbstan)` & `KS(aghq, tmbstan)` < `KS(TMB, tmbstan)`
+    )
+  ) %>%
+    gt::tab_style(
+    style = cell_fill(color = "#009E73"),
+    locations = cells_body(
+      columns = `KS(TMB, tmbstan)`,
+      rows = `KS(TMB, tmbstan)` < `KS(aghq, tmbstan)` & `KS(TMB, tmbstan)` < `KS(adam, tmbstan)`
+    )
+  )
+```
+
+This plot could be improved by making the red to green transition smooth, then adding legend for KS difference.
+The density plots could be filled according to KS difference.
+
+```{r}
 summary_ks_plot <- function(ks_summary, method1, method2) {
   ks_method1 <- paste0("KS(", method1, ", tmbstan)")
   ks_method2 <- paste0("KS(", method2, ", tmbstan)")
   
-  scatterplot <- ggplot(ks_summary, aes(x = .data[[ks_method1]], y = .data[[ks_method2]])) +
-    geom_point(alpha = 0.2) +
-    annotate(geom = "polygon", x = c(-Inf, Inf, Inf), y = c(-Inf, Inf, -Inf), fill = multi.utils::cbpalette()[3], alpha = 0.1) +
-    annotate(geom = "polygon", x = c(-Inf, Inf, -Inf), y = c(-Inf, Inf, Inf), fill = multi.utils::cbpalette()[5], alpha = 0.1) +
-    xlim(0, 1) +
-    ylim(0, 1) +
-    geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  densityplot <- ggplot(ks_summary, aes(x = .data[[ks_method1]], y = .data[[ks_method2]])) +
+    stat_density_2d(aes(linetype = Type), col = "black") +
+    annotate(geom = "polygon", x = c(-Inf, Inf, Inf), y = c(-Inf, Inf, -Inf), fill = multi.utils::cbpalette()[2], alpha = 0.2) +
+    annotate(geom = "polygon", x = c(-Inf, Inf, -Inf), y = c(-Inf, Inf, Inf), fill = multi.utils::cbpalette()[6], alpha = 0.2) +
+    xlim(0, 0.75) +
+    ylim(0, 0.75) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed", alpha = 0.5) +
+    scale_linetype_manual(values = c("dashed", "solid")) +
+    # scale_alpha_discrete(range = c(0.5, 0.01)) +
+    # guides(alpha = FALSE) +
+    guides(linetype = FALSE) +
     labs(x = ks_method1, y = ks_method2) +
     theme_minimal() 
 
   ks_summary[["KS difference"]] <- ks_summary[[ks_method1]] - ks_summary[[ks_method2]]
   
-  jitterplot <- ggplot(ks_summary, aes(x = Type, y = `KS difference`)) +
-    geom_jitter(width = 0.1, alpha = 0.2) +
-    labs(x = "", y = paste0(ks_method1, " - ", ks_method2)) +
+  ridgeplot <- ggplot(ks_summary, aes(y = Type, x = `KS difference`)) +
+    ggridges::geom_density_ridges(alpha = 0.7, fill = NA, aes(linetype = Type)) +
+    coord_flip() +
+    scale_linetype_manual(values = c("dashed", "solid")) +
+    labs(y = "", x = paste0(ks_method1, " - ", ks_method2)) +
+    guides(linetype = FALSE) +
     theme_minimal()
 
-  scatterplot + jitterplot
+  densityplot + ridgeplot
 }
 
 summary_ks_plot(ks_summary, "TMB", "aghq")

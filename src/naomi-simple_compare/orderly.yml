@@ -33,6 +33,7 @@ packages:
   - rstan
   - bayesplot
   - patchwork
+  - gt
 
 depends:
   - naomi-simple_fit:
