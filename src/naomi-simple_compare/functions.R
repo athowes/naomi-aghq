@@ -1,6 +1,10 @@
+absmax <- function(x) x[which.max(abs(x))]
+
 #' Create a facetted histogram plot of the named parameter using samples from each of the four methods
 #' As well as an ECDF plot
 histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
+  colours <- c("#56B4E9", "#009E73", "#E69F00", "#CC79A7")
+
   if(!is.null(i)) {
     par_name <- paste0(par, "[", i, "]")
 
@@ -40,8 +44,8 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
     theme_minimal() +
     facet_grid(method~.) +
     labs(x = par_name, y = "Density", fill = "Method") +
-    scale_color_manual(values = multi.utils::cbpalette()) +
-    scale_fill_manual(values = multi.utils::cbpalette()) +
+    scale_color_manual(values = colours) +
+    scale_fill_manual(values = colours) +
     theme(legend.position = "none") +
     labs(title = par_name, subtitle = paste0("Mean = ", mean, ", SD = ", sd, " (from tmbstan)"))
 
@@ -59,16 +63,36 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
   tmbstan_ecdf <- stats::ecdf(filter(df_compare, method == "tmbstan") %>% pull(samples))
   tmbstan_ecdf_df <- data.frame(x = grid, ecdf = tmbstan_ecdf(grid), method = "tmbstan")
 
+  # Add ECDF differences
+  tmb_ecdf_df$ecdf_diff <- tmbstan_ecdf_df$ecdf - tmb_ecdf_df$ecdf
+  aghq_ecdf_df$ecdf_diff <- tmbstan_ecdf_df$ecdf - aghq_ecdf_df$ecdf
+  adam_ecdf_df$ecdf_diff <- tmbstan_ecdf_df$ecdf - adam_ecdf_df$ecdf
+  tmbstan_ecdf_df$ecdf_diff <- 0
+
+  ks_tmb <- absmax(tmb_ecdf_df$ecdf_diff)
+  ks_aghq <- absmax(aghq_ecdf_df$ecdf_diff)
+  ks_adam <- absmax(adam_ecdf_df$ecdf_diff)
+
   ecdf_df <- bind_rows(tmb_ecdf_df, aghq_ecdf_df, adam_ecdf_df, tmbstan_ecdf_df)
 
   ecdf_df$method <- factor(ecdf_df$method, levels = c("TMB", "aghq", "adam", "tmbstan"))
 
-  ecdf_plot <- ggplot(ecdf_df, aes(x = x, y = ecdf, col = method)) +
+  ks_labeller <- function(x) toString(round(abs(x), 2))
+
+  ecdf_plot <- ggplot(ecdf_df, aes(x = x, y = ecdf_diff, col = method)) +
     geom_line() +
-    scale_color_manual(values = multi.utils::cbpalette()) +
-    labs(x = "", y = "ECDF") +
+    geom_abline(intercept = ks_tmb, slope = 0, col = colours[1], linetype = "dashed", alpha = 0.8) +
+    annotate("text", x = 1.05 * max(ecdf_df$x), y = ks_tmb, label = ks_labeller(ks_tmb), col = colours[1], alpha = 0.8) +
+    geom_abline(intercept = ks_aghq, slope = 0, col = colours[2], linetype = "dashed", alpha = 0.8) +
+    annotate("text", x = 1.05 * max(ecdf_df$x), y = ks_aghq, label = ks_labeller(ks_aghq), col = colours[2], alpha = 0.8) +
+    geom_abline(intercept = ks_adam, slope = 0, col = colours[3], linetype = "dashed", alpha = 0.8) +
+    annotate("text", x = 1.05 * max(ecdf_df$x), y = ks_adam, label = ks_labeller(ks_adam), col = colours[3], alpha = 0.8) +
+    scale_color_manual(values = colours) +
+    labs(x = "", y = "ECDF difference") +
     guides(col = "none") +
-    theme_minimal()
+    coord_cartesian(xlim = c(min(ecdf_df$x), max(ecdf_df$x)), clip = "off") +
+    theme_minimal() +
+    theme(plot.margin = unit(c(1, 3, 1, 1), "lines"))
 
   plot <- histogram_plot + ecdf_plot
 
