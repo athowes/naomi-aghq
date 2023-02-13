@@ -10,7 +10,7 @@ modesandhessians$weights <- quad$normalized_posterior$nodesandweights$weights
 random <- quad$obj$env$random
 xnames <- names(quad$obj$env$par[random])
 
-#' Replace the $par_init of tmb_inputs_simple with a concatendated version
+#' Replace the $par_init of tmb_inputs_simple with a concatenated version
 #' which has all the latent field parameters compressed into one x
 tmb_inputs_simple_i <- tmb_inputs_simple
 x_lengths <- lengths(tmb_inputs_simple_i$par_init[unique(xnames)])

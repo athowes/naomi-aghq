@@ -526,7 +526,6 @@ local_extract_art_attendance_naomi_simple <- function(naomi_fit, naomi_mf, na.rm
 #' @param i The index of the latent field to choose
 #' @param k The number of AGHQ grid points to choose
 spline_nodes <- function(modeandhessian, i, k = 7) {
-
   mode <- modeandhessian[["mode"]][[1]]
   mode_i <- mode[i]
   H <- modeandhessian[["H"]][[1]]
@@ -544,13 +543,17 @@ spline_nodes <- function(modeandhessian, i, k = 7) {
   mvQuad::getNodes(gg)
 }
 
+logSumExpWeights <- function(lp, w) {
+  matrixStats::logSumExp(log(w) + lp)
+}
+
 #' For sparse grids, some of the weights are negative. This breaks the logSumExp()
 #' approach unless modifications are made. The workaround is to split the sum into
 #' cases when the weights are positive and cases when the weights are negative. In
 #' particular, suppose that not all parts of some vector `x = (x1, ..., xm)` are
 #' positive. Call the positive parts `xP` and the negative parts `xN`. Then
 #' `sum(x)` is the difference between `sum(|xP|)` and `sum(|xN|)`
-logSumExpWeights <- function(lp, w) {
+logSumExpNegWeights <- function(lp, w) {
   logDiffExp(
     lp1 = matrixStats::logSumExp(log(w[w > 0]) + lp[w > 0]),
     lp2 = matrixStats::logSumExp(log(-w[w < 0]) + lp[w < 0])
@@ -574,15 +577,15 @@ logDiffExp <- function(lp1, lp2) {
   return(lp2 + log(expm1(lp1 - lp2)))
 }
 
-#' A rough unit test that the logSumExpWeights function does as it is intended
+#' A rough unit test that the logSumExpNegWeights function does as it is intended
 #' to do -- that is the logarithm of a weighted sum
-stopifnot(abs(logSumExpWeights(lp = c(log(0.5), log(0.1)), w = c(1, -0.1)) - log(0.5 * 1 + 0.1 * -0.1)) < 10e-15)
+stopifnot(abs(logSumExpNegWeights(lp = c(log(0.5), log(0.1)), w = c(1, -0.1)) - log(0.5 * 1 + 0.1 * -0.1)) < 10e-15)
 
 #' Lagrange polynomial interpolant of the marginal posterior
 #'
 #' @param nodes Set of input values
 #' @lps Log-probabilities at nodes
-plot_marginal_spline <- function(nodes, lps, lower = -5, upper = 5) {
+plot_marginal_spline <- function(nodes, lps, lower = min(nodes) - 1, upper = max(nodes) + 1) {
   ss <- splines::interpSpline(nodes, lps, bSpline = TRUE, sparse = TRUE)
   interpolant <- function(x) { as.numeric(stats::predict(ss, x)$y) }
   finegrid <- seq(lower, upper, by = 0.1)

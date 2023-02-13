@@ -16,20 +16,21 @@ tmb$fit$par.fixed
 #' This would give us 5^2 = 25 points
 n_hyper <- 2
 k <- 5
+k^n_hyper
 
 theta_names <- unique(names(tmb$fit$par))
 fixed_theta_names <- setdiff(theta_names, c("logit_phi_rho_x", "logit_phi_rho_xs"))
 map_fixed_theta <- list()
-param_fixed_theta <- tmb_inputs$par_init
+param_fixed_theta <- tmb_inputs_simple$par_init
 
 for(theta in fixed_theta_names) {
-  map_fixed_theta[[theta]] <- rep(factor(NA), length(tmb_inputs$par_init[[theta]]))
+  map_fixed_theta[[theta]] <- rep(factor(NA), length(tmb_inputs_simple$par_init[[theta]]))
   param_fixed_theta[[theta]] <- tmb$fit$par.fixed[[theta]]
 }
 
-#' Start expose fit_aghq(tmb_inputs, k = k, basegrid = sparse_grid, control = control)
-tmb_input <- tmb_inputs
-k <- 5
+#' Start expose fit_aghq(tmb_inputs_simple, k = k, basegrid = sparse_grid, control = control)
+tmb_input <- tmb_inputs_simple
+k <- k
 basegrid <- NULL
 control <- default_control_tmb()
 inner_verbose <- FALSE
@@ -108,9 +109,10 @@ modesandhessians <- quad$modesandhessians
 random <- quad$obj$env$random
 x_names <- names(quad$obj$env$par[random])
 
-#' Replace the $par_init of tmb_inputs_simple with a concatendated version
+#' Replace the $par_init of tmb_inputs_simple with a concatenated version
 #' which has all the latent field parameters compressed into one x
 tmb_inputs_simple_i <- tmb_inputs_simple
+tmb_inputs_simple_i$par_init <- param_fixed_theta
 x_lengths <- lengths(tmb_inputs_simple_i$par_init[unique(x_names)])
 tmb_inputs_simple_i$par_init$x_minus_i <- rep(0, sum(x_lengths) - 1)
 tmb_inputs_simple_i$par_init$x_i <- 0
@@ -137,7 +139,7 @@ outer_verbose <- TRUE
 inner_verbose <- FALSE
 max_iter <- 250
 progress <- NULL
-map <- NULL
+map <- map_fixed_theta
 
 data$calc_outputs <- as.integer(calc_outputs)
 
@@ -155,4 +157,40 @@ if (!is.null(progress)) {
   obj$fn <- naomi:::report_progress(obj$fn, progress)
 }
 
-#' The set of input values that we'd like to calculate the log-probability at...
+#' The set of input values that we'd like to calculate the log-probability at
+theta_mode_location <- which.max(quad$normalized_posterior$nodesandweights$logpost_normalized)
+modeandhessian <- modesandhessians[theta_mode_location, ]
+(nodes <- spline_nodes(modeandhessian, 1, k = 7))
+
+#' Check the order of parameters in obj: there should just be three `x_i`, `logit_phi_rho_x` and `logit_phi_rho_xs`
+obj$par
+
+laplace_marginal <- function(x) {
+  lp <- vector(mode = "numeric", length = nrow(modesandhessians))
+  random <- obj$env$random   #' Indices of random effects
+
+  for(z in 1:nrow(modesandhessians)) {
+    theta <- as.numeric(modesandhessians[z, thetanames])
+    #' Set obj$fn to be initialised at the mode of the random effects at the hyperparameter node location using $last.par
+    #' The -tmb_inputs_simple_i$data$i removes the element of x that we are Laplace approximating and has been moved out of the random into the hyper
+    mode <- modesandhessians[z, "mode"][[1]][-tmb_inputs_simple_i$data$i]
+    obj$env$last.par[random] <- mode
+    lp[z] <- as.numeric(- obj$fn(c(x, theta)))
+  }
+
+  logSumExpWeights(lp, w = modesandhessians$weights) - quad$normalized_posterior$lognormconst
+}
+
+lps <- vector(mode = "numeric", length = length(nodes))
+starts <- vector(mode = "numeric", length = length(nodes))
+ends <- vector(mode = "numeric", length = length(nodes))
+times <- vector(mode = "numeric", length = length(nodes))
+
+for(i in seq_along(nodes)) {
+  starts[i] <- Sys.time()
+  lps[i] <- laplace_marginal(nodes[i])
+  ends[i] <- Sys.time()
+  times[i] <- ends[i] - starts[i]
+}
+
+plot_marginal_spline(nodes, lps)
