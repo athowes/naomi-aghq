@@ -16,6 +16,8 @@ abstract: |
   **Task** We implement the method in R making use of Template Model Builder (`TMB`) for Gaussian approximations, in a way compatible with the `aghq` package for adaptive Gauss-Hermite quadrature. We are interested in efficiently approximating latent field posterior marginals $p(x_i \, | \, \theta, y) \approx \tilde p(x_i \, | \, \theta, y)$ for each index $i$. To build up to implementing the simplified INLA approach, we will start with two simpler methods (1) taking the marginal of a joint Gaussian approximation (2) doing a full Laplace approximation.
 ---
 
+**Warning: this report was created during the process of learning, and for that reason is not concise or well-structured. I would not recommend you reading it, but if you do proceed at your own caution!**
+
 ```{r echo=FALSE}
 cbpalette <- multi.utils::cbpalette()
 ```
