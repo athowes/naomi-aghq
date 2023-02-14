@@ -710,10 +710,12 @@ plot_pdf_stan_aghq <- plot_pdf_stan +
 plot_pdf_stan_aghq <- plot_pdf_stan_aghq +
     geom_line(data = laplace_x[[1]]$pdf_and_cdf, aes(x = theta, y = pdf), col = cbpalette[2]) +
     lims(x = c(1.2, 2)) +
-    labs(title = "Inference from aghq and custom Laplace method")
+    labs(title = "Inference from aghq and custom Laplace method") +
     theme_minimal()
 
-(plot_intercept_comparison <- plot_pdf_stan_inla/ plot_pdf_stan_aghq)
+plot_intercept_comparison <- plot_pdf_stan_inla / plot_pdf_stan_aghq
+
+plot_intercept_comparison
 
 ggsave("intercept-comparison.pdf", plot = plot_intercept_comparison, h = 6, w = 6.25)
 ```
