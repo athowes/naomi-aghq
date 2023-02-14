@@ -65,13 +65,13 @@ head(Epil)
 
 ```{r fig.cap="It looks like treatment is associated to fewer seizures on average, but of course we haven't accounted for the different covariates, hence the use of a statistical model!"}
 Epil %>% ggplot(aes(x =  as.factor(Trt), y = y)) +
-  geom_boxplot(alpha = 0.5, outlier = FALSE) +
+  geom_boxplot(alpha = 0.5) +
   geom_jitter(width = 0.1, alpha = 0.5) +
   theme_minimal() +
   labs(x = "Treatment", y = "Number of seizures")
 ```
 
-We modify `Epil` by centering all of the covariates:
+We modify the `Epil` dataframe by centering all of the covariates:
 
 ```{r}
 center <- function(x) (x - mean(x))
@@ -127,7 +127,7 @@ Markov chain Monte Carlo (MCMC) like NUTS are exact as the number of samples ten
 We provide the `stan` function with `file = "epil.stan"` which refers to a C++ file implementing the log-posterior in the Stan probabilistic programming language:
 
 ```{r}
-start_time_fit1 <- Sys.time()
+start_fit1 <- Sys.time()
 
 fit1 <- stan(
   file = "epil.stan",
@@ -139,11 +139,12 @@ fit1 <- stan(
   refresh = 0
 )
 
-end_time_fit1 <- Sys.time()
-time_fit1 <- end_time_fit1 - start_time_fit1
+end_fit1 <- Sys.time()
+time_fit1 <- end_fit1 - start_fit1
+time_fit1
 ```
 
-It took `r time_fit1` seconds to fit this model.
+It took `r round(time_fit1, 2)` seconds to fit this model.
 All of the $\hat R$ values are below 1.05, so it looks like the MCMC has reached convergence:
 
 ```{r}
@@ -160,7 +161,6 @@ monitor1 %>%
   theme(
     axis.title.x = element_blank(),
     axis.text.x = element_blank(),
-    axis.ticks.x = element_blank(),
     legend.position = "bottom"
   )
 ```
@@ -169,6 +169,7 @@ monitor1 %>%
 
 `R-INLA` is an R package which implements integrated nested Laplace approximations.
 Rather than specifying the log-posterior via C++, the package uses a formula interface.
+This makes it easy to specify common models, but does limit the flexibility of the package for more advanced users.
 
 We specify the $\Gamma(0.001, 0.001)$ prior on the random effects $\tau_\epsilon$ and $\tau_\nu$ below.
 In `R-INLA`, the precision is internally represented as log-precision, therefore we must set a `loggamma` prior.
@@ -192,60 +193,63 @@ formula <- y ~ 1 + CTrt + ClBase4 + CV4 + ClAge + CBT +
   f(Ind,  model = "iid", hyper = tau_prior)    #' Epsilon random effect
 ```
 
-We can use various settings (`"gaussian"`, `"simplified.laplace"` and `"laplace"`) for the strategy passed to `control.inla`, which controls the approximation used for the latent field posterior marginals:
+We can use various settings (`"gaussian"`, `"simplified.laplace"` and `"laplace"`) for the `strategy` passed to `control.inla`, which controls the approximation used for the latent field posterior marginals.
+We create a function `epil_inla` which takes as input the latent field approximation strategy, as well as the hyperparameter quadrature approach:
 
 ```{r}
 epil_inla <- function(strat, int_strat) {
-  inla(formula,
-       control.fixed = list(mean = 0, prec = 1 / 100^2), #' Beta prior
-       family = "poisson",
-       data = Epil,
-       control.inla = list(strategy = strat, int.strategy = int_strat),
-       control.predictor = list(compute = TRUE))
+  inla(
+    formula,
+    control.fixed = list(mean = 0, prec = 1 / 100^2), #' Beta prior
+    family = "poisson",
+    data = Epil,
+    control.inla = list(strategy = strat, int.strategy = int_strat),
+    control.predictor = list(compute = TRUE)
+  )
 }
 
-start_time_fit2 <- Sys.time()
+start_fit2 <- Sys.time()
 fit2 <- epil_inla(strat = "gaussian", int_strat = "eb")
-end_time_fit2 <- Sys.time()
-(time_fit2 <- end_time_fit2 - start_time_fit2)
+end_fit2 <- Sys.time()
+(time_fit2 <- end_fit2 - start_fit2)
 
-start_time_fit3 <- Sys.time()
+start_fit3 <- Sys.time()
 fit3 <- epil_inla(strat = "simplified.laplace", int_strat = "eb")
-end_time_fit3 <- Sys.time()
-(time_fit3 <- end_time_fit3 - start_time_fit3)
+end_fit3 <- Sys.time()
+(time_fit3 <- end_fit3 - start_fit3)
 
-start_time_fit4 <- Sys.time()
+start_fit4 <- Sys.time()
 fit4 <- epil_inla(strat = "laplace", int_strat = "eb")
-end_time_fit4 <- Sys.time()
-(time_fit4 <- end_time_fit4 - start_time_fit4)
+end_fit4 <- Sys.time()
+(time_fit4 <- end_fit4 - start_fit4)
 
-start_time_fit5 <- Sys.time()
+start_fit5 <- Sys.time()
 fit5 <- epil_inla(strat = "gaussian", int_strat = "grid")
-end_time_fit5 <- Sys.time()
-(time_fit5 <- end_time_fit5 - start_time_fit5)
+end_fit5 <- Sys.time()
+(time_fit5 <- end_fit5 - start_fit5)
 
-start_time_fit6 <- Sys.time()
+start_fit6 <- Sys.time()
 fit6 <- epil_inla(strat = "simplified.laplace", int_strat = "grid")
-end_time_fit6 <- Sys.time()
-(time_fit6 <- end_time_fit6 - start_time_fit6)
+end_fit6 <- Sys.time()
+(time_fit6 <- end_fit6 - start_fit6)
 
-start_time_fit7 <- Sys.time()
+start_fit7 <- Sys.time()
 fit7 <- epil_inla(strat = "laplace", int_strat = "grid")
-end_time_fit7 <- Sys.time()
-(time_fit7 <- end_time_fit7 - start_time_fit7)
+end_fit7 <- Sys.time()
+(time_fit7 <- end_fit7 - start_fit7)
 ```
 
 ## `TMB`
 
-Template Model Builder, or `TMB`, is an R package which implements Laplace approximation using automatic differentiation.
-The user writes a C++ file, here `epil.cpp`, which contains the negative log-posterior for the model in question:
+Template Model Builder, or `TMB`, is an R package which implements the Laplace approximation using automatic differentiation.
+The user writes a C++ file, here `epil.cpp` (see appendix), which contains the negative log-posterior for the model in question:
 
 ```{r}
 compile("epil.cpp")
 dyn.load(dynlib("epil"))
 ```
 
-These are the initialisation parameters:
+We need to specify the initialisation parameters:
 
 ```{r}
 param <- list(
@@ -257,12 +261,13 @@ param <- list(
 )
 ```
 
-We integrate `random` out, which here corresponds to `c("beta", "epsilon", "nu")`, with a Laplace approximation:
+We integrate the random effects, `random`, out with a Laplace approximation.
+Here these corresponds to `c("beta", "epsilon", "nu")`:
 
 ```{r}
-#' Perhaps you could argue about when the "start" and "end" of the model fitting are
+#' Note: Perhaps you could argue about when the "start" and "end" of the model fitting are
 #' For example, is compilation of the TMB template part of the model fitting?
-start_time_fit8 <- Sys.time()
+start_fit8 <- Sys.time()
 
 obj <- MakeADFun(
   data = dat,
@@ -293,13 +298,14 @@ sd_out <- sdreport(
   getJointPrecision = TRUE
 )
 
-end_time_fit8 <- Sys.time()
-(time_fit8 <- end_time_fit8 - start_time_fit8)
+end_fit8 <- Sys.time()
+(time_fit8 <- end_fit8 - start_fit8)
 ```
 
 ### Check `TMB` objective is the same as Stan
 
-For completeness, we check here that the objective functions as implemented in `TMB` and Stan are identical.
+For completeness, we verify that the objective functions as implemented in `TMB` and Stan are identical.
+This is actually quite difficult to do, so pat it's worth checking, and giving yourself a pat on the back if they are.
 To obtain the `TMB` negative log-posterior we call `MakeADFun` as before, but now do not specify any parameters to be integrated out.
 For Stan, we create an empty model, then use `rstan::log_prob`:
 
@@ -308,26 +314,23 @@ tmb_nll <- MakeADFun(data = dat, parameters = param, DLL = "epil")
 stan_nll <- stan("epil.stan", data = dat, chains = 0)
 ```
 
-For example, we can test the NLL of the initialisation parameters `param`:
+We can test the NLL of the initialisation parameters `param`:
 
 ```{r}
-c(
-  "TMB" = tmb_nll$fn(unlist(param)),
-  "Stan" = -rstan::log_prob(object = stan_nll, unlist(param))
-)
+c("TMB" = tmb_nll$fn(unlist(param)), "Stan" = -rstan::log_prob(object = stan_nll, unlist(param)))
 ```
 
-These look different!
-Is this a problem?
-We can evaluate the NLL at some of the other parameters explored during the MCMC:
+But these look different!
+This is just because the two functions are different by a constant, which we can show by evaluating the NLL at some of the other parameters explored during the MCMC:
 
 ```{r}
 pars_mat <- as.matrix(fit1)
 pars_list <- apply(pars_mat, 1, function(x) relist(flesh = x, skeleton = fit1@inits[[1]]))
-upars_list <- lapply(pars_list, function(x) unconstrain_pars(fit1, x))
+#' Note that Stan transformed constrained parameters in the parameters block to unconsrained parameters that can be sampled from
+upars_list <- lapply(pars_list, function(x) rstan:::unconstrain_pars(fit1, x))
 ```
 
-Using just a few of them, we can see that the difference between the `TMB` and Stan objectives is a constant, so for our purposes they are functionally the same:
+Using just a few of them, we can see that the difference between the `TMB` and Stan objectives is a constant:
 
 ```{r}
 test_pars <- upars_list[500:510]
@@ -361,32 +364,53 @@ obj <- mccollect(testrun, wait = TRUE, timeout = 0, intermediate = FALSE)
 For example, rather than writing `epil.cpp`, we could have called the following:
 
 ```{r}
-start_time_fit9 <- Sys.time()
+start_fit9 <- Sys.time()
 formula9 <- y ~ 1 + CTrt + ClBase4 + CV4 + ClAge + CBT + (1 | rand) + (1 | Ind)
 fit9 <- glmmTMB(formula9, data = Epil, family = poisson(link = "log"))
-end_time_fit9 <- Sys.time()
-(time_fit9 <- end_time_fit9 - start_time_fit9)
+end_fit9 <- Sys.time()
+(time_fit9 <- end_fit9 - start_fit9)
 ```
 
 This won't be exactly the same model, in terms of priors and so on, but it may be close.
+We mention this package here in case it is of interest, but will not focus on it during the remainder of this notebook, as we would like to compare inferential methods on exactly the same model.
 
 ## `tmbstan`
 
 [`tmbstan`](https://journals.pl,os.org/plosone/article?id=10.1371/journal.pone.0197954) (Cole Monnahan and Kasper Kristensen) is another helpful `TMB` package which allows you to pass the same C++ template you use in `TMB` to Stan in order to perform NUTS (if you have standard C++ code then this can also likely be done using [`stanc`](https://statmodeling.stat.columbia.edu/2017/03/31/running-stan-external-c-code/)).
 
 ```{r} 
-start_time_fit10 <- Sys.time()
+start_fit10 <- Sys.time()
 fit10 <- tmbstan(obj = obj, chains = 4, refresh = 0)
-end_time_fit10 <- Sys.time()
-(time_fit10 <- end_time_fit10 - start_time_fit10)
+end_fit10 <- Sys.time()
+(time_fit10 <- end_fit10 - start_fit10)
 ```
+
+The results from `tmbstan`, up to stochasticity of the MCMC sampler, should be exactly the same as those we might generate from Stan -- given that we have confirmed the objective functions they are sampling from are identical up to a constant.
+For this reason, we do not need to focus on these results in the remainder of the notebook, but again highlight this package in case it is of interest.
 
 ## `aghq`
 
 [`aghq`](https://arxiv.org/pdf/2101.04468.pdf) is an R package written by Alex Stringer which implements adaptive Gauss-Hermite quadrature.
 It also works smoothly with `TMB` templates.
+The parameter `k = 3` determines the number of quadrature points per dimension:
 
-One (non-standard!) approach would be to use `glmmTMB` to get the `TMB` template which can then be passed to `aghq`.
+```{r results='hide'}
+start_fit11 <- Sys.time()
+fit11 <- aghq::marginal_laplace_tmb(
+  obj,
+  k = 3,
+  startingvalue = c(param$l_tau_epsilon, param$l_tau_nu)
+)
+
+fit11_samples <- aghq::sample_marginal(fit11, M = 1000)$samps %>%
+  t() %>%
+  as.data.frame() %>%
+  inf.utils::replace_duplicate_colnames()
+end_fit11 <- Sys.time()
+(time_fit11 <- end_fit11 - start_fit11)
+```
+
+Another (non-standard) approach that is possible is to use `glmmTMB` to get the `TMB` template which can then be passed to `aghq`.
 
 ```{r}
 glmm_model_info <- glmmTMB(formula9, data = Epil, family = poisson(link = "log"), doFit = FALSE)
@@ -402,29 +426,11 @@ glmm_ff <- with(glmm_model_info, {
 })
 ```
 
-The parameter `k = 3` determines the number of quadrature points per dimension:
-
 ```{r}
 glmm_quad <- aghq::marginal_laplace_tmb(glmm_ff, k = 3, startingvalue = glmm_ff$par)
 ```
 
-This would be useful if we didn't have a `TMB` template written, but we do, so let's just use that instead!
-
-```{r results='hide'}
-start_time_fit11 <- Sys.time()
-fit11 <- aghq::marginal_laplace_tmb(
-  obj,
-  k = 3,
-  startingvalue = c(param$l_tau_epsilon, param$l_tau_nu)
-)
-
-fit11_samples <- aghq::sample_marginal(fit11, M = 1000)$samps %>%
-  t() %>%
-  as.data.frame() %>%
-  inf.utils::replace_duplicate_colnames()
-end_time_fit11 <- Sys.time()
-(time_fit11 <- end_time_fit11 - start_time_fit11)
-```
+This could be useful in situations where you don't have a `TMB` template written.
 
 ## Custom Laplace method with `aghq`
 
@@ -432,9 +438,8 @@ Ok, this next section is going to be a bit more involved.
 
 ### Empirical Bayes with multiple C++ template
 
-Let's just starting by trying to get the Laplace marginals for $\beta$:
-
-`epil_beta_index.cpp` is a `TMB` template where the `beta` parameter has been replaced by `beta_i` and `beta_minus_i`.
+Let's just starting by trying to get the Laplace marginals for $\beta$.
+To do this, we create the `TMB` template `epil_beta_index.cpp` (see appendix) which has the `beta` parameter replaced by `beta_i` and `beta_minus_i`.
 As well, there is an additional `DATA_INTEGER(i)` allowing us to pass in the index of `i` that we would like to obtain a full Laplace approximation to.
 
 ```{r}
@@ -450,9 +455,10 @@ opt_theta <- opt
 
 We create a function to get the Laplace marginal for the $i$th element of $\beta$.
 Some key things to note about this:
-We use the `map` argument to fix the hyperparameters to their MAP estimates, which requires passing `factor(NA)` to `map`, as well as setting the initialisation parameters for the hyperparameters to be their MAP estimates.
-Setting `random = c("beta_minus_i", "nu", "epsilon")` integrates out all of the random effects but `beta_i`.
-Quadrature is performed using `aghq::aghq` to obtain a the normalised posterior marginal.
+
+* We use the `map` argument to fix the hyperparameters to their MAP estimates, which requires passing `factor(NA)` to `map`, as well as setting the initialisation parameters for the hyperparameters to be their MAP estimates.
+* Setting `random = c("beta_minus_i", "nu", "epsilon")` integrates out all of the random effects but `beta_i`.
+* Quadrature is performed using `aghq::aghq` to obtain a the normalised posterior marginal.
 
 ```{r}
 xi_laplace_marginal_beta <- function(i, opt_theta, finegrid) {
@@ -472,10 +478,6 @@ xi_laplace_marginal_beta <- function(i, opt_theta, finegrid) {
   param_fixed_theta[["beta_i"]] <- param_fixed_theta$beta[i]
   param_fixed_theta[["beta_minus_i"]] <- param_fixed_theta$beta[-i]
   param_fixed_theta[["beta"]] <- NULL
-
-  #' Might need this here if you're getting crashes
-  # f <- parallel::mcparallel({})
-  # x <- parallel::mccollect(f) 
 
   obj_fixed_theta <- MakeADFun(
     data = dat,
@@ -522,12 +524,11 @@ laplace_beta %>%
 
 ### Empirical Bayes with one C++ template
 
-Ok, great, so we got the Laplace marginals for `beta`.
-What about if we wanted to get them for all of the elements of the latent field?
-One way we could do that is to create separate `TMB` templates for each named random effect (`beta`, `nu` and `epsilon`).
+Now that we have the Laplace marginals for `beta`, we can think about what we would do if we wanted to get them for all of the elements of the latent field.
+One approach would be to create separate `TMB` templates for each named random effect (`beta`, `nu` and `epsilon`).
 To see what this would look like, have a look at `epil_beta_index.cpp`, `epil_nu_index.cpp` and `epil_epsilon_index.cpp`.
 
-What might be better is to do it in one `TMB` template.
+What might be better is to do it in one `TMB` template, `epil_index.cpp` (see appendix):
 
 ```{r}
 compile("epil_index.cpp")
@@ -630,14 +631,6 @@ laplace_beta_summary <- lapply(head(laplace_x, n = dat$K), function(result) summ
 rownames(laplace_beta_summary) <- paste0("beta[", 1:dat$K, "]")
 ```
 
-### AGHQ with one C++ template
-
-```{r}
-i <- 1
-dat$toggle <- index_controller[i, "toggle"]
-dat$i <- index_controller[i, "i"]
-```
-
 # Comparison
 
 ## Table
@@ -692,8 +685,9 @@ time_df %>% ggplot(aes(x = method, y = time)) +
 ## Focus on $\beta_0$
 
 ```{r}
-plot_pdf <- ggplot(data.frame(x = rstan::extract(fit1, pars = "beta[1]")[[1]]), aes(x = x)) +
-    geom_histogram(aes(y = ..density..), alpha = 0.8, fill = cbpalette[7], bins = 60) +
+#' Stan histogram base-plot
+plot_pdf_stan <- ggplot(data.frame(x = rstan::extract(fit1, pars = "beta[1]")[[1]]), aes(x = x)) +
+    geom_histogram(aes(y = ..density..), alpha = 0.6, fill = cbpalette[7], bins = 40) +
     theme_minimal() +
     labs(x = "beta[1]", y = "Posterior PDF")
 
@@ -704,14 +698,24 @@ beta0_inla_marginals <- bind_rows(
     mutate(method = "Laplace")
 )
 
-plot_pdf <- plot_pdf +
+#' Add R-INLA results
+plot_pdf_stan_inla <- plot_pdf_stan +
   geom_line(data = beta0_inla_marginals, aes(x = x, y = y, col = method)) +
   scale_color_manual(values = cbpalette) +
-  labs(col = "Method")
+  labs(col = "Method", title = "Inference from R-INLA") 
 
-plot_pdf
+plot_pdf_stan_aghq <- plot_pdf_stan +
+  geom_histogram(data = data.frame(x = fit11_beta_samples$`beta[1]`), aes(y = ..density..), alpha = 0.6, fill = cbpalette[1], bins = 40)
 
-ggsave("intercept-comparison.pdf", plot = plot_pdf, h = 4, w = 6.25)
+plot_pdf_stan_aghq <- plot_pdf_stan_aghq +
+    geom_line(data = laplace_x[[1]]$pdf_and_cdf, aes(x = theta, y = pdf), col = cbpalette[2]) +
+    lims(x = c(1.2, 2)) +
+    labs(title = "Inference from aghq and custom Laplace method")
+    theme_minimal()
+
+(plot_intercept_comparison <- plot_pdf_stan_inla/ plot_pdf_stan_aghq)
+
+ggsave("intercept-comparison.pdf", plot = plot_intercept_comparison, h = 6, w = 6.25)
 ```
 
 ## Scatter plot against `tmbstan`

@@ -36,3 +36,4 @@ packages:
   - tmbstan
   - rstan
   - aghq
+  - patchwork
