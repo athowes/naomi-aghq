@@ -624,12 +624,30 @@ safe_xi_laplace_marginal <- function(...) {
 }
 
 laplace_x <- lapply(1:nrow(index_controller), safe_xi_laplace_marginal, opt_theta = opt_theta, finegrid = fine_grid)
-
-laplace_beta_summary <- lapply(head(laplace_x, n = dat$K), function(result) summary(result$quad)$summarytable) %>%
-  bind_rows()
-
-rownames(laplace_beta_summary) <- paste0("beta[", 1:dat$K, "]")
 ```
+
+Test that all the normalising constants calculated are constant, and equal to that obtained by `aghq`:
+
+```{r}
+aghq_lognormconst <- fit11$normalized_posterior$lognormconst
+
+lognormconsts <- purrr::map(laplace_x, function(x) x$quad$normalized_posterior$lognormconst)
+
+data.frame(lognormconst = unlist(lognormconsts)) %>%
+  ggplot(aes(y = lognormconst, x = 1:length(lognormconst))) +
+    geom_point(alpha = 0.3) +
+    geom_hline(yintercept = aghq_lognormconst, linetype = "dashed") +
+    theme_minimal() +
+    labs(
+      title = "Comparison of log normalising constants",
+      y = "Log normalising constant", x = "Latent field index"
+    )
+```
+
+The differences between this old approach, and the newer approach used in `naomi-simple` are:
+
+1. Use of the `map` argument to fix theta to modal values. Which is useful for producing a `TMB` objective `obj_fixed_theta`
+2. Passing `obj_fixed_theta` directly into `aghq::aghq` to do the selection of the points (here `k = 3`), integration and computation of the posterior with `aghq::compute_pdf_and_cdf`
 
 # Comparison
 
@@ -652,6 +670,8 @@ tmbstan10 <- as.vector(t(summary(fit10)$summary[1:6, c(1, 3)]))
 fit11_beta_samples <- fit11_samples[, 1:6]
 aghq11 <- as.vector(t(data.frame(mean = apply(fit11_beta_samples, 2, mean), sd = apply(fit11_beta_samples, 2, sd))))
 
+laplace_beta_summary <- lapply(head(laplace_x, n = dat$K), function(result) summary(result$quad)$summarytable) %>% bind_rows()
+rownames(laplace_beta_summary) <- paste0("beta[", 1:dat$K, "]")
 adam12 <- as.vector(t(laplace_beta_summary[1:6, 1:2]))
 
 df <- cbind(stan1, inla2, inla3, inla4, inla5, inla6, inla7, tmb8, glmmtmb9, tmbstan10, aghq11, adam12) %>%
