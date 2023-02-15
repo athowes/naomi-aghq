@@ -630,7 +630,6 @@ Test that all the normalising constants calculated are constant, and equal to th
 
 ```{r}
 aghq_lognormconst <- fit11$normalized_posterior$lognormconst
-
 lognormconsts <- purrr::map(laplace_x, function(x) x$quad$normalized_posterior$lognormconst)
 
 data.frame(lognormconst = unlist(lognormconsts)) %>%
@@ -648,6 +647,10 @@ The differences between this old approach, and the newer approach used in `naomi
 
 1. Use of the `map` argument to fix theta to modal values. Which is useful for producing a `TMB` objective `obj_fixed_theta`
 2. Passing `obj_fixed_theta` directly into `aghq::aghq` to do the selection of the points (here `k = 3`), integration and computation of the posterior with `aghq::compute_pdf_and_cdf`
+
+```{r}
+#' Compute Laplace marginals with new method
+```
 
 # Comparison
 
