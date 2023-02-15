@@ -1,3 +1,8 @@
+#' Debugging issue with hyperparameter for k = 1. Found that this is a feature
+#' more than a bug. Need to implement new method for sampling hyperparameters
+#' in the k = 1 case that is not based on the grid, otherwise it'll just do EB
+#' point estimates
+
 start <- Sys.time()
 
 #' The number of hyperparameters is 24, as compared with 31 for the full model
