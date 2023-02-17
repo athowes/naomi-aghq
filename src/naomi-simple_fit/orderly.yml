@@ -72,4 +72,8 @@ depends:
   naomi-simple_fit:
     id: latest(parameter:aghq == TRUE && parameter:k == 1)
     use:
-      depends/out.rds: out.rds
+      depends/aghq.rds: out.rds
+  naomi-simple_fit:
+    id: latest(parameter:adam == TRUE)
+    use:
+      depends/adam.rds: out.rds
