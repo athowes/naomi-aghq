@@ -207,3 +207,49 @@ data.frame(
     labs(x = "Index of the Laplace marginal", y = "Calculated lognormconst")
 
 dev.off()
+
+#' New approach:
+#' Just calculate a fresh lognormconst using the Gaussian generated AGHQ nodes
+#' and weights (which are the new part)
+
+spline_nodes2 <- function(modeandhessian, i, k = 7) {
+  mode <- modeandhessian[["mode"]][[1]]
+  mode_i <- mode[i]
+  H <- modeandhessian[["H"]][[1]]
+  var_i <- diag(solve(H))[i]
+  # LL <- Cholesky(H, LDL = FALSE)
+  # var_i <- (colSums(solve(expand(LL)$L)^2))[i]
+
+  #' Create Gauss-Hermite quadrature
+  gg <- mvQuad::createNIGrid(dim = 1, type = "GHe", level = k)
+
+  #' Adapt to mode_i and sd_i
+  mvQuad::rescale(gg, m = mode_i, C = var_i)
+
+  #' Return the gg object
+  gg
+}
+
+gg <- spline_nodes2(modeandhessian = modesandhessians, i = 7, k = 7)
+
+laplace_marginal2 <- function(x, i) {
+  random <- obj$env$random
+  theta <- as.numeric(modesandhessians[theta_names])
+  mode <- modesandhessians[["mode"]][[1]][-i]
+  obj$env$last.par[random] <- mode
+  lp <- as.numeric(- obj$fn(c(x, theta)))
+  lp
+}
+
+lps3 <- lps2
+nodes3 <- mvQuad::getNodes(gg)
+
+for(i in seq_along(nodes3)) {
+  lps3[i] <- laplace_marginal2(nodes3[i], i = tmb_inputs_simple_i$data$i)
+}
+
+lognormconst3 <- logSumExpWeights(lps3, mvQuad::getWeights(gg))
+
+#' Compare the computed log normalsing constant with the "correct" one with full AGHQ
+lognormconst3
+unlist(lognormconsts)[i]
