@@ -103,7 +103,7 @@ obj_fixed_theta <- TMB::MakeADFun(
 
 marginal_quad <- aghq::aghq(
   ff = obj_fixed_theta,
-  k = 7,
+  k = 5,
   startingvalue = 0,
   control = aghq::default_control_tmb()
 )
@@ -156,5 +156,54 @@ ggplot(pac, aes(x = x, y = pdf, col = method)) +
   labs(x = "beta_anc_rho", y = "PDF", col = "Method") +
   guides(col = guide_legend(ncol = 1)) +
   theme(legend.position = "bottom")
+
+dev.off()
+
+calculate_lognormconst <- function(i) {
+  tmb_inputs_simple_i$data$i <- i #' "beta_anc_rho"
+  data <- tmb_inputs_simple_i$data
+
+  param_fixed_theta <- par
+  map_fixed_theta <- list()
+
+  for(theta in theta_names) {
+    map_fixed_theta[[theta]] <- rep(factor(NA), length(par[[theta]]))
+    param_fixed_theta[[theta]] <- as.numeric(quad$optresults$mode[names(quad$optresults$mode) == theta])
+  }
+
+  obj_fixed_theta <- TMB::MakeADFun(
+    data = data,
+    parameters = param_fixed_theta,
+    DLL = DLL,
+    silent = !inner_verbose,
+    random = "x_minus_i",
+    map = map_fixed_theta,
+    random.start = expression(last.par[random])
+  )
+
+  marginal_quad <- aghq::aghq(
+    ff = obj_fixed_theta,
+    k = 5,
+    startingvalue = 0,
+    control = aghq::default_control_tmb()
+  )
+
+  return(marginal_quad$normalized_posterior$lognormconst)
+}
+
+lognormconsts <- map(1:10, calculate_lognormconst)
+
+pdf("lognormconst-comparison.pdf", h = 5, w = 6.25)
+
+data.frame(
+  i = 1:10,
+  lognormconst = unlist(lognormconsts)
+) %>%
+  ggplot(aes(x = i, y = lognormconst)) +
+    geom_point() +
+    geom_hline(yintercept = - log(modesandhessians$weights) + quad$normalized_posterior$lognormconst, linetype = "dashed") +
+    theme_minimal() +
+    scale_x_continuous(breaks = 1:10) +
+    labs(x = "Index of the Laplace marginal", y = "Calculated lognormconst")
 
 dev.off()
