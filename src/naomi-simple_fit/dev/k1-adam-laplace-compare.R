@@ -51,13 +51,13 @@ obj <- TMB::MakeADFun(
 
 (nodes <- spline_nodes(modeandhessian = modesandhessians, tmb_inputs_simple_i$data$i, k = 7))
 
-laplace_marginal <- function(x, i) {
+laplace_marginal <- function(x, i, C = log(modesandhessians$weights) - quad$normalized_posterior$lognormconst) {
   random <- obj$env$random
   theta <- as.numeric(modesandhessians[theta_names])
   mode <- modesandhessians[["mode"]][[1]][-i]
   obj$env$last.par[random] <- mode
-  lp <- as.numeric(- obj$fn(c(x, theta))) + log(modesandhessians$weights)
-  lp - quad$normalized_posterior$lognormconst
+  lp <- as.numeric(- obj$fn(c(x, theta)))
+  lp + C
 }
 
 lps <- vector(mode = "numeric", length = length(nodes))
@@ -101,12 +101,16 @@ obj_fixed_theta <- TMB::MakeADFun(
   random.start = expression(last.par[random])
 )
 
-maginal_quad <- aghq::aghq(
+marginal_quad <- aghq::aghq(
   ff = obj_fixed_theta,
   k = 7,
   startingvalue = 0,
   control = aghq::default_control_tmb()
 )
+
+#' The two possible normalising constants ARE different
+marginal_quad$normalized_posterior$lognormconst
+quad$normalized_posterior$lognormconst - log(modesandhessians$weights)
 
 rn <- range(nodes)
 rnl <- diff(rn)
@@ -114,6 +118,43 @@ min <- min(rn) - rnl / 2
 max <- max(rn) + rnl / 2
 fine_grid <- seq(min, max, length.out = 1000)
 
-pdf_and_cdf_alt <- aghq::compute_pdf_and_cdf(maginal_quad, finegrid = fine_grid)[[1]]
+pdf_and_cdf_alt <- aghq::compute_pdf_and_cdf(marginal_quad, finegrid = fine_grid)[[1]]
+pdf_and_cdf_alt$x <- pdf_and_cdf_alt$theta
 
 max(pdf_and_cdf_alt$cdf)
+
+#' Expose internals of aghq::aghq(ff = obj_fixed_theta, k = 7, startingvalue = 0, control = aghq::default_control_tmb())
+# ff <- obj_fixed_theta
+# k <- 7
+# startingvalue <- 0
+# control <- aghq::default_control()
+# utils::capture.output(optresults <- optimize_theta(ff, startingvalue, control))
+# normalized_posterior <- normalize_logpost(optresults, k, basegrid = basegrid, ndConstruction = control$ndConstruction)
+
+#' Using the normalising constant from aghq::aghq
+nodes2 <- nodes
+lps2 <- lps
+
+for(i in seq_along(nodes2)) {
+  lps2[i] <- laplace_marginal(nodes2[i], i = tmb_inputs_simple_i$data$i, C = - marginal_quad$normalized_posterior$lognormconst)
+}
+
+#' And using the aghq::aghq one DOES fix the CDF > 1 issue
+pdf_and_cdf2 <- compute_pdf_and_cdf(nodes2, lps2, normalise = FALSE)
+max(pdf_and_cdf2$cdf)
+
+pdf_and_cdf_alt$method <- "aghq::aghq"
+pdf_and_cdf$method <- "C = log(modesandhessians$weights) - quad$normalized_posterior$lognormconst"
+pdf_and_cdf2$method <- "C = - marginal_quad$normalized_posterior$lognormconst"
+pac <- bind_rows(pdf_and_cdf, pdf_and_cdf2, pdf_and_cdf_alt)
+
+pdf("beta_anc_rho_method-comparison.pdf", h = 5, w = 6.25)
+
+ggplot(pac, aes(x = x, y = pdf, col = method)) +
+  geom_line() +
+  theme_minimal() +
+  labs(x = "beta_anc_rho", y = "PDF", col = "Method") +
+  guides(col = guide_legend(ncol = 1)) +
+  theme(legend.position = "bottom")
+
+dev.off()
