@@ -49,7 +49,8 @@ obj <- TMB::MakeADFun(
   random.start = expression(last.par[random])
 )
 
-(nodes <- spline_nodes(modeandhessian = modesandhessians, tmb_inputs_simple_i$data$i, k = 7))
+grid <- create_approx_grid(modeandhessian = modesandhessians, tmb_inputs_simple_i$data$i, k = 7)
+nodes <- mvQuad::getNodes(grid)
 
 laplace_marginal <- function(x, i, C = log(modesandhessians$weights) - quad$normalized_posterior$lognormconst) {
   random <- obj$env$random
@@ -72,7 +73,7 @@ for(i in seq_along(nodes)) {
   times[i] <- ends[i] - starts[i]
 }
 
-pdf_and_cdf <- compute_pdf_and_cdf(nodes, lps, normalise = FALSE)
+pdf_and_cdf <- compute_pdf_and_cdf(nodes, lps)
 
 #' The PDF obtained
 ggplot(pdf_and_cdf, aes(x = x, y = pdf)) +
@@ -120,8 +121,6 @@ fine_grid <- seq(min, max, length.out = 1000)
 
 pdf_and_cdf_alt <- aghq::compute_pdf_and_cdf(marginal_quad, finegrid = fine_grid)[[1]]
 pdf_and_cdf_alt$x <- pdf_and_cdf_alt$theta
-
-max(pdf_and_cdf_alt$cdf)
 
 #' Expose internals of aghq::aghq(ff = obj_fixed_theta, k = 7, startingvalue = 0, control = aghq::default_control_tmb())
 # ff <- obj_fixed_theta
@@ -188,7 +187,7 @@ calculate_lognormconst <- function(i) {
     control = aghq::default_control_tmb()
   )
 
-  return(marginal_quad$normalized_posterior$lognormconst)
+  return(marginal_quad)
 }
 
 lognormconsts <- map(1:10, calculate_lognormconst)
@@ -261,14 +260,18 @@ check_cdf_max <- function(i) {
 }
 
 cdf_max_df <- data.frame(i = 1:max(adam$laplace_marginals$index)) %>%
-  mutate(cdf_max = purrr:::map(i, check_cdf_max))
+  mutate(cdf_max = unlist(purrr:::map(i, check_cdf_max)))
 
 pdf("cdf-maximum-comparison.pdf", h = 5, w = 6.25)
 
-ggplot(cdf_max_df, aes(x = as.numeric(i), y = as.numeric(cdf_max))) +
+ggplot(cdf_max_df, aes(x = i, y = cdf_max)) +
   geom_point(alpha = 0.5) +
   geom_hline(yintercept = 1, linetype = "dashed") +
   theme_minimal() +
   labs(x = "Index", y = "CDF maximum")
 
 dev.off()
+
+#' Is the proper AGHQ way of doing it any better? Answer: no, it's also biased
+max(pdf_and_cdf_alt$cdf)
+cdf_max_df$cdf_max[1]
