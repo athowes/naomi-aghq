@@ -327,20 +327,20 @@ where $\tilde p_\text{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \
 2. Generate a set of nodes $\z \in \mathcal{Q}(m, k)$ and weights $\omega: \z \in \mathcal{Q}(m, k) \to \mathbb{R}$ from a Gauss-Hermite quadrature rule with $k$ nodes per dimension, which are then adapted based on the mode and lower Choleksy via $\btheta(\z) = \hat{\btheta} + \mathbf{L} \z$.
 If possible $k \geq 3$ is prefered, though the number of grid points scales exponentially with choice of $k$.
 3. Use this quadrature rule to calculate the normalising constant $\tilde p_{\text{AQ}}(\y)$ as follows
-$$
-\tilde p_{\text{AQ}}(\y) = \sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\text{LA}(\btheta(\z), \y) \omega(\z).
-$$
-4. For $i \in [n]$ generate $l$ nodes $\mathcal{X}_i$ via a Gauss-Hermite quadrature rule with one-dimension adapted based on the mode $\hat \x(\btheta)_i$ and standard deviation $\sqrt{\text{diag}[\mathbf{H}(\btheta)^{-1}]_i}$. A value of $l \geq 4$ is recommended to enable B-spline interpolation.
-5. For $x_i \in \mathcal{X}_i$ and $\btheta \in \{ \btheta(\z) \}_{\z \in \mathcal{Q}(m, k)}$ calculate the modes and Hessians
+\begin{equation}
+\tilde p_{\text{AQ}}(\y) = \sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\text{LA}(\btheta(\z), \y) \omega(\z). \label{eq:evidence1}
+\end{equation}
+4. For $i \in [n]$ generate $l$ nodes $x_i(\z)$, via a Gauss-Hermite quadrature rule $\z \in \mathcal{Q}(1, l)$ adapted based on the mode $\hat \x(\btheta)_i$ and standard deviation $\sqrt{\text{diag}[\mathbf{H}(\btheta)^{-1}]_i}$ of the Gaussian marginal. A value of $l \geq 4$ is recommended to enable B-spline interpolation.
+5. For $x_i \in \{ x_i(\z) \}_{\z \in \mathcal{Q}(1, l)}$  and $\btheta \in \{ \btheta(\z) \}_{\z \in \mathcal{Q}(m, k)}$ calculate the modes and Hessians
 \begin{align*}
 \hat \x_{-i}(x_i, \btheta) &= \argmin_{\x_{-i}} - \log p(\y, x_i, \x_{-i}, \btheta), \\
 \mathbf{H}_{-i, -i}(x_i, \btheta) &= \frac{\partial^2}{\partial \x_{-i} \partial \x_{-i}^\top} - \log p(\y, x_i, \x_{-i}, \btheta) \rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)},
 \end{align*}
 where optimisation to obtain $\hat \x_{-i}(x_i, \btheta)$ is initialised at $\hat \x(\btheta)_{-i}$.
-6. For $x_i \in \mathcal{X}_i$ calculate
-$$
-\tilde p_\text{AQ}(x_i \, | \, \y) = \frac{\tilde p_\text{LA}(x_i, \y)}{p_{\text{AQ}}(\y)}.
-$$
+6. For $x_i \in \{ x_i(\z) \}_{\z \in \mathcal{Q}(1, l)}$ calculate
+\begin{equation}
+\tilde p_\text{AQ}(x_i \, | \, \y) = \frac{\tilde p_\text{LA}(x_i, \y)}{\tilde p_{\text{AQ}}(\y)}. \label{eq:laplace-marginal}
+\end{equation}
 where
 $$
 \tilde p_\text{LA}(x_i, \y) = \sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\text{LA}(x_i, \btheta(\z), \y) \omega(\z).
@@ -349,7 +349,14 @@ and
 $$
 \tilde p_\text{LA}(x_i, \btheta, \y) = \frac{p(x_i, \x_{-i}, \btheta, \y)}{\tilde p_\text{G}(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)}.
 $$
+Although Equation \ref{eq:laplace-marginal} can be calculated using the estimate of the evidence in Equation \ref{eq:evidence1} it is more numerically accurate to use the estimate
+$$
+\tilde p_{\text{AQ}}(\y) = \sum_{\z \in \mathcal{Q}(1, l)} \tilde p_\text{LA}(x_i(\z), \y) \omega(\z)
+$$
+
 7. Given $\{x_i, \tilde p_\text{AQ}(x_i \, | \, \y)\}_{x_i \in \mathcal{X}_i}$ create a spline interpolant to each posterior marginal on the log-scale, from which samples or relevant posterior marginal summaries may be obtained.
+
+Note that clearer notation is required for $\z$ and $\omega(\z)$.
 
 # Application to data from Malawi\label{sec:results}
 
