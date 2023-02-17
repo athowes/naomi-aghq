@@ -255,20 +255,30 @@ fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NU
     obj_i <- local_make_tmb_obj(tmb_input_i$data, tmb_input_i$par, calc_outputs = 0L, inner_verbose, progress, DLL = "naomi_simple_x_index")
     random_i <- obj_i$env$random
     mode_i <- quad$modesandhessians[["mode"]][[1]][-i]
-    obj_i$env$last.par[random_i] <- mode_i
+
+
+    gg <- create_approx_grid(quad$modesandhessians, i = i, k = 5)
 
     out <- data.frame(
       index = i,
       par = x_names[i],
-      x = spline_nodes(quad$modesandhessians, i = i, k = 5)
+      x = mvQuad::getNodes(gg),
+      w = mvQuad::getWeights(gg)
     )
 
+    # Inclusion of the weights argument here is meaningless for now, but will become
+    # of importance when there are multiple hyperparameter grid points used. We also
+    # always put mode_i in as the last parameter so that optimisation starts there.
+    # It's unclear to me if there is a better way to do this.
     .g <- function(x) {
-      lp <- as.numeric(- obj_i$fn(c(x, theta))) + log(quad$normalized_posterior$nodesandweights$weights)
-      return(lp - quad$normalized_posterior$lognormconst)
+      obj_i$env$last.par[random_i] <- mode_i
+      return(as.numeric(- obj_i$fn(c(x, theta))) + log(quad$normalized_posterior$nodesandweights$weights))
     }
 
-    out$lp <- purrr::map_dbl(out$x, .g)
+    out$lp <- purrr::map_dbl(out$x, .g) # Calculate log-posterior
+    lognormconst <- logSumExpWeights(out$lp, out$w) # Calculate log normalising constant
+    out$lp_normalised <- out$lp - lognormconst # Calculate normalised log-posterior
+
     return(out)
   }
 
@@ -296,7 +306,7 @@ sample_adam <- function(adam, M, verbose = TRUE) {
   # Laplace latent field marginals
   for(i in 1:d) {
     marginal <- adam$laplace_marginals[adam$laplace_marginals$index == i, ]
-    pdf_and_cdf <- compute_pdf_and_cdf(marginal$x, marginal$lp)
+    pdf_and_cdf <- compute_pdf_and_cdf(marginal$x, marginal$lp_normalised)
     samps[i, ] <- sample_cdf(pdf_and_cdf, M = M)
   }
 
@@ -306,7 +316,7 @@ sample_adam <- function(adam, M, verbose = TRUE) {
     marginal <- adam$quad$marginals[[j]]
     colnames(marginal)[grep("theta", colnames(marginal))] <- "theta"
     # Don't normalise because maybe just one point
-    pdf_and_cdf <- compute_pdf_and_cdf(marginal$theta, marginal$logmargpost, normalise = FALSE)
+    pdf_and_cdf <- compute_pdf_and_cdf(marginal$theta, marginal$logmargpost)
     thetasamples[[j]] <- unname(sample_cdf(pdf_and_cdf, M = M))
   }
 
@@ -518,29 +528,29 @@ local_extract_art_attendance_naomi_simple <- function(naomi_fit, naomi_mf, na.rm
   dplyr::bind_rows(v_t1)
 }
 
-#' A function to choose the points at which to evaluate the Laplace marginal
+#' Return a quadrature rule at which to evaluate the Laplace marginal
+#'
+#' The grid is approximate in that it uses the Gaussian approximation to the mode
+#' and standard deviation rather than the "true" mode and standard deviation which
+#' one might calculate directly using the Laplace marginal. Most of the time these
+#' should be very similar (Gaussian approximations tend to be good at capturing the
+#' first two moments) so it should not matter.
 #'
 #' @param modeandhessian The row of `modesandhessians` containing the node which
 #' is the mode of the Laplace approximation, or alternatively just the node which
 #' has the highest log posterior evaluation.
 #' @param i The index of the latent field to choose
 #' @param k The number of AGHQ grid points to choose
-spline_nodes <- function(modeandhessian, i, k = 7) {
+create_approx_grid <- function(modeandhessian, i, k = 7) {
   mode <- modeandhessian[["mode"]][[1]]
   mode_i <- mode[i]
   H <- modeandhessian[["H"]][[1]]
   var_i <- diag(solve(H))[i]
   # LL <- Cholesky(H, LDL = FALSE)
   # var_i <- (colSums(solve(expand(LL)$L)^2))[i]
-
-  #' Create Gauss-Hermite quadrature
-  gg <- mvQuad::createNIGrid(dim = 1, type = "GHe", level = k)
-
-  #' Adapt to mode_i and sd_i
-  mvQuad::rescale(gg, m = mode_i, C = var_i)
-
-  #' Return the set of x input values
-  mvQuad::getNodes(gg)
+  gg <- mvQuad::createNIGrid(dim = 1, type = "GHe", level = k) # Create Gauss-Hermite quadrature
+  mvQuad::rescale(gg, m = mode_i, C = var_i) # Adapt to mode_i and sd_i
+  return(gg)
 }
 
 logSumExpWeights <- function(lp, w) {
@@ -604,7 +614,7 @@ trapezoid_rule_log <- function(x, spacing) {
   matrixStats::logSumExp(log(w) + x)
 }
 
-compute_pdf_and_cdf <- function(nodes, lps, method = "auto", normalise = TRUE) {
+compute_pdf_and_cdf <- function(nodes, lps, method = "auto") {
   k <- length(nodes)
   if(k >= 4) method <- "spline"
   if(k < 4) method <- "polynomial"
@@ -625,12 +635,6 @@ compute_pdf_and_cdf <- function(nodes, lps, method = "auto", normalise = TRUE) {
 
   finegrid <- seq(min, max, length.out = 1000)
   lps <- interpolant(finegrid)
-
-  if(normalise) {
-    #' Make sure that the log probabilities produce a normalised PDF
-    logC <- trapezoid_rule_log(lps, spacing = finegrid[2] - finegrid[1])
-    lps <- lps - logC
-  }
 
   df <- data.frame(
     x = finegrid,

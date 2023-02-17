@@ -253,3 +253,22 @@ lognormconst3 <- logSumExpWeights(lps3, mvQuad::getWeights(gg))
 #' Compare the computed log normalsing constant with the "correct" one with full AGHQ
 lognormconst3
 unlist(lognormconsts)[i]
+
+#' Check that all the CDFs have maximum value 1 after fix
+check_cdf_max <- function(i) {
+  marginal <- filter(adam$laplace_marginals, index == i)
+  max(compute_pdf_and_cdf(nodes = marginal$x, lps = marginal$lp_normalised)$cdf)
+}
+
+cdf_max_df <- data.frame(i = 1:max(adam$laplace_marginals$index)) %>%
+  mutate(cdf_max = purrr:::map(i, check_cdf_max))
+
+pdf("cdf-maximum-comparison.pdf", h = 5, w = 6.25)
+
+ggplot(cdf_max_df, aes(x = as.numeric(i), y = as.numeric(cdf_max))) +
+  geom_point(alpha = 0.5) +
+  geom_hline(yintercept = 1, linetype = "dashed") +
+  theme_minimal() +
+  labs(x = "Index", y = "CDF maximum")
+
+dev.off()
