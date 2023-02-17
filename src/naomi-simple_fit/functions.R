@@ -588,7 +588,7 @@ stopifnot(abs(logSumExpNegWeights(lp = c(log(0.5), log(0.1)), w = c(1, -0.1)) - 
 plot_marginal_spline <- function(nodes, lps, lower = min(nodes) - 1, upper = max(nodes) + 1) {
   ss <- splines::interpSpline(nodes, lps, bSpline = TRUE, sparse = TRUE)
   interpolant <- function(x) { as.numeric(stats::predict(ss, x)$y) }
-  finegrid <- seq(lower, upper, by = 0.1)
+  finegrid <- seq(lower, upper, length.out = 1000)
   df <- data.frame(x = finegrid, y = exp(interpolant(finegrid)))
 
   ggplot(df, aes(x = x, y = y)) +
