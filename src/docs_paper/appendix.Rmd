@@ -44,8 +44,8 @@ To do so, we draw substantially from the supplementary material of @eaton2021nao
 ### Indexing
 
 Let $\nu$ the most recent national household survey with HIV testing which has taken place in the country of interest at time $t = T_1$
-Let $x$ refer to a district located within the Spectrum [@stover2010spectrum] region $R_x$.
-Let $s \in \{\text{F}, \text{M}\}$ be sex, and $a \in \{\text{0-5}, \text{5-10}, \ldots, \text{75-80}, 80+\}$ be five-year age bands.
+Let $x \in \{1, \ldots, n\}$ refer to a district located within the Spectrum [@stover2010spectrum] region $R_x$.
+Let $s \in \{\text{F}, \text{M}\}$ be sex, and $a \in \{\text{0-5}, \text{5-10}, \ldots, \text{75-80}, \text{80+}\}$ be five-year age bands.
 As short-hand, we write $a = l$ to refer to the age band with lower bound $l$, e.g. $a = 20$ for $a = \text{20-25}$.
 We index the following quantities by district, sex and age-band: population size $N_{x, s, a}$, HIV prevalence $\rho_{x, s, a}$, ART coverage $\alpha_{x, s, a}$, annual HIV incidence rate $\lambda_{x, s, a}$, and proportion of HIV positive persons recently infected $\kappa_{x, s, a}$.
 Sometimes data are observed at an aggregate level, rather than the more granular modelled level.
