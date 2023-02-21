@@ -545,12 +545,30 @@ saveRDS(ks_summary_out, "ks_summary_out.rds")
 
 ## Investigation into large KS values
 
-The following parameters have KS values greater than 0.5 in both dimensions.
+Want to create rank order lists of largest KS differences between methods:
 
 ```{r}
-(big_ks <- ks_summary %>%
-  filter(`KS(aghq, tmbstan)` + `KS(TMB, tmbstan)` > 0.5) %>%
-  pull(Parameter))
+ks_comparison <- function(ks_summary, method1, method2, n) {
+  ks_method1 <- paste0("KS(", method1, ", tmbstan)")
+  ks_method2 <- paste0("KS(", method2, ", tmbstan)")
+  ks_summary[["KS difference"]] <- ks_summary[[ks_method1]] - ks_summary[[ks_method2]]
+  ks_summary %>%
+    filter(Type != "Hyper") %>%
+    arrange(desc(`KS difference`)) %>%
+    head(n = n)
+}
+```
+
+Nodes where `TMB` beats `adam`:
+
+```{r}
+ks_comparison(ks_summary, method1 = "adam", method2 = "TMB", 10)
+```
+
+Nodes where `adam` beats `TMB`:
+
+```{r}
+ks_comparison(ks_summary, method1 = "TMB", method2 = "adam", 10)  
 ```
 
 ## Correlation between KS values and ESS
