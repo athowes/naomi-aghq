@@ -1,13 +1,29 @@
+setting <- 2
+
 #' It was suggested by Seth than 4,000 iterations would be a manageable number to keep
 #' This corresponds to four chains of 1000 after thinning. Running locally, it takes
 #' 3 hours to generate 4,000 x 4 iterations, but the ESS here is very low, sub 5%. To
 #' run 20,000 x 4 iterations on the cluster it should take around 13.5 hours, then
 #' we could set nthin = 20 to only keep every 20th iteration, ending up with 1,000 x 4.
+if(setting == 1) {
+  niter <- 20000
+  nthin <- 20
+}
+
+#' After trying this, I have found the number of effective samples still to be too low.
+#' 20,000 x 4 took around 12 hours. So 100,000 x 4 should take below 3 days. Then we can
+#' try thinning by a factor of 20 again to keep only over 40th iteration. If this is too
+#' big to practically work with, we can thin it again outside the cluster, but I'd prefer
+#' to save too many then thin rather than overthin on the cluster.
+if(settings == 2) {
+  niter <- 100000
+  nthin <- 40
+}
 
 repo <- "elgm-inf"
 report <- "naomi-simple_fit"
 path_bundles <- "bundles"
-param <- list(tmbstan = TRUE, niter = 20000, nthin = 20)
+param <- list(tmbstan = TRUE, niter = niter, nthin = nthin)
 # param <- list(tmbstan = TRUE) #' For testing
 
 #' A1.
