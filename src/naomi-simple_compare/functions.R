@@ -47,7 +47,13 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
     scale_color_manual(values = colours) +
     scale_fill_manual(values = colours) +
     theme(legend.position = "none") +
-    labs(title = par_name, subtitle = paste0("Mean = ", mean, ", SD = ", sd, " (from tmbstan)"))
+    labs(
+      title = par_name,
+      subtitle = paste0(
+        "tmbstan: Rhat = ", round(rhats[[par_name]], 3), ", ESS = ", round(ess[[par_name]], 3)
+      ),
+      x = ""
+    )
 
   grid <- seq(from = min(df_compare$samples), to = max(df_compare$samples), length.out = 1000)
 

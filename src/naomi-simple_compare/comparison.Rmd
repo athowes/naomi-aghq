@@ -63,7 +63,8 @@ dependency_details(3)
 ### `tmbstan`
 
 ```{r}
-dependency_details(4)
+tmbstan_details <- dependency_details(4)
+tmbstan_details
 ```
 
 ## Time taken
@@ -102,6 +103,15 @@ The `beta_rho` parameter is used in other reports as a check, so create the data
 ```{r}
 beta_rho <- histogram_and_ecdf("beta_rho", i = 1, return_df = TRUE)
 saveRDS(beta_rho$df, "beta_rho.rds")
+```
+
+We will write the `tmbstan` $\hat R$ and ESS for the particular parameter on each plot to help in deciding how seriously to take the MCMC results:
+
+```{r}
+rhats <- bayesplot::rhat(tmbstan$mcmc)
+ess_ratio <- bayesplot::neff_ratio(tmbstan$mcmc)
+niter <- 4 * tmbstan_details$niter / tmbstan_details$nthin
+ess <- ess_ratio * niter
 ```
 
 ## `beta_rho`
@@ -541,6 +551,43 @@ The following parameters have KS values greater than 0.5 in both dimensions.
 (big_ks <- ks_summary %>%
   filter(`KS(aghq, tmbstan)` + `KS(TMB, tmbstan)` > 0.5) %>%
   pull(Parameter))
+```
+
+## Correlation between KS values and ESS
+
+Is there any correlation between the value of $\text{KS}(\texttt{method}, \texttt{tmbstan})$ for a particular parameter and the ESS of that parameter from `tmbstan` output?
+
+```{r}
+ks_summary %>%
+  pivot_longer(
+    col = starts_with("KS"),
+    names_to = "Method",
+    values_to = "KS"
+  ) %>%
+  mutate(
+    Method = fct_recode(Method,
+      "adam" = "KS(adam, tmbstan)",
+      "aghq" = "KS(aghq, tmbstan)",
+      "TMB" = "KS(TMB, tmbstan)"
+    )
+  ) %>%
+  group_by(Parameter) %>%
+  mutate(
+    par_num = case_when(
+      max(index) > 1 ~ paste0(Parameter, "[", index, "]"),
+      TRUE ~ Parameter
+    )
+  ) %>%
+  ungroup() %>%
+  left_join(data.frame(ess) %>%
+    tibble::rownames_to_column("par_num")
+  ) %>%
+  ggplot(aes(x = ess, y = KS)) +
+    geom_point(alpha = 0.5) +
+    geom_smooth(method = "lm", color = "#56B4E9") +
+    facet_grid(~ Method) +
+    theme_minimal() +
+    labs(x = "ESS", y = "KS(method, tmbstan)")
 ```
 
 # MMD
