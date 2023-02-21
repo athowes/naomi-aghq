@@ -97,6 +97,8 @@ pars_eval <- pars %in% c("beta_rho", "beta_alpha", "beta_lambda", "beta_anc_rho"
 names(pars_eval) <- pars
 ```
 
+The `beta_rho` parameter is used in other reports as a check, so create the dataframe to save as artefact here:
+
 ```{r}
 beta_rho <- histogram_and_ecdf("beta_rho", i = 1, return_df = TRUE)
 saveRDS(beta_rho$df, "beta_rho.rds")
@@ -261,7 +263,7 @@ ks_helper <- function(par, sw = FALSE, ...) {
 
 ```{r}
 ks_helper("beta", sw = TRUE)
-ks_helper("beta", sw = TRUE, method1 = "TMB", method2 = "TMB")
+ks_helper("beta", sw = TRUE, method1 = "TMB", method2 = "adam")
 ```
 
 ### `logit`
@@ -463,26 +465,38 @@ summary_ks_plot <- function(ks_summary, method1, method2) {
   ks_method1 <- paste0("KS(", method1, ", tmbstan)")
   ks_method2 <- paste0("KS(", method2, ", tmbstan)")
   
-  densityplot <- ggplot(ks_summary, aes(x = .data[[ks_method1]], y = .data[[ks_method2]])) +
-    stat_density_2d(aes(linetype = Type), col = "black") +
-    annotate(geom = "polygon", x = c(-Inf, Inf, Inf), y = c(-Inf, Inf, -Inf), fill = multi.utils::cbpalette()[2], alpha = 0.2) +
-    annotate(geom = "polygon", x = c(-Inf, Inf, -Inf), y = c(-Inf, Inf, Inf), fill = multi.utils::cbpalette()[6], alpha = 0.2) +
-    xlim(0, 0.75) +
-    ylim(0, 0.75) +
-    geom_abline(intercept = 0, slope = 1, linetype = "dashed", alpha = 0.5) +
-    scale_linetype_manual(values = c("dashed", "solid")) +
-    # scale_alpha_discrete(range = c(0.5, 0.01)) +
-    # guides(alpha = FALSE) +
-    guides(linetype = FALSE) +
-    labs(x = ks_method1, y = ks_method2) +
-    theme_minimal() 
+  xy_length <- min(1, max(ks_summary[[ks_method1]], ks_summary[[ks_method2]]) + 0.05)
+  
+  x <- y <- seq(0, xy_length, length.out = 20)
 
+  gradient_base <- expand.grid(x, y) %>%
+    mutate(diff = Var1 - Var2) %>%
+    ggplot(aes(x = Var1, y = Var2)) +
+    geom_tile(aes(fill = diff), alpha = 0.7) +
+    scale_fill_gradientn(
+      colours = c("#56B4E9", "white", "#009E73"),
+      rescaler = ~ scales::rescale_mid(.x, mid = 0)
+    )
+  
+  densityplot <- gradient_base +
+    stat_density_2d(data = ks_summary, aes(x = .data[[ks_method1]], y = .data[[ks_method2]], linetype = Type), col = "black") +
+    xlim(0, xy_length) +
+    ylim(0, xy_length) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed", alpha = 0.5) +
+    scale_linetype_manual(values = c("solid", "dashed")) +
+    labs(x = ks_method1, y = ks_method2) +
+    theme_minimal() +
+    guides(fill = "none") +
+    theme(
+      legend.position = "bottom"
+    )
+  
   ks_summary[["KS difference"]] <- ks_summary[[ks_method1]] - ks_summary[[ks_method2]]
   
   ridgeplot <- ggplot(ks_summary, aes(y = Type, x = `KS difference`)) +
     ggridges::geom_density_ridges(alpha = 0.7, fill = NA, aes(linetype = Type)) +
     coord_flip() +
-    scale_linetype_manual(values = c("dashed", "solid")) +
+    scale_linetype_manual(values = c("solid", "dashed")) +
     labs(y = "", x = paste0(ks_method1, " - ", ks_method2)) +
     guides(linetype = FALSE) +
     theme_minimal()
@@ -501,6 +515,12 @@ summary_ks_plot(ks_summary, "aghq", "adam")
     aghq = mean(`KS(aghq, tmbstan)`),
     adam = mean(`KS(adam, tmbstan)`)
   ))
+```
+Compute $p$-values, then plot expecting $\mathcal{U}(0, 1)$.
+If not conclude there is a significant difference.
+
+```{r}
+#' To write!
 ```
 
 Save some things for output:

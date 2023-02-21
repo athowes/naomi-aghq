@@ -106,9 +106,9 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
 #' Create a dataframe of samples from TMB, aghq, adam and tmbstan for any parameters starting with par
 to_ks_df <- function(par, starts_with = FALSE) {
   par_names <- par
+  all_par_names <- names(tmb$fit$obj$env$par)
 
   if(starts_with) {
-    all_par_names <- names(tmb$fit$obj$env$par)
     par_names <- all_par_names[stringr::str_starts(all_par_names, par)]
   }
 
@@ -126,7 +126,7 @@ to_ks_df <- function(par, starts_with = FALSE) {
   samples_tmbstan <- rstan::extract(tmbstan$mcmc, pars = unique_par_names)
   samples_tmbstan <- lapply(samples_tmbstan, function(x) as.data.frame(x))
 
-  table <- table(par_names)
+  table <- table(all_par_names)
   for(par in unique_par_names) {
     par_length <- table[par]
     if(par_length > 1) {
@@ -169,7 +169,8 @@ ks_plot <- function(ks_df, par, method1 = "TMB", method2 = "aghq") {
 
   jitterplot <- wide_ks_df %>%
     ggplot(aes(x = "", y = ks_diff)) +
-    geom_jitter(width = 0.1, alpha = 0.5) +
+    geom_jitter(width = 0.05, height = 0, alpha = 0.5) +
+    geom_boxplot(fill = NA, width = 0.2, outlier.shape = NA) +
     labs(
       title = paste0("Mean KS difference* is ", round(mean_ks_diff, 3)),
       caption = paste0("*If >0 then ", method1, " more different to tmbstan, and if <0 then ", method2, " more different"),
@@ -179,18 +180,29 @@ ks_plot <- function(ks_df, par, method1 = "TMB", method2 = "aghq") {
 
   xy_length <- min(1, max(wide_ks_df[[method1]], wide_ks_df[[method2]]) + 0.05)
 
-  scatterplot <- ggplot(wide_ks_df, aes(x = .data[[method1]], y = .data[[method2]])) +
-    geom_point(alpha = 0.5) +
-    annotate(geom = "polygon", x = c(-Inf, Inf, Inf), y = c(-Inf, Inf, -Inf), fill = multi.utils::cbpalette()[2], alpha = 0.2) +
-    annotate(geom = "polygon", x = c(-Inf, Inf, -Inf), y = c(-Inf, Inf, Inf), fill = multi.utils::cbpalette()[6], alpha = 0.2) +
+  x <- y <- seq(0, xy_length, length.out = 20)
+
+  gradient_base <- expand.grid(x, y) %>%
+    mutate(diff = Var1 - Var2) %>%
+    ggplot(aes(x = Var1, y = Var2)) +
+    geom_tile(aes(fill = diff), alpha = 0.7) +
+    scale_fill_gradientn(
+      colours = c("#56B4E9", "white", "#009E73"),
+      rescaler = ~ scales::rescale_mid(.x, mid = 0)
+    )
+
+  scatterplot <- gradient_base +
+    geom_point(data = wide_ks_df, aes(x = .data[[method1]], y = .data[[method2]]), alpha = 0.5) +
     xlim(0, xy_length) +
     ylim(0, xy_length) +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
     labs(
       title = paste0("KS tests for ", par, " of length ", max(ks_df$index)),
-      x = paste0("KS(", method1, ", tmbstan)"), y = paste0("KS(", method2,", tmbstan)")
+      x = paste0("KS(", method1, ", tmbstan)"), y = paste0("KS(", method2,", tmbstan)"),
+      fill = "KS difference"
     ) +
-    theme_minimal()
+    theme_minimal() +
+    guides(fill = "none")
 
   scatterplot + jitterplot
 }
