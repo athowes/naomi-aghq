@@ -259,6 +259,15 @@ histogram_and_ecdf_helper("ui_anc_alpha_x")
 histogram_and_ecdf_helper("log_or_gamma")
 ```
 
+## Outcome variables
+
+These are the outcome variables which we might be interested in to monitor:
+
+```{r}
+names(tmb$fit$sample)[!(names(tmb$fit$sample) %in% pars)]
+#' To-do: elicit from Jeff in particular which of these we should be focusing on the posterior output of
+#' Guess would be the indicators HIV prevalence (rho_t1_out), ART coverage (alpha_t1_out), HIV incidence (lambda_t1_out)
+```
 # KS plots 
 
 ## Individual parameters {.tabset .tabset-fade}
@@ -565,10 +574,22 @@ Nodes where `TMB` beats `adam`:
 ks_comparison(ks_summary, method1 = "adam", method2 = "TMB", 10)
 ```
 
+```{r}
+histogram_and_ecdf(par = "u_alpha_xs", i = 18)
+histogram_and_ecdf(par = "u_alpha_xs", i = 29)
+histogram_and_ecdf(par = "ui_anc_alpha_x", i = 29)
+```
+
 Nodes where `adam` beats `TMB`:
 
 ```{r}
 ks_comparison(ks_summary, method1 = "TMB", method2 = "adam", 10)  
+```
+
+```{r}
+histogram_and_ecdf(par = "log_or_gamma", i = 18)
+histogram_and_ecdf(par = "ui_anc_rho_x", i = 10)
+histogram_and_ecdf(par = "log_or_gamma", i = 1)
 ```
 
 ## Correlation between KS values and ESS
