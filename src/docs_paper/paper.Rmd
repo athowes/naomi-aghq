@@ -94,7 +94,7 @@ Drawing on expertise closest to the data being modelled improves the accuracy of
 The practical requirements for the model, combined with its relative complexity, present a difficult Bayesian inference problem.
 Any inferential strategy must be fast enough for interactive review and iteration of modelling results, as well as easy to run in production by country teams, ruling out prohibitively slow Markov chain Monte Carlo (MCMC) approaches.
 Inference is currently conducted using an empirical Bayes (EB) approach, with a Gaussian approximation to the latent field, via the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
-Owing to its speed and flexibility, `TMB` has recently been gaining popularity more broadly in spatial statistics [@osgoodzimmerman2021statistical].
+Owing to its speed and flexibility, `TMB` has recently been gaining popularity more broadly in spatial statistics [@osgood2022statistical].
 Inference in `TMB` is based on optimisation of a \textsf{C++} template function, with the option available to use a Laplace approximation to integrate out any subset of the function arguments, which for the Naomi model, we use for the high-dimensional latent field parameters.
 Taking inspiration from the AD Model Builder (ADMB) package [@fournier2012ad], `TMB` uses automatic differentiation [@baydin2017automatic] to calculate the derivatives required for numerical optimisation routines and the Laplace approximation.
 Although this approach has favourable computational properties, it would be preferable to account more fully for hyperparameter uncertainty than is possible in an empirical Bayes framework.
