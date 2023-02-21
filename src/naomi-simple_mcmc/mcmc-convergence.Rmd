@@ -50,6 +50,21 @@ ratios <- bayesplot::neff_ratio(mcmc)
 bayesplot::mcmc_neff(ratios)
 ```
 
+# ESS
+
+What are the total effective sample sizes?
+
+```{r}
+#' I think that this $summary should be all of the chains grouped together
+mcmc_summary <- summary(mcmc)$summary
+
+data.frame(mcmc_summary) %>%
+  tibble::rownames_to_column("param") %>%
+  ggplot(aes(x = n_eff)) +
+    geom_histogram(alpha = 0.8) +
+    labs(x = "ESS", y = "Count")
+```
+
 # Autocorrelation
 
 How much autocorrelation is there in the chains?
