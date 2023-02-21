@@ -306,7 +306,8 @@ sample_adam <- function(adam, M, verbose = TRUE) {
   # Laplace latent field marginals
   for(i in 1:d) {
     marginal <- adam$laplace_marginals[adam$laplace_marginals$index == i, ]
-    pdf_and_cdf <- compute_pdf_and_cdf(marginal$x, marginal$lp_normalised)
+    # Extra normalisation check in here to avoid any issues with slightly not integrating to one
+    pdf_and_cdf <- compute_pdf_and_cdf(marginal$x, marginal$lp_normalised, normalise = TRUE)
     samps[i, ] <- sample_cdf(pdf_and_cdf, M = M)
   }
 
@@ -315,7 +316,8 @@ sample_adam <- function(adam, M, verbose = TRUE) {
   for(j in 1:length(adam$quad$marginals)) {
     marginal <- adam$quad$marginals[[j]]
     colnames(marginal)[grep("theta", colnames(marginal))] <- "theta"
-    # Don't normalise because maybe just one point
+    # Don't normalise because maybe just one point (for now) and the trapezoid
+    # rule will break
     pdf_and_cdf <- compute_pdf_and_cdf(marginal$theta, marginal$logmargpost)
     thetasamples[[j]] <- unname(sample_cdf(pdf_and_cdf, M = M))
   }
@@ -614,7 +616,7 @@ trapezoid_rule_log <- function(x, spacing) {
   matrixStats::logSumExp(log(w) + x)
 }
 
-compute_pdf_and_cdf <- function(nodes, lps, method = "auto") {
+compute_pdf_and_cdf <- function(nodes, lps, method = "auto", normalise = FALSE) {
   k <- length(nodes)
   if(k >= 4) method <- "spline"
   if(k < 4) method <- "polynomial"
@@ -635,6 +637,12 @@ compute_pdf_and_cdf <- function(nodes, lps, method = "auto") {
 
   finegrid <- seq(min, max, length.out = 1000)
   lps <- interpolant(finegrid)
+
+  if(normalise) {
+    #' Make sure that the log probabilities produce a normalised PDF
+    logC <- trapezoid_rule_log(lps, spacing = finegrid[2] - finegrid[1])
+    lps <- lps - logC
+  }
 
   df <- data.frame(
     x = finegrid,

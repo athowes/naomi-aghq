@@ -30,6 +30,7 @@ id <- orderly::orderly_run("naomi-simple_fit", parameters = list(adam = TRUE))
 orderly::orderly_commit(id)
 
 #' Simplfied Naomi with tmbstan, and niter = 1000
+#' Note that longer niter are not run locally, and instead use the cluster. See
 id <- orderly::orderly_run("naomi-simple_fit", parameters = list(tmbstan = TRUE))
 orderly::orderly_commit(id)
 

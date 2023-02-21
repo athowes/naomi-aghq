@@ -36,7 +36,7 @@ parameters:
     default: FALSE
   #' Number of samples to draw from the fitted model (not applicable to tmbstan)
   nsample:
-    default: 1000
+    default: 5000
   #' The level at which the model is run. This can be used to make computation
   #' easier or harder. The default is 4, but by making it e.g. 3 then everything
   #' should run a lot faster because there will be fewer areas
@@ -65,15 +65,15 @@ packages:
   - naomi
 
 depends:
-  naomi-simple_compare:
-    id: latest
-    use:
-      depends/beta_rho.rds: beta_rho.rds
-  naomi-simple_fit:
-    id: latest(parameter:aghq == TRUE && parameter:k == 1)
-    use:
-      depends/aghq.rds: out.rds
-  naomi-simple_fit:
-    id: latest(parameter:adam == TRUE)
-    use:
-      depends/adam.rds: out.rds
+  - naomi-simple_compare:
+      id: latest
+      use:
+        depends/beta_rho.rds: beta_rho.rds
+  - naomi-simple_fit:
+      id: latest(parameter:aghq == TRUE && parameter:k == 1)
+      use:
+        depends/aghq.rds: out.rds
+  - naomi-simple_fit:
+      id: latest(parameter:adam == TRUE)
+      use:
+        depends/adam.rds: out.rds
