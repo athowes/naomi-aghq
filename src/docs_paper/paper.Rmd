@@ -1,5 +1,5 @@
 ---
-title: Fast approximate Bayesian inference for the Naomi HIV surveillance model
+title: Fast approximate Bayesian inference for small-area estimation of HIV using the Naomi model
 author:
   - name: Adam 
     surname: Howes
