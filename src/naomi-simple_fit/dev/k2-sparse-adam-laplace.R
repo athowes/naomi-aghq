@@ -255,10 +255,3 @@ data.frame(x = modesandhessians$weights, y = lp_normalised) %>%
     geom_point() +
     labs(x = "Weight", y = "Log-posterior") +
     theme_minimal()
-
-#' Aiming to get the marginal standard deviation without inverting the whole Hessian
-H <- modeandhessian[["H"]][[1]]
-LL <- Cholesky(H, LDL = FALSE)
-dd1 <- diag(solve(H))
-dd2 <- colSums(solve(expand(LL)$L)^2)
-sum(abs(dd1 - dd2)) #' Different answers?
