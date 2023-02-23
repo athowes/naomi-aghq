@@ -224,7 +224,16 @@ fit_tmbstan <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map =
   stopifnot(inherits(tmb_input, "naomi_tmb_input"))
   obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL)
   fit <- tmbstan::tmbstan(obj, ...)
+  tmbstanfit <- setClass("tmbstanfit", contains = "stanfit", slots = c(obj = "list"))
+  fit <- as(fit, "tmbstanfit")
+  fit@obj <- obj
   fit
+}
+
+#' Uncertainty for the Naomi model using tmbstan
+sample_tmbstan <- function(mcmc, M, verbose = TRUE) {
+  if (verbose) print("Samples already available for tmbstan!")
+  if (verbose) print("Simulating from model")
 }
 
 #' Inference for the Naomi model using aghq plus Laplace marginals, edited to work with DLL = "naomi_simple"

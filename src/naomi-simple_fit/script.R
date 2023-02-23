@@ -1,5 +1,5 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(adam = TRUE, area_level = 4))
+# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(tmbstan = TRUE, area_level = 4))
 # setwd("src/naomi-simple_fit")
 
 if(tmb + aghq + adam + tmbstan != 1) {
