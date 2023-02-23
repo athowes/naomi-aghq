@@ -15,7 +15,7 @@ if(setting == 1) {
 #' try thinning by a factor of 20 again to keep only over 40th iteration. If this is too
 #' big to practically work with, we can thin it again outside the cluster, but I'd prefer
 #' to save too many then thin rather than overthin on the cluster.
-if(settings == 2) {
+if(setting == 2) {
   niter <- 100000
   nthin <- 40
 }
