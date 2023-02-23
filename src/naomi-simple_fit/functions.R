@@ -223,11 +223,8 @@ sample_aghq <- function(quad, M, verbose = TRUE) {
 fit_tmbstan <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple", ...) {
   stopifnot(inherits(tmb_input, "naomi_tmb_input"))
   obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL)
-  fit <- tmbstan::tmbstan(obj, ...)
-  tmbstanfit <- setClass("tmbstanfit", contains = "stanfit", slots = c(obj = "list", sample = "list"))
-  fit <- as(fit, "tmbstanfit")
-  fit@obj <- obj
-  fit
+  stanfit <- tmbstan::tmbstan(obj, ...)
+  return(list(stanfit = stanfit, obj = obj)) # Had tried playing with S4 but proved difficult
 }
 
 #' Uncertainty for the Naomi model using tmbstan
@@ -235,16 +232,16 @@ sample_tmbstan <- function(mcmc, M = NULL, verbose = TRUE) {
   if (verbose) print("Samples already available for tmbstan.")
   if (verbose) print("M ignored. Instead length of MCMC chains used.")
   if (verbose) print("Simulating from model")
-  smp <- as.matrix(mcmc)
+  smp <- as.matrix(mcmc$stanfit)
   smp <- smp[, colnames(smp) != "lp__"] # Remove the lp__ column
-  sim <- apply(smp, 1, mcmc@obj$report)
-  r <- mcmc@obj$report()
+  sim <- apply(smp, 1, mcmc$obj$report)
+  r <- mcmc$obj$report()
   if (verbose) print("Returning sample")
   sample <- Map(vapply, list(sim), "[[", lapply(lengths(r), numeric), names(r))
   is_vector <- vapply(sample, inherits, logical(1), "numeric")
   sample[is_vector] <- lapply(sample[is_vector], matrix, nrow = 1)
   names(sample) <- names(r)
-  mcmc@sample <- sample
+  mcmc$sample <- sample
   mcmc
 }
 
