@@ -160,7 +160,13 @@ if(tmbstan) {
   #' 3. Four chains of 4000 with four cores takes ~1.5 hours
   #' 4. Four chains of 8000 with four cores takes ~3 hours
 
+  #' Fit Stan model
   mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = niter, thin = nthin, cores = 4)
+
+  #' Add uncertainty (really this is about sampling from the indicators, a.k.a. generated quantities)
+  #' No M is provided here, number of samples equal to length of Markov chain are created
+  #' If required, number of samples can easily be reduced afterwards
+  mcmc <- sample_tmbstan(mcmc, verbose = TRUE)
 
   end <- Sys.time()
 
