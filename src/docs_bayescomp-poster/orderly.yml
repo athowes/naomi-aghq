@@ -12,16 +12,9 @@ resources:
   - citations.bib
   - IMP_ML_W_N.png
   - UW_ML_W_N.png
-  - algorithm-flowchart.png
 
 packages:
   - rmarkdown
   - dplyr
   - ggplot2
   - forcats
-
-# depends:
-#   plot-tikz_algorithm-flowchart:
-#     id: latest
-#     use:
-#       depends/algorithm-flowchart.png: algorithm-flowchart.png
