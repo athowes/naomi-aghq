@@ -111,7 +111,7 @@ grid <- mvQuad::createNIGrid(dim = length(hypers), "GHe", level = ks)
 grid
 
 #' Create a function to make this type of grid
-sd_levels_ghe_grid <- function(dim, level, cut_off, mean, sd) {
+sd_levels_ghe_grid <- function(dim, level, cut_off, sd) {
   stopifnot(length(level) == length(cut_off))
   stopifnot(dim == length(sd))
   levels <- vector(mode = "numeric", length = dim)
