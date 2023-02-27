@@ -69,7 +69,7 @@ theta_names <- make.unique(names(obj$par), sep = "")
 }
 
 d <- length(random)
-d < 10 # Test how long it takes for 10
+d <- 10 # Test how long it takes for 10
 
 start <- Sys.time()
 laplace_marginals <- purrr::map(.x = 1:d, .f = .f)
@@ -79,3 +79,5 @@ end <- Sys.time()
 end - start
 
 out <- list("quad" = quad, "laplace_marginals" = laplace_marginals)
+
+laplace_marginals
