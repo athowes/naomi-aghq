@@ -274,13 +274,7 @@ fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NU
     random_i <- obj_i$env$random
     mode_i <- quad$modesandhessians[["mode"]][[1]][-i]
     gg <- create_approx_grid(quad$modesandhessians, i = i, k = 5)
-
-    out <- data.frame(
-      index = i,
-      par = x_names[i],
-      x = mvQuad::getNodes(gg),
-      w = mvQuad::getWeights(gg)
-    )
+    out <- data.frame(index = i, par = x_names[i], x = mvQuad::getNodes(gg), w = mvQuad::getWeights(gg))
 
     # Inclusion of the weights argument here is meaningless for now, but will become
     # of importance when there are multiple hyperparameter grid points used. We also
@@ -559,7 +553,7 @@ local_extract_art_attendance_naomi_simple <- function(naomi_fit, naomi_mf, na.rm
 #' has the highest log posterior evaluation.
 #' @param i The index of the latent field to choose
 #' @param k The number of AGHQ grid points to choose
-create_approx_grid <- function(modeandhessian, i, k = 7) {
+create_approx_grid <- function(modeandhessian, i, k = 5) {
   mode <- modeandhessian[["mode"]][[1]]
   mode_i <- mode[i]
   H <- modeandhessian[["H"]][[1]]
@@ -571,6 +565,7 @@ create_approx_grid <- function(modeandhessian, i, k = 7) {
   return(gg)
 }
 
+#' Calculate weighted sum of probabilities using `matrixStats::logSumExp`
 logSumExpWeights <- function(lp, w) {
   matrixStats::logSumExp(log(w) + lp)
 }
@@ -612,7 +607,9 @@ stopifnot(abs(logSumExpNegWeights(lp = c(log(0.5), log(0.1)), w = c(1, -0.1)) - 
 #' Lagrange polynomial interpolant of the marginal posterior
 #'
 #' @param nodes Set of input values
-#' @lps Log-probabilities at nodes
+#' @param lps Log-probabilities at nodes
+#' @param lower Minimum value of `finegrid`
+#' @param upper Maximum value of `finegrid`
 plot_marginal_spline <- function(nodes, lps, lower = min(nodes) - 1, upper = max(nodes) + 1) {
   ss <- splines::interpSpline(nodes, lps, bSpline = TRUE, sparse = TRUE)
   interpolant <- function(x) { as.numeric(stats::predict(ss, x)$y) }
@@ -625,12 +622,22 @@ plot_marginal_spline <- function(nodes, lps, lower = min(nodes) - 1, upper = max
     labs(x = "x", y = "Posterior")
 }
 
+#' Trapezoid integration rule on the log scale
+#'
+#' @param x Log value of function evaluated on a regular grid
+#' @param spacing The distance between grid points
+#' @return Integral of the function
 trapezoid_rule_log <- function(x, spacing) {
   w <- rep(spacing, length(x))
   w[1] <- w[1] / 2
   w[length(x)] <- w[length(x)] / 2
   matrixStats::logSumExp(log(w) + x)
 }
+
+#' Given a small number of log function evaluations `lps` at points `nodes`
+#' calculate PDF and CDF using spline or polynomial interpolation
+#'
+#' @param
 
 compute_pdf_and_cdf <- function(nodes, lps, method = "auto", normalise = FALSE) {
   k <- length(nodes)
@@ -674,4 +681,71 @@ sample_cdf <- function(df, M) {
   samples <- numeric(M)
   for(i in 1:M) samples[i] <- df$x[max(which(df$cdf < q[i]))]
   return(samples)
+}
+
+#' Inference for the Naomi model using aghq plus Laplace marginals, edited to work with DLL = "naomi_simple"
+#' Altered to work with a custom basegrid for the hyperparameter integration step
+fit_adam_basegrid <- function(tmb_input, basegrid, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple",  ...) {
+  stopifnot(inherits(tmb_input, "naomi_tmb_input"))
+  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL)
+  # Can optresults be passed in here from previous TMB fit?
+  quad <- aghq::marginal_laplace_tmb(obj, basegrid = basegrid, startingvalue = obj$par)
+  quad$obj <- obj
+
+  random <- obj$env$random
+  x_names <- names(obj$env$par[random])
+  x_lengths <- lengths(tmb_input$par_init[unique(x_names)])
+  x_starts <- cumsum(x_lengths) - x_lengths
+
+  tmb_input_i <- tmb_input
+  tmb_input_i$par_init$x_minus_i <- rep(0, sum(x_lengths) - 1)
+  tmb_input_i$par_init$x_i <- 0
+  tmb_input_i$par_init[unique(x_names)] <- NULL
+  tmb_input_i$data$x_lengths <- x_lengths
+  tmb_input_i$data$x_starts <- x_starts
+
+  theta_names <- make.unique(names(obj$par), sep = "")
+
+  .f <- function(i) {
+    tmb_input_i$data$i <- i
+    obj_i <- local_make_tmb_obj(tmb_input_i$data, tmb_input_i$par, calc_outputs = 0L, inner_verbose, progress, DLL = "naomi_simple_x_index")
+    random_i <- obj_i$env$random
+    mode_i <- quad$modesandhessians[["mode"]][[1]][-i]
+    gg <- create_approx_grid(quad$modesandhessians, i = i, k = 5)
+    out <- data.frame(index = i, par = x_names[i], x = mvQuad::getNodes(gg), w = mvQuad::getWeights(gg))
+
+    .g <- function(x) {
+      lp <- vector(mode = "numeric", length = nrow(quad$modesandhessians))
+
+      for(z in 1:nrow(quad$modesandhessians)) {
+        theta <- as.numeric(quad$modesandhessians[z, theta_names])
+        obj_i$env$last.par[random_i] <- quad$modesandhessians[z, "mode"][[1]][-tmb_input_i$data$i]
+        lp[z] <- as.numeric(- obj_i$fn(c(x, theta)))
+      }
+
+      return(logSumExpWeights(lp, w = quad$normalized_posterior$nodesandweights$weights))
+    }
+
+    out$lp <- purrr::map_dbl(out$x, .g) # Calculate log-posterior
+    lognormconst <- logSumExpWeights(out$lp, out$w) # Calculate log normalising constant
+    out$lp_normalised <- out$lp - lognormconst # Calculate normalised log-posterior
+
+    return(out)
+  }
+
+  d <- length(random)
+  laplace_marginals <- purrr::map(.x = 1:d, .f = .f)
+  laplace_marginals <- dplyr::bind_rows(laplace_marginals)
+
+  out <- list("quad" = quad, "laplace_marginals" = laplace_marginals)
+  return(out)
+}
+
+sd_levels_ghe_grid <- function(dim, level, cut_off, sd) {
+  stopifnot(length(level) == length(cut_off))
+  stopifnot(dim == length(sd))
+  levels <- vector(mode = "numeric", length = dim)
+  for(i in seq_along(cut_off)) levels[sd > cut_off[i]] <- level[i]
+  grid <- mvQuad::createNIGrid(dim = dim, "GHe", level = levels)
+  grid
 }

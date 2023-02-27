@@ -141,7 +141,11 @@ if(adam) {
   start <- Sys.time()
 
   #' AGHQ k = 1 with Laplace marginals here
-  adam <- fit_adam(tmb_inputs)
+  if(is.null(basegrid)) {
+    adam <- fit_adam(tmb_inputs)
+  } else {
+    adam <- fit_adam_basegrid(tmb_inputs, base_grid = basegrid)
+  }
 
   #' Add uncertainty
   adam <- sample_adam(adam, M = nsample)
