@@ -11,11 +11,11 @@ tmb$fit$par.fixed
 #' * `logit_phi_rho_x`
 #' * `logit_phi_rho_xs`
 #'
-#' These both have relatively large uncertainty -- see adaptive-k-dev.R
+#' These both have relatively large uncertainty -- see k-varied-adam-laplace.R
 
-#' This would give us 5^2 = 25 points
+#' This would give us 3^2 = 9 points
 n_hyper <- 2
-k <- 5
+k <- 3
 k^n_hyper
 
 theta_names <- unique(names(tmb$fit$par))
@@ -37,8 +37,6 @@ inner_verbose <- FALSE
 progress <- NULL
 map <- map_fixed_theta
 DLL <- "naomi_simple"
-
-stopifnot(inherits(tmb_input, "naomi_tmb_input"))
 
 tmb_input$par_init <- param_fixed_theta
 
@@ -103,7 +101,6 @@ class(quad) <- c("marginallaplace", "aghq")
 quad$obj <- obj
 
 #' Now we've fit the AGHQ we can get to the Laplace marginals (again, over and over again)
-
 modesandhessians <- quad$modesandhessians
 
 random <- quad$obj$env$random
@@ -160,7 +157,8 @@ if (!is.null(progress)) {
 #' The set of input values that we'd like to calculate the log-probability at
 theta_mode_location <- which.max(quad$normalized_posterior$nodesandweights$logpost_normalized)
 modeandhessian <- modesandhessians[theta_mode_location, ]
-(nodes <- spline_nodes(modeandhessian, 1, k = 7))
+gg <- create_approx_grid(modeandhessian, tmb_inputs_simple_i$data$i, k = 7)
+nodes <- mvQuad::getNodes(gg)
 
 #' Check the order of parameters in obj: there should just be three `x_i`, `logit_phi_rho_x` and `logit_phi_rho_xs`
 obj$par
@@ -171,8 +169,6 @@ laplace_marginal <- function(x) {
 
   for(z in 1:nrow(modesandhessians)) {
     theta <- as.numeric(modesandhessians[z, thetanames])
-    #' Set obj$fn to be initialised at the mode of the random effects at the hyperparameter node location using $last.par
-    #' The -tmb_inputs_simple_i$data$i removes the element of x that we are Laplace approximating and has been moved out of the random into the hyper
     mode <- modesandhessians[z, "mode"][[1]][-tmb_inputs_simple_i$data$i]
     obj$env$last.par[random] <- mode
     lp[z] <- as.numeric(- obj$fn(c(x, theta)))
@@ -193,4 +189,15 @@ for(i in seq_along(nodes)) {
   times[i] <- ends[i] - starts[i]
 }
 
+pdf("beta_anc_rho-map-marginal.pdf", h = 4, w = 6.25)
+
 plot_marginal_spline(nodes, lps)
+
+dev.off()
+
+#' We could also use the normalising constant de jour calculated fresh
+#' I am adding back on quad$normalized_posterior$lognormconst
+lognormconst <- logSumExpWeights(lps + quad$normalized_posterior$lognormconst, mvQuad::getWeights(gg))
+abs(lognormconst - quad$normalized_posterior$lognormconst)
+
+#' Looks to be getting the right answer to me!

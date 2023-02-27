@@ -198,7 +198,11 @@ for(i in seq_along(nodes)) {
   times[i] <- ends[i] - starts[i]
 }
 
+pdf("beta_anc_rho-grid-marginal.pdf", h = 4, w = 6.25)
+
 plot_marginal_spline(nodes, lps)
+
+dev.off()
 
 #' We could also use the normalising constant de jour calculated fresh
 #' I am adding back on quad$normalized_posterior$lognormconst

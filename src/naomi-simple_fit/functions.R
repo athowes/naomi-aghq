@@ -273,8 +273,6 @@ fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NU
     obj_i <- local_make_tmb_obj(tmb_input_i$data, tmb_input_i$par, calc_outputs = 0L, inner_verbose, progress, DLL = "naomi_simple_x_index")
     random_i <- obj_i$env$random
     mode_i <- quad$modesandhessians[["mode"]][[1]][-i]
-
-
     gg <- create_approx_grid(quad$modesandhessians, i = i, k = 5)
 
     out <- data.frame(
