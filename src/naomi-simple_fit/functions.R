@@ -639,8 +639,10 @@ trapezoid_rule_log <- function(x, spacing) {
 #' Given a small number of log function evaluations `lps` at points `nodes`
 #' calculate PDF and CDF using spline or polynomial interpolation
 #'
-#' @param
-
+#' @param nodes Locations at which the function has been evaluated
+#' @param lps Log-posterior function evaluations
+#' @param method Not in use currently
+#' @param normalise Use the trapezoid rule to normalise the posterior at the finegrid stage?
 compute_pdf_and_cdf <- function(nodes, lps, method = "auto", normalise = FALSE) {
   k <- length(nodes)
   if(k >= 4) method <- "spline"
@@ -678,6 +680,7 @@ compute_pdf_and_cdf <- function(nodes, lps, method = "auto", normalise = FALSE) 
   return(df)
 }
 
+#' Take samples using the inverse CDF method
 sample_cdf <- function(df, M) {
   q <- stats::runif(M)
   samples <- numeric(M)
@@ -743,6 +746,12 @@ fit_adam_basegrid <- function(tmb_input, basegrid, inner_verbose = FALSE, progre
   return(out)
 }
 
+#' Create a quadrature grid
+#'
+#' @param dim The dimension of the grid
+#' @param level The possible numbers of grid points per dimension
+#' @param cut_off The cut-offs for standard deviations
+#' @param sd A vector of length `dim` of standard deviations
 sd_levels_ghe_grid <- function(dim, level, cut_off, sd) {
   stopifnot(length(level) == length(cut_off))
   stopifnot(dim == length(sd))
