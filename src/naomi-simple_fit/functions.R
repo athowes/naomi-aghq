@@ -692,10 +692,11 @@ sample_cdf <- function(df, M) {
 #' Altered to work with a custom basegrid for the hyperparameter integration step
 fit_adam_basegrid <- function(tmb_input, basegrid, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple",  ...) {
   stopifnot(inherits(tmb_input, "naomi_tmb_input"))
-  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL)
+  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL = DLL)
   # Can optresults be passed in here from previous TMB fit?
   quad <- aghq::marginal_laplace_tmb(obj, basegrid = basegrid, startingvalue = obj$par)
-  quad$obj <- obj
+  objout <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 1L, inner_verbose, progress, map, DLL = DLL)
+  quad$obj <- objout
 
   random <- obj$env$random
   x_names <- names(obj$env$par[random])
