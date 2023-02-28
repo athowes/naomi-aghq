@@ -98,20 +98,20 @@ pars_eval <- pars %in% c("beta_rho", "beta_alpha", "beta_lambda", "beta_anc_rho"
 names(pars_eval) <- pars
 ```
 
+We will write the `tmbstan` $\hat R$ and ESS for the particular parameter on each plot to help in deciding how seriously to take the MCMC results:
+
+```{r}
+rhats <- bayesplot::rhat(tmbstan$mcmc$stanfit)
+ess_ratio <- bayesplot::neff_ratio(tmbstan$mcmc$stanfit)
+niter <- 4 * tmbstan_details$niter / tmbstan_details$nthin
+ess <- ess_ratio * niter
+```
+
 The `beta_rho` parameter is used in other reports as a check, so create the dataframe to save as artefact here:
 
 ```{r}
 beta_rho <- histogram_and_ecdf("beta_rho", i = 1, return_df = TRUE)
 saveRDS(beta_rho$df, "beta_rho.rds")
-```
-
-We will write the `tmbstan` $\hat R$ and ESS for the particular parameter on each plot to help in deciding how seriously to take the MCMC results:
-
-```{r}
-rhats <- bayesplot::rhat(tmbstan$mcmc)
-ess_ratio <- bayesplot::neff_ratio(tmbstan$mcmc)
-niter <- 4 * tmbstan_details$niter / tmbstan_details$nthin
-ess <- ess_ratio * niter
 ```
 
 ## `beta_rho`

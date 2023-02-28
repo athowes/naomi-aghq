@@ -12,7 +12,7 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
       data.frame(method = "TMB", samples = as.numeric(tmb$fit$sample[[par]][i, ])),
       data.frame(method = "aghq", samples = as.numeric(aghq$quad$sample[[par]][i, ])),
       data.frame(method = "adam", samples = as.numeric(adam$sample[[par]][i, ])),
-      data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(tmbstan$mcmc, pars = par)[[par]][, i])))
+      data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(tmbstan$mcmc$stanfit, pars = par)[[par]][, i])))
     )
   } else {
     par_name <- paste0(par)
@@ -21,7 +21,7 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
       data.frame(method = "TMB", samples = as.numeric(tmb$fit$sample[[par]])),
       data.frame(method = "aghq", samples = as.numeric(aghq$quad$sample[[par]])),
       data.frame(method = "adam", samples = as.numeric(adam$sample[[par]])),
-      data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(tmbstan$mcmc, pars = par))))
+      data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(tmbstan$mcmc$stanfit, pars = par))))
     )
   }
 
@@ -129,7 +129,7 @@ to_ks_df <- function(par, starts_with = FALSE) {
   samples_adam <- adam$sample[unique_par_names]
   samples_adam <- lapply(samples_adam, function(x) as.data.frame(t(x)))
 
-  samples_tmbstan <- rstan::extract(tmbstan$mcmc, pars = unique_par_names)
+  samples_tmbstan <- rstan::extract(tmbstan$mcmc$stanfit, pars = unique_par_names)
   samples_tmbstan <- lapply(samples_tmbstan, function(x) as.data.frame(x))
 
   table <- table(all_par_names)
