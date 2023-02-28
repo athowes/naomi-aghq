@@ -81,3 +81,5 @@ end - start
 out <- list("quad" = quad, "laplace_marginals" = laplace_marginals)
 
 laplace_marginals
+
+length(random) / 10
