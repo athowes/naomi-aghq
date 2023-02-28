@@ -182,9 +182,10 @@ local_sample_tmb <- function(fit, nsample = 1000, rng_seed = NULL, random_only =
 #' Inference for the Naomi model using aghq, edited to work with DLL = "naomi_simple"
 fit_aghq <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple", ...) {
   stopifnot(inherits(tmb_input, "naomi_tmb_input"))
-  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL)
+  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL = DLL)
   quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, ...)
-  quad$obj <- obj
+  objout <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 1L, inner_verbose, progress, map, DLL = DLL)
+  quad$obj <- objout
   quad
 }
 
@@ -222,9 +223,10 @@ sample_aghq <- function(quad, M, verbose = TRUE) {
 #' Inference for the Naomi model using tmbstan, edited to work with DLL = "naomi_simple"
 fit_tmbstan <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple", ...) {
   stopifnot(inherits(tmb_input, "naomi_tmb_input"))
-  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL)
+  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL = DLL)
   stanfit <- tmbstan::tmbstan(obj, ...)
-  return(list(stanfit = stanfit, obj = obj)) # Had tried playing with S4 but proved difficult
+  objout <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 1L, inner_verbose, progress, map, DLL = DLL)
+  return(list(stanfit = stanfit, obj = objout)) # Had tried playing with S4 but proved difficult
 }
 
 #' Uncertainty for the Naomi model using tmbstan
