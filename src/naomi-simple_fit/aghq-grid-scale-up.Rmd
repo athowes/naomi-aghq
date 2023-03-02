@@ -172,3 +172,76 @@ For example if the hyper is on the logit scale then looks from the plot above th
 Is there a way to work around this?
 We would ideally like to know how much variation in each hyperparameter effects variation in model outputs, and then take that into account in the importance we place on each dimension.
 Doing this in any good automated ways would be a nice contribution.
+
+What about using the eigenvalues rather than the standard deviation?
+
+```{r}
+m <- sd_out$par.fixed
+C <- sd_out$cov.fixed
+E <- eigen(C)
+V <- diag(E$values)
+D <- E$vectors
+```
+
+The relative contributions of each dimension (similar to a Scree plot) are as follows:
+
+```{r}
+tv_df <- data.frame(
+  n = 1:length(E$values),
+  tv = cumsum(E$values / sum(E$values))
+)
+
+ggplot(tv_df, aes(x = n, y = tv)) +
+  geom_point() +
+  geom_hline(yintercept = 0.9, col = "grey", linetype = "dashed") +
+  annotate("text", x = 20, y = 0.875, label = "90% of total variation explained", col = "grey") +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = "Dimensions of PCA included", y = "Total variation explained") +
+  theme_minimal()
+```
+
+```{r}
+create_grid <- function(d, k) {
+  mvQuad::createNIGrid(dim = d, type = "GHe", level = k)
+}
+
+gg <- create_grid(d = 24, k =)
+```
+
+```{r}
+#' @param gg Quadrature grid
+#' @param D Eigenvectors of the Hessian
+#' @param V Eigenvalues of the Hessian
+#' @param m Mode
+#' @param p The number of dimensions of the PCA included
+pca_rescale_grid <- function(gg, D, V, m, p) {
+  d <- dim(D)[1]
+  
+  Dp <- sparseMatrix(
+    i = rep(1:p, times = p),
+    j = sort(rep(1:p,times = p)),
+    x = as.numeric(D[1:p, 1:p]),
+    dims = c(d, d)
+  )
+  
+  Vp <- Diagonal(n = d, x = c(sqrt(diag(V)[1:p]), rep(0, (d - p))))
+  DVp <- Dp %*% Vp
+  
+  newnodes <- t(DVp %*% t(mvQuad::getNodes(gg)))
+  for(j in 1:d) newnodes[ ,j] <- newnodes[ ,j] + m[j]
+  newweights <- sqrt(det(V)) * mvQuad::getWeights(gg)
+
+  list(nodes = newnodes, weights = newweights)
+}
+```
+
+```{r}
+gg5 <- pca_rescale_grid(gg = create_grid(d = 24, k = 2), D = D, V = V, m = m, p = 5)
+gg7 <- pca_rescale_grid(gg = create_grid(d = 24, k = 2), D = D, V = V, m = m, p = 7)
+gg7 <- pca_rescale_grid(gg = create_grid(d = 24, k = 2), D = D, V = V, m = m, p = 9)
+
+out <- as.data.frame(as.matrix(gg$nodes))
+out$lps <- -1 * apply(out, 1, fit$obj)
+out$w <- gg$weights
+logSumExpWeights(out$lps, out$w)
+```
