@@ -371,8 +371,11 @@ Note that clearer notation is required for $\z$ and $\omega(\z)$.
 
 # Application to data from Malawi\label{sec:results}
 
-Using one `TMB` C++ user-template (available in the appendix), we fit the simplified Naomi model (Section \ref{sec:naomi}) to data from Malawi using four inferential approaches: (1) EB combined with a Gaussian approximation using `TMB`, (2) AGHQ combined with a Gaussian approximation using `aghq`, (3) AGHQ combined with a Laplace approximation by extending `aghq` and (4) the Hamiltonian Monte Carlo (HMC) algorithm No-U-Turn Sampling (NUTS) using `tmbstan`.
-Further details regarding particular settings used for each inferential method are provided in Table \ref{tab:inference-methods}.
+Using one `TMB` C++ user-template (available in the appendix), we fit the simplified Naomi model (Section \ref{sec:naomi}) to data from Malawi using four inferential approaches.
+There were: (1) EB combined with a Gaussian approximation using `TMB`, (2) AGHQ combined with a Gaussian approximation using `aghq`, (3) AGHQ combined with a Laplace approximation by extending `aghq` and (4) the Hamiltonian Monte Carlo (HMC) algorithm No-U-Turn Sampling (NUTS) using `tmbstan`.
+Particular settings used for each inferential method are provided in Table \ref{tab:inference-methods}.
+For the deterministic methods, following inference we simulated hyperparameter and latent field samples.
+Then, for all methods, we simulated model outputs.
 
 The \textsc{R} [@r] code used to produce all results we describe below is available at `github.com/athowes/elgm-inf`.
 We used `orderly` [@orderly] for reproducible research, `ggplot2` for data visualisation [@wickham2016ggplot2] and `rticles` [@allaire2022rticles] for reporting via `rmarkdown` [@allaire2022rmarkdown].
@@ -408,6 +411,8 @@ We performed posterior predictive checks to assess the coverage of our estimates
 ## Inference comparison
 
 We used three methods to assess the accuracy of posterior distributions produced by each inferential method as compared with those from NUTS: (1) Kolmogorov-Smirnov tests, (2) maximum mean discrepancy, and (3) Pareto-smoothed importance sampling.
+From an applied perspective, our main interest is in comparing the accuracy of model outputs, rather than the internal hyperparameters or latent field parameters.
+That said, obtaining accurate inferences for these internal parameters is also of interest.
 
 ### Kolmogorov-Smirnov tests
 
