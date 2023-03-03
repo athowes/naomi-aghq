@@ -30,7 +30,7 @@ id <- orderly::orderly_run("naomi-simple_fit", parameters = list(adam = TRUE))
 orderly::orderly_commit(id)
 
 #' Simplfied Naomi with tmbstan, and niter = 1000
-#' Note that longer niter are not run locally, and instead use the cluster. See
+#' Note that longer niter are not run locally, and instead use the cluster. See make/hpc_mcmc.R
 id <- orderly::orderly_run("naomi-simple_fit", parameters = list(tmbstan = TRUE))
 orderly::orderly_commit(id)
 
@@ -40,6 +40,7 @@ run_commit_push("naomi-simple_model-checks")
 
 #' Statistical methods development
 run_commit_push("dev_sinla") #' Without experiments
+run_commit_push("dev_scale-grid")
 
 #' With experiments
 id <- orderly::orderly_run("dev_sinla", param = list(run_experiments = TRUE))
