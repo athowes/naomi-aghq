@@ -13,7 +13,7 @@
 * [mcmc-convergence](https://athowes.github.io/elgm-inf/mcmc-convergence.html): assessing MCMC (NUTS using `tmbstan`) convergence for the simplified Naomi model
 * [comparison](https://athowes.github.io/elgm-inf/comparison.html): comparison of inference methods for the simplified Naomi model
 * [model-checks](https://athowes.github.io/elgm-inf/model-checks.html): checking the fit of the simplified Naomi model to data
-* [aghq-grid-scale-up](https://athowes.github.io/elgm-inf/aghq-grid-scale-up.html): how can we scale up the number of points in the hyperparameter grid in an intelligent way?
+* [scale-grid](https://athowes.github.io/elgm-inf/scale-grid.html): how can we scale up the number of points in the hyperparameter grid in an intelligent way?
 
 ## Experiments
 
