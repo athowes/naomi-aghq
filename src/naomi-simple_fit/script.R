@@ -143,6 +143,8 @@ if(aghq) {
 if(adam) {
   start <- Sys.time()
 
+  basegrid <- NULL
+
   #' AGHQ k = 1 with Laplace marginals here
   if(is.null(basegrid)) {
     adam <- fit_adam(tmb_inputs_simple)

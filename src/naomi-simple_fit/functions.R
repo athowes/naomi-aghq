@@ -181,7 +181,13 @@ local_sample_tmb <- function(fit, nsample = 1000, rng_seed = NULL, random_only =
 
 #' Inference for the Naomi model using aghq, edited to work with DLL = "naomi_simple"
 fit_aghq <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple", ...) {
-  stopifnot(inherits(tmb_input, "naomi_tmb_input"))
+
+  if (DLL == "naomi_simple") {
+    stopifnot(inherits(tmb_input, "naomi_simple_tmb_input"))
+  } else {
+    stopifnot(inherits(tmb_input, "naomi_tmb_input"))
+  }
+
   obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL = DLL)
   quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, ...)
   objout <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 1L, inner_verbose, progress, map, DLL = DLL)
@@ -222,7 +228,13 @@ sample_aghq <- function(quad, M, verbose = TRUE) {
 
 #' Inference for the Naomi model using tmbstan, edited to work with DLL = "naomi_simple"
 fit_tmbstan <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple", ...) {
-  stopifnot(inherits(tmb_input, "naomi_tmb_input"))
+
+  if (DLL == "naomi_simple") {
+    stopifnot(inherits(tmb_input, "naomi_simple_tmb_input"))
+  } else {
+    stopifnot(inherits(tmb_input, "naomi_tmb_input"))
+  }
+
   obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL = DLL)
   stanfit <- tmbstan::tmbstan(obj, ...)
   objout <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 1L, inner_verbose, progress, map, DLL = DLL)
@@ -250,7 +262,13 @@ sample_tmbstan <- function(mcmc, M = NULL, verbose = TRUE) {
 #' Inference for the Naomi model using aghq plus Laplace marginals, edited to work with DLL = "naomi_simple"
 fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple",  ...) {
   warning("For the aghq, k must be set to 1 as thing stand currently.")
-  stopifnot(inherits(tmb_input, "naomi_tmb_input"))
+
+  if (DLL == "naomi_simple") {
+    stopifnot(inherits(tmb_input, "naomi_simple_tmb_input"))
+  } else {
+    stopifnot(inherits(tmb_input, "naomi_tmb_input"))
+  }
+
   obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL)
   quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, k = 1)
   quad$obj <- obj
