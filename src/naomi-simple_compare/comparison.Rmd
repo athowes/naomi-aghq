@@ -261,13 +261,56 @@ histogram_and_ecdf_helper("log_or_gamma")
 
 ## Outcome variables
 
-These are the outcome variables which we might be interested in to monitor:
+These are all of the outcome variables which we might be interested in to monitor:
 
 ```{r}
 names(tmb$fit$sample)[!(names(tmb$fit$sample) %in% pars)]
-#' To-do: elicit from Jeff in particular which of these we should be focusing on the posterior output of
-#' Guess would be the indicators HIV prevalence (rho_t1_out), ART coverage (alpha_t1_out), HIV incidence (lambda_t1_out)
 ```
+The most important ones (checked with Jeff) are HIV prevalence (`rho_t1_out`), ART coverage (`alpha_t1_out`), and HIV incidence (`lambda_t1_out`).
+
+* HIV prevalence has `r dim(tmb$fit$sample$rho_t1_out)[1]` variables (rows)
+* ART coverage has `r dim(tmb$fit$sample$alpha_t1_out)[1]` variables (rows)
+* HIV incidence has `r dim(tmb$fit$sample$lambda_t1_out)[1]` variables (rows)
+
+```{r}
+dim(tmb$fit$sample$rho_t1_out)
+dim(tmb$fit$sample$alpha_t1_out)
+dim(tmb$fit$sample$lambda_t1_out)
+```
+
+Within `tmb$naomi_data` there is a dataframe called `mf_out` (modelframe output) which contains the area, age, sex mapping these `r dim(tmb$fit$sample$rho_t1_out)[1]` rows.
+As a sanity check, confirm that the number of areas times number of ages times number of sexes indeed equals the number of rows:
+
+```{r}
+mf_out <- tmb$naomi_data$mf_out
+(n_area <- length(unique(mf_out$area_id)))
+(n_age <- length(unique(mf_out$age_group)))
+(n_sex <- length(unique(mf_out$sex)))
+
+stopifnot(n_area * n_age * n_sex == dim(tmb$fit$sample$rho_t1_out)[1])
+```
+
+It makes sense only to assess inferential accuracy at the finest level so as to avoid double counting.
+
+```{r}
+mf_out$area_id %>% unique()
+mf_out$sex %>% unique()
+mf_out$age_group %>% unique()
+
+mf_out %>%
+  filter(
+    area_id %in% paste0("MWI_4_", 1:32, "_demo"),
+    sex %in% c("male", "female"),
+    age_group %in%
+      c(
+        "Y000_004", "Y005_009", "Y010_014", "Y015_019", "Y020_024", "Y025_029",
+        "Y025_034", "Y030_034", "Y035_039", "Y040_044", "Y045_049", "Y050_054",
+        "Y055_059", "Y060_064", "Y065_069", "Y070_074", "Y075_079", "Y080_999"
+      )
+  ) %>%
+  nrow()
+```
+
 # KS plots 
 
 ## Individual parameters {.tabset .tabset-fade}
