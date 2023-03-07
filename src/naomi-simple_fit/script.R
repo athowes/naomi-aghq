@@ -92,7 +92,8 @@ if(tmb) {
 
   end <- Sys.time()
 
-  out <- list(fit = fit, outputs = outputs, time = end - start)
+  #' Could save fewer of these things and generate them again later if space becomes an issue, but that's unlikely
+  out <- list(fit = fit, inputs = tmb_inputs_simple, outputs = outputs, naomi_data = naomi_data, time = end - start)
   saveRDS(out, "out.rds")
 }
 
@@ -108,10 +109,12 @@ if(aghq) {
 
   if(ndConstruction == "product") {
     #' Fit AGHQ model
-    quad <- fit_aghq(tmb_inputs, k = k)
+    quad <- fit_aghq(tmb_inputs_simple, k = k)
 
     #' Add uncertainty
     quad <- sample_aghq(quad, M = nsample)
+
+    #' Note that local_output_package_naomi_simple would need to be adapted to work with aghq fits
   }
 
   if(ndConstruction == "sparse") {
@@ -121,7 +124,7 @@ if(aghq) {
     control$method_summaries <- "correct"
     control$ndConstruction <- "sparse"
 
-    quad <- fit_aghq(tmb_inputs, k = k, basegrid = sparse_grid, control = control)
+    quad <- fit_aghq(tmb_inputs_simple, k = k, basegrid = sparse_grid, control = control)
 
     #' Error sampling from sparse quadratures at the moment due to negative weights
     # sparse_quad <- sample_aghq(sparse_quad, M = nsample)
@@ -133,7 +136,7 @@ if(aghq) {
 
   end <- Sys.time()
 
-  out <- list(quad = quad, time = end - start)
+  out <- list(quad = quad, inputs = tmb_inputs_simple, naomi_data = naomi_data, time = end - start)
   saveRDS(out, "out.rds")
 }
 
@@ -142,17 +145,19 @@ if(adam) {
 
   #' AGHQ k = 1 with Laplace marginals here
   if(is.null(basegrid)) {
-    adam <- fit_adam(tmb_inputs)
+    adam <- fit_adam(tmb_inputs_simple)
   } else {
-    adam <- fit_adam_basegrid(tmb_inputs, base_grid = basegrid)
+    adam <- fit_adam_basegrid(tmb_inputs_simple, base_grid = basegrid)
   }
 
   #' Add uncertainty
   adam <- sample_adam(adam, M = nsample)
 
+  #' Note that local_output_package_naomi_simple would need to be adapted to work with adam fits
+
   end <- Sys.time()
 
-  out <- list(adam = adam, time = end - start)
+  out <- list(adam = adam, inputs = tmb_inputs_simple, naomi_data = naomi_data, time = end - start)
   saveRDS(out, "out.rds")
 }
 
@@ -165,15 +170,17 @@ if(tmbstan) {
   #' 4. Four chains of 8000 with four cores takes ~3 hours
 
   #' Fit Stan model
-  mcmc <- fit_tmbstan(tmb_inputs, chains = 4, iter = niter, thin = nthin, cores = 4, DLL = "naomi_simple")
+  mcmc <- fit_tmbstan(tmb_inputs_simple, chains = 4, iter = niter, thin = nthin, cores = 4, DLL = "naomi_simple")
 
   #' Add uncertainty (really this is about sampling from the indicators, a.k.a. generated quantities)
   #' No M is provided here, number of samples equal to length of Markov chain are created
   #' If required, number of samples can easily be reduced afterwards
   mcmc <- sample_tmbstan(mcmc, verbose = TRUE)
 
+  #' Note that local_output_package_naomi_simple would need to be adapted to work with tmbstan fits
+
   end <- Sys.time()
 
-  out <- list(mcmc = mcmc, time = end - start)
+  out <- list(mcmc = mcmc, inputs = tmb_inputs_simple, naomi_data = naomi_data, time = end - start)
   saveRDS(out, "out.rds")
 }
