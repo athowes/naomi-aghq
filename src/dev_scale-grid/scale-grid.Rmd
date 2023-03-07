@@ -192,7 +192,7 @@ Lambda <- diag(lambda)
 E <- eigenC$vectors
 ```
 
-Such that `C` can be obtained by `E %*% diag(lambda) %*% t(E)`:
+Such that `C` can be obtained by $E \Lambda E^\top$, or in code `E %*% diag(lambda) %*% t(E)`:
 
 ```{r}
 max(C - (E %*% Lambda %*% t(E))) < 10E-12
@@ -235,49 +235,35 @@ create_grid <- function(d, k) {
   gg <- mvQuad::createNIGrid(dim = d, type = "GHe", level = k)
   list(nodes = mvQuad::getNodes(gg), weights = as.numeric(mvQuad::getWeights(gg)))
 }
-
-gg_full <- create_grid(d = length(hypers), k = 2)
 ```
 
-Start with `p = 5` dimensions kept of the PCA.
+Start with `s = 5` dimensions kept of the PCA.
 Then create a dense AGHQ grid with `k = 2` on 5 dimensions.
 
 ```{r}
-p <- 5
+s <- 5
 d <- dim(E)[1]
-gg_p <- create_grid(d = p, k = 2)
+gg_s <- create_grid(d = s, k = 2)
 ```
 
 There are $2^5 = 32$ nodes as follows:
 
 ```{r}
-(n_nodes <- nrow(gg_p$nodes))
+(n_nodes <- nrow(gg_s$nodes))
 ```
 
-Extend this into a 32 x 24 sparse matrix with zeros in the other locations:
+How does the reconstruction of the covariance matrix with `r s` components look?
 
 ```{r}
-# i and j specify the non-zero locations in the matrix
-(nodes_p <- sparseMatrix(
-  i = rep(1:n_nodes, times = p),
-  j = rep(1:p, each = n_nodes),
-  x = as.numeric(gg_p$nodes),
-  dims = c(n_nodes, d)
-))
-```
-
-How does the reconstruction of the covariance matrix with `r p` components look?
-
-```{r}
-E_p <- E[, 1:p]
-Lambda_p <- Lambda[1:p, 1:p]
-C_p <- E_p %*% Lambda_p %*% t(E_p)
+E_s <- E[, 1:s]
+Lambda_s <- Lambda[1:s, 1:s]
+C_s <- E_s %*% Lambda_s %*% t(E_s)
 
 C_plot
 
-C_p_plot <- reshape2::melt(as.matrix(C_p)) %>%
+C_s_plot <- reshape2::melt(as.matrix(C_s)) %>%
   ggplot(aes(x = Var1, y = Var2, fill = value)) +
-  labs(x = "", y = "", fill = "Cp[i, j]") +
+  labs(x = "", y = "", fill = "C_s[i, j]") +
   geom_tile() +
   scale_fill_viridis_c() +
   labs(x = "i", y = "j") +
@@ -287,31 +273,57 @@ C_p_plot <- reshape2::melt(as.matrix(C_p)) %>%
     axis.text.y = element_blank()
   )
 
-C_plot + C_p_plot
+C_plot + C_s_plot
 ```
 
-Want to do $E_p \Lambda_p^{1/2}$ multiplied by the nodes:
+Let $a \in \mathbb{R}^d$ and $b \in \mathbb{R}^s$.
+The PCA provides a mapping $f: \mathbb{R}^d \to \mathbb{R}^s$ which compresses each $a$ to a smaller $b$ given by $f(a) = (E_s \Lambda_s^{1/2})^\top a = b$.
+Then $f^{-1}$ is given by $f^{-1}(b) = E_s \Lambda_s^{-1/2} b = a$, using the fact that $E_s^\top = E_s^{-1}$.
+So we need to multiply our nodes by $E_s \Lambda_s^{- 1/2}$ as follows:
 
 ```{r}
-E_p <- sparseMatrix(i = rep(1:p, times = p), j = rep(1:p, each = p), x = as.numeric(E[1:p, 1:p]), dims = c(d, d))
-Lambda_p <- sparseMatrix(i = 1:p, 1:p, x = diag(Lambda)[1:p], dims = c(d, d))
+a_nodes <- gg_s$nodes
+b_nodes <- t(E_s %*% diag(lambda[1:s]^{-0.5}) %*% t(a_nodes))
 
-X_p <- E_p %*% sqrt(Lambda_p)
+dim(a_nodes)
+dim(b_nodes)
+```
 
-new_nodes <- X_p %*% t(nodes_p)
+Add on the modes:
 
-t(new_nodes)
+```{r}
+for(j in 1:d) b_nodes[, j] <- b_nodes[, j] + m[j]
+```
+
+Adjust the weights:
+
+```{r}
+gg_s$weights
+det(Lambda)
+det(Lambda_s)
 ```
 
 ```{r}
-# pca_rescale_grid <- function() {
-# 
-# }
+#' @param m Mean vector
+#' @param C Covariance matrix
+#' @param s Small grid dimension
+#' @param k Number of points per small grid dimension
+pca_rescale_grid <- function(m, C, s, k) {
+  lambda <- eigenC$values
+  Lambda <- diag(lambda)
+  E <- eigenC$vectors
+  E_s <- E[, 1:s] 
+  gg_s <- create_grid(d = s, k = k)
+  a_nodes <- gg_s$nodes
+  b_nodes <- t(E_s %*% diag(lambda[1:s]^{-0.5}) %*% t(a_nodes))
+  for(j in 1:d) b_nodes[, j] <- b_nodes[, j] + m[j]
+  b_weights <- gg_s$weights * sqrt(det(Lambda))
+  return(list(nodes = b_nodes, weights = b_weights))
+}
 ```
 
 ```{r}
-# gg5 <- pca_rescale_grid(p = 5)
-# gg7 <- pca_rescale_grid(p = 7)
-# gg7 <- pca_rescale_grid(p = 9)
+gg5 <- pca_rescale_grid(m = m, C = C, s = 5, k = 2)
+gg7 <- pca_rescale_grid(m = m, C = C, s = 7, k = 2)
+gg9 <- pca_rescale_grid(m = m, C = C, s = 9, k = 2)
 ```
- 
