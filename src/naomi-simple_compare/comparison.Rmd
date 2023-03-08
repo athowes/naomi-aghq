@@ -107,11 +107,14 @@ niter <- 4 * tmbstan_details$niter / tmbstan_details$nthin
 ess <- ess_ratio * niter
 ```
 
-The `beta_rho` parameter is used in other reports as a check, so create the dataframe to save as artefact here:
+The `beta_rho` and `beta_anc_rho` parameters are used in other reports, so create dataframes here to save as artefacts:
 
 ```{r}
 beta_rho <- histogram_and_ecdf("beta_rho", i = 1, return_df = TRUE)
 saveRDS(beta_rho$df, "beta_rho.rds")
+
+beta_anc_rho <- histogram_and_ecdf("beta_anc_rho", return_df = TRUE)
+saveRDS(beta_anc_rho$df, "beta_anc_rho.rds")
 ```
 
 ## `beta_rho`

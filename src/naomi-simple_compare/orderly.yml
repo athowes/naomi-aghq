@@ -9,9 +9,13 @@ artefacts:
       filenames:
         - comparison.html
   - data:
-      description: Comparison dataframe for the beta_rho[1] parameter
+      description: Comparison dataframe for the `beta_rho` parameter
       filenames:
         - beta_rho.rds
+  - data:
+      description: Comparison dataframe for the `beta_anc_rho` parameter
+      filenames:
+        - beta_anc_rho.rds
   - data:
       description: KS test summary output
       filenames:
@@ -48,6 +52,10 @@ depends:
       id: latest(parameter:adam == TRUE)
       use:
         depends/adam.rds: out.rds
+  # - naomi-simple_fit:
+  #     id: latest(parameter:tmbstan == TRUE)
+  #     use:
+  #       depends/tmbstan.rds: out.rds
   - naomi-simple_fit:
       id: latest(parameter:tmbstan == TRUE && parameter:niter > 50000)
       use:
