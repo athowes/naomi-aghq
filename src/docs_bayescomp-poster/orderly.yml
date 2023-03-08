@@ -10,11 +10,20 @@ artefacts:
 resources:
   - bayescomp-poster.Rmd
   - citations.bib
-  - IMP_ML_W_N.png
-  - UW_ML_W_N.png
+  - mrc-gida-icl-uw-uo.png
 
 packages:
   - rmarkdown
   - dplyr
   - ggplot2
   - forcats
+
+depends:
+  - naomi-simple_fit:
+      id: latest(parameter:tmb == TRUE)
+      use:
+        depends/tmb.rds: out.rds
+  - naomi-simple_compare:
+      id: latest
+      use:
+        depends/beta_anc_rho.rds: beta_anc_rho.rds

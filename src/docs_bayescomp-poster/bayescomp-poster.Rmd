@@ -4,11 +4,11 @@ poster_width: "33.1in"
 font_family: "Open Sans"
 # Essentials
 title: Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model
+# titlebox_height: "10%"
 author:
   - name: "Adam Howes"
     affil: 1, 2
     main: true
-    twitter: adamhowes
     email: ath19@ic.ac.uk
   - name: "Alex Stringer"
     affil: 3
@@ -25,25 +25,24 @@ affiliation:
     address: Department of Statistics and Actuarial Science, University of Waterloo
   - num: 4
     address: Department of Computer Science, University of Oxford
-logoleft_name: "IMP_ML_W_N.png"
-logoright_name: "UW_ML_W_N.png"
+logoleft_name: "mrc-gida-icl-uw-uo.png"
 # Style & formatting
 column_numbers: 3
 title_textsize: "75px"
-author_textsize: "45px"
+author_textsize: "50px"
 authorextra_textsize: "35px"
-affiliation_textsize: "25px"
+affiliation_textsize: "35px"
 caption_fontsize: "20px"
 # Title box
-title_textcol: "#ffffff"
-author_textcol: "#ffffff"
-affiliation_textcol: "#ffffff"
+title_textcol: "#000000"
+author_textcol: "#000000"
+affiliation_textcol: "#000000"
 # Main
 main_fontfamily: "Open Sans"
 # Poster body options
-primary_colour: "#009E73"
-secondary_colour: "#3b77D8"
-accent_colour: "#5d19c4"
+primary_colour: "#ffffff"
+secondary_colour: "#000000"
+accent_colour: "#000000"
 body_bgcol: "#ffffff"
 body_textsize: "35px"
 body_textcol: "#000000"
@@ -59,46 +58,57 @@ output:
     number_sections: false
 ---
 
+```{css, echo=FALSE}
+div.logo_left{
+  width: 35%;
+}
+div.poster_title{
+  width: 60%;
+}
+
+```
+
 ## Summary
 
 * Approximate Bayesian inference method combining Laplace approximations and adaptive Gauss-Hermite quadrature 
-* Motivated by a challenging, policy-relevant problem in small-area estimation of HIV indicators in sub-Saharan Africa
-* Implemented as a part of the `aghq` R package, allowing use for any model with a `TMB` C++ user template
+* Motivated by an evidence synthesis model for small-area estimation of HIV indicators in sub-Saharan Africa
+* Implemented as a part of the `aghq` R package, allowing flexible use for any model with a `TMB` C++ user template
 
 <!-- 38761C -->
 
 ## The Naomi HIV model
 
-* District-level model of HIV indicators which synthesises data from household surveys, antenatal care (ANC) clincs, and routine service provision of antiretroviral therapy (ART) [@eaton2021naomi]
+* District-level model of HIV indicators synthesising data from household surveys, antenatal care (ANC) clincs, and routine service provision of antiretroviral therapy (ART) [@eaton2021naomi]
 * Yearly estimation process: model run interactively by country teams using the web-app `naomi.unaids.org`
-* Inference currently conducted with empirical Bayes and a Gaussian approximation to the latent field using Template Model Builder `TMB` [@kristensen2016tmb]
-* Days to get accurate answers with Markov chain Monte Carlo via `tmbstan` [@monnahan2018no]
+* Inference conducted in minutes using empirical Bayes (EB) and a Gaussian approximation via Template Model Builder `TMB` [@kristensen2016tmb]
+* Would take days to get accurate answers with MCMC via `tmbstan` [@monnahan2018no]
 * Motivates looking for a fast, approximate approach
 
 ## Extended latent Gaussian models
 
+* Three stage hierarchical model with observations $y$, latent field $x$ and hyperparameters $\theta$
 * In a latent Gaussian model (LGM) [@rue2009approximate] the conditional mean depends on exactly one structured additive predictor $\mu_i = g(\eta_i)$ with $g: \mathbb{R} \to \mathbb{R}$
   * The `R-INLA` implementation of integrated nested Laplace approximations applies only to LGMs
 * Extended latent Gaussian models (ELGM) remove this requirement such that $\mu_i = g(\eta_{\mathcal{J_i}})$ where $g_i: \mathbb{R}^{|\mathcal{J_i}|} \to \mathbb{R}$
-* Naomi is an ELGM, and not an LGM, because in our model:
-  * ANC indicators are offset from household survey indicators
-  * Incidence depends on prevalence and ART coverage
-  * Observed data may be aggregated
-  * Individuals may attend ART clinics outside their home district
+* Naomi is an ELGM, not an LGM, because we model:
+  * ANC indicators offset from household survey indicators
+  * Incidence as depending on prevalence and ART coverage
+  * Observed data as aggregated finer processes
+  * Individuals as possibly attending ART clinics outside their home district
+* ELGM precision matrices less sparse than those of LGMs
 
 ## Inference procedure
 
-### Background
-
-* **Laplace approximation** Integrate out variables using a Gaussian approximation to the denominator e.g.
+* Laplace approximation: Integrate out variables using a Gaussian approximation to the denominator
 $$
 p(\theta, y) \approx \tilde p_\text{LA}(\theta, y) = \frac{p(y, x, \theta)}{\tilde p_\text{G}(x \, | \, \theta, y)} \Big\rvert_{x = \hat x(\theta)}
 $$
 where $\tilde p_\text{G}(x \, | \, \theta, y) = \mathcal{N}(x \, | \, \hat x(\theta), \mathbf{H}(\theta)^{-1})$
-* **Adaptive Gauss-Hermite Quadrature** Approximate integrals by $\int_\Theta p(\theta) \text{d} \theta \approx \lvert L \rvert \sum_{z \in \mathcal{Q}(m, k)} p(\hat \theta + Lz) \omega(z)$ with Gauss-Hermite quadrature rule $z \in \mathcal{Q}(m, k)$ adapted based upon the mode $\hat \theta = \text{argmax}_{\theta \in \Theta} \in p(\theta)$ and lower Cholesky $LL^\top = - \partial_\theta^2 \log p(\theta) \rvert_{\theta = \hat \theta}$ of the target
-
-### Our algorithm
-
+* Adaptive Gauss-Hermite Quadrature:
+$$
+\int_\Theta p(\theta) \text{d} \theta \approx \lvert L \rvert \sum_{z \in \mathcal{Q}(m, k)} p(\hat \theta + Lz) \omega(z)
+$$
+where the Gauss-Hermite quadrature rule $z \in \mathcal{Q}(m, k)$ is adapted based upon the mode $\hat \theta = \text{argmax}_{\theta \in \Theta} p(\theta)$ and lower Cholesky $LL^\top = - \partial_\theta^2 \log p(\theta) \rvert_{\theta = \hat \theta}$ of the target
 * Given a C++ user template for $- \log p(y, x, \theta)$ our algorithm is summarized by Figure 1
 
 ```{tikz, tikz-ex, echo=FALSE, fig.align='center', fig.cap = "Flowchart describing the algorithm", fig.ext = 'png', cache=TRUE}
@@ -109,20 +119,36 @@ where $\tilde p_\text{G}(x \, | \, \theta, y) = \mathcal{N}(x \, | \, \hat x(\th
 \node (3) [below of=1] {$\tilde p_\text{LA}(x_i, \theta, y)$};
 \node (4) [below of=2] {$\tilde p_\text{AQ}(y)$};
 \draw[->] (1) to node {Laplace} (2);
+\draw[->] (1) to node {Laplace} (3);
+\draw[->] (2) to node {Quadrature} (4);
 \end{tikzpicture}
 ```
 
-## Inference comparison
+## Application to Malawi data
 
-* Compare posterior inferences from `TMB`, `aghq`, `adam` and `tmbstan` using Kolmogorov-Smirnov tests on posterior marginals of hyperparameters, latent field, and outputs
-* Figure 2 compares the distances between `TMB` and `adam` to `tmbstan`
+```{r fig2, echo=FALSE, fig.align='center', out.width='100%', fig.cap='Model outputs for adults 15-49 in January 2016.'}
+knitr::include_graphics("fig2.png")
+```
 
-## Future work
+* $\text{dim}(x)$ is 491 and $\text{dim}(\theta)$ is 24
+* Figure \@ref(fig:fig2) illustrates example model outputs: HIV prevalence, ART coverage, HIV incidence, and number of new infections, at the district level
 
+```{r fig3, echo=FALSE, fig.align='center', out.width='100%', fig.cap='Inference reults and ECDF comparison for one $x_i$.'}
+knitr::include_graphics("fig3.png")
+```
+
+* Compare inferences from `TMB`, `aghq`, `adam` and `tmbstan` using Kolmogorov-Smirnov (KS) tests on hyperparameter, latent field, and output posterior marginals
+* Figure \@ref(fig:fig3) illustrates the ECDF difference between `TMB` and `adam` to `tmbstan` for one particular node in the model
+
+## Future directions
+
+* Scaling up the hyperparameter grid beyond EB
+  * Any dense grid would be $k^{24}$ i.e. impractical
+  * Sparse grids? Good subspaces of $\mathbb{R}^{24}$?
+* Add Laplace matrix algebra approximations [@wood2020simplified]
 * More comprehensive inference comparison e.g. maximum mean discrepancy, Pareto-smoothed importance sampling
-* Implement Laplace matrix algebra approximations e.g. @wood2020simplified
 
-<font size="6"> **Interested to read more?** Working notebooks and R code available are available from `github.com/athowes/multi-agyw`. </font>
+<font size="6"> **Interested to read more?** Working notebooks and R code available from `github.com/athowes/multi-agyw`. </font>
 
 <font size="6"> **Funding** AH was supported by the EPSRC and Bill & Melinda Gates Foundation. This research was supported by the MRC Centre for Global Infectious Disease Analysis. </font>
 
