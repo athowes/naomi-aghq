@@ -9,14 +9,17 @@ artefacts:
 
 resources:
   - bayescomp-poster.Rmd
+  - figs.R
   - citations.bib
   - mrc-gida-icl-uw-uo.png
+  - fig1.png
 
 packages:
   - rmarkdown
   - dplyr
   - ggplot2
   - forcats
+  - patchwork
 
 depends:
   - naomi-simple_fit:

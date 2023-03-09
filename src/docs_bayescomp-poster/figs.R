@@ -1,8 +1,12 @@
 #' Figure 1
 
-#' Created in the poster
+#' A screenshot from https://naomi.unaids.org/
 
 #' Figure 2
+
+#' Created in the poster
+
+#' Figure 3
 tmb <- readRDS("depends/tmb.rds")
 outputs <- tmb$outputs
 
@@ -20,7 +24,7 @@ indicators <- naomi:::add_output_labels(outputs) %>%
     age_group_label = fct_reorder(age_group_label, as.integer(factor(age_group)))
   )
 
-fig2adata <- indicators %>%
+fig3adata <- indicators %>%
   filter(
     indicator == "prevalence",
     age_group == "Y015_049",
@@ -29,7 +33,7 @@ fig2adata <- indicators %>%
     area_level == 4
   )
 
-fig2a <- fig2adata %>%
+fig3a <- fig3adata %>%
   ggplot(aes(fill = mean)) +
   geom_sf(size = 0.1) +
   scale_fill_viridis_c(
@@ -51,7 +55,7 @@ fig2a <- fig2adata %>%
     plot.tag = element_text(face = "bold")
   )
 
-fig2bdata <- indicators %>%
+fig3bdata <- indicators %>%
   filter(
     indicator == "art_coverage",
     age_group == "Y015_049",
@@ -60,7 +64,7 @@ fig2bdata <- indicators %>%
     area_level == 4
   )
 
-fig2b <- fig2bdata %>%
+fig3b <- fig3bdata %>%
   ggplot(aes(fill = mean)) +
   geom_sf(size = 0.1) +
   scale_fill_viridis_c(
@@ -80,7 +84,7 @@ fig2b <- fig2bdata %>%
     plot.tag = element_text(face = "bold")
   )
 
-fig2cdata <- indicators %>%
+fig3cdata <- indicators %>%
   filter(
     indicator %in% c("infections", "incidence"),
     age_group == "Y015_049",
@@ -89,7 +93,7 @@ fig2cdata <- indicators %>%
     area_level == 4
   )
 
-fig2c <- fig2cdata %>%
+fig3c <- fig3cdata %>%
   sf::st_drop_geometry() %>%
   tidyr::pivot_wider(c(area_id, area_name), names_from = indicator, values_from = mean) %>%
   left_join(
@@ -125,32 +129,32 @@ fig2c <- fig2cdata %>%
   )
 
 ggsave(
-  "fig2.png",
-  plot = fig2a + fig2b + fig2c,
+  "fig3.png",
+  plot = fig3a + fig3b + fig3c,
   width = 11,
   height = 6,
   units = "in"
 )
 
 #' Figure 3
-fig3data <- readRDS("depends/beta_anc_rho.rds") %>%
+fig4data <- readRDS("depends/beta_anc_rho.rds") %>%
   filter(method != "aghq")
 
 colours <- c("#56B4E9", "#009E73", "#E69F00")
 
-mean <- fig3data %>%
+mean <- fig4data %>%
   filter(method == "tmbstan") %>%
   summarise(mean = mean(samples)) %>%
   pull(mean) %>%
   round(digits = 3)
 
-sd <- fig3data %>%
+sd <- fig4data %>%
   filter(method == "tmbstan") %>%
   summarise(sd = sd(samples)) %>%
   pull(sd) %>%
   round(digits = 3)
 
-fig3a <- ggplot(fig3data, aes(x = samples, fill = method, col = method)) +
+fig4a <- ggplot(fig4data, aes(x = samples, fill = method, col = method)) +
   geom_histogram(aes(y = after_stat(density)), alpha = 0.5, position = "identity", bins = 30) +
   theme_minimal() +
   facet_grid(method~.) +
@@ -159,15 +163,15 @@ fig3a <- ggplot(fig3data, aes(x = samples, fill = method, col = method)) +
   scale_fill_manual(values = colours) +
   theme(legend.position = "none")
 
-grid <- seq(from = min(fig3data$samples), to = max(fig3data$samples), length.out = 1000)
+grid <- seq(from = min(fig4data$samples), to = max(fig4data$samples), length.out = 1000)
 
-tmb_ecdf <- stats::ecdf(filter(fig3data, method == "TMB") %>% pull(samples))
+tmb_ecdf <- stats::ecdf(filter(fig4data, method == "TMB") %>% pull(samples))
 tmb_ecdf_df <- data.frame(x = grid, ecdf = tmb_ecdf(grid), method = "TMB")
 
-adam_ecdf <- stats::ecdf(filter(fig3data, method == "adam") %>% pull(samples))
+adam_ecdf <- stats::ecdf(filter(fig4data, method == "adam") %>% pull(samples))
 adam_ecdf_df <- data.frame(x = grid, ecdf = adam_ecdf(grid), method = "adam")
 
-tmbstan_ecdf <- stats::ecdf(filter(fig3data, method == "tmbstan") %>% pull(samples))
+tmbstan_ecdf <- stats::ecdf(filter(fig4data, method == "tmbstan") %>% pull(samples))
 tmbstan_ecdf_df <- data.frame(x = grid, ecdf = tmbstan_ecdf(grid), method = "tmbstan")
 
 # Add ECDF differences
@@ -186,7 +190,7 @@ ecdf_df$method <- factor(ecdf_df$method, levels = c("TMB", "adam", "tmbstan"))
 
 ks_labeller <- function(x) toString(round(abs(x), 2))
 
-fig3b <- ggplot(ecdf_df, aes(x = x, y = ecdf_diff, col = method)) +
+fig4b <- ggplot(ecdf_df, aes(x = x, y = ecdf_diff, col = method)) +
   geom_line() +
   geom_abline(intercept = ks_tmb, slope = 0, col = colours[1], linetype = "dashed", alpha = 0.8) +
   annotate("text", x = 1.1 * max(ecdf_df$x), y = ks_tmb, label = ks_labeller(ks_tmb), col = colours[1], alpha = 0.8) +
@@ -200,8 +204,8 @@ fig3b <- ggplot(ecdf_df, aes(x = x, y = ecdf_diff, col = method)) +
   theme(plot.margin = unit(c(1, 3, 1, 1), "lines"))
 
 ggsave(
-  "fig3.png",
-  plot = fig3a + fig3b,
+  "fig4.png",
+  plot = fig4a + fig4b,
   width = 11,
   height = 6,
   units = "in"
