@@ -70,12 +70,16 @@ tmbstan_details
 ## Time taken
 
 ```{r}
-data.frame(
+time_taken <- data.frame(
   "TMB" = tmb$time,
   "aghq" = aghq$time,
   "adam" = adam$time,
   "tmbstan" = tmbstan$time
 )
+
+write_csv(time_taken, "time_taken.csv")
+
+time_taken
 
 adam <- adam$adam
 ```

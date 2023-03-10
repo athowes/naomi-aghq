@@ -1,6 +1,6 @@
 ---
-poster_height: "46.8in"
-poster_width: "33.1in"
+poster_height: "1189mm"
+poster_width: "841mm"
 font_family: "Open Sans"
 # Essentials
 title: Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model
@@ -80,53 +80,59 @@ code{
 
 * Approximate Bayesian inference method using Laplace approximations and adaptive Gauss-Hermite quadrature 
 * Motivated by an evidence synthesis model for small-area estimation of HIV indicators in sub-Saharan Africa
-* Implemented as a part of the `aghq` package [@stringer2021implementing], allowing flexible use of the method for any model with a `TMB` C++ user template
+* Looking to implement as a part of the `aghq` package [@stringer2021implementing], allowing flexible use of the method for any model with a `TMB` C++ user template
 
 <!-- 38761C -->
 
 ## The Naomi HIV model
 
-* District-level model of HIV indicators [@eaton2021naomi] which synthesises data from household surveys, antenatal care (ANC) clincs, and routine service provision of antiretroviral therapy (ART)
+* District-level model of HIV indicators [@eaton2021naomi] which synthesises data from household surveys, antenatal care (ANC) clinics, and routine service provision of antiretroviral therapy (ART)
   * Combining evidence from multiple data sources helps overcome the limitations of any one
-* Yearly estimation process: model run interactively by country teams using a web-app
+  * Small-area estimation methods to overcome small district-level sample sizes
+* Yearly estimation process: model run interactively by country teams using a web-app `naomi.unaids.org`
   * Figure \@ref(fig:fig1) illustrates the seven stages of using the app
 * Inference conducted in minutes using empirical Bayes (EB) and a Gaussian approximation via Template Model Builder `TMB` [@kristensen2016tmb]
 * It would take days to get accurate answers with MCMC via `tmbstan` [@monnahan2018no], and this is not practical in this setting
 * Motivates looking for a fast, approximate approach, that takes uncertainty in hyperparameters into account
 
-```{r fig1, echo=FALSE, fig.align='center', out.width='100%', fig.cap='Model fitting occurs interactively in stages, taken from `naomi.unaids.org`'}
+```{r fig1, echo=FALSE, fig.align='center', out.width='100%', fig.cap='Model fitting occurs interactively in stages.'}
 knitr::include_graphics("fig1.png")
 ```
 
 ## Extended latent Gaussian models
 
-* Latent Gaussian model (LGM) [@rue2009approximate]: three stage hierarchical model with observations $y$, Gaussian latent field $x$ and hyperparameters $\theta$
+* Latent Gaussian models (LGMs) [@rue2009approximate] are three stage hierarchical models with observations $y$, Gaussian latent field $x$ and hyperparameters $\theta$
 * In an LGM the conditional mean depends on exactly one structured additive predictor $\mu_i = g(\eta_i)$ with $g: \mathbb{R} \to \mathbb{R}$
-  * The `R-INLA` implementation of integrated nested Laplace approximations applies only to LGMs
-* Extended latent Gaussian models (ELGM) remove this requirement such that $\mu_i = g(\eta_{\mathcal{J_i}})$ where $g_i: \mathbb{R}^{|\mathcal{J_i}|} \to \mathbb{R}$
-* Naomi is an ELGM, not an LGM, because we model:
-  * ANC indicators offset from household survey indicators
-  * Incidence depending on prevalence and ART coverage
-  * Observed data as aggregated finer processes
-  * Individuals as possibly attending ART clinics outside their home district
-* ELGM precision matrices less sparse than those of LGMs
+  * The `R-INLA` implementation of integrated nested Laplace approximations applies only to LGMs, because ELGM precision matrices are not as sparse
+* Extended latent Gaussian models (ELGM) remove this requirement such that $\mu_i = g(\eta_{\mathcal{J_i}})$ where $g_i: \mathbb{R}^{|\mathcal{J_i}|} \to \mathbb{R}$ and $\mathcal{J_i}$ is some set of indices
+  * Allows a higher degree of non-linearity in the model
+* Naomi is an ELGM, not an LGM, because it includes complex dependency structures:
+  1. ANC indicators offset from household survey
+  2. Incidence depends on prevalence and ART coverage
+  3. Observed data are aggregated finer processes
+  4. Allow attendance of ART clinics outside home district
 * We extend work of @stringer2022fast in this setting to the challenging Naomi ELGM
+* Though we focus on Naomi here, the HIV Inference Group (`hiv-inference.org`) works on many other complex models, challenging for existing Bayesian inference methods, which require high customisability
+
+$$\\[0.4in]$$
 
 ## Inference procedure
 
-* Laplace approximation: Integrate out variables using a Gaussian approximation to the denominator
+* **Laplace approximation** Integrate out variables using a Gaussian approximation to the denominator
 $$
 p(\theta, y) \approx \tilde p_\text{LA}(\theta, y) = \frac{p(y, x, \theta)}{\tilde p_\text{G}(x \, | \, \theta, y)} \Big\rvert_{x = \hat x(\theta)}
 $$
 where $\tilde p_\text{G}(x \, | \, \theta, y) = \mathcal{N}(x \, | \, \hat x(\theta), \mathbf{H}(\theta)^{-1})$
   * Use automatic differentiation via `CppAD` in `TMB`
-* Adaptive Gauss-Hermite Quadrature:
+* **Adaptive Gauss-Hermite Quadrature**
 $$
 \int_\Theta p(\theta) \text{d} \theta \approx \lvert L \rvert \sum_{z \in \mathcal{Q}(m, k)} p(\hat \theta + Lz) \omega(z)
 $$
-where the Gauss-Hermite quadrature rule $z \in \mathcal{Q}(\dim(\theta), k)$ is adapted based upon the mode $\hat \theta = \text{argmax}_{\theta \in \Theta} p(\theta)$ and lower Cholesky $LL^\top = - \partial_\theta^2 \log p(\theta) \rvert_{\theta = \hat \theta}$ of the target
-  * $k$ is the number of quadrature points per dimension
+where the Gauss-Hermite quadrature rule $z \in \mathcal{Q}(\dim(\theta), k)$ with $k$ points per dimension is adapted based upon
+  * The mode $\hat \theta = \text{argmax}_{\theta \in \Theta} p(\theta)$
+  * The lower Cholesky $LL^\top = - \partial_\theta^2 \log p(\theta) \rvert_{\theta = \hat \theta}$
 * Algorithm (called `adam` for now) summarized by Figure \@ref(fig:fig2)
+  * Where possible, previously calculated quantities and quadrature rules are reused
 
 ```{tikz, fig2, echo=FALSE, fig.align='center', fig.cap = "Flowchart describing the algorithm", fig.ext = 'png', cache=TRUE}
 \usetikzlibrary{arrows}
@@ -157,33 +163,43 @@ where the Gauss-Hermite quadrature rule $z \in \mathcal{Q}(\dim(\theta), k)$ is 
 
 ## Application to Malawi data
 
-```{r fig3, echo=FALSE, fig.align='center', out.width='100%', fig.cap='Model outputs for adults 15-49 in January 2016.'}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+time_taken <- readr::read_csv("depends/time_taken.csv")
+```
+
+```{r fig3, echo=FALSE, fig.align='center', out.width='100%', fig.cap='District-level model outputs for adults 15-49 in January 2016. Adapted from Eaton et al. 2021.'}
 knitr::include_graphics("fig3.png")
 ```
 
-* Relatively small country but still a large model
-  * $\text{dim}(x)$ is 491 and $\text{dim}(\theta)$ is 24
-* Fit inference methods `TMB`, `aghq`, `adam` and `tmbstan`
+* Relatively small country but still a large model: latent field $\text{dim}(x) = 491$, hyperparameters $\text{dim}(\theta) = 24$
+
+$$\\[0.2in]$$
+
+* Fit four inference methods (using one [!] C++ template):
+  * `TMB` (`r round(time_taken$TMB, 0)` mins)
+  * `aghq` (`r round(time_taken$aghq, 0)` mins): $k = 1$
+  * `adam` (`r round(time_taken$adam, 0)` min): $k = 1$
+  * `tmbstan` (`r round(time_taken$tmbstan, 1)` days): 4 chains of 100,000 thinned by 40 (required for good diagnostics)
 * Figure \@ref(fig:fig3) illustrates example model outputs: HIV prevalence, ART coverage, HIV incidence, and number of new infections, at the district level
 
 ```{r fig4, echo=FALSE, fig.align='center', out.width='100%', fig.cap='Inference reults and ECDF comparison for one $x_i$.'}
 knitr::include_graphics("fig4.png")
 ```
 
-* Compare inferences using Kolmogorov-Smirnov (KS) tests on hyperparameter, latent field, and output posterior marginals
-* Figure \@ref(fig:fig4) illustrates the ECDF differences for one particular node in the model with $\text{KS}(\texttt{TMB}, \texttt{tmbstan}) = 0.09$ and $\text{KS}(\texttt{adam}, \texttt{tmbstan}) = 0.02$
+* Compare hyperparameter, latent field, and output posterior marginals based on maximum ECDF difference (Kolmogorov-Smirnov test) 
+* Figure \@ref(fig:fig4) illustrates this approach for one node in the model with $\text{KS}(\texttt{TMB}) = 0.09$ and $\text{KS}(\texttt{adam}) = 0.02$
 
 ## Future directions
 
-* Scaling up the hyperparameter grid beyond EB, when any dense grid would be impractical ($k^{24}$ nodes)
-  * Sparse grids
-  * Dense grids on a subspace
-* Add Laplace matrix algebra approximations [@wood2020simplified]
-* More comprehensive inference comparisons
+* Scaling up the hyperparameter grid beyond EB $k = 1$
+  * Any dense grid would be impractical ($k^{24}$ nodes)
+  * Alternatives: sparse grids, dense grids on a subspace
+* Add Laplace matrix algebra approximations [@wood2020simplified] to speed up latent field marginal calculations
+* More comprehensive inference comparison
   * Maximum mean discrepancy
   * Pareto-smoothed importance sampling
 
-**Interested?** Working notebooks and R code available from `github.com/athowes/elgm-inf`, or get in touch:
+**Interested?** Working notebooks and R code available from `github.com/athowes/elgm-inf`. Or get in touch:
 
 * `r fontawesome::fa("home", fill = "black")` `athowes.github.io`
 * `r fontawesome::fa("envelope", fill = "black")` `ath19@ic.ac.uk`

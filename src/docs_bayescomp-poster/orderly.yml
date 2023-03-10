@@ -30,3 +30,4 @@ depends:
       id: latest
       use:
         depends/beta_anc_rho.rds: beta_anc_rho.rds
+        depends/time_taken.csv: time_taken.csv

@@ -9,6 +9,10 @@ artefacts:
       filenames:
         - comparison.html
   - data:
+      description: Time taken by each method
+      filenames:
+        - time_taken.csv
+  - data:
       description: Comparison dataframe for the `beta_rho` parameter
       filenames:
         - beta_rho.rds
