@@ -24,4 +24,3 @@ rstan::summary(mcmc$stanfit)$summary["log_sigma_rho_x", ]
 rstan::summary(mcmc$stanfit)$c_summary
 
 bayesplot::mcmc_trace(mcmc$stanfit, pars = "log_sigma_rho_x")
-
