@@ -15,6 +15,8 @@
 * [model-checks](https://athowes.github.io/elgm-inf/model-checks.html): checking the fit of the simplified Naomi model to data
 * [scale-grid](https://athowes.github.io/elgm-inf/scale-grid.html): how can we scale up the number of points in the hyperparameter grid in an intelligent way?
 
+<!--
+
 ## Experiments
 
 | `TMB` template      | Sample size parameter | Results  |
@@ -27,6 +29,8 @@
 | `model1_icar.cpp`   | 10    | [Plots](https://athowes.github.io/elgm-inf/model1-icar-plots-m10.pdf) |
 | `model1_icar.cpp`   | 100   | [Plots](https://athowes.github.io/elgm-inf/model1-icar-plots-m100.pdf) |
 | `model1_icar.cpp`   | 250   | [Plots](https://athowes.github.io/elgm-inf/model1-icar-plots-m250.pdf) |
+
+-->
 
 ## Presentations
 
