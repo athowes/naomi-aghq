@@ -1,0 +1,31 @@
+---
+title: "Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model"
+author: "Adam Howes, Imperial College London"
+date: "14th March 2023"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+[BioInference 2023](https://bioinference.github.io/2023/)
+
+```{r echo=FALSE}
+title <- "Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model"
+
+abstract <- "Naomi (Eaton et al, 2021) is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of policy interest, including HIV prevalence, HIV incidence and antiretroviral therapy treatment coverage, are jointly modelled using both household survey data and routinely reported health system data. Inference for Naomi is currently conducted using an empirical Bayes Gaussian approximation via the `TMB` R package. We propose a new inference method inspired by adaptive Gauss-Hermite quadrature together with the simplified integrated nested Laplace approximation approach of Wood (2020) to enable fast and accurate inference for Naomi and other extended latent Gaussian models. Using data from Malawi, our method provides more accurate inferences than `TMB`, and is comparable to Hamiltonian Monte Carlo with the No-U-Turn sampler, but faster to run. By extending the `aghq` R package (Stringer, 2021) we facilitate easy, flexible use of our method when provided a `TMB` C++ template for the model's log-posterior. In doing so, we enable inference via integrated nested Laplace approximations for a larger class of models than was previously possible."
+```
+
+**Title**:
+```{r echo=FALSE, results='asis'}
+cat(title)
+```
+
+Title word count: `r stringr::str_count(title, '\\w+')`.
+
+**Abstract**:
+```{r echo=FALSE, results='asis'}
+cat(abstract)
+```
+
+Abstract word count: `r stringr::str_count(abstract, '\\w+')`/200.
