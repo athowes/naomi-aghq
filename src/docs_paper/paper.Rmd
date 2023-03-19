@@ -92,7 +92,8 @@ The creation of estimates by country teams, rather than external agencies, is a 
 Drawing on expertise closest to the data being modelled improves the accuracy of the process, as well as strengthening trust and ownership of the estimates.
 
 The practical requirements for the model, combined with its relative complexity, present a difficult Bayesian inference problem.
-Any inferential strategy must be fast enough for interactive review and iteration of modelling results, as well as easy to run in production by country teams, ruling out prohibitively slow Markov chain Monte Carlo (MCMC) approaches.
+Any inferential strategy must be fast enough for interactive review and iteration of modelling results, as well as easy to run in production by country teams.
+Markov chain Monte Carlo (MCMC) approaches are prohibitively slow due to the scale of the model and challenging features of its posterior geometry [@neal2003slice].
 Inference is currently conducted using an empirical Bayes (EB) approach, with a Gaussian approximation to the latent field, via the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
 Owing to its speed and flexibility, `TMB` has recently been gaining popularity more broadly in spatial statistics [@osgood2022statistical].
 Inference in `TMB` is based on optimisation of a \textsf{C++} template function, with the option available to use a Laplace approximation to integrate out any subset of the function arguments, which for the Naomi model, we use for the high-dimensional latent field parameters.
@@ -117,7 +118,9 @@ To approximate non-linear predictors, `inlabru` makes iterated use of `R-INLA` u
 <!-- Want to say in particular what the class of models that `inlabru` allows you to fit are -->
 INLA within MCMC is suitable for models which are LGMs, though only conditional on some subset of the parameters being fixed.
 For these models, Metropolis-Hastings style algorithms be defined to update the fixed parameters, with acceptance probabilities calculated using by repeat calls to `R-INLA`.
-It would or would not be possible to fit the Naomi model in these frameworks.
+<!-- It would or would not be possible to fit the Naomi model in these frameworks. -->
+
+<!-- Note: can fit hyperparameters with Laplace on latent field using HMC via tmbstan::tmbstan(laplace = TRUE) -->
 
 The remainder of this paper is organised as follows.
 Section \ref{sec:naomi} describes a simplified version of the Naomi model that we consider in this paper.
