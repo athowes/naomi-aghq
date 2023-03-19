@@ -1,5 +1,5 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(tmbstan = TRUE, area_level = 4))
+# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(tmbstan = TRUE, area_level = 4, hmc_laplace = TRUE))
 # setwd("src/naomi-simple_fit")
 
 if(tmb + aghq + adam + tmbstan != 1) {
@@ -172,7 +172,7 @@ if(tmbstan) {
   #' 4. Four chains of 8000 with four cores takes ~3 hours
 
   #' Fit Stan model
-  mcmc <- fit_tmbstan(tmb_inputs_simple, chains = 4, iter = niter, thin = nthin, cores = 4, DLL = "naomi_simple")
+  mcmc <- fit_tmbstan(tmb_inputs_simple, chains = 4, iter = niter, thin = nthin, cores = 4, DLL = "naomi_simple", laplace = hmc_laplace)
 
   #' Add uncertainty (really this is about sampling from the indicators, a.k.a. generated quantities)
   #' No M is provided here, number of samples equal to length of Markov chain are created

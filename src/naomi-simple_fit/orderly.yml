@@ -10,10 +10,10 @@ artefacts:
         - out.rds
 
 parameters:
-  #' Run inference with TMB? Yes or no
+  #' Run inference with TMB? TRUE or FALSE
   tmb:
     default: FALSE
-  #' Run inference with aghq? Yes or no
+  #' Run inference with aghq? TRUE or FALSE
   aghq:
     default: FALSE
   #' Default number of grid points per hyperparameter dimension for aghq
@@ -22,8 +22,11 @@ parameters:
   #' Type of grid to use for aghq, either product or sparse
   ndConstruction:
     default: "product"
-  #' Run inference with tmbstan? Yes or no
+  #' Run inference with tmbstan? TRUE or FALSE
   tmbstan:
+    default: FALSE
+  #' Perform Laplace approximation when running HMC? TRUE or FALSE
+  hmc_laplace:
     default: FALSE
   #' Default number of iterations for tmbstan, with four chains
   niter:
@@ -31,7 +34,7 @@ parameters:
   #' Thinning parameter for tmbstan
   nthin:
     default: 1
-  #' Run inference with new method under development? Yes or no
+  #' Run inference with new method under development? TRUE or FALSE
   adam:
     default: FALSE
   #' Number of samples to draw from the fitted model (not applicable to tmbstan)
