@@ -28,6 +28,7 @@ packages:
   - ggplot2
   - forcats
   - tidyverse
+  - patchwork
 
 depends:
   - naomi-simple_compare:
