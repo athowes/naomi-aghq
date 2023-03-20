@@ -1,0 +1,357 @@
+---
+title: "Scaling up the hyperparameter grid for Naomi"
+author:
+- name: Adam Howes
+output:
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    df_print: paged
+    code_folding: show
+    theme: lumen
+abstract: |
+  **Background** We have previously fit empirical Bayes style approaches to the Naomi model, fixing hyperparameter values to a single value.
+  
+  **Task** We would like to begin to integrate over the hyperparameters using some kind of grid structure. The problem is that there are >20 hyperparameters, and so using any type of dense grid is not practical. In this notebook we investigate approaches to using a smaller number of grid points to cover the space, including 1) allocating points in proporiton to posterior standard deviation 2) using principle components analysis.
+---
+
+# `TMB` fit
+
+Start by fitting the model with `TMB`.
+This is quick to do and allows us to get a model we can play with to figure out which hyperparmeters are important.
+
+```{r}
+compile("naomi_simple.cpp")
+dyn.load(dynlib("naomi_simple"))
+
+tmb <- readRDS("depends/tmb.rds")
+fit <- tmb$fit
+```
+
+# Grid ideas
+
+The names of the hyperparameters are:
+
+```{r}
+(hypers <- names(fit$par))
+```
+
+There are `r length(hypers)` of them, if you'd like to count.
+
+We can calculate their posterior standard deviations using `TMB::sdreport` which uses the delta method as follows:
+
+```{r}
+sd_out <- sdreport(obj = fit$obj, par.fixed = fit$par, getJointPrecision = TRUE)
+```
+
+The marginal standard deviations are:
+
+```{r}
+sd <- sqrt(diag(sd_out$cov.fixed))
+
+data.frame(par = names(sd), sd = unname(sd)) %>%
+  ggplot(aes(x = reorder(par, sd), y = sd)) +
+    geom_point(alpha = 0.6) +
+    coord_flip() +
+    lims(y = c(0, 2)) +
+    theme_minimal() +
+    labs(x = "", y = "SD from TMB")
+```
+
+Or, more generally, the covariance matrix is:
+
+```{r}
+C <- sd_out$cov.fixed
+C_df <- reshape2::melt(as.matrix(C))
+
+C_plot <- C_df %>%
+  ggplot(aes(x = Var1, y = Var2, fill = value)) +
+  labs(x = "", y = "", fill = "C[i, j]") +
+  geom_tile() +
+  scale_fill_viridis_c() +
+  labs(x = "i", y = "j") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
+
+C_plot
+```
+
+## Number of points proportional to standard deviation
+
+A first suggestion about how to place grid points would be proportional to the standard deviations above.
+For example, we could get a product grid with the minimum number of points by choosing to have:
+
+* `k = 2` points in the dimension with the highest SD
+* `k = 1` point in every other dimension
+
+This would look like the following:
+
+```{r}
+base_grid <- sd_levels_ghe_grid(
+  dim = length(hypers),
+  level = c(1, 2),
+  cut_off = c(0, 1.9),
+  sd = sqrt(diag(sd_out$cov.fixed))
+)
+
+base_grid
+```
+
+The total number of points for this grid is 2, by design:
+
+```{r}
+prod(base_grid$level)
+```
+
+Let's try fitting this, and see how long it takes.
+First prepare the data:
+
+```{r results="hide", message=FALSE}
+area_merged <- read_sf(system.file("extdata/demo_areas.geojson", package = "naomi"))
+pop_agesex <- read_csv(system.file("extdata/demo_population_agesex.csv", package = "naomi"))
+survey_hiv_indicators <- read_csv(system.file("extdata/demo_survey_hiv_indicators.csv", package = "naomi"))
+art_number <- read_csv(system.file("extdata/demo_art_number.csv", package = "naomi"))
+anc_testing <- read_csv(system.file("extdata/demo_anc_testing.csv", package = "naomi"))
+pjnz <- system.file("extdata/demo_mwi2019.PJNZ", package = "naomi")
+spec <- naomi::extract_pjnz_naomi(pjnz)
+
+scope <- "MWI"
+level <- 4
+calendar_quarter_t1 <- "CY2016Q1"
+calendar_quarter_t2 <- "CY2018Q3"
+calendar_quarter_t3 <- "CY2019Q4"
+prev_survey_ids  <- c("DEMO2016PHIA", "DEMO2015DHS")
+artcov_survey_ids  <- "DEMO2016PHIA"
+vls_survey_ids <- NULL
+recent_survey_ids <- "DEMO2016PHIA"
+artnum_calendar_quarter_t1 <- "CY2016Q1"
+artnum_calendar_quarter_t2 <- "CY2018Q3"
+anc_clients_year2 <- 2018
+anc_clients_year2_num_months <- 9
+anc_prevalence_year1 <- 2016
+anc_prevalence_year2 <- 2018
+anc_art_coverage_year1 <- 2016
+anc_art_coverage_year2 <- 2018
+
+naomi_mf <- naomi_model_frame(
+  area_merged,
+  pop_agesex,
+  spec,
+  scope = scope,
+  level = level,
+  calendar_quarter_t1,
+  calendar_quarter_t2,
+  calendar_quarter_t3
+)
+
+naomi_data <- select_naomi_data(
+  naomi_mf,
+  survey_hiv_indicators,
+  anc_testing,
+  art_number,
+  prev_survey_ids,
+  artcov_survey_ids,
+  recent_survey_ids,
+  vls_survey_ids,
+  artnum_calendar_quarter_t1,
+  artnum_calendar_quarter_t2,
+  anc_prevalence_year1,
+  anc_prevalence_year2,
+  anc_art_coverage_year1,
+  anc_art_coverage_year2
+)
+
+tmb_inputs <- prepare_tmb_inputs(naomi_data)
+tmb_inputs_simple <- local_exclude_inputs(tmb_inputs)
+```
+
+Now fit the model with `aghq`:
+
+```{r}
+start <- Sys.time()
+quad <- fit_aghq(tmb_inputs, basegrid = base_grid)
+end <- Sys.time()
+
+end - start
+```
+
+A limitation of this approach is that some hyperparameters have higher SD than others in part due to the different scales that they are on.
+For example if the hyper is on the logit scale then (from the plot above) it looks as though it will have a higher SD than another hyper on the log scale.
+We would ideally like to know how much variation in each hyperparameter effects variation in model outputs, and then take that into account in the importance we place on each dimension: doing this in any good automated ways would be a nice contribution.
+
+## Eigendecomposition
+
+Another option is to use principle components analysis (PCA) to create a grid on a subspace of $\mathbb{R}^{24}$ which retains most of the variation.
+
+```{r}
+m <- sd_out$par.fixed
+eigenC <- eigen(C)
+lambda <- eigenC$values
+Lambda <- diag(lambda)
+E <- eigenC$vectors
+```
+
+Such that `C` can be obtained by $E \Lambda E^\top$, or in code `E %*% diag(lambda) %*% t(E)`:
+
+```{r}
+max(C - (E %*% Lambda %*% t(E))) < 10E-12
+```
+
+The relative contributions of each dimension are as follows (this is a Scree plot):
+
+```{r}
+tv_df <- data.frame(
+  n = 1:length(lambda),
+  tv = cumsum(lambda / sum(lambda))
+)
+
+ggplot(tv_df, aes(x = n, y = tv)) +
+  geom_point() +
+  geom_hline(yintercept = 0.9, col = "grey", linetype = "dashed") +
+  annotate("text", x = 20, y = 0.875, label = "90% of total variation explained", col = "grey") +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = "PCA dimensions included", y = "Total variation explained") +
+  theme_minimal()
+```
+
+So with 5 dimensions included, we can explain `r round(100 * filter(tv_df, n == 5) %>% pull(tv), 1)`% of the total variation.
+Or, with 10 dimensions included, that percentage increases to `r round(100 * filter(tv_df, n == 10) %>% pull(tv), 1)`%.
+
+What do the PC loadings look like?
+
+```{r}
+reshape2::melt(as.matrix(E)) %>%
+  ggplot(aes(x = Var1, y = Var2, fill = value)) +
+  labs(x = "", y = "", fill = "E[i, j]") +
+  geom_tile() +
+  scale_fill_viridis_c() +
+  labs(x = "PC loading", y = "Hyper") +
+  theme_minimal()
+```
+
+```{r}
+create_grid <- function(d, k) {
+  gg <- mvQuad::createNIGrid(dim = d, type = "GHe", level = k)
+  list(nodes = mvQuad::getNodes(gg), weights = as.numeric(mvQuad::getWeights(gg)))
+}
+```
+
+Start with `s = 5` dimensions kept of the PCA.
+Then create a dense AGHQ grid with `k = 2` on 5 dimensions.
+
+```{r}
+s <- 5
+d <- dim(E)[1]
+gg_s <- create_grid(d = s, k = 2)
+```
+
+There are $2^5 = 32$ nodes as follows:
+
+```{r}
+(n_nodes <- nrow(gg_s$nodes))
+```
+
+How does the reconstruction of the covariance matrix with `r s` components look?
+
+```{r}
+E_s <- E[, 1:s]
+Lambda_s <- Lambda[1:s, 1:s]
+C_s <- E_s %*% Lambda_s %*% t(E_s)
+
+C_plot
+
+C_s_plot <- reshape2::melt(as.matrix(C_s)) %>%
+  ggplot(aes(x = Var1, y = Var2, fill = value)) +
+  labs(x = "", y = "", fill = "C_s[i, j]") +
+  geom_tile() +
+  scale_fill_viridis_c() +
+  labs(x = "i", y = "j") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank()
+  )
+
+C_plot + C_s_plot
+```
+
+Let $a \in \mathbb{R}^d$ and $b \in \mathbb{R}^s$.
+The PCA provides a mapping $f: \mathbb{R}^d \to \mathbb{R}^s$ which compresses each $a$ to a smaller $b$ given by $f(a) = (E_s \Lambda_s^{1/2})^\top a = b$.
+Then $f^{-1}$ is given by $f^{-1}(b) = E_s \Lambda_s^{-1/2} b = a$, using the fact that $E_s^\top = E_s^{-1}$.
+So we need to multiply our nodes by $E_s \Lambda_s^{- 1/2}$ as follows:
+
+```{r}
+a_nodes <- gg_s$nodes
+b_nodes <- t(E_s %*% diag(lambda[1:s]^{-0.5}) %*% t(a_nodes))
+
+dim(a_nodes)
+dim(b_nodes)
+```
+
+Put this into a function, which also adjusts according to the mean and reweights the nodes:
+
+```{r}
+#' @param m Mean vector
+#' @param C Covariance matrix
+#' @param s Small grid dimension
+#' @param k Number of points per small grid dimension
+pca_rescale_grid <- function(m, C, s, k) {
+  d <- nrow(C)
+  stopifnot(d == length(m))
+  eigenC <- eigen(C)
+  lambda <- eigenC$values
+  Lambda <- diag(lambda)
+  E <- eigenC$vectors
+  E_s <- E[, 1:s] 
+  gg_s <- create_grid(d = s, k = k)
+  a_nodes <- gg_s$nodes
+  b_nodes <- t(E_s %*% diag(lambda[1:s]^{-0.5}, ncol = s) %*% t(a_nodes))
+  for(j in 1:d) b_nodes[, j] <- b_nodes[, j] + m[j]
+  b_weights <- gg_s$weights * sqrt(det(Lambda))
+  return(list(nodes = b_nodes, weights = b_weights))
+}
+```
+
+Check that this works as expected for a simple example:
+
+```{r}
+mu <- c(1, 1.5)
+cov <- matrix(c(2, 1, 1, 1), ncol = 2)
+
+obj <- function(theta) {
+  mvtnorm::dmvnorm(theta, mean = mu, sigma = cov)
+}
+
+grid <- expand.grid(
+  theta1 = seq(-2, 5, length.out = 700),
+  theta2 = seq(-2, 5, length.out = 700)
+)
+
+ground_truth <- cbind(grid, pdf = obj(grid))
+
+plot <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
+  geom_contour(col = multi.utils::cbpalette()[1]) +
+  coord_fixed(xlim = c(-2, 5), ylim = c(-2, 5), ratio = 1) +
+  theme_minimal()
+
+plot
+
+test <- pca_rescale_grid(m = mu, C = cov, s = 1, k = 5)
+
+plot +
+  geom_point(
+    data = data.frame(test$nodes),
+    aes(x = X1, y = X2),
+    col = multi.utils::cbpalette()[2],
+    inherit.aes = FALSE
+  )
+```
+
+Apply it to the Naomi grids:
+
+```{r}
+gg5 <- pca_rescale_grid(m = m, C = C, s = 5, k = 2)
+gg7 <- pca_rescale_grid(m = m, C = C, s = 7, k = 2)
+gg9 <- pca_rescale_grid(m = m, C = C, s = 9, k = 2)
+```
