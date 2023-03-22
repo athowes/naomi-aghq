@@ -109,7 +109,7 @@ Simplified INLA [@wood2020simplified] extends INLA by relaxing the sparsity assu
 This extension facilitates inference for models like Naomi, which are not quite latent Gaussian models (LGMs) and so were not previously amenable to inference with INLA.
 In particular, due to dependence of observations on multiple structured additive predictors, Naomi falls into the class of extended latent Gaussian models (ELGMs) [@stringer2022fast].
 We combine simplified INLA with AGHQ, a quadrature rule based on the theory of polynomial interpolation which adapts to the integrand based on the Hessian at the mode.
-Though no theory yet exists for the nested case, the first stochastic convergence results for adaptive quadrature rules were recently obtained by @bilodeau2021stochastic using AGHQ.
+Though no theory yet exists for the nested case, the first stochastic convergence results for adaptive quadrature rules were recently obtained by @bilodeau2022stochastic using AGHQ.
 We implement our method as an extension of the `aghq` \textsf{R} package [@stringer2021implementing].
 Since `aghq` is designed to naturally interface with `TMB`, use of our method is simple when provided a \textsf{C++} user template for the log-posterior.
 
@@ -132,16 +132,15 @@ Finally, in Section \ref{sec:conclusions} we discuss our conclusions, how we ant
 
 # A simplified Naomi model\label{sec:naomi}
 
-@eaton2021naomi specify a joint model linking three small-area estimation models.
-The model is defined over three time points: $T_1$ the time of the most recent household survey with HIV testing; $T_2$, the current time period; and $T_3$, a short term projection period.
-We consider a simplified version defined only at $T_1$ omitting nowcasting of $T_2$ and temporal projection to $T_3$.
-An overview of the simplified model is given below, highlighting the aspects which make it a challenge for existing inferential approaches.
-A more complete mathematical description of the simplified model, as well as a \textsf{C++} template for the log-posterior, are provided in the appendix.
+@eaton2021naomi specify a joint model linking three small-area estimation models and defined over three time points: $T_1$ the time of the most recent household survey with HIV testing; $T_2$, the current time period; and $T_3$, a short term projection period.
+We consider a simplified version defined only at $T_1$ omitting nowcasting and temporal projection, as these time points involve only projection and no further inference.
+An overview of this simplified model is given below, highlighting the aspects which make it a challenge for existing inferential approaches.
+A more complete mathematical description, as well as a \textsf{C++} template for the log-posterior, are provided in the appendix.
 
 ## Household survey component \label{sec:household}
 
 Consider a country in sub-Saharan Africa where a household survey with complex design has taken place at time $T_1$.
-Let $x \in \mathcal{X}$ index district, $a \in \mathcal{A}$ five-year age band, and  $s \in \mathcal{S}$ sex.
+Let $x \in \mathcal{X}$ index district, $a \in \mathcal{A}$ index five-year age band, and $s \in \mathcal{S}$ index sex.
 For ease of notation, let $i$ index the finest district-age-sex division included in the model.
 The data we observe may be aggregated over indices $i$.
 Let $\mathcal{I} \subseteq \mathcal{X} \times \mathcal{A} \times \mathcal{S}$ be a set of  indicies $i$ for which an observation is reported.
@@ -176,8 +175,11 @@ $$
 m^{\hat \theta}_\mathcal{I} = \frac{\left(\sum_j w_j\right)^2}{\sum_j w_j^2},
 $$
 is the Kish effective sample size [@kish1965survey].
-
-We use a binomial working likelihood $y^{\hat \theta}_{\mathcal{I}} \sim \text{xBin}(m^{\hat \theta}_{\mathcal{I}}, \theta_{\mathcal{I}})$ to model these aggregate observations, where $\theta_{\mathcal{I}}$ are the following appropriately weighted aggregates
+We use a binomial working likelihood
+$$
+y^{\hat \theta}_{\mathcal{I}} \sim \text{xBin}(m^{\hat \theta}_{\mathcal{I}}, \theta_{\mathcal{I}})
+$$
+to model these aggregate observations, where $\theta_{\mathcal{I}}$ are the following weighted aggregates
 \begin{equation*}
 \rho_{\mathcal{I}} = \frac{\sum_{i \in \mathcal{I}} N_i \rho_i}{\sum_{i \in \mathcal{I}} N_i}, \quad
 \alpha_{\mathcal{I}} = \frac{\sum_{i \in \mathcal{I}} N_i \rho_i \alpha_i}{\sum_{i \in \mathcal{I}} N_i \rho_i}, \quad
@@ -257,7 +259,7 @@ $$
 
 <!-- To-do: define what exactly $p(\y, \x, \btheta)$ is for the Naomi model -->
 
-# Fast approximate inference methods\label{sec:fastinferencemethods}
+# Fast approximate inference method\label{sec:fastinferencemethods}
 
 The joint posterior of $(\x, \btheta)$ for an ELGM is given by
 \begin{equation*}
@@ -269,10 +271,18 @@ We consider approximations to the posterior marginals of each latent random vari
   \tilde p(x_i \, | \, \y) \approx p(x_i \, | \, \y) &= \int p(x_i, \btheta \, | \, \y) \text{d} \btheta = \int p(x_i \, | \, \btheta, \y) p(\btheta \, | \, \y) \text{d}\btheta, \quad i \in [N], \label{eq:inla1} \\
   \tilde p(\theta_j \, | \, \y) \approx p(\theta_j \, | \, \y) &= \int p(\btheta \, | \, \y) \text{d}\btheta_{-j} \quad j \in [m]. \label{eq:inla2}
 \end{align}
+Given the negative unnormalised log posterior $- \log p(\y, \x, \btheta)$, we obtain the above posterior marginal approximations $\{ \tilde p(x_i \, | \, \y) \}_{i = 1}^n$ and $\tilde p(\theta_j \, | \, \y)_{j = 1}^m$ via nested applications of the Laplace approximation and AGHQ, described below.
 
-## Algorithm\label{sec:algorithm}
+## Laplace approximation
 
-Given the negative unnormalised log posterior $- \log p(\y, \x, \btheta)$, we obtain the posterior marginal approximations $\{ \tilde p(x_i \, | \, \y) \}_{i = 1}^n$ and $\tilde p(\theta_j \, | \, \y)_{j = 1}^m$ via the following algorithm, comprised of nested applications of the Laplace approximation and AGHQ.
+## AGHQ
+
+A quadrature rule can be used to approximate the integral of a function $f: \mathcal{Z} \to \mathbb{R}$ by a weighted sum
+$$
+\int_{\z \in \mathcal{Z}} f(\z) \text{d}\z \approx \sum_{\z \in \mathcal{Q}} f(\z) w(\z)
+$$
+where $\z \in \mathcal{Q} \subset \mathcal{Z}$ are a set of nodes and $\omega: \mathcal{Q} \to \mathbb{R}$ is a weighting function.
+In Gauss-Hermite quadrature [@davis1975methods] the nodes are selected as zeros of the Hermite polynomials.
 
 ```{r aghq, fig.cap="The Gauss-Hermite quadrature nodes $\\z \\in \\mathcal{Q}(2, 3)$ for this two dimensional integral with three nodes per dimension are adapted based on the mean and covariance matrix of the target via $\\btheta(\\z) = \\hat \\btheta + \\mathbf{L} \\z$.."}
 mu <- c(1, 1.5)
@@ -336,6 +346,8 @@ plot3 <- add_points(plot0, gg3) +
 plot1 + plot2 + plot3
 ```
 
+## Algorithm\label{sec:algorithm}
+
 1. Calculate the mode, Hessian at the mode, and lower Cholesky
 \begin{align*}
 \hat{\btheta} &= \argmax_{\btheta} {\tilde p_\texttt{LA}(\btheta, \y)}, \\
@@ -351,7 +363,7 @@ where $\tilde p_\texttt{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat
 \hat \x(\btheta) &= \argmin_\x - \log p(\y, \x, \btheta), \\
 \mathbf{H}(\btheta) &= \frac{\partial^2}{\partial x \partial x^\top} - \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}.
 \end{align*}
-2. Generate a set of nodes $\bu \in \mathcal{Q}(m, k)$ and weights $\omega: \bu \in \mathcal{Q}(m, k) \to \mathbb{R}$ from a Gauss-Hermite quadrature rule with $k$ nodes per dimension, which are then adapted based on the mode and lower Choleksy via $\btheta(\bu) = \hat{\btheta} + \mathbf{L} \bu$.
+2. Generate a set of nodes $\bu \in \mathcal{Q}(m, k)$ and weights $\omega: \bu \to \mathbb{R}$ from a Gauss-Hermite quadrature rule with $k$ nodes per dimension, which are then adapted based on the mode and lower Choleksy via $\btheta(\bu) = \hat{\btheta} + \mathbf{L} \bu$.
 If possible $k \geq 3$ is preferred, though the number of grid points scales exponentially with choice of $k$.
 Then, use this quadrature rule to calculate the normalising constant $\tilde p_{\texttt{AQ}}(\y)$ as follows
 \begin{equation}
@@ -394,7 +406,7 @@ These were:
 In this instance, the dimension of the latent field $N = 491$ and the dimension of the hyperparameters $m = 24$.
 Settings used for each inferential method are provided in Table \ref{tab:inference-methods}.
 For the deterministic methods, following inference we simulated hyperparameter and latent field samples.
-For all methods, we simulated age-sex-district specific HIV prevalence, ART coverage and HIV incidence.
+For all methods, we simulated age-sex-district specific HIV prevalence, ART coverage and HIV incidence from the latent field and hyperparameter posteriors.
 The \textsc{R} [@r] code used to produce all results we describe below is available at `github.com/athowes/elgm-inf`.
 We used `orderly` [@orderly] for reproducible research, `ggplot2` for data visualisation [@wickham2016ggplot2] and `rticles` [@allaire2022rticles] for reporting via `rmarkdown` [@allaire2022rmarkdown].
 
@@ -417,7 +429,7 @@ Inferential method & Details \\
 
 ## NUTS convergence
 
-MCMC can be used to obtain accurate inferential results only once convergence has been reached and the chain lengths are sufficient.
+Inferential results from MCMC are only accurate once convergence has been reached and the chain lengths are sufficient.
 We assessed the quality of our MCMC results using the potential scale reduction factor $\hat R$, bulk and tail effective sample size (ESS), autocorrelation decay plots, univariate traceplots, pairs density plots, and NUTS specific divergent transition and energy assessments.
 Full details are provided in the appendix.
 We treat these results from NUTS as a gold-standard to which other inferential methods are compared to.
@@ -472,20 +484,20 @@ qplot(1:10, 1:10) + theme_minimal()
 
 # Discussion\label{sec:conclusions}
 
-We developed an approximate Bayesian inference algorithm to solve a challenging problem in small-area estimation of HIV for low resource settings.
-Our method is demonstrated to be more accurate than the EB Gaussian approximation currently in use, and substantially faster than NUTS for the simplified Naomi model in Malawi (Section \ref{sec:results}).
-We anticipate that our method could be added to the Naomi software as an alternative option to `TMB`.
-Analysts might quickly iterate over model options using the faster, less accurate inference approach, only switching to the slower, more accurate approach once they are happy with the results.
+We developed an approximate Bayesian inference algorithm motivated by a challenging problem in small-area estimation of HIV in low resource settings.
+For the simplified Naomi model in Malawi (Section \ref{sec:results}) our method is demonstrated to be more accurate than the EB Gaussian approximation currently in use, and substantially faster than NUTS.
+We anticipate that our method could be added to the Naomi web interface as an alternative to `TMB`.
+Analysts might quickly iterate over model options using the faster, less accurate inference approach, switching to the slower, more accurate approach once they are happy with the results.
 
-We provide a flexible implementation, which builds on the `aghq` \textsc{R} package.
+We provide a flexible implementation of the algoritm, building on the`TMB` and `aghq` \textsc{R} packages.
 In doing so, we hope our work enables use of deterministic inference algorithms for ELGMs in applied settings, as well as further methodological exploration of their accuracy and limitations.
-Among the ELGMs structures of greatest interest are: aggregated Gaussian process models [@nandi2020disaggregation].
-Although our method is designed for ELGMs, it may even be used outside this class, and is compatible with any model with a `TMB` \textsc{C++} template.
+Among the ELGMs structures of particular interest in spatial epidemiology, many of which are included in the structure of Naomi, are: aggregated Gaussian process models [@nandi2020disaggregation], evidence synthesis models [@amoah2020geostatistical].
+Although our method is designed for ELGMs, it is possible to use it outside this class, as it is compatible with any model with a `TMB` \textsc{C++} template.
 
 In our case study we demonstrated a Bayesian workflow for deterministic inference methods.
 We retained the ability to draw samples from the posterior distributions of interest, facilitating use of posterior predictive checks (Section \ref{sec:model-assessment}).
 
-Future work could look to implement our algorithm (Section \ref{sec:algorithm}) into probabilistic programming languages, facilitating access by a broader user-base.
+Future work could look to implement our algorithm (Section \ref{sec:algorithm}) within probabilistic programming languages, facilitating access by a broader user-base.
 This might be possible in Stan by use of the `bridgestan` package [@bridgestan] together with the adjoint-differentiated Laplace approximation of @margossian2020hamiltonian.
 <!-- Note: can fit hyperparameters with Laplace on latent field using HMC via tmbstan::tmbstan(laplace = TRUE) -->
 <!-- i.e. what Charles Margossian has implemented for Stan is done similarly by default in TMB -->
