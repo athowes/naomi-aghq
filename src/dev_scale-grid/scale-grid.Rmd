@@ -347,7 +347,7 @@ plot +
     col = multi.utils::cbpalette()[2],
     inherit.aes = FALSE
   ) +
-  scale_size_continuous(limits = c(1, 2))
+  scale_size_continuous(range = c(1, 2))
 ```
 
 Test how this PCA grid works for some simple integrals.
