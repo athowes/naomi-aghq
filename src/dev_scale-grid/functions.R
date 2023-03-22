@@ -203,3 +203,33 @@ sd_levels_ghe_grid <- function(dim, level, cut_off, sd) {
   grid <- mvQuad::createNIGrid(dim = dim, "GHe", level = levels)
   grid
 }
+
+#' A local version of aghq::normalize_logpost
+#' I have added an argument whereby the basegrid provided can not be adapted (if it is adapted already)
+local_normalize_logpost <- function(optresults, k, whichfirst = 1, basegrid = NULL, adapt = TRUE, ndConstruction = "product", ...) {
+  S <- length(optresults$mode)
+  thegrid <- basegrid
+  idxorder <- c(whichfirst, (1:S)[-whichfirst])
+
+  if(adapt) {
+    m <- optresults$mode[idxorder]
+    H <- optresults$hessian[idxorder, idxorder]
+    mvQuad::rescale(thegrid, m = m, C = Matrix::forceSymmetric(solve(H)), dec.type = 2)
+  }
+
+  nodesandweights <- cbind(mvQuad::getNodes(thegrid), mvQuad::getWeights(thegrid))
+  colnames(nodesandweights) <- c(paste0("theta", idxorder), "weights")
+  nodesandweights <- as.data.frame(nodesandweights)
+  thetaorder <- paste0("theta", 1:S)
+  if (length(idxorder) == 1) {
+    nodesandweights$logpost <- sapply(nodesandweights[, thetaorder], optresults$ff$fn, ...)
+  }
+  else {
+    nodesandweights$logpost <- apply(nodesandweights[, thetaorder], 1, optresults$ff$fn, ...)
+  }
+  ww <- nodesandweights$weights
+  pp <- nodesandweights$logpost
+  lognormconst <- aghq:::logsumexpweights(pp, ww)
+  nodesandweights$logpost_normalized <- nodesandweights$logpost - lognormconst
+  list(nodesandweights = nodesandweights, grid = thegrid, lognormconst = lognormconst)
+}
