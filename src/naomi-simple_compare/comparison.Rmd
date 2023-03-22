@@ -304,7 +304,9 @@ mf_out$area_id %>% unique()
 mf_out$sex %>% unique()
 mf_out$age_group %>% unique()
 
-mf_out %>%
+mf_out_fine <- mf_out %>%
+  tibble::rownames_to_column("id") %>%
+  mutate(id = as.numeric(id)) %>%
   filter(
     area_id %in% paste0("MWI_4_", 1:32, "_demo"),
     sex %in% c("male", "female"),
@@ -314,8 +316,24 @@ mf_out %>%
         "Y025_034", "Y030_034", "Y035_039", "Y040_044", "Y045_049", "Y050_054",
         "Y055_059", "Y060_064", "Y065_069", "Y070_074", "Y075_079", "Y080_999"
       )
-  ) %>%
-  nrow()
+  )
+```
+
+An `id` column has been added to `mf_out_fine` to enable merging to the samples.
+
+```{r}
+head(mf_out_fine)
+nrow(mf_out_fine)
+```
+
+```{r}
+rho_t1_out_fine <- tmb$fit$sample$rho_t1_out[mf_out_fine$id, ]
+dim(rho_t1_out_fine)
+rho_t1_out_fine[1:10, 1:10]
+```
+
+```{r}
+histogram_and_ecdf(par = "rho_t1_out", i = 1)
 ```
 
 # KS plots 

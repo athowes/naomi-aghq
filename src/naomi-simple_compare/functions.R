@@ -1,7 +1,15 @@
+#' Return the maximum distance from zero containted in a vector
+#'
+#' @param x A vector
+#' @return The element with maximum absolute value
 absmax <- function(x) x[which.max(abs(x))]
 
-#' Create a facetted histogram plot of the named parameter using samples from each of the four methods
-#' As well as an ECDF plot
+#' Create a facetted histogram and ECDF plots using samples from each of the four methods
+#'
+#' @param par The name of a parameter (latent field or hyperparamter)
+#' @param i The index of the parameter, if it has dimension greater than one
+#' @param return_df Should the dataframe used to create these plots be returned too?
+#' @return A `ggplot2` object, or list containing a `ggplot2` object and a dataframe
 histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
   colours <- c("#56B4E9", "#009E73", "#E69F00", "#CC79A7")
 
@@ -109,7 +117,11 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
   }
 }
 
-#' Create a dataframe of samples from TMB, aghq, adam and tmbstan for any parameters starting with par
+#' Create a dataframe of KS test statistics using samples from TMB, aghq, adam and tmbstan
+#'
+#' @param par The name of a parameter (latent field or hyperparamter)
+#' @param starts_with Should all parameters starting with `par` be kept?
+#' @return A dataframe
 to_ks_df <- function(par, starts_with = FALSE) {
   par_names <- par
   all_par_names <- names(tmb$fit$obj$env$par)
@@ -168,6 +180,13 @@ to_ks_df <- function(par, starts_with = FALSE) {
   )
 }
 
+#' Create a scatterplot and jitterplot of the KS test statistics
+#'
+#' @param ks_df The output of `to_ks_df`
+#' @param par Parameter name (only used for labelling)
+#' @param method1 Samples from this method will be used as the first entry in the KS test
+#' @param method2 Samples from this method will be used as the second entry in the KS test
+#' @return A `ggplot2` object
 ks_plot <- function(ks_df, par, method1 = "TMB", method2 = "aghq") {
   wide_ks_df <- pivot_wider(ks_df, names_from = "method", values_from = "ks")
   wide_ks_df$ks_diff <- wide_ks_df[[method1]] - wide_ks_df[[method2]]
