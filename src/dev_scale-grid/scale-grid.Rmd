@@ -314,6 +314,8 @@ pca_rescale <- function(m, C, s, k) {
 
 ### Testing with simple examples
 
+#### Gaussian
+
 Check that this works as visually expected for a simple example:
 
 ```{r}
@@ -323,6 +325,12 @@ cov <- matrix(c(2, 1, 1, 1), ncol = 2)
 obj <- function(theta) {
   mvtnorm::dmvnorm(theta, mean = mu, sigma = cov)
 }
+
+obj_list <- list(
+  fn = obj,
+  gr = function(theta) numDeriv::grad(obj, theta),
+  he = function(theta) numDeriv::hessian(obj, theta)
+)
 
 grid <- expand.grid(
   theta1 = seq(-2, 5, length.out = 700),
@@ -337,7 +345,7 @@ plot <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
   labs(x = "", y = "") +
   theme_minimal()
 
-gaussian_2d <- pca_rescale(m = mu, C = cov, s = 1, k = 5)
+pca_grid <- pca_rescale(m = mu, C = cov, s = 1, k = 5)
 
 plot +
   geom_point(
@@ -348,10 +356,15 @@ plot +
     inherit.aes = FALSE
   ) +
   scale_size_continuous(range = c(1, 2))
+
+opt_bfgs <- aghq::optimize_theta(obj_list, mu, control = default_control(method = "BFGS"))
+norm_bfgs_1 <- aghq::normalize_logpost(opt_bfgs, 1, 1)
+exp(norm_bfgs_1$lognormconst)
 ```
 
-Test how this PCA grid works for some simple integrals.
-We will use Alex's [unit tests](https://github.com/awstringer1/aghq/blob/master/tests/testthat/setup-01-optimization.R) from the `aghq` package.
+#### Other 2D function
+
+More complicated two dimensional function from Alex's [unit tests](https://github.com/awstringer1/aghq/blob/master/tests/testthat/setup-01-optimization.R) from the `aghq` package.
 
 ```{r}
 logfteta2d <- function(eta, y) {
@@ -386,7 +399,42 @@ funlist2d <- list(
   he = function(x) numDeriv::hessian(objfunc2d,x)
 )
 
+grid <- expand.grid(
+  theta1 = seq(0, 4, length.out = 400),
+  theta2 = seq(0, 4, length.out = 400)
+)
+
+ground_truth <- data.frame(grid) %>%
+  rowwise() %>%
+  mutate(pdf = exp(objfunc2d(x = c(theta1, theta2))))
+
+plot <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
+  geom_contour(col = multi.utils::cbpalette()[1]) +
+  coord_fixed(xlim = c(0.8, 2), ylim = c(0.8, 2), ratio = 1) +
+  labs(x = "", y = "") +
+  theme_minimal()
+
 opt_bfgs_2d <- aghq::optimize_theta(funlist2d, c(1.5, 1.5), control = default_control(method = "BFGS"))
+
+grid_bfgs_2d_1 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 1)
+# Error in rescale.NIGrid(grid_bfgs_2d_3, m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian)) :
+# (in rescale) no appropriate covariance matrix C
+# mvQuad::rescale(grid_bfgs_2d_1, m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian))
+
+grid_bfgs_2d_3 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 3)
+# Error in rescale.NIGrid(grid_bfgs_2d_3, m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian)) :
+# (in rescale) no appropriate covariance matrix C
+# mvQuad::rescale(grid_bfgs_2d_3, m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian))
+
+grid_bfgs_2d_5 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 5)
+# Error in rescale.NIGrid(grid_bfgs_2d_3, m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian)) :
+# (in rescale) no appropriate covariance matrix C
+# mvQuad::rescale(grid_bfgs_2d_5, m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian))
+
+grid_bfgs_2d_7 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 7)
+# Error in rescale.NIGrid(grid_bfgs_2d_3, m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian)) :
+# (in rescale) no appropriate covariance matrix C
+# mvQuad::rescale(grid_bfgs_2d_7, m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian))
 
 norm_bfgs_2d_1 <- aghq::normalize_logpost(opt_bfgs_2d, 1, 1)
 norm_bfgs_2d_3 <- aghq::normalize_logpost(opt_bfgs_2d, 3, 1)
@@ -399,11 +447,11 @@ pca_grid_bfgs_2d_5 <- pca_rescale(m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$he
 pca_grid_bfgs_2d_7 <- pca_rescale(m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian), s = 1, k = 7)
 
 plot_points <- function(gg) {
-  gg$nodes %>%
-    as.data.frame() %>%
-    mutate(weights = gg$weights) %>%
-    ggplot() +
+  plot +
     geom_point(
+      data = mvQuad::getNodes(gg) %>%
+        as.data.frame() %>%
+        mutate(weights = mvQuad::getWeights(gg)),
       aes(x = V1, y = V2, size = weights),
       alpha = 0.8,
       col = multi.utils::cbpalette()[2],
@@ -414,6 +462,10 @@ plot_points <- function(gg) {
     theme_minimal()
 }
 
+#' AGHQ
+{plot_points(grid_bfgs_2d_1) + plot_points(grid_bfgs_2d_3)} / {plot_points(grid_bfgs_2d_5) + plot_points(grid_bfgs_2d_7)}
+
+#' PCA-AGHQ
 {plot_points(pca_grid_bfgs_2d_1) + plot_points(pca_grid_bfgs_2d_3)} / {plot_points(pca_grid_bfgs_2d_5) + plot_points(pca_grid_bfgs_2d_7)}
 
 norm_pca_bfgs_2d_1 <- local_normalize_logpost(opt_bfgs_2d, basegrid = pca_grid_bfgs_2d_1, adapt = FALSE)
