@@ -271,7 +271,8 @@ fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NU
 
   obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL)
   quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, k = 1)
-  quad$obj <- obj
+  objout <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 1L, inner_verbose, progress, map, DLL = DLL)
+  quad$obj <- objout
 
   random <- obj$env$random
   x_names <- names(obj$env$par[random])
@@ -346,8 +347,7 @@ sample_adam <- function(adam, M, verbose = TRUE) {
   for(j in 1:length(adam$quad$marginals)) {
     marginal <- adam$quad$marginals[[j]]
     colnames(marginal)[grep("theta", colnames(marginal))] <- "theta"
-    # Don't normalise because maybe just one point (for now) and the trapezoid
-    # rule will break
+    # Don't normalise because maybe just one point (for now) and the trapezoid rule will break
     pdf_and_cdf <- compute_pdf_and_cdf(marginal$theta, marginal$logmargpost)
     thetasamples[[j]] <- unname(sample_cdf(pdf_and_cdf, M = M))
   }
