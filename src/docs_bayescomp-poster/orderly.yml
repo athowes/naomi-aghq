@@ -6,6 +6,11 @@ artefacts:
       filenames:
         - bayescomp-poster.html
         - bayescomp-poster.pdf
+  - data:
+      description: Figures
+      filenames:
+        - fig3.png
+        - fig4.png
 
 resources:
   - bayescomp-poster.Rmd

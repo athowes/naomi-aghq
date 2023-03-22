@@ -136,7 +136,7 @@ ggsave(
   units = "in"
 )
 
-#' Figure 3
+#' Figure 4
 fig4data <- readRDS("depends/beta_anc_rho.rds") %>%
   filter(method != "aghq")
 
