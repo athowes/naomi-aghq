@@ -30,6 +30,14 @@ tmbstan <- readRDS("depends/tmbstan.rds")
 depends <- yaml::read_yaml("orderly.yml")$depends
 ```
 
+Check that the parameters (latent field, hyperparameters, model outputs) sampled from each of the four methods are the same:
+
+```{r}
+stopifnot(names(tmb$fit$sample) == names(aghq$quad$sample))
+stopifnot(names(tmb$fit$sample) == names(adam$adam$sample))
+stopifnot(names(tmb$fit$sample) == names(tmbstan$mcmc$sample))
+```
+
 ## Run details {.tabset}
 
 For more information about the conditions under which these results were generated, see:
