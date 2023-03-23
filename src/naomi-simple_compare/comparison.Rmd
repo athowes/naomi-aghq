@@ -98,7 +98,7 @@ We create histograms and empirical cumulative distribution function (ECDF) diffe
 All of the possible parameter names are as follows:
 
 ```{r}
-pars <- unique(names(tmb$fit$obj$env$par))
+pars <- names(tmb$fit$sample)
 pars
 ```
 
@@ -136,150 +136,150 @@ histogram_and_ecdf_helper <- function(par) lapply(1:sum(names(tmb$fit$obj$env$pa
 histogram_and_ecdf_helper("beta_rho")
 ```
 
-## `beta_alpha`
+<!-- ## `beta_alpha` -->
 
-```{r eval = pars_eval[["beta_rho"]]}
-histogram_and_ecdf_helper("beta_alpha")
-```
+<!-- ```{r eval = pars_eval[["beta_rho"]]} -->
+<!-- histogram_and_ecdf_helper("beta_alpha") -->
+<!-- ``` -->
 
-## `beta_lambda`
+<!-- ## `beta_lambda` -->
 
-```{r eval = pars_eval[["beta_rho"]]}
-histogram_and_ecdf_helper("beta_lambda")
-```
+<!-- ```{r eval = pars_eval[["beta_rho"]]} -->
+<!-- histogram_and_ecdf_helper("beta_lambda") -->
+<!-- ``` -->
 
-## `beta_anc_rho`
+<!-- ## `beta_anc_rho` -->
 
-```{r eval = pars_eval[["beta_rho"]]}
-histogram_and_ecdf("beta_anc_rho")
-```
+<!-- ```{r eval = pars_eval[["beta_rho"]]} -->
+<!-- histogram_and_ecdf("beta_anc_rho") -->
+<!-- ``` -->
 
-## `beta_anc_alpha`
+<!-- ## `beta_anc_alpha` -->
 
-```{r eval = pars_eval[["beta_rho"]]}
-histogram_and_ecdf("beta_anc_alpha")
-```
+<!-- ```{r eval = pars_eval[["beta_rho"]]} -->
+<!-- histogram_and_ecdf("beta_anc_alpha") -->
+<!-- ``` -->
 
-## `logit`
+<!-- ## `logit` -->
 
-```{r eval = FALSE}
-lapply(pars[stringr::str_starts(pars, "logit")], histogram_and_ecdf)
-```
+<!-- ```{r eval = FALSE} -->
+<!-- lapply(pars[stringr::str_starts(pars, "logit")], histogram_and_ecdf) -->
+<!-- ``` -->
 
-## `log_sigma`
+<!-- ## `log_sigma` -->
 
-```{r eval = FALSE}
-lapply(pars[stringr::str_starts(pars, "log_sigma")], histogram_and_ecdf)
-```
+<!-- ```{r eval = FALSE} -->
+<!-- lapply(pars[stringr::str_starts(pars, "log_sigma")], histogram_and_ecdf) -->
+<!-- ``` -->
 
-## `u_rho_x`
+<!-- ## `u_rho_x` -->
 
-```{r eval = pars_eval[["u_rho_x"]]}
-histogram_and_ecdf_helper("u_rho_x")
-```
+<!-- ```{r eval = pars_eval[["u_rho_x"]]} -->
+<!-- histogram_and_ecdf_helper("u_rho_x") -->
+<!-- ``` -->
 
-## `u_rho_x`
+<!-- ## `u_rho_x` -->
 
-```{r eval = pars_eval[["u_rho_x"]]}
-histogram_and_ecdf_helper("u_rho_x")
-```
+<!-- ```{r eval = pars_eval[["u_rho_x"]]} -->
+<!-- histogram_and_ecdf_helper("u_rho_x") -->
+<!-- ``` -->
 
-## `us_rho_x`
+<!-- ## `us_rho_x` -->
 
-```{r eval = pars_eval[["us_rho_x"]]}
-histogram_and_ecdf_helper("us_rho_x")
-```
+<!-- ```{r eval = pars_eval[["us_rho_x"]]} -->
+<!-- histogram_and_ecdf_helper("us_rho_x") -->
+<!-- ``` -->
 
-## `u_rho_xs`
+<!-- ## `u_rho_xs` -->
 
-```{r eval = pars_eval[["u_rho_xs"]]}
-histogram_and_ecdf_helper("u_rho_xs")
-```
+<!-- ```{r eval = pars_eval[["u_rho_xs"]]} -->
+<!-- histogram_and_ecdf_helper("u_rho_xs") -->
+<!-- ``` -->
 
-## `us_rho_xs`
+<!-- ## `us_rho_xs` -->
 
-```{r eval = pars_eval[["us_rho_xs"]]}
-histogram_and_ecdf_helper("us_rho_xs")
-```
+<!-- ```{r eval = pars_eval[["us_rho_xs"]]} -->
+<!-- histogram_and_ecdf_helper("us_rho_xs") -->
+<!-- ``` -->
 
-## `u_rho_as`
+<!-- ## `u_rho_as` -->
 
-```{r eval = pars_eval[["u_rho_as"]]}
-histogram_and_ecdf_helper("u_rho_as")
-```
+<!-- ```{r eval = pars_eval[["u_rho_as"]]} -->
+<!-- histogram_and_ecdf_helper("u_rho_as") -->
+<!-- ``` -->
 
-## `u_alpha_x`
+<!-- ## `u_alpha_x` -->
 
-```{r eval = pars_eval[["u_alpha_x"]]}
-histogram_and_ecdf_helper("u_alpha_x")
-```
+<!-- ```{r eval = pars_eval[["u_alpha_x"]]} -->
+<!-- histogram_and_ecdf_helper("u_alpha_x") -->
+<!-- ``` -->
 
-## `us_alpha_x`
+<!-- ## `us_alpha_x` -->
 
-```{r eval = pars_eval[["us_alpha_x"]]}
-histogram_and_ecdf_helper("us_alpha_x")
-```
+<!-- ```{r eval = pars_eval[["us_alpha_x"]]} -->
+<!-- histogram_and_ecdf_helper("us_alpha_x") -->
+<!-- ``` -->
 
-## `u_alpha_xs`
+<!-- ## `u_alpha_xs` -->
 
-```{r eval = pars_eval[["u_alpha_xs"]]}
-histogram_and_ecdf_helper("u_alpha_xs")
-```
+<!-- ```{r eval = pars_eval[["u_alpha_xs"]]} -->
+<!-- histogram_and_ecdf_helper("u_alpha_xs") -->
+<!-- ``` -->
 
-## `us_alpha_xs`
+<!-- ## `us_alpha_xs` -->
 
-```{r eval = pars_eval[["beta_rho"]]}
-histogram_and_ecdf_helper("us_alpha_xs")
-```
+<!-- ```{r eval = pars_eval[["beta_rho"]]} -->
+<!-- histogram_and_ecdf_helper("us_alpha_xs") -->
+<!-- ``` -->
 
-## `u_alpha_a`
+<!-- ## `u_alpha_a` -->
 
-```{r eval = pars_eval[["u_alpha_a"]]}
-histogram_and_ecdf_helper("u_alpha_a")
-```
+<!-- ```{r eval = pars_eval[["u_alpha_a"]]} -->
+<!-- histogram_and_ecdf_helper("u_alpha_a") -->
+<!-- ``` -->
 
-## `u_alpha_as`
+<!-- ## `u_alpha_as` -->
 
-```{r eval = pars_eval[["u_alpha_as"]]}
-histogram_and_ecdf_helper("u_alpha_as")
-```
+<!-- ```{r eval = pars_eval[["u_alpha_as"]]} -->
+<!-- histogram_and_ecdf_helper("u_alpha_as") -->
+<!-- ``` -->
 
-## `u_alpha_xa`
+<!-- ## `u_alpha_xa` -->
 
-```{r eval = pars_eval[["u_alpha_xa"]]}
-histogram_and_ecdf_helper("u_alpha_xa")
-```
+<!-- ```{r eval = pars_eval[["u_alpha_xa"]]} -->
+<!-- histogram_and_ecdf_helper("u_alpha_xa") -->
+<!-- ``` -->
 
-## `ui_lambda_x`
+<!-- ## `ui_lambda_x` -->
 
-```{r eval = pars_eval[["ui_lambda_x"]]}
-histogram_and_ecdf_helper("ui_lambda_x")
-```
+<!-- ```{r eval = pars_eval[["ui_lambda_x"]]} -->
+<!-- histogram_and_ecdf_helper("ui_lambda_x") -->
+<!-- ``` -->
 
-## `ui_anc_rho_x`
+<!-- ## `ui_anc_rho_x` -->
 
-```{r eval = pars_eval[["ui_anc_rho_x"]]}
-histogram_and_ecdf_helper("ui_anc_rho_x")
-```
+<!-- ```{r eval = pars_eval[["ui_anc_rho_x"]]} -->
+<!-- histogram_and_ecdf_helper("ui_anc_rho_x") -->
+<!-- ``` -->
 
-## `ui_anc_alpha_x`
+<!-- ## `ui_anc_alpha_x` -->
 
-```{r eval = pars_eval[["ui_anc_alpha_x"]]}
-histogram_and_ecdf_helper("ui_anc_alpha_x")
-```
+<!-- ```{r eval = pars_eval[["ui_anc_alpha_x"]]} -->
+<!-- histogram_and_ecdf_helper("ui_anc_alpha_x") -->
+<!-- ``` -->
 
-## `log_or_gamma`
+<!-- ## `log_or_gamma` -->
 
-```{r eval = pars_eval[["log_or_gamma"]]}
-histogram_and_ecdf_helper("log_or_gamma")
-```
+<!-- ```{r eval = pars_eval[["log_or_gamma"]]} -->
+<!-- histogram_and_ecdf_helper("log_or_gamma") -->
+<!-- ``` -->
 
 ## Outcome variables
 
 These are all of the outcome variables which we might be interested in to monitor:
 
 ```{r}
-names(tmb$fit$sample)[!(names(tmb$fit$sample) %in% pars)]
+names(tmb$fit$sample)[!(names(tmb$fit$sample) %in% unique(names(tmb$fit$obj$env$par)))]
 ```
 The most important ones (checked with Jeff) are HIV prevalence (`rho_t1_out`), ART coverage (`alpha_t1_out`), and HIV incidence (`lambda_t1_out`).
 
@@ -340,8 +340,10 @@ dim(rho_t1_out_fine)
 rho_t1_out_fine[1:10, 1:10]
 ```
 
+Something weird happening with `adam`, go back and check this:
+
 ```{r}
-histogram_and_ecdf(par = "rho_t1_out", i = 1)
+histogram_and_ecdf(par = "alpha_t1_out", i = 1)
 ```
 
 # KS plots 
@@ -349,142 +351,149 @@ histogram_and_ecdf(par = "rho_t1_out", i = 1)
 ## Individual parameters {.tabset .tabset-fade}
 
 ```{r}
-ks_helper <- function(par, sw = FALSE, ...) {
-  to_ks_df(par, starts_with = sw) %>% ks_plot(par, ...)
+ks_helper <- function(par, starts_with = FALSE, ...) {
+  to_ks_df(par, starts_with = starts_with) %>% ks_plot(par, ...)
 }
 ```
 
 ### `beta`
 
 ```{r}
-ks_helper("beta", sw = TRUE)
-ks_helper("beta", sw = TRUE, method1 = "TMB", method2 = "adam")
+ks_helper("beta", starts_with = TRUE)
+ks_helper("beta", starts_with = TRUE, method1 = "TMB", method2 = "adam")
 ```
 
-### `logit`
+<!-- ### `logit` -->
+
+<!-- ```{r} -->
+<!-- ks_helper("logit", starts_with = TRUE) -->
+<!-- ks_helper("logit", starts_with = TRUE, method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `log_sigma` -->
+
+<!-- ```{r} -->
+<!-- ks_helper("log_sigma", starts_with = TRUE) -->
+<!-- ks_helper("log_sigma", starts_with = TRUE , method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `u_rho_x` -->
+
+<!-- ```{r eval = pars_eval[["u_rho_x"]]} -->
+<!-- ks_helper("u_rho_x") -->
+<!-- ks_helper("u_rho_x", method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `u_rho_xs` -->
+
+<!-- ```{r eval = pars_eval[["u_rho_xs"]]} -->
+<!-- ks_helper("u_rho_xs") -->
+<!-- ks_helper("u_rho_xs", method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `us_rho_x` -->
+
+<!-- ```{r eval = pars_eval[["us_rho_x"]]} -->
+<!-- ks_helper("us_rho_x") -->
+<!-- ks_helper("us_rho_x", method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `us_rho_xs` -->
+
+<!-- ```{r eval = pars_eval[["us_rho_xs"]]} -->
+<!-- ks_helper("us_rho_xs") -->
+<!-- ks_helper("us_rho_xs", method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `u_rho_a` -->
+
+<!-- ```{r eval = pars_eval[["u_rho_a"]]} -->
+<!-- ks_helper("u_rho_a") -->
+<!-- ks_helper("u_rho_a", method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `u_rho_as` -->
+
+<!-- ```{r eval = pars_eval[["u_rho_as"]]} -->
+<!-- ks_helper("u_rho_as") -->
+<!-- ks_helper("u_rho_as", method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `u_alpha_x` -->
+
+<!-- ```{r eval = pars_eval[["u_alpha_x"]]} -->
+<!-- ks_helper("u_alpha_x") -->
+<!-- ks_helper("u_alpha_x", method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `u_alpha_xs` -->
+
+<!-- ```{r eval = pars_eval[["u_alpha_xs"]]} -->
+<!-- ks_helper("u_alpha_xs") -->
+<!-- ks_helper("u_alpha_xs", method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `us_alpha_x` -->
+
+<!-- ```{r eval = pars_eval[["us_alpha_x"]]} -->
+<!-- ks_helper("us_alpha_x") -->
+<!-- ks_helper("us_alpha_x", method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `us_alpha_xs` -->
+
+<!-- ```{r eval = pars_eval[["us_alpha_xs"]]} -->
+<!-- ks_helper("us_alpha_xs") -->
+<!-- ks_helper("us_alpha_xs", method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `u_alpha_a` -->
+
+<!-- ```{r eval = pars_eval[["u_alpha_a"]]} -->
+<!-- ks_helper("u_alpha_a") -->
+<!-- ks_helper("u_alpha_a", method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `u_alpha_as` -->
+
+<!-- ```{r eval = pars_eval[["u_alpha_as"]]} -->
+<!-- ks_helper("u_alpha_as") -->
+<!-- ks_helper("u_alpha_as", method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `u_alpha_xa` -->
+
+<!-- ```{r eval = pars_eval[["u_alpha_xa"]]} -->
+<!-- ks_helper("u_alpha_xa") -->
+<!-- ks_helper("u_alpha_xa", method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `ui_anc_rho_x` -->
+
+<!-- ```{r eval = pars_eval[["ui_anc_rho_x"]]} -->
+<!-- ks_helper("ui_anc_rho_x") -->
+<!-- ks_helper("ui_anc_rho_x", method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `ui_anc_alpha_x` -->
+
+<!-- ```{r eval = pars_eval[["ui_anc_alpha_x"]]} -->
+<!-- ks_helper("ui_anc_alpha_x") -->
+<!-- ks_helper("ui_anc_alpha_x", method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+<!-- ### `log_or_gamma` -->
+
+<!-- ```{r eval = pars_eval[["log_or_gamma"]]} -->
+<!-- ks_helper("log_or_gamma") -->
+<!-- ks_helper("log_or_gamma", method1 = "TMB", method2 = "adam") -->
+<!-- ``` -->
+
+### Outcome variables
 
 ```{r}
-ks_helper("logit", sw = TRUE)
-ks_helper("logit", sw = TRUE, method1 = "TMB", method2 = "adam")
-```
-
-### `log_sigma`
-
-```{r}
-ks_helper("log_sigma", sw = TRUE)
-ks_helper("log_sigma", sw = TRUE , method1 = "TMB", method2 = "adam")
-```
-
-### `u_rho_x`
-
-```{r eval = pars_eval[["u_rho_x"]]}
-ks_helper("u_rho_x")
-ks_helper("u_rho_x", method1 = "TMB", method2 = "adam")
-```
-
-### `u_rho_xs`
-
-```{r eval = pars_eval[["u_rho_xs"]]}
-ks_helper("u_rho_xs")
-ks_helper("u_rho_xs", method1 = "TMB", method2 = "adam")
-```
-
-### `us_rho_x`
-
-```{r eval = pars_eval[["us_rho_x"]]}
-ks_helper("us_rho_x")
-ks_helper("us_rho_x", method1 = "TMB", method2 = "adam")
-```
-
-### `us_rho_xs`
-
-```{r eval = pars_eval[["us_rho_xs"]]}
-ks_helper("us_rho_xs")
-ks_helper("us_rho_xs", method1 = "TMB", method2 = "adam")
-```
-
-### `u_rho_a`
-
-```{r eval = pars_eval[["u_rho_a"]]}
-ks_helper("u_rho_a")
-ks_helper("u_rho_a", method1 = "TMB", method2 = "adam")
-```
-
-### `u_rho_as`
-
-```{r eval = pars_eval[["u_rho_as"]]}
-ks_helper("u_rho_as")
-ks_helper("u_rho_as", method1 = "TMB", method2 = "adam")
-```
-
-### `u_alpha_x`
-
-```{r eval = pars_eval[["u_alpha_x"]]}
-ks_helper("u_alpha_x")
-ks_helper("u_alpha_x", method1 = "TMB", method2 = "adam")
-```
-
-### `u_alpha_xs`
-
-```{r eval = pars_eval[["u_alpha_xs"]]}
-ks_helper("u_alpha_xs")
-ks_helper("u_alpha_xs", method1 = "TMB", method2 = "adam")
-```
-
-### `us_alpha_x`
-
-```{r eval = pars_eval[["us_alpha_x"]]}
-ks_helper("us_alpha_x")
-ks_helper("us_alpha_x", method1 = "TMB", method2 = "adam")
-```
-
-### `us_alpha_xs`
-
-```{r eval = pars_eval[["us_alpha_xs"]]}
-ks_helper("us_alpha_xs")
-ks_helper("us_alpha_xs", method1 = "TMB", method2 = "adam")
-```
-
-### `u_alpha_a`
-
-```{r eval = pars_eval[["u_alpha_a"]]}
-ks_helper("u_alpha_a")
-ks_helper("u_alpha_a", method1 = "TMB", method2 = "adam")
-```
-
-### `u_alpha_as`
-
-```{r eval = pars_eval[["u_alpha_as"]]}
-ks_helper("u_alpha_as")
-ks_helper("u_alpha_as", method1 = "TMB", method2 = "adam")
-```
-
-### `u_alpha_xa`
-
-```{r eval = pars_eval[["u_alpha_xa"]]}
-ks_helper("u_alpha_xa")
-ks_helper("u_alpha_xa", method1 = "TMB", method2 = "adam")
-```
-
-### `ui_anc_rho_x`
-
-```{r eval = pars_eval[["ui_anc_rho_x"]]}
-ks_helper("ui_anc_rho_x")
-ks_helper("ui_anc_rho_x", method1 = "TMB", method2 = "adam")
-```
-
-### `ui_anc_alpha_x`
-
-```{r eval = pars_eval[["ui_anc_alpha_x"]]}
-ks_helper("ui_anc_alpha_x")
-ks_helper("ui_anc_alpha_x", method1 = "TMB", method2 = "adam")
-```
-
-### `log_or_gamma`
-
-```{r eval = pars_eval[["log_or_gamma"]]}
-ks_helper("log_or_gamma")
-ks_helper("log_or_gamma", method1 = "TMB", method2 = "adam")
+# To fix
+# ks_helper("alpha_t1_out")
 ```
 
 ## Summary table

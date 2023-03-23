@@ -6,7 +6,7 @@ absmax <- function(x) x[which.max(abs(x))]
 
 #' Create a facetted histogram and ECDF plots using samples from each of the four methods
 #'
-#' @param par The name of a parameter (latent field or hyperparamter)
+#' @param par The name of a parameter (latent field, hyperparameter, or model output)
 #' @param i The index of the parameter, if it has dimension greater than one
 #' @param return_df Should the dataframe used to create these plots be returned too?
 #' @return A `ggplot2` object, or list containing a `ggplot2` object and a dataframe
@@ -20,7 +20,7 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
       data.frame(method = "TMB", samples = as.numeric(tmb$fit$sample[[par]][i, ])),
       data.frame(method = "aghq", samples = as.numeric(aghq$quad$sample[[par]][i, ])),
       data.frame(method = "adam", samples = as.numeric(adam$sample[[par]][i, ])),
-      data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(tmbstan$mcmc$stanfit, pars = par)[[par]][, i])))
+      data.frame(method = "tmbstan", samples = as.numeric(tmbstan$mcmc$sample[[par]][i, ]))
     )
   } else {
     par_name <- paste0(par)
@@ -29,7 +29,7 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
       data.frame(method = "TMB", samples = as.numeric(tmb$fit$sample[[par]])),
       data.frame(method = "aghq", samples = as.numeric(aghq$quad$sample[[par]])),
       data.frame(method = "adam", samples = as.numeric(adam$sample[[par]])),
-      data.frame(method = "tmbstan", samples = as.numeric(unlist(rstan::extract(tmbstan$mcmc$stanfit, pars = par))))
+      data.frame(method = "tmbstan", samples = as.numeric(tmbstan$mcmc$sample[[par]]))
     )
   }
 
@@ -47,6 +47,9 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
     pull(sd) %>%
     round(digits = 3)
 
+  rhat <- tryCatch(round(rhats[[par_name]], 3), error = function(e) return("Missing!"))
+  ess <- tryCatch(round(ess[[par_name]], 3), error = function(e) return("Missing!"))
+
   histogram_plot <- ggplot(df_compare, aes(x = samples, fill = method, col = method)) +
     geom_histogram(aes(y = after_stat(density)), alpha = 0.5, position = "identity", bins = 30) +
     theme_minimal() +
@@ -57,9 +60,7 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
     theme(legend.position = "none") +
     labs(
       title = par_name,
-      subtitle = paste0(
-        "tmbstan: Rhat = ", round(rhats[[par_name]], 3), ", ESS = ", round(ess[[par_name]], 3)
-      ),
+      subtitle = paste0("tmbstan: Rhat = ", rhat, ", ESS = ", ess),
       x = ""
     )
 
@@ -132,36 +133,26 @@ to_ks_df <- function(par, starts_with = FALSE) {
 
   unique_par_names <- unique(par_names)
 
-  samples_tmb <- tmb$fit$sample[unique_par_names]
-  samples_tmb <- lapply(samples_tmb, function(x) as.data.frame(t(x)))
-
-  samples_aghq <- aghq$quad$sample[unique_par_names]
-  samples_aghq <- lapply(samples_aghq, function(x) as.data.frame(t(x)))
-
-  samples_adam <- adam$sample[unique_par_names]
-  samples_adam <- lapply(samples_adam, function(x) as.data.frame(t(x)))
-
-  samples_tmbstan <- rstan::extract(tmbstan$mcmc$stanfit, pars = unique_par_names)
-  samples_tmbstan <- lapply(samples_tmbstan, function(x) as.data.frame(x))
-
-  table <- table(all_par_names)
-  for(par in unique_par_names) {
-    par_length <- table[par]
-    if(par_length > 1) {
-      par_colnames <- paste0(par, "[", 1:par_length, "]")
-    } else {
-      par_colnames <- paste0(par)
+  process_samples <- function(x) {
+    samples <- x[unique_par_names]
+    samples <- lapply(samples, function(x) as.data.frame(t(x)))
+    table <- table(all_par_names)
+    for(par in unique_par_names) {
+      par_length <- table[par]
+      if(par_length > 1) {
+        par_colnames <- paste0(par, "[", 1:par_length, "]")
+      } else {
+        par_colnames <- paste0(par)
+      }
+      colnames(samples[[par]]) <- par_colnames
     }
-    colnames(samples_tmb[[par]]) <- par_colnames
-    colnames(samples_aghq[[par]]) <- par_colnames
-    colnames(samples_adam[[par]]) <- par_colnames
-    colnames(samples_tmbstan[[par]]) <- par_colnames
+    dplyr::bind_cols(samples)
   }
 
-  samples_tmb <- dplyr::bind_cols(samples_tmb)
-  samples_aghq <- dplyr::bind_cols(samples_aghq)
-  samples_adam <- dplyr::bind_cols(samples_adam)
-  samples_tmbstan <- dplyr::bind_cols(samples_tmbstan)
+  samples_tmb <- process_samples(tmb$fit$sample)
+  samples_aghq <- process_samples(aghq$quad$sample)
+  samples_adam <- process_samples(adam$sample)
+  samples_tmbstan <- process_samples(tmbstan$mcmc$sample)
 
   n <- ncol(samples_tmbstan)
   ks_tmb <- numeric(n)
