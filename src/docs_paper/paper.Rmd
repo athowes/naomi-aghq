@@ -133,7 +133,7 @@ Finally, in Section \ref{sec:conclusions} we discuss our conclusions, how we ant
 # A simplified Naomi model\label{sec:naomi}
 
 @eaton2021naomi specify a joint model linking three small-area estimation models and defined over three time points: $T_1$ the time of the most recent household survey with HIV testing; $T_2$, the current time period; and $T_3$, a short term projection period.
-We consider a simplified version defined only at $T_1$ omitting nowcasting and temporal projection, as these time points involve only projection and no further inference.
+We consider a simplified version defined only at $T_1$ omitting nowcasting and temporal projection, as these time points involve no further inference.
 An overview of this simplified model is given below, highlighting the aspects which make it a challenge for existing inferential approaches.
 A more complete mathematical description, as well as a \textsf{C++} template for the log-posterior, are provided in the appendix.
 

@@ -1,5 +1,5 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(tmbstan = TRUE, area_level = 4, hmc_laplace = TRUE))
+# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(tmbstan = TRUE, area_level = 4, hmc_laplace = FALSE))
 # setwd("src/naomi-simple_fit")
 
 if(tmb + aghq + adam + tmbstan != 1) {
@@ -67,7 +67,8 @@ naomi_data <- select_naomi_data(
 #' Naomi with packageVersion("naomi"), and if required, install version 2.8.5.
 #' with devtools::install_github("mrc-ide/naomi", ref = "e9de40f"). We modify
 #' this model to obtain a simplified version where the time points T2 and T3,
-#' as well as extraneous outputs, are removed.
+#' as well as extraneous outputs, are removed. No new inference is conducted in
+#' the removed model components, the difficulty of the problem remains similar.
 
 compile("naomi_simple.cpp")
 dyn.load(dynlib("naomi_simple"))
