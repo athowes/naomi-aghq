@@ -4,13 +4,12 @@ artefacts:
   - data:
       description: Slides
       filenames:
-        - xx-12-22-explainer.pdf
+        - 11-04-23-explainer.pdf
 
 resources:
-  - xx-12-22-explainer.Rmd
+  - 11-04-23-explainer.Rmd
   - preamble.tex
   - citations.bib
-  - naomi_hex.png
 
 packages:
   - dplyr

@@ -368,7 +368,6 @@ df %>%
 knitr::include_graphics("depends/intercept-comparison.pdf")
 ```
 
-
 # Comparison approaches
 
 * You could look at the summaries like the mean and standard deviation of each of the posterior marginals as we have above
