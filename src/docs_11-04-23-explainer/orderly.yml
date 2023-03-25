@@ -8,6 +8,8 @@ artefacts:
 
 resources:
   - 11-04-23-explainer.Rmd
+  - naomi_hex.png
+  - naomi_user.png
   - preamble.tex
   - citations.bib
 

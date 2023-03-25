@@ -19,7 +19,7 @@ output:
 
 * As a statistical modeller, the bulk of our job is in constructing a generative model for data $y$ using parameters $\vartheta$
 * This is the joint distribution $p(y, \vartheta) = p(y \, | \, \vartheta) p(\vartheta)$
-* What we actually want is the posterior $p(\vartheta \, | \, y)$ which is **just**^[I've bolded this with sarcasm in mind]
+* Then we want to compute the posterior $p(\vartheta \, | \, y)$ which is **just**^[I've bolded this with sarcasm in mind]
 $$
 p(\vartheta \, | \, y) = \frac{p(y, \vartheta)}{p(y)} = \frac{p(y \, | \, \vartheta) p(\vartheta)}{p(y)}
 $$
@@ -35,6 +35,65 @@ $$
 $$
 \tilde p(y) = \sum_{\vartheta \in \mathcal{Q}} p(y, \vartheta) \omega(\vartheta)
 $$
+
+# Naive quadrature example
+
+* Remember how integration is introduced? (Rienmann sums)
+* Try computing $\int_0^\pi \sin(x) \text{d}x = 2$ using trapezoid rule
+
+```{r}
+trapezoid_rule <- function(x, spacing) {
+  w <- rep(spacing, length(x))
+  w[1] <- w[1] / 2
+  w[length(x)] <- w[length(x)] / 2
+  sum(w * x)
+}
+```
+
+#
+
+```{r message=FALSE, echo=FALSE}
+library(tidyverse)
+cbpalette <- c("#56B4E9","#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
+
+finegrid <- seq(0, pi, length.out = 1000)
+
+plot <- data.frame(x = finegrid, y = sin(finegrid)) %>%
+  ggplot(aes(x = x, y = y)) +
+   geom_line(col = cbpalette[1]) +
+   theme_minimal() +
+   labs(x = "x", y = "sin(x)")
+
+trapezoid_plot <- function(N) {
+  grid <- seq(0, pi, length.out = N)
+  int <- trapezoid_rule(x = sin(grid), spacing = grid[2] - grid[1])
+
+  plot + 
+    geom_bar(
+      data = data.frame(x = grid, y = sin(grid)),
+      aes(x = x, y = y), alpha = 0.7, stat = "identity",
+      inherit.aes = FALSE, fill = cbpalette[2]) +
+    theme_minimal() +
+    labs(
+      subtitle = paste0("Number of quadrature points: ", N, "\nTrapezoid rule estimate: ", round(int, 3), "\nTruth: 2"),
+      x = "x", y = "sin(x)"
+    )
+}
+
+trapezoid_plot(N = 10)
+```
+
+#
+
+```{r message=FALSE, echo=FALSE}
+trapezoid_plot(N = 30)
+```
+
+#
+
+```{r message=FALSE, echo=FALSE}
+trapezoid_plot(N = 100)
+```
 
 # Monte Carlo as an example of numerical integration
 
@@ -81,7 +140,7 @@ For some half-baked thoughts, see \texttt{athowes.github.io/fourth-gen/paper.pdf
 
 # Spatio-temporal statistics
 
-* There is nothing inherently special about spatio-temporal statistics
+* There is nothing inherently special about spatio-temporal statistics, but we do often end up in similar situations because of the structures of the problems we tackle
 * We have observations indexed by space $s \in \mathcal{S}$ and time $t \in \mathcal{T}$
 * Usually we associate parameters to spatio-temporal locations as well as observations
 * This ends up with us having something like $\{x_{s, t}\}$
@@ -122,9 +181,17 @@ $$
 \end{tcolorbox}
 \end{center}
 
-# Laplace approximation
+# Example
 
-Include a figure here showing what it looks like to approximate some distribution by a Gaussian.
+* Consider the following model for $i = 1, \ldots, n$ with fixed $a$ and $b$
+$$
+y_i \sim \text{Poisson}(\lambda), \quad
+\lambda \sim \text{Gamma}(a, b).
+$$
+* It's conjugate so we directly know that
+$$
+\lambda \, | \, y \sim \text{Gamma}(a + \sum_i y_i, b + n)
+$$
 
 # Laplace approximation
 
@@ -184,11 +251,136 @@ p(y) \approx \sum_{\theta \in \mathcal{Q}} p_{\texttt{LA}}(\theta, y) \omega(\th
 $$
 * This is the famous integrated nested Laplace approximation (INLA)
 
-#
+# Naomi evidence synthesis model
+
+:::::::::::::: {.columns}
+
+::: {.column width=.65}
+
+* Many people here have worked on Naomi evidence synthesis model
+* Used by countries to produce HIV estimates in a yearly process supported by UNAIDS
+* Inference for Naomi is currently conducted using `TMB` by optimising $p_{\texttt{LA}}(\theta, y)$
+* Has to be pretty quick to allow for interactive review and development of estimates
+
+:::
+
+::: {.column width=.35}
+
+```{r, echo=FALSE, fig.cap="A supermodel", out.width = '65%'}
+knitr::include_graphics("naomi_hex.png")
+```
+
+:::
+
+::::::::::::::
+
+# 
+
+```{r, echo=FALSE, fig.cap="Example of the user interface from https://naomi.unaids.org/", out.width = '70%'}
+knitr::include_graphics("naomi_user.png")
+```
+
+# Why do we use `TMB`
+
+* One answer: lack of other viable options
+* Markov chain Monte Carlo (MCMC) takes too long
+* Though Naomi is a spatial model with a large Gaussian latent field, it isn't technically a latent Gaussian model, and isn't compatible with the `R-INLA` implementation of INLA
+
+# Idea
+
+* Implement an algorithm similar to INLA which
+1. is compatible with Naomi
+2. uses `TMB` to perform Laplace approximation 
+* Does this improves the quality of the inferences we get?
+
+# Not a new idea!
 
 > My main comment is that several aspects of the computational machineery that is presented by Rue and his colleagues **could benefit from the use of a numerical technique known as automatic differentiation (AD)** ... By the use of AD one could obtain a system that is automatic from a user's perspective... the benefit would be a fast, flexible and easy-to-use system for doing Bayesian analysis in models with Gaussian latent variables 
 
 -- Hans J. Skaug (coauthor of `TMB`), RSS discussion of @rue2009approximate
+
+# Meanwhile in Canada...
+
+* Alex Stringer in Toronto $\to$ Waterloo had been thinking along similar lines, and made a lot of progress
+
+1. Implementing an algorithm similar to INLA, using a specific quadrature rule $\mathcal{Q}$ called adaptive Gauss-Hermite quadrature (AGHQ) which he and others argue should be the default for this problem
+2. Defining a class of models called extended latent Gaussian models (ELGMs) which Naomi fits into
+
+* I will explain what both of these acronyms (AGHQ^[Amusingly similar to AGYW: adolescent girls and young women] and ELGM) mean!
+
+# What's AGHQ?
+
+# What's an ELGM?
+
+# Why is Naomi an ELGM?
+
+# ANC offset from household survey
+
+\begin{align*}
+\text{logit}(\rho_{x, a}^{\text{ANC}}) &= \text{logit}(\rho_{x, F, a}) + \beta^{\rho^{\text{ANC}}} + u_x^{\rho^{\text{ANC}}} + \eta_{R_x, a}^{\rho^{\text{ANC}}}, \\
+\text{logit}(\alpha_{x, a}^{\text{ANC}}) &= \text{logit}(\alpha_{x, F, a}) + \beta^{\alpha^{\text{ANC}}} + u_x^{\alpha^{\text{ANC}}} + \eta_{R_x, a}^{\alpha^{\text{ANC}}}. 
+\end{align*}
+
+# Incidence depends on adult prevalence and coverage
+
+$$
+\log(\lambda_{x, s, a}) = \beta_0^\lambda + \beta_S^{\lambda, s = \text{M}} + \log(\rho_{x}^{\text{15-49}}) + \log(1 - \omega \cdot \alpha_{x}^{\text{15-49}}) + u_x^\lambda + \eta_{R_x, s, a}^\lambda.
+$$
+
+# ART attendance probability product
+
+$$
+\dot A_{x', x, s, a} \sim \text{Bin}(N_{x', s, a}, \pi_{x', x, s, a})
+$$
+where $\pi_{x', x, s, a} = \rho_{x', s, a} \cdot \alpha_{x', s, a} \cdot \gamma_{x', x, s, a}$.
+
+# ART attendance multinomial
+
+# Aggregation
+
+#
+
+```{tikz, echo=FALSE, fig.align='center', fig.cap = "Inference for the hyperparameters. Shaped like a snake for no real reason.", fig.ext = 'png', cache=TRUE}
+\usetikzlibrary{arrows}
+\begin{tikzpicture}[node distance=3.5cm, auto,>=latex', thick, scale = 1]
+\node (1) {$p(\theta, x, y)$};
+\node (2) [below of=1] {$\tilde p_\texttt{LA}(\theta, y)$};
+\node (3) [right of=2] {$\tilde p_\texttt{AQ}(y)$};
+\node (4) [above of=3] {$\tilde p_\texttt{AQ}(\theta \, | \, y)$};
+\node (5) [right of=4] {$\tilde p_\texttt{AQ}(\theta_j \, | \, y)$};
+\node (6) [below of=5] {Output};
+
+\draw[->] (1) to node {Laplace} (2);
+\draw[->] (2) to node {AGHQ} (3);
+\draw[->] (3) to node {Normalise} (4);
+\draw[->] (4) to node {Marginalise} (5);
+\draw[->] (5) to node {Spline} (6);
+\end{tikzpicture}
+```
+
+#
+
+```{tikz, echo=FALSE, fig.align='center', fig.cap = "Inference for the latent field.", fig.ext = 'png', cache=TRUE}
+\usetikzlibrary{arrows}
+\begin{tikzpicture}[node distance=3.5cm, auto,>=latex', thick, scale = 1]
+\node (1) {$p(\theta, x, y)$};
+\node (2) [below of=1] {$\tilde p_\texttt{LA}(\theta, y)$};
+\node (3) [right of=2] {$\tilde p_\texttt{AQ}(y)$};
+\node (4) [above of=3] {$\tilde p_\texttt{AQ}(\theta \, | \, y)$};
+\node (5) [right of=4] {$\tilde p_\texttt{AQ}(\theta_j \, | \, y)$};
+\node (6) [below of=5] {Output};
+
+\draw[->] (1) to node {Laplace} (2);
+\draw[->] (2) to node {AGHQ} (3);
+\draw[->] (3) to node {Normalise} (4);
+\draw[->] (4) to node {Marginalise} (5);
+\draw[->] (5) to node {Spline} (6);
+\end{tikzpicture}
+```
+
+
+
+# Latent field algorithm
 
 # Thanks for listening!
 
