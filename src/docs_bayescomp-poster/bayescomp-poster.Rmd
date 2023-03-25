@@ -113,6 +113,7 @@ $$\\[0.1in]$$
   2. Incidence depends on prevalence and ART coverage
   3. Observed data are aggregated finer processes
   4. Allow attendance of ART clinics outside home district
+  5. ART attendance probability as product of prevalence and coverage 
 * We extend work of @stringer2022fast in this setting to the challenging Naomi ELGM
 * Though we focus on Naomi here, the HIV Inference Group (`hiv-inference.org`) works on many other complex models, challenging for existing Bayesian inference methods, which require flexible modelling tools
 
@@ -120,16 +121,16 @@ $$\\[0.1in]$$
 
 * **Laplace approximation** Integrate out variables using a Gaussian approximation to the denominator
 $$
-p(\theta, y) \approx \tilde p_\text{LA}(\theta, y) = \frac{p(y, x, \theta)}{\tilde p_\text{G}(x \, | \, \theta, y)} \Big\rvert_{x = \hat x(\theta)}
+p(\theta, y) \approx \tilde p_\texttt{LA}(\theta, y) = \frac{p(y, x, \theta)}{\tilde p_\texttt{G}(x \, | \, \theta, y)} \Big\rvert_{x = \hat x(\theta)}
 $$
-where $\tilde p_\text{G}(x \, | \, \theta, y) = \mathcal{N}(x \, | \, \hat x(\theta), \mathbf{H}(\theta)^{-1})$
+where $\tilde p_\texttt{G}(x \, | \, \theta, y) = \mathcal{N}(x \, | \, \hat x(\theta), \mathbf{H}(\theta)^{-1})$
   * Use automatic differentiation via `CppAD` in `TMB`
 * **Adaptive Gauss-Hermite Quadrature**
 $$
 \int_\Theta p(\theta) \text{d} \theta \approx \lvert L \rvert \sum_{z \in \mathcal{Q}(m, k)} p(\hat \theta + Lz) \omega(z)
 $$
 where the Gauss-Hermite quadrature rule $z \in \mathcal{Q}(\dim(\theta), k)$ with $k$ points per dimension is adapted based upon
-  * The mode $\hat \theta = \text{argmax}_{\theta \in \Theta} p(\theta)$
+  * The mode $\hat \theta = \texttt{argmax}_{\theta \in \Theta} p(\theta)$
   * The lower Cholesky $LL^\top = - \partial_\theta^2 \log p(\theta) \rvert_{\theta = \hat \theta}$
 * Algorithm (called `adam` for now) summarized by Figure \@ref(fig:fig2)
   * Where possible, previously calculated quantities and quadrature rules are reused
@@ -138,15 +139,15 @@ where the Gauss-Hermite quadrature rule $z \in \mathcal{Q}(\dim(\theta), k)$ wit
 \usetikzlibrary{arrows}
 \begin{tikzpicture}[node distance=2.5cm, auto,>=latex', thick, scale = 1]
 \node (1) {$p(\theta, x, y)$};
-\node (2) [below of=1] {$\tilde p_\text{LA}(x_i, \theta, y)$};
-\node (3) [below of=2] {$\tilde p_\text{LA}(x_i, y)$};
-\node (4) [below of=3] {$\tilde p_\text{AQ}(x_i \, | \, y)$};
+\node (2) [below of=1] {$\tilde p_\texttt{LA}(x_i, \theta, y)$};
+\node (3) [below of=2] {$\tilde p_\texttt{LA}(x_i, y)$};
+\node (4) [below of=3] {$\tilde p_\texttt{AQ}(x_i \, | \, y)$};
 \node (5) [below of=4] {Output};
 
 \node (6) [right of=1, xshift=1cm] {$\tilde p_\text{LA}(\theta, y)$};
-\node (7) [below of=6] {$\tilde p_\text{AQ}(y)$};
-\node (8) [below of=7] {$\tilde p_\text{AQ}(\theta \, | \, y)$};
-\node (9) [below of=8] {$\tilde p_\text{AQ}(\theta_j \, | \, y)$};
+\node (7) [below of=6] {$\tilde p_\texttt{AQ}(y)$};
+\node (8) [below of=7] {$\tilde p_\texttt{AQ}(\theta \, | \, y)$};
+\node (9) [below of=8] {$\tilde p_\texttt{AQ}(\theta_j \, | \, y)$};
 \node (10) [below of=9] {Output};
 
 \draw[->] (1) to node {Laplace} (2);
