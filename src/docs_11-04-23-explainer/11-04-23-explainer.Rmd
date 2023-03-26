@@ -15,30 +15,30 @@ output:
         in_header: preamble.tex
 ---
 
-# Bayes
+# Bayesian modelling and inference
 
 * As a statistical modeller, the bulk of our job is in constructing a generative model for data $y$ using parameters $\vartheta$
 * This is the joint distribution $p(y, \vartheta) = p(y \, | \, \vartheta) p(\vartheta)$
-* Then we want to compute the posterior $p(\vartheta \, | \, y)$ which is **just**^[I've bolded this with sarcasm in mind]
+* Then, we want to compute (ideally without having to think much about it) the posterior $p(\vartheta \, | \, y)$ which is **just**^[I've bolded this with sarcasm in mind: it's a difficult problem]
 $$
 p(\vartheta \, | \, y) = \frac{p(y, \vartheta)}{p(y)} = \frac{p(y \, | \, \vartheta) p(\vartheta)}{p(y)}
 $$
-* The central problem of Bayesian inference is that we can't compute $p(y)$
+* The central problem of Bayesian inference is doing the following integral
 $$
 p(y) = \int p(y, \vartheta) \text{d} \vartheta
 $$
 
-# How might you do it?
+# Numerical integration
 
-* If you want to integrate something deterministically, you could use numerical integration methods
-* Pick nodes $\vartheta \in \mathcal{Q} \subset \varTheta$ and weights $\omega: \varTheta \to \mathbb{R}$ then compute the sum
+* If you want to integrate something deterministically, you could use numerical integration, otherwise called \textcolor{hilit}{quadrature}
+* Select nodes $\vartheta \in \mathcal{Q} \subset \varTheta$ and weights $\omega: \varTheta \to \mathbb{R}$ then compute the sum
 $$
 \tilde p(y) = \sum_{\vartheta \in \mathcal{Q}} p(y, \vartheta) \omega(\vartheta)
 $$
 
 # Naive quadrature example
 
-* Remember how integration is introduced? (Rienmann sums)
+* Remember how integration is taught? (Rienmann sums)
 * Try computing $\int_0^\pi \sin(x) \text{d}x = 2$ using trapezoid rule
 
 ```{r}
@@ -130,8 +130,8 @@ For some half-baked thoughts, see \texttt{athowes.github.io/fourth-gen/paper.pdf
 # Latent variables and hyperparameters
 
 * Quadrature doesn't work very well when $\text{dim}(\vartheta)$ gets even moderately sized
-* Previously I had all of the parameters under the symbol $\vartheta$
-* What if we split them up as being $\vartheta = (x, \theta)$
+  * If you're using $k$ points per dimension it's $k^{\text{dim}(\vartheta)}$
+* Previously all of the parameters were under the symbol $\vartheta$ -- what if we split them up as being $\vartheta = (x, \theta)$
 * The key part about this is that $\dim(x)$ is big and $\dim(\theta)$ is small
 
 | Names for $x$ | Names for $\theta$ |
@@ -148,19 +148,20 @@ For some half-baked thoughts, see \texttt{athowes.github.io/fourth-gen/paper.pdf
 # What's important about this?
 
 1. There might be **a lot** of spatio-temporal locations, so $\text{dim}(x)$ might be pretty big! If you have 100 districts and 10 years, that's already $100 \times 10 = 1000$ parameters
-2. Perhaps we're willing to make assumptions about how things vary over space-time^[Are there any slides about spatial statistics that don't describe Tobler's first law of geography?]
+2. Perhaps we're willing to make quite strong assumptions about how things vary over space-time^[Are there any slides about spatial statistics that don't describe Tobler's first law of geography?]
+* Not IID anymore!
 
 <!-- As you get more data, the posterior approaches a Gaussian -->
 
 # Latent Gaussian models
 
-A latent Gaussian model (LGM) [@rue2009approximate] looks along these lines:
-
+* A \textcolor{hilit}{latent Gaussian model} (LGM) [@rue2009approximate] looks along these lines:
 \begin{alignat*}{2}
   &\text{(Observations)}     &   y &\sim p(y \, | \, x, \theta), \\
   &\text{(Latent field)}     &   x &\sim \mathcal{N}(x  \, | \, \mu(\theta), Q(\theta)^{-1}), \\
   &\text{(Hyperparameters)}  &   \qquad \theta &\sim p(\theta).
 \end{alignat*}
+* Many models are LGMs, especially in spatio-temporal statistics
 
 # Laplace approximation
 
@@ -181,7 +182,7 @@ $$
 \end{tcolorbox}
 \end{center}
 
-# Example
+# Example of computing the Laplace approximation
 
 * Consider the following model for $i = 1, \ldots, n$ with fixed $a$ and $b$
 $$
@@ -192,6 +193,70 @@ $$
 $$
 \lambda \, | \, y \sim \text{Gamma}(a + \sum_i y_i, b + n)
 $$
+
+# Prior
+
+```{r message=FALSE, echo=FALSE}
+a <- 3
+b <- 1
+
+prior <- ggplot(data = data.frame(x = c(0, 10)), aes(x)) +
+  stat_function(fun = dgamma, n = 500, args = list(shape = a, rate = b), col = cbpalette[1]) +
+  labs(x = "", y = "") +
+  theme_minimal()
+  
+prior
+```
+
+# Posterior
+
+```{r message=FALSE, echo=FALSE}
+set.seed(2)
+y <- rpois(3, lambda = 2)
+
+posterior <- prior +
+  geom_point(data = data.frame(x = y, y = 0), aes(x = x, y = y), inherit.aes = FALSE, alpha = 0.7, size = 2) +
+  stat_function(data = data.frame(x = c(0, 10)), aes(x), fun = dgamma, n = 500, args = list(shape = a + sum(y), rate = b + length(y)), col = cbpalette[2])
+
+posterior
+```
+
+# Laplace approximation
+
+```{r message=FALSE}
+fn <- function(x) dgamma(x, a + sum(y), b + length(y), log = TRUE)
+
+# Here we are using numerical derivatives rather than automatic
+ff <- list(
+  fn = fn,
+  gr = function(x) numDeriv::grad(fn, x),
+  he = function(x) numDeriv::hessian(fn, x)
+)
+
+opt_bfgs <- aghq::optimize_theta(
+  ff, 1, control = aghq::default_control(method = "BFGS")
+)
+```
+
+# Laplace approximation
+
+```{r}
+laplace <- posterior +
+  stat_function(
+    data = data.frame(x = c(0, 10)),
+    aes(x),
+    fun = dnorm,
+    n = 500,
+    args = list(mean = opt_bfgs$mode, sd = sqrt(1 / opt_bfgs$hessian)),
+    col = cbpalette[3]
+  )
+```
+
+# Laplace approximation
+
+```{r message=FALSE, echo=FALSE}
+laplace
+```
 
 # Laplace approximation
 
@@ -209,10 +274,10 @@ $$
 * Hey wait a second, is it reasonable to just assume $p(\vartheta \, | \, y)$ is Gaussian?
 * No, not in general. But...
 
-1. We just described a class of models (LGMs) where some subset of the parameters (the latent field $x$) have a Gaussian prior $\implies$ it's a lot more reasonable to think that they would have a marginal posterior which is close to Gaussian
+1. We just described a class of models (LGMs) where some subset of the parameters ($x$) have a Gaussian prior $\implies$ it's a lot more reasonable to think that they would have a marginal posterior which is close to Gaussian
 2. We just talked about how big $x$ is in comparison to $\theta$! $\implies$ most of the work in our integral can be done using a **marginal Laplace** approximation to get rid of $x$
 
-#
+# Generalist versus specialist methods
 
 Dichotomy in statistical inference methods:
 
@@ -220,14 +285,14 @@ Dichotomy in statistical inference methods:
 \begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
 
 \begin{enumerate}
-  \item Ones which aim to be completely general
-  \item Ones which aim to "exploit" properties of the problem at hand
+  \item \textbf{Generalist} works in all situations
+  \item \textbf{Specialist} "exploits" properties of the problem at hand
 \end{enumerate}
 
 \end{tcolorbox}
 \end{center}
 
-We are taking approach 2.
+We are taking approach 2!
 
 # Marginal Laplace approximation
 
@@ -251,16 +316,30 @@ p(y) \approx \sum_{\theta \in \mathcal{Q}} p_{\texttt{LA}}(\theta, y) \omega(\th
 $$
 * This is the famous integrated nested Laplace approximation (INLA)
 
-# Naomi evidence synthesis model
+# Taking stock
+
+1. Bayesian inference is integration
+2. Spatial statistics has parameters $(x, \theta)$
+3. Integrate $x$ cheaply using a Gaussian assumption
+4. Try a bit harder with $\theta$ performing quadrature
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+
+Now let's apply this to a difficult problem in HIV inference!
+
+\end{tcolorbox}
+\end{center}
+
+# The Naomi model
 
 :::::::::::::: {.columns}
 
 ::: {.column width=.65}
 
-* Many people here have worked on Naomi evidence synthesis model
+* Naomi is a spatial evidence synthesis model
 * Used by countries to produce HIV estimates in a yearly process supported by UNAIDS
-* Inference for Naomi is currently conducted using `TMB` by optimising $p_{\texttt{LA}}(\theta, y)$
-* Has to be pretty quick to allow for interactive review and development of estimates
+* Inference for Naomi is currently conducted using `TMB` by optimising $p_{\texttt{LA}}(\theta, y)$, and has to be pretty quick to allow for interactive review and development of estimates
 
 :::
 
@@ -276,15 +355,40 @@ knitr::include_graphics("naomi_hex.png")
 
 # 
 
-```{r, echo=FALSE, fig.cap="Example of the user interface from https://naomi.unaids.org/", out.width = '70%'}
+```{r, echo=FALSE, fig.cap="Example of the user interface from \\texttt{https://naomi.unaids.org/}", out.width = '70%'}
 knitr::include_graphics("naomi_user.png")
+```
+
+# Template Model Builder refresher
+
+* `TMB` [@kristensen2015tmb] is an R package which implements the Laplace approximation for latent variable models
+* To use `TMB`, you write your objective function $- \log p(\y \, | \, \x, \btheta) p(\x \, | \, \btheta) p(\btheta)$ in `TMB`'s C++ syntax
+* For example, for the model $\y \sim \mathcal{N}(\mu, 1)$ with $p(\mu) \propto 1$ then the `TMB` user template looks as follows
+
+# 
+
+```{cpp eval=FALSE}
+#include <TMB.hpp>
+
+template <class Type>
+Type objective_function<Type>::operator()() {
+  // Define data e.g.
+  DATA_VECTOR(y);
+  // Define parameters e.g.
+  PARAMETER(mu);
+  // Calculate negative log-likelihood e.g.
+  nll = Type(0.0);
+  nll -= dnorm(y, mu, 1, true).sum()
+  return(nll);
+}
 ```
 
 # Why do we use `TMB`
 
-* One answer: lack of other viable options
-* Markov chain Monte Carlo (MCMC) takes too long
-* Though Naomi is a spatial model with a large Gaussian latent field, it isn't technically a latent Gaussian model, and isn't compatible with the `R-INLA` implementation of INLA
+* It runs quickly, and is flexible enough to write the model
+* Another answer: we don't have any better options
+  * Markov chain Monte Carlo (MCMC) is accurate (eventually) but takes too long
+  * Though Naomi is a spatial model with a large Gaussian latent field, it isn't technically a latent Gaussian model, and isn't compatible with the `R-INLA` implementation of INLA
 
 # Idea
 
@@ -308,11 +412,85 @@ knitr::include_graphics("naomi_user.png")
 
 * I will explain what both of these acronyms (AGHQ^[Amusingly similar to AGYW: adolescent girls and young women] and ELGM) mean!
 
-# What's AGHQ?
+# Gauss-Hermite quadrature
 
-# What's an ELGM?
+# Adaptation
+
+* The nodes and weights we use should probably depend on the integrand
+  * Especially when the integrand is also a funciton of $y$ as in $p(y, \vartheta)$
+
+# 
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Unadapted points."}
+mu <- c(1, 1.5)
+cov <- matrix(c(2, 1, 1, 1), ncol = 2)
+
+obj <- function(theta) {
+  mvtnorm::dmvnorm(theta, mean = mu, sigma = cov)
+}
+
+grid <- expand.grid(
+  theta1 = seq(-2, 5, length.out = 700),
+  theta2 = seq(-2, 5, length.out = 700)
+)
+
+ground_truth <- cbind(grid, pdf = obj(grid))
+
+plot0 <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
+  geom_contour(col = cbpalette[1]) +
+  coord_fixed(xlim = c(-2, 4.5), ylim = c(-2, 4.5), ratio = 1) +
+  labs(x = "", y = "") +
+  theme_minimal()
+
+gg <- mvQuad::createNIGrid(2, "GHe", 3)
+
+add_points <- function(plot0, gg) {
+  plot0 +
+    geom_point(
+      data = mvQuad::getNodes(gg) %>%
+              as.data.frame() %>%
+              mutate(weights = mvQuad::getWeights(gg)), 
+      aes(x = V1, y = V2, size = weights),
+      alpha = 0.8,
+      col = cbpalette[2],
+      inherit.aes = FALSE
+    ) +
+    scale_size_continuous(range = c(1, 2))
+}
+
+add_points(plot0, gg) +
+  labs(size = "Weight", caption = "")
+```
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Add the mean."}
+gg2 <- gg
+mvQuad::rescale(gg2, m = mu, C = diag(c(1, 1)), dec.type = 2)
+
+add_points(plot0, gg2) +
+  labs(size = "Weight", caption = "")
+```
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Rotate by the lower Cholesky."}
+gg3 <- gg
+mvQuad::rescale(gg3, m = mu, C = cov, dec.type = 2)
+
+add_points(plot0, gg3) +
+  labs(size = "Weight", caption = "")
+```
+
+# Extended latent Gaussian models
 
 # Why is Naomi an ELGM?
+
+1. ANC offset from household survey
+2. Incidence depends on adult prevalence and coverage
+3. ART attendance is a product
+4. ART attendance uses a multinomial
+5. Aggregation of finer processes
 
 # ANC offset from household survey
 
@@ -327,7 +505,7 @@ $$
 \log(\lambda_{x, s, a}) = \beta_0^\lambda + \beta_S^{\lambda, s = \text{M}} + \log(\rho_{x}^{\text{15-49}}) + \log(1 - \omega \cdot \alpha_{x}^{\text{15-49}}) + u_x^\lambda + \eta_{R_x, s, a}^\lambda.
 $$
 
-# ART attendance probability product
+# ART attendance is a product
 
 $$
 \dot A_{x', x, s, a} \sim \text{Bin}(N_{x', s, a}, \pi_{x', x, s, a})
@@ -336,7 +514,9 @@ where $\pi_{x', x, s, a} = \rho_{x', s, a} \cdot \alpha_{x', s, a} \cdot \gamma_
 
 # ART attendance multinomial
 
-# Aggregation
+# Aggregation of finer processes
+
+# The algorithm
 
 #
 
@@ -377,10 +557,6 @@ where $\pi_{x', x, s, a} = \rho_{x', s, a} \cdot \alpha_{x', s, a} \cdot \gamma_
 \draw[->] (5) to node {Spline} (6);
 \end{tikzpicture}
 ```
-
-
-
-# Latent field algorithm
 
 # Thanks for listening!
 
