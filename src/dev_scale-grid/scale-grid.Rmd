@@ -13,13 +13,14 @@ output:
 abstract: |
   **Background** We have previously fit empirical Bayes style approaches to the Naomi model, fixing hyperparameter values to a single value.
   
-  **Task** We would like to begin to integrate over the hyperparameters using some kind of grid structure. The problem is that there are >20 hyperparameters, and so using any type of dense grid is not practical. In this notebook we investigate approaches to using a smaller number of grid points to cover the space, including 1) allocating points in proporiton to posterior standard deviation 2) using principle components analysis.
+  **Task** We would like to begin to integrate over the hyperparameters using multiple nodes. The problem is that there are >20 hyperparameters, and so using any type of dense grid is not practical. In this notebook we investigate approaches to using a smaller number of grid points to cover the space, including 1) allocating points in proporiton to posterior standard deviation 2) using principle components analysis.
 ---
 
 # `TMB` fit
 
 Start by fitting the model with `TMB`.
 This is quick to do and allows us to get a model we can play with to figure out which hyperparmeters are important.
+In particular we obtain the mode and Hessian at the mode of the Laplace approximation to the hyperparameter marginal posterior.
 
 ```{r}
 compile("naomi_simple.cpp")
@@ -29,7 +30,7 @@ tmb <- readRDS("depends/tmb.rds")
 fit <- tmb$fit
 ```
 
-# Grid ideas
+# Number of points proportional to standard deviation
 
 The names of the hyperparameters are:
 
@@ -38,6 +39,20 @@ The names of the hyperparameters are:
 ```
 
 There are `r length(hypers)` of them, if you'd like to count.
+There are this many on the logit scale:
+
+```{r}
+data.frame(hypers) %>%
+  filter(str_detect(hypers, "^logit_")) %>%
+  nrow()
+```
+
+And this many on the log scale:
+```{r}
+data.frame(hypers) %>%
+  filter(str_detect(hypers, "^log_")) %>%
+  nrow()
+```
 
 We can calculate their posterior standard deviations using `TMB::sdreport` which uses the delta method as follows:
 
@@ -77,15 +92,13 @@ C_plot <- C_df %>%
 C_plot
 ```
 
-## Number of points proportional to standard deviation
-
 A first suggestion about how to place grid points would be proportional to the standard deviations above.
 For example, we could get a product grid with the minimum number of points by choosing to have:
 
 * `k = 2` points in the dimension with the highest SD
 * `k = 1` point in every other dimension
 
-This would look like the following:
+This would look as follows:
 
 ```{r}
 base_grid <- sd_levels_ghe_grid(
@@ -177,12 +190,27 @@ end - start
 ```
 
 A limitation of this approach is that some hyperparameters have higher SD than others in part due to the different scales that they are on.
-For example if the hyper is on the logit scale then (from the plot above) it looks as though it will have a higher SD than another hyper on the log scale.
+For example if the hyper is on the logit scale then it looks as though it will have a higher SD than another hyper on the log scale based on the plot above.
+To be more precise:
+
+```{r}
+data.frame(par = names(sd), sd = unname(sd)) %>%
+  filter(str_detect(par, "^log_")) %>%
+  summarise(mean_sd = mean(sd))
+```
+
+```{r}
+data.frame(par = names(sd), sd = unname(sd)) %>%
+  filter(str_detect(par, "^logit_")) %>%
+  summarise(mean_sd = mean(sd))
+```
+
+Does this really reflect our intuititions about what is important to take greater account of?
 We would ideally like to know how much variation in each hyperparameter effects variation in model outputs, and then take that into account in the importance we place on each dimension: doing this in any good automated ways would be a nice contribution.
 
-## Eigendecomposition
+# Eigendecomposition
 
-Another option is to use principle components analysis (PCA) to create a grid on a subspace of $\mathbb{R}^{24}$ which retains most of the variation.
+Although it doesn't solve the above issue, another option to using the standard deviations is to use principle components analysis (PCA) to create a grid on a subspace of $\mathbb{R}^{24}$ which retains most of the variation.
 
 ```{r}
 m <- sd_out$par.fixed
@@ -217,8 +245,7 @@ ggplot(tv_df, aes(x = n, y = tv)) +
 
 So with 5 dimensions included, we can explain `r round(100 * filter(tv_df, n == 5) %>% pull(tv), 1)`% of the total variation.
 Or, with 10 dimensions included, that percentage increases to `r round(100 * filter(tv_df, n == 10) %>% pull(tv), 1)`%.
-
-What do the PC loadings look like?
+What do the PC loadings (columns of the matrix `E`) look like?
 
 ```{r}
 reshape2::melt(as.matrix(E)) %>%
@@ -252,8 +279,6 @@ E_s <- E[, 1:s]
 Lambda_s <- Lambda[1:s, 1:s]
 C_s <- E_s %*% Lambda_s %*% t(E_s)
 
-C_plot
-
 C_s_plot <- reshape2::melt(as.matrix(C_s)) %>%
   ggplot(aes(x = Var1, y = Var2, fill = value)) +
   labs(x = "", y = "", fill = "C_s[i, j]") +
@@ -263,10 +288,11 @@ C_s_plot <- reshape2::melt(as.matrix(C_s)) %>%
   theme_minimal() +
   theme(
     axis.text.x = element_blank(),
-    axis.text.y = element_blank()
+    axis.text.y = element_blank(),
+    legend.position = "bottom"
   )
 
-C_plot + C_s_plot
+{C_plot + theme(legend.position = "bottom")} + C_s_plot
 ```
 
 Let $a \in \mathbb{R}^d$ and $b \in \mathbb{R}^s$.
@@ -312,9 +338,9 @@ pca_rescale <- function(m, C, s, k) {
 }
 ```
 
-### Testing with simple examples
+## Testing with simple examples
 
-#### Gaussian
+### Gaussian
 
 Check that this works as visually expected for a simple example:
 
@@ -323,10 +349,10 @@ mu <- c(1, 1.5)
 cov <- matrix(c(2, 1, 1, 1), ncol = 2)
 
 obj <- function(theta) {
-  mvtnorm::dmvnorm(theta, mean = mu, sigma = cov)
+  mvtnorm::dmvnorm(theta, mean = mu, sigma = cov, log = TRUE)
 }
 
-obj_list <- list(
+ff <- list(
   fn = obj,
   gr = function(theta) numDeriv::grad(obj, theta),
   he = function(theta) numDeriv::hessian(obj, theta)
@@ -337,7 +363,7 @@ grid <- expand.grid(
   theta2 = seq(-2, 5, length.out = 700)
 )
 
-ground_truth <- cbind(grid, pdf = obj(grid))
+ground_truth <- cbind(grid, pdf = exp(obj(grid)))
 
 plot <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
   geom_contour(col = multi.utils::cbpalette()[1]) +
@@ -345,24 +371,49 @@ plot <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
   labs(x = "", y = "") +
   theme_minimal()
 
-pca_grid <- pca_rescale(m = mu, C = cov, s = 1, k = 5)
+pca_grid_1 <- pca_rescale(m = mu, C = cov, s = 1, k = 1)
+pca_grid_3 <- pca_rescale(m = mu, C = cov, s = 1, k = 3)
+pca_grid_5 <- pca_rescale(m = mu, C = cov, s = 1, k = 5)
+pca_grid_7 <- pca_rescale(m = mu, C = cov, s = 1, k = 7)
 
 plot +
   geom_point(
-    data = data.frame(mvQuad::getNodes(gaussian_2d)) %>%
-      mutate(weight = mvQuad::getWeights(gaussian_2d)),
+    data = data.frame(mvQuad::getNodes(pca_grid_7)) %>%
+      mutate(weight = mvQuad::getWeights(pca_grid_7)),
     aes(x = X1, y = X2, size = weight),
     col = multi.utils::cbpalette()[2],
     inherit.aes = FALSE
   ) +
   scale_size_continuous(range = c(1, 2))
 
-opt_bfgs <- aghq::optimize_theta(obj_list, mu, control = default_control(method = "BFGS"))
-norm_bfgs_1 <- aghq::normalize_logpost(opt_bfgs, 1, 1)
-exp(norm_bfgs_1$lognormconst)
+opt_bfgs <- aghq::optimize_theta(ff, mu, control = default_control(method = "BFGS"))
+
+# Perform regular AGHQ with a product grid
+norm_bfgs_1 <- aghq::normalize_logpost(opt_bfgs, k = 1)
+norm_bfgs_3 <- aghq::normalize_logpost(opt_bfgs, k = 3)
+norm_bfgs_5 <- aghq::normalize_logpost(opt_bfgs, k = 5)
+norm_bfgs_7 <- aghq::normalize_logpost(opt_bfgs, k = 7)
+
+# Zero is the correct answer here, so hopefully these are close!
+norm_bfgs_1$lognormconst
+norm_bfgs_3$lognormconst
+norm_bfgs_5$lognormconst
+norm_bfgs_7$lognormconst
+
+# What about with the new PCA grid?
+norm_pca_bfgs_1 <- local_normalize_logpost(opt_bfgs, basegrid = pca_grid_1, adapt = FALSE)
+norm_pca_bfgs_3 <- local_normalize_logpost(opt_bfgs, basegrid = pca_grid_3, adapt = FALSE)
+norm_pca_bfgs_5 <- local_normalize_logpost(opt_bfgs, basegrid = pca_grid_5, adapt = FALSE)
+norm_pca_bfgs_7 <- local_normalize_logpost(opt_bfgs, basegrid = pca_grid_7, adapt = FALSE)
+
+# These don't look near zero! Something is going wrong
+norm_pca_bfgs_1$lognormconst
+norm_pca_bfgs_3$lognormconst
+norm_pca_bfgs_5$lognormconst
+norm_pca_bfgs_7$lognormconst
 ```
 
-#### Other 2D function
+### Other 2D function
 
 More complicated two dimensional function from Alex's [unit tests](https://github.com/awstringer1/aghq/blob/master/tests/testthat/setup-01-optimization.R) from the `aghq` package.
 
@@ -386,17 +437,16 @@ n <- n1 + n2
 y1 <- rpois(n1, 5)
 y2 <- rpois(n2, 5)
 
-truemode2d <- c(log((sum(y1) + 1)/(length(y1) + 1)), log((sum(y2) + 1)/(length(y2) + 1)))
-
+truemode2d <- c(log((sum(y1) + 1) / (length(y1) + 1)), log((sum(y2) + 1) / (length(y2) + 1)))
 truelogint <- function(y) lgamma(1 + sum(y)) - (1 + sum(y)) * log(length(y) + 1) - sum(lgamma(y + 1))
 truelognormconst2d <- truelogint(y1) + truelogint(y2)
 
-objfunc2d <- function(x) logfteta2d(x, c(y1, y2))
+obj <- function(x) logfteta2d(x, c(y1, y2))
 
-funlist2d <- list(
+ff <- list(
   fn = objfunc2d,
-  gr = function(x) numDeriv::grad(objfunc2d,x),
-  he = function(x) numDeriv::hessian(objfunc2d,x)
+  gr = function(x) numDeriv::grad(obj, x),
+  he = function(x) numDeriv::hessian(obj, x)
 )
 
 grid <- expand.grid(
@@ -414,37 +464,37 @@ plot <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
   labs(x = "", y = "") +
   theme_minimal()
 
-opt_bfgs_2d <- aghq::optimize_theta(funlist2d, c(1.5, 1.5), control = default_control(method = "BFGS"))
+opt_bfgs <- aghq::optimize_theta(funlist2d, c(1.5, 1.5), control = default_control(method = "BFGS"))
 
-grid_bfgs_2d_1 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 1)
-# Error in rescale.NIGrid(grid_bfgs_2d_3, m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian)) :
+grid_bfgs_1 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 1)
+# Error in rescale.NIGrid(grid_bfgs_3, m = opt_bfgs$mode, C = solve(opt_bfgs$hessian)) :
 # (in rescale) no appropriate covariance matrix C
-# mvQuad::rescale(grid_bfgs_2d_1, m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian))
+# mvQuad::rescale(grid_bfgs_1, m = opt_bfgs$mode, C = solve(opt_bfgs$hessian))
 
-grid_bfgs_2d_3 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 3)
-# Error in rescale.NIGrid(grid_bfgs_2d_3, m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian)) :
+grid_bfgs_3 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 3)
+# Error in rescale.NIGrid(grid_bfgs_3, m = opt_bfgs$mode, C = solve(opt_bfgs$hessian)) :
 # (in rescale) no appropriate covariance matrix C
-# mvQuad::rescale(grid_bfgs_2d_3, m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian))
+# mvQuad::rescale(grid_bfgs_3, m = opt_bfgs$mode, C = solve(opt_bfgs$hessian))
 
-grid_bfgs_2d_5 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 5)
-# Error in rescale.NIGrid(grid_bfgs_2d_3, m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian)) :
+grid_bfgs_5 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 5)
+# Error in rescale.NIGrid(grid_bfgs_3, m = opt_bfgs$mode, C = solve(opt_bfgs$hessian)) :
 # (in rescale) no appropriate covariance matrix C
-# mvQuad::rescale(grid_bfgs_2d_5, m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian))
+# mvQuad::rescale(grid_bfgs_5, m = opt_bfgs$mode, C = solve(opt_bfgs$hessian))
 
-grid_bfgs_2d_7 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 7)
-# Error in rescale.NIGrid(grid_bfgs_2d_3, m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian)) :
+grid_bfgs_7 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 7)
+# Error in rescale.NIGrid(grid_bfgs_3, m = opt_bfgs$mode, C = solve(opt_bfgs$hessian)) :
 # (in rescale) no appropriate covariance matrix C
-# mvQuad::rescale(grid_bfgs_2d_7, m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian))
+# mvQuad::rescale(grid_bfgs_7, m = opt_bfgs$mode, C = solve(opt_bfgs$hessian))
 
-norm_bfgs_2d_1 <- aghq::normalize_logpost(opt_bfgs_2d, 1, 1)
-norm_bfgs_2d_3 <- aghq::normalize_logpost(opt_bfgs_2d, 3, 1)
-norm_bfgs_2d_5 <- aghq::normalize_logpost(opt_bfgs_2d, 5, 1)
-norm_bfgs_2d_7 <- aghq::normalize_logpost(opt_bfgs_2d, 7, 1)
+norm_bfgs_1 <- aghq::normalize_logpost(opt_bfgs, 1, 1)
+norm_bfgs_3 <- aghq::normalize_logpost(opt_bfgs, 3, 1)
+norm_bfgs_5 <- aghq::normalize_logpost(opt_bfgs, 5, 1)
+norm_bfgs_7 <- aghq::normalize_logpost(opt_bfgs, 7, 1)
 
-pca_grid_bfgs_2d_1 <- pca_rescale(m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian), s = 1, k = 1)
-pca_grid_bfgs_2d_3 <- pca_rescale(m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian), s = 1, k = 3)
-pca_grid_bfgs_2d_5 <- pca_rescale(m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian), s = 1, k = 5)
-pca_grid_bfgs_2d_7 <- pca_rescale(m = opt_bfgs_2d$mode, C = solve(opt_bfgs_2d$hessian), s = 1, k = 7)
+pca_grid_bfgs_1 <- pca_rescale(m = opt_bfgs$mode, C = solve(opt_bfgs$hessian), s = 1, k = 1)
+pca_grid_bfgs_3 <- pca_rescale(m = opt_bfgs$mode, C = solve(opt_bfgs$hessian), s = 1, k = 3)
+pca_grid_bfgs_5 <- pca_rescale(m = opt_bfgs$mode, C = solve(opt_bfgs$hessian), s = 1, k = 5)
+pca_grid_bfgs_7 <- pca_rescale(m = opt_bfgs$mode, C = solve(opt_bfgs$hessian), s = 1, k = 7)
 
 plot_points <- function(gg) {
   plot +
@@ -463,17 +513,17 @@ plot_points <- function(gg) {
 }
 
 #' AGHQ
-{plot_points(grid_bfgs_2d_1) + plot_points(grid_bfgs_2d_3)} / {plot_points(grid_bfgs_2d_5) + plot_points(grid_bfgs_2d_7)}
+{plot_points(grid_bfgs_1) + plot_points(grid_bfgs_3)} / {plot_points(grid_bfgs_5) + plot_points(grid_bfgs_7)}
 
 #' PCA-AGHQ
-{plot_points(pca_grid_bfgs_2d_1) + plot_points(pca_grid_bfgs_2d_3)} / {plot_points(pca_grid_bfgs_2d_5) + plot_points(pca_grid_bfgs_2d_7)}
+{plot_points(pca_grid_bfgs_1) + plot_points(pca_grid_bfgs_3)} / {plot_points(pca_grid_bfgs_5) + plot_points(pca_grid_bfgs_7)}
 
-norm_pca_bfgs_2d_1 <- local_normalize_logpost(opt_bfgs_2d, basegrid = pca_grid_bfgs_2d_1, adapt = FALSE)
-norm_pca_bfgs_2d_3 <- local_normalize_logpost(opt_bfgs_2d, basegrid = pca_grid_bfgs_2d_3, adapt = FALSE)
-norm_pca_bfgs_2d_5 <- local_normalize_logpost(opt_bfgs_2d, basegrid = pca_grid_bfgs_2d_5, adapt = FALSE)
-norm_pca_bfgs_2d_7 <- local_normalize_logpost(opt_bfgs_2d, basegrid = pca_grid_bfgs_2d_7, adapt = FALSE)
+norm_pca_bfgs_1 <- local_normalize_logpost(opt_bfgs, basegrid = pca_grid_bfgs_1, adapt = FALSE)
+norm_pca_bfgs_3 <- local_normalize_logpost(opt_bfgs, basegrid = pca_grid_bfgs_3, adapt = FALSE)
+norm_pca_bfgs_5 <- local_normalize_logpost(opt_bfgs, basegrid = pca_grid_bfgs_5, adapt = FALSE)
+norm_pca_bfgs_7 <- local_normalize_logpost(opt_bfgs, basegrid = pca_grid_bfgs_7, adapt = FALSE)
 
-results_2d <- data.frame(
+results <- data.frame(
   "method" = c(
     "Truth",
     paste0("aghq, k = ", c(1, 3, 5, 7)),
@@ -481,19 +531,19 @@ results_2d <- data.frame(
   ),
   "lognormconst" = c(
     truelognormconst2d,
-    norm_bfgs_2d_1$lognormconst, norm_bfgs_2d_3$lognormconst, norm_bfgs_2d_5$lognormconst, norm_bfgs_2d_7$lognormconst,
-    norm_pca_bfgs_2d_1$lognormconst, norm_pca_bfgs_2d_3$lognormconst, norm_pca_bfgs_2d_5$lognormconst, norm_pca_bfgs_2d_7$lognormconst
+    norm_bfgs_1$lognormconst, norm_bfgs_3$lognormconst, norm_bfgs_5$lognormconst, norm_bfgs_7$lognormconst,
+    norm_pca_bfgs_1$lognormconst, norm_pca_bfgs_3$lognormconst, norm_pca_bfgs_5$lognormconst, norm_pca_bfgs_7$lognormconst
   )
 )
 
-ggplot(results_2d, aes(x = method, y = lognormconst)) +
-  geom_point(size = 3) +
+ggplot(results, aes(x = method, y = lognormconst)) +
+  geom_point(size = 1) +
   labs(x = "Method", y = "Log normalising constant") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 70, vjust = 0.5, hjust = 0.5))
 ```
 
-### Application to Naomi
+## Application to Naomi
 
 ```{r}
 gg3 <- pca_rescale(m = m, C = C, s = 3, k = 2)
@@ -508,12 +558,3 @@ nrow(mvQuad::getNodes(gg7))
 gg9 <- pca_rescale(m = m, C = C, s = 9, k = 2)
 nrow(mvQuad::getNodes(gg9))
 ```
-
-```{r}
-start <- Sys.time()
-quad <- fit_aghq(tmb_inputs, basegrid = base_grid)
-end <- Sys.time()
-
-end - start
-```
-
