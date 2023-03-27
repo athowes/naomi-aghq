@@ -19,7 +19,7 @@ output:
 
 * As a statistical modeller, the bulk of our job is in constructing a generative model for data $y$ using parameters $\vartheta$
 * This is the joint distribution $p(y, \vartheta) = p(y \, | \, \vartheta) p(\vartheta)$
-* Then, we want to compute (ideally without having to think much about it) the posterior $p(\vartheta \, | \, y)$ which is **just**^[I've bolded this with sarcasm in mind: it's a difficult problem]
+* Then, we want to compute (ideally without having to think much about it) the posterior $p(\vartheta \, | \, y)$ which is \textcolor{hilit}{just}^[I've highlighted this with sarcasm in mind: it's a difficult problem]
 $$
 p(\vartheta \, | \, y) = \frac{p(y, \vartheta)}{p(y)} = \frac{p(y \, | \, \vartheta) p(\vartheta)}{p(y)}
 $$
@@ -132,7 +132,7 @@ For some half-baked thoughts, see \texttt{athowes.github.io/fourth-gen/paper.pdf
 * Quadrature doesn't work very well when $\text{dim}(\vartheta)$ gets even moderately sized
   * If you're using $k$ points per dimension it's $k^{\text{dim}(\vartheta)}$
 * Previously all of the parameters were under the symbol $\vartheta$ -- what if we split them up as being $\vartheta = (x, \theta)$
-* The key part about this is that $\dim(x)$ is big and $\dim(\theta)$ is small
+* The key part about this is that $\dim(x) = N$ is big and $\dim(\theta) = m$ is small
 
 | Names for $x$ | Names for $\theta$ |
 |---------------|--------------------|
@@ -147,7 +147,7 @@ For some half-baked thoughts, see \texttt{athowes.github.io/fourth-gen/paper.pdf
 
 # What's important about this?
 
-1. There might be **a lot** of spatio-temporal locations, so $\text{dim}(x)$ might be pretty big! If you have 100 districts and 10 years, that's already $100 \times 10 = 1000$ parameters
+1. There might be \textcolor{hilit}{a lot} of spatio-temporal locations, so $\text{dim}(x)$ might be pretty big! If you have 100 districts and 10 years, that's already $100 \times 10 = 1000$ parameters
 2. Perhaps we're willing to make quite strong assumptions about how things vary over space-time^[Are there any slides about spatial statistics that don't describe Tobler's first law of geography?]
 * Not IID anymore!
 
@@ -162,6 +162,7 @@ For some half-baked thoughts, see \texttt{athowes.github.io/fourth-gen/paper.pdf
   &\text{(Hyperparameters)}  &   \qquad \theta &\sim p(\theta).
 \end{alignat*}
 * Many models are LGMs, especially in spatio-temporal statistics
+* $\dim(x) = n$, $\dim(x) = N$, $\dim(\theta) = m$
 
 # Laplace approximation
 
@@ -194,9 +195,9 @@ $$
 \lambda \, | \, y \sim \text{Gamma}(a + \sum_i y_i, b + n)
 $$
 
-# Prior
+#
 
-```{r message=FALSE, echo=FALSE}
+```{r message=FALSE, echo=FALSE,  fig.cap="A Gamma prior with $a = 3$ and $b = 1$."}
 a <- 3
 b <- 1
 
@@ -208,9 +209,9 @@ prior <- ggplot(data = data.frame(x = c(0, 10)), aes(x)) +
 prior
 ```
 
-# Posterior
+#
 
-```{r message=FALSE, echo=FALSE}
+```{r message=FALSE, echo=FALSE,  fig.cap="Draw 3 points from $\\text{Poisson}(3)$, then compute the posterior."}
 set.seed(2)
 y <- rpois(3, lambda = 2)
 
@@ -221,7 +222,7 @@ posterior <- prior +
 posterior
 ```
 
-# Laplace approximation
+#
 
 ```{r message=FALSE}
 fn <- function(x) dgamma(x, a + sum(y), b + length(y), log = TRUE)
@@ -254,7 +255,7 @@ laplace <- posterior +
 
 # Laplace approximation
 
-```{r message=FALSE, echo=FALSE}
+```{r message=FALSE, echo=FALSE,  fig.cap="The Laplace approximation matches the true posterior near the mode but it's not great in the tails."}
 laplace
 ```
 
@@ -285,8 +286,8 @@ Dichotomy in statistical inference methods:
 \begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
 
 \begin{enumerate}
-  \item \textbf{Generalist} works in all situations
-  \item \textbf{Specialist} "exploits" properties of the problem at hand
+  \item Generalist: works in all situations
+  \item Specialist: "exploits" properties of the problem at hand
 \end{enumerate}
 
 \end{tcolorbox}
@@ -303,7 +304,7 @@ $$
 where $\hat x = \hat x(\theta)$
 * Now the marginal Laplace approximation is
 $$
-p_{\texttt{LA}}(\theta, y) = \frac{p(x, \theta, y)}{\tilde p_{\texttt{G}}(x \, | \, \theta, y)} \rvert_{x = \hat x} = (2 \pi)^{\dim(x) / 2} \det(H(\hat x))^{- 1 / 2} p(\hat x, \theta, y)
+p_{\texttt{LA}}(\theta, y) = \frac{p(x, \theta, y)}{\tilde p_{\texttt{G}}(x \, | \, \theta, y)} \rvert_{x = \hat x} = (2 \pi)^{N / 2} \det(H(\hat x))^{- 1 / 2} p(\hat x, \theta, y)
 $$
 
 # Integrated nested Laplace approximation
@@ -414,14 +415,22 @@ Type objective_function<Type>::operator()() {
 
 # Gauss-Hermite quadrature
 
+* Recall
+$$
+\int f(z) \text{d} z \approx \sum_{z \in \mathcal{Q}} f(z) \omega(z)
+$$
+* Replace $f(z)$ by $\phi(z) f(z)$ and say that $f$ is a polynomial and $\phi$ is unknown
+* Suppose that $\phi(z) = \exp(-z^2)$
+
 # Adaptation
 
 * The nodes and weights we use should probably depend on the integrand
-  * Especially when the integrand is also a funciton of $y$ as in $p(y, \vartheta)$
+  * Especially when the integrand is also a function of $y$ as in $p(y, \vartheta)$
+* Let $z \in \mathcal{Q}(m, k)$ then $\theta(z) = \hat \theta + Lz$ where $L$ is the lower Cholesky of $H(\hat \theta)$
 
 # 
 
-```{r, echo=FALSE, message=FALSE, fig.cap="Unadapted points."}
+```{r, echo=FALSE, message=FALSE, fig.cap="Unadapted points in two dimensions with $k = 3$."}
 mu <- c(1, 1.5)
 cov <- matrix(c(2, 1, 1, 1), ncol = 2)
 
@@ -484,13 +493,35 @@ add_points(plot0, gg3) +
 
 # Extended latent Gaussian models
 
+* To explain what an extended latent Gaussian model (ELGM) is, we need a little more detail on LGMs
+* In an LGM the conditional mean depends on exactly one structured additive predictor, specifically
+\begin{align*}
+y_i &\sim p(y_i \, | \, \eta_i, \theta_1), \quad i \in [n]\\
+\mu_i &= \mathbb{E}(y_i \, | \, \eta_i) = g(\eta_i), \\
+\eta_i &= \beta_0 + \sum_{l = 1}^{p} \beta_j z_{ji} + \sum_{k = 1}^{r} f_k(u_{ki}),
+\end{align*}
+
+# Extended latent Gaussian models
+
+* ELGM remove this requirement such that
+$$
+\mu_i = g(\eta_{\mathcal{J}_i})
+$$
+where $g_i: \mathbb{R}^{|\mathcal{J}_i|} \to \mathbb{R}$ and $\mathcal{J_i}$ is some set of indices
+* This allow for a higher degree of non-linearity in the model
+
 # Why is Naomi an ELGM?
 
-1. ANC offset from household survey
-2. Incidence depends on adult prevalence and coverage
-3. ART attendance is a product
-4. ART attendance uses a multinomial
-5. Aggregation of finer processes
+| | Things I thought made Naomi an ELGM | Does it actually? |
+|-|---------------|--------------------|
+|1| ANC offset from household survey | ? |
+|2| Incidence depends on adult prevalence and coverage | ? |
+|3| ART attendance is a product | ? |
+|4| ART attendance uses a multinomial | ? |
+|5| Aggregation of finer processes | ? |
+
+* I will explain each of these, and whether or not they make Naomi an ELGM, in more detail in slides to follow
+  * The notation may not have been introduced properly, but hopefully the gist will still make sense
 
 # ANC offset from household survey
 
@@ -499,20 +530,22 @@ add_points(plot0, gg3) +
 \text{logit}(\alpha_{x, a}^{\text{ANC}}) &= \text{logit}(\alpha_{x, F, a}) + \beta^{\alpha^{\text{ANC}}} + u_x^{\alpha^{\text{ANC}}} + \eta_{R_x, a}^{\alpha^{\text{ANC}}}. 
 \end{align*}
 
+* Here $\text{logit}(\rho_{x, F, a})$ and $\text{logit}(\alpha_{x, F, a})$ are Gaussian
+* They have their own structured additive predictors, but by use of the `copy` feature this should be possible in `R-INLA`
+* Conclusion: \textcolor{hilit}{does not} make Naomi an ELGM
+
 # Incidence depends on adult prevalence and coverage
 
 $$
 \log(\lambda_{x, s, a}) = \beta_0^\lambda + \beta_S^{\lambda, s = \text{M}} + \log(\rho_{x}^{\text{15-49}}) + \log(1 - \omega \cdot \alpha_{x}^{\text{15-49}}) + u_x^\lambda + \eta_{R_x, s, a}^\lambda.
 $$
 
+* Here $\log(\rho_{x}^{\text{15-49}})$ and $\log(1 - \omega \cdot \alpha_{x}^{\text{15-49}})$ are not going to be Gaussian -- no matter your `copy` tricks
+* Conclusion: \textcolor{hilit}{does} make Naomi an ELGM
+
 # ART attendance is a product
 
-$$
-\dot A_{x', x, s, a} \sim \text{Bin}(N_{x', s, a}, \pi_{x', x, s, a})
-$$
-where $\pi_{x', x, s, a} = \rho_{x', s, a} \cdot \alpha_{x', s, a} \cdot \gamma_{x', x, s, a}$.
-
-# ART attendance multinomial
+# ART attendance uses the multinomial
 
 # Aggregation of finer processes
 
@@ -543,18 +576,16 @@ where $\pi_{x', x, s, a} = \rho_{x', s, a} \cdot \alpha_{x', s, a} \cdot \gamma_
 ```{tikz, echo=FALSE, fig.align='center', fig.cap = "Inference for the latent field.", fig.ext = 'png', cache=TRUE}
 \usetikzlibrary{arrows}
 \begin{tikzpicture}[node distance=3.5cm, auto,>=latex', thick, scale = 1]
-\node (1) {$p(\theta, x, y)$};
-\node (2) [below of=1] {$\tilde p_\texttt{LA}(\theta, y)$};
-\node (3) [right of=2] {$\tilde p_\texttt{AQ}(y)$};
-\node (4) [above of=3] {$\tilde p_\texttt{AQ}(\theta \, | \, y)$};
-\node (5) [right of=4] {$\tilde p_\texttt{AQ}(\theta_j \, | \, y)$};
-\node (6) [below of=5] {Output};
+\node (1) {$p(\theta, x_i, x_{-i}, y)$};
+\node (2) [below of=1] {$\tilde p_\texttt{LA}(x_i, \theta, y)$};
+\node (3) [right of=2] {$\tilde p_\texttt{AQ}(x_i, y)$};
+\node (4) [above of=3] {$\tilde p_\texttt{AQ}(x_i \, | \, y)$};
+\node (5) [right of=4] {Output};
 
 \draw[->] (1) to node {Laplace} (2);
 \draw[->] (2) to node {AGHQ} (3);
 \draw[->] (3) to node {Normalise} (4);
-\draw[->] (4) to node {Marginalise} (5);
-\draw[->] (5) to node {Spline} (6);
+\draw[->] (4) to node {Spline} (5);
 \end{tikzpicture}
 ```
 

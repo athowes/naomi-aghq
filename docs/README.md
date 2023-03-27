@@ -36,9 +36,8 @@
 
 * [01-04-20-mini](https://athowes.github.io/elgm-inf/01-04-20-mini.pdf): three month CDT mini-project
 * [01-07-21-stats-epi-group](https://athowes.github.io/elgm-inf/01-07-21-stats-epi-group.pdf): [Machine Learning & Global Health Network](https://mlgh.net/) group meeting
-* [15-11-22-seminar](https://athowes.github.io/elgm-inf/15-11-22-seminar.pdf): Waterloo [SAS Student Seminar Series](https://uwaterloo.ca/statistics-and-actuarial-science/student-seminar-series)
-  * [seminar](https://athowes.github.io/elgm-inf/seminar.html): abstract for Waterloo SAS Student Seminar Series
-* [11-04-22-explainer](https://athowes.github.io/elgm-inf/11-04-22-explainer.pdf): HIV inference group lab meeting
+* [15-11-22-seminar](https://athowes.github.io/elgm-inf/15-11-22-seminar.pdf): Waterloo [SAS Student Seminar Series](https://uwaterloo.ca/statistics-and-actuarial-science/student-seminar-series), and [abstract](https://athowes.github.io/elgm-inf/seminar.html)
+* [11-04-23-explainer](https://athowes.github.io/elgm-inf/11-04-23-explainer.pdf): HIV inference group lab meeting
 
 ## Posters
 
