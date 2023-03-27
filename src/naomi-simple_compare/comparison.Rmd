@@ -513,6 +513,10 @@ ks_alpha_t1_out <- to_ks_df(par = "alpha_t1_out", outputs = TRUE, id = mf_out_fi
 
 ks_lambda_t1_out <- to_ks_df(par = "lambda_t1_out", outputs = TRUE, id = mf_out_fine$id) %>%
   merge_to_mf_out_fine()
+
+ks_plot(ks_df = ks_rho_t1_out, par = "rho_t1_out")
+ks_plot(ks_df = ks_alpha_t1_out, par = "alpha_t1_out")
+ks_plot(ks_df = ks_lambda_t1_out, par = "lambda_t1_out")
 ```
 
 ## Summary table
