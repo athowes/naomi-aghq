@@ -120,12 +120,16 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
 
 #' Create a dataframe of KS test statistics using samples from TMB, aghq, adam and tmbstan
 #'
-#' @param par The name of a parameter (latent field or hyperparamter)
-#' @param starts_with Should all parameters starting with `par` be kept?
+#' @param par The name of a parameter (latent field, hyperparameter, or model output)
+#' @param starts_with Should all parameters starting with `par` be kept? Only applicable
+#' to latent field and hyperparameters
+#' @param outputs Is the parameter a model output?
+#' @param id Which model outputs should be kept? Usually this will be obtained from the
+#' Naomi object `mf_out` and used to only select model outputs at the finest level
 #' @return A dataframe
-to_ks_df <- function(par, starts_with = FALSE) {
+to_ks_df <- function(par, starts_with = FALSE, outputs = FALSE, id = NULL) {
   par_names <- par
-  all_par_names <- names(tmb$fit$obj$env$par)
+  all_par_names <- names(tmb$fit$sample)
 
   if(starts_with) {
     par_names <- all_par_names[stringr::str_starts(all_par_names, par)]
@@ -133,26 +137,33 @@ to_ks_df <- function(par, starts_with = FALSE) {
 
   unique_par_names <- unique(par_names)
 
-  process_samples <- function(x) {
+  # If outputs = TRUE then we use id to subset the samples to only to outputs at
+  # the finest level of granularity, avoiding double counting aggregate measures
+  process_samples <- function(x, outputs = FALSE, id = NULL) {
     samples <- x[unique_par_names]
-    samples <- lapply(samples, function(x) as.data.frame(t(x)))
-    table <- table(all_par_names)
-    for(par in unique_par_names) {
-      par_length <- table[par]
-      if(par_length > 1) {
-        par_colnames <- paste0(par, "[", 1:par_length, "]")
-      } else {
-        par_colnames <- paste0(par)
+    samples <- lapply(samples, function(x) {
+      if(outputs) x <- x[id, ]
+      as.data.frame(t(x))
+    })
+    if(!outputs) {
+      table <- table(all_par_names)
+      for(par in unique_par_names) {
+        par_length <- table[par]
+        if(par_length > 1) {
+          par_colnames <- paste0(par, "[", 1:par_length, "]")
+        } else {
+          par_colnames <- paste0(par)
+        }
+        colnames(samples[[par]]) <- par_colnames
       }
-      colnames(samples[[par]]) <- par_colnames
     }
     dplyr::bind_cols(samples)
   }
 
-  samples_tmb <- process_samples(tmb$fit$sample)
-  samples_aghq <- process_samples(aghq$quad$sample)
-  samples_adam <- process_samples(adam$sample)
-  samples_tmbstan <- process_samples(tmbstan$mcmc$sample)
+  samples_tmb <- process_samples(tmb$fit$sample, outputs = outputs, id = id)
+  samples_aghq <- process_samples(aghq$quad$sample, outputs = outputs, id = id)
+  samples_adam <- process_samples(adam$sample, outputs = outputs, id = id)
+  samples_tmbstan <- process_samples(tmbstan$mcmc$sample, outputs = outputs, id = id)
 
   n <- ncol(samples_tmbstan)
   ks_tmb <- numeric(n)

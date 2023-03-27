@@ -492,8 +492,27 @@ ks_helper("beta", starts_with = TRUE, method1 = "TMB", method2 = "adam")
 ### Outcome variables
 
 ```{r}
-# To fix
-# ks_helper("alpha_t1_out")
+ks_rho_t1_out <- to_ks_df(par = "rho_t1_out", outputs = TRUE, id = mf_out_fine$id)
+
+merge_to_mf_out_fine <- function(ks_df) {
+  ks_df %>%
+  select(-par) %>%
+  left_join(
+    mf_out_fine %>%
+      rename("full_id" = "id") %>%
+      tibble::rowid_to_column("index") %>%
+      mutate(index = as.numeric(index))
+  ) %>%
+  select(-index)
+}
+  
+ks_rho_t1_out <- merge_to_mf_out_fine(ks_rho_t1_out)
+
+ks_alpha_t1_out <- to_ks_df(par = "alpha_t1_out", outputs = TRUE, id = mf_out_fine$id) %>%
+  merge_to_mf_out_fine()
+
+ks_lambda_t1_out <- to_ks_df(par = "lambda_t1_out", outputs = TRUE, id = mf_out_fine$id) %>%
+  merge_to_mf_out_fine()
 ```
 
 ## Summary table
