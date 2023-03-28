@@ -113,14 +113,13 @@ Though no theory yet exists for the nested case, the first stochastic convergenc
 We implement our method as an extension of the `aghq` \textsf{R} package [@stringer2021implementing].
 Since `aghq` is designed to naturally interface with `TMB`, use of our method is simple when provided a \textsf{C++} user template for the log-posterior.
 
-Other work aiming to extend the scope of the INLA method includes the `inlabru` \textsc{R} package of @bachl2019inlabru, and the INLA within MCMC approach of @gomez2018markov, both of which leverage the `R-INLA` \textsc{R} package [@martins2013bayesian].
+Other work aiming to extend the scope of the INLA method includes the `inlabru` \textsc{R} package [@bachl2019inlabru], INLA within MCMC [@gomez2018markov], and importance sampling with INLA [@berild2022importance], all of which leverage the `R-INLA` \textsc{R} package [@martins2013bayesian].
 `inlabru` approximates non-linear predictors using linearisation, which involves making iterative calls to `R-INLA`.
 <!-- See https://inlabru-org.github.io/inlabru/articles/method.html -->
 <!-- Want to say in particular what the class of models that `inlabru` allows you to fit are -->
 <!-- Don't know the answer to this yet, but asking Janine Illian I'm told you don't have to call R-INLA that many times -->
 <!-- I think it'd obviously depend on the exact details of the problem at hand -->
-INLA within MCMC is suitable for models which are LGMs conditional on some subset of the parameters being fixed.
-For such models, Metropolis-Hastings style algorithms can be defined to update the fixed parameters, with acceptance probabilities calculated using by repeat calls to `R-INLA`.
+INLA within MCMC and importance sampling with INLA are suitable for models which are LGMs conditional on some subset of the parameters being fixed.
 <!-- It would or would not be possible to fit the Naomi model in these frameworks. -->
 
 The remainder of this paper is organised as follows.
