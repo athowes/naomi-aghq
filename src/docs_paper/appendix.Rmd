@@ -105,17 +105,17 @@ with terms and priors analogous to the HIV prevalence process model in Section \
 ### HIV incidence rate
 
 We model HIV incidence rate using the linear predictor
-\begin{equation}
+$$
 \log(\lambda_{x, s, a}) = \beta_0^\lambda + \beta_S^{\lambda, s = \text{M}} + \log(\rho_{x}^{\text{15-49}}) + \log(1 - \omega \cdot \alpha_{x}^{\text{15-49}}) + u_x^\lambda + \eta_{R_x, s, a}^\lambda, \label{eq:hiv-inc}
-\end{equation}
+$$
 where $\beta^\lambda_0 \sim \mathcal{N}(0, 5)$ is an intercept term proportional to the average HIV transmission rate for untreated HIV positive adults, $\beta_S^{\lambda, s = \text{M}} \sim \mathcal{N}(0, 5)$ is the log incidence rate ratio for men compared to women, $\rho_{x}^{\text{15-49}}$ is the HIV prevalence among adults 15-49 calculated by aggregating age-specific HIV prevalences
-\begin{equation}
+$$
 \rho_{x}^{\text{15-49}} = \frac{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{45} N_{x, s, a} \cdot \rho_{x, s, a}}{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{45} N_{x, s, a}}, \label{eq:rho-agg}
-\end{equation}
+$$
 $\alpha_{x}^{\text{15-49}}$ is the ART coverage among adults 15-49 calculated by aggregating age-specific ART coverages
-\begin{equation}
+$$
 \alpha_{x}^{\text{15-49}} = \frac{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{45} N_{x, s, a} \cdot \rho_{x, s, a} \cdot \alpha_{x, s, a}}{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{45} N_{x, s, a} \cdot \rho_{x, s, a}}, \label{eq:alpha-agg}
-\end{equation}
+$$
 $\omega$ is the average reduction in HIV transmission rate per 1% increase in population ART coverage and is fixed at $\omega = 0.7$ based on inputs to the Estimation and Projection Package (EPP) model [@eaton2019estimation], $u_x^\lambda \sim \mathcal{N}(0, \sigma^\lambda)$ with $\sigma^\lambda \sim \mathcal{N}^+(0, 1)$ are IID spatial random effects, and $\eta^\lambda_{R_x, s, a}$ specify log incidence rate ratios by sex and age group calculated from Spectrum model output.
 Note that the HIV incidence rate process (Equation \ref{eq:hiv-inc}) depends on those of the HIV prevalence (Section \ref{sec:hiv-prev}) and the ART coverage (Section \ref{sec:art-cov}) via the adult aggregate indicators (Equations \ref{eq:rho-agg} and \ref{eq:alpha-agg}) violating the conditions required being within the latent Gaussian model (LGM) class as defined by @rue2009approximate.
 
@@ -140,12 +140,12 @@ logistic <- function(x) 1 / (1 + exp(-x))
 Let $\gamma_{x, x'} \in [0, 1]$ be the probability that a person on ART residing in district $x$ recieves ART in district $x'$.
 We assume that $\gamma_{x, x'} = 0$ for $x \notin \{x, \text{ne}(x)\}$ such that individuals seek treatment only in their residing district or its neighbours $\text{ne}(x) = \{x': x' \sim x\}$, where $\sim$ is an adjacency relation, and $\sum_{x' \in \{x, \text{ne}(x)\}} \gamma_{x, x'} = 1$.
 To model $\gamma_{x, x'}$ for $x \sim x'$ we use a multinomial logistic regression model, based on the log-odds ratios
-\begin{equation*}
+\begin{equation}
 \tilde \gamma_{x, x'} = \log \left( \frac{\gamma_{x, x'}}{1 - \gamma_{x, x'}} \right) = \tilde \gamma_0 + u_x^{\tilde \gamma}, \label{eq:log-or}
-\end{equation*}
+\end{equation}
 where $\tilde \gamma_0 = -4$ is a fixed intercept, and $u_x^{\tilde \gamma} \sim \mathcal{N}(0, \sigma_X^{\tilde \gamma})$ are district random effects with $\sigma_X^{\tilde \gamma} \sim \mathcal{N}^+(0, 2.5)$.
 Note that Equation \ref{eq:log-or} does not depend on $x'$, such that $\gamma_{x, x'}$ is only a function of $x$.
-Choice of $\tilde \gamma_0 = -4$ implies a prior on $\gamma_{x, x'}$ of 1.8%, such that $(100 - 1.8 \times \text{ne}(x))\%$ of ART clients in district $x$ obtain treatment in their home district, a-priori.
+Choice of $\tilde \gamma_0 = -4$ implies a prior mean on $\gamma_{x, x'}$ of 1.8%, such that $(100 - 1.8 \times \text{ne}(x))\%$ of ART clients in district $x$ obtain treatment in their home district, a-priori.
 We fix $\tilde \gamma_{x, x} = 0$ and recover the multinomial probabilities using the softmax
 $$
 \gamma_{x, x'} = \frac{\exp(\tilde \gamma_{x, x'})}{\sum_{x^\star \in \{x, \text{ne}(x)\}} \exp(\tilde \gamma_{x, x^\star})}.
