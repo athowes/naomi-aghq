@@ -31,7 +31,7 @@ $$
 # Numerical integration
 
 * If you want to integrate something deterministically, you could use numerical integration, otherwise called \textcolor{hilit}{quadrature}
-* Select nodes $\vartheta \in \mathcal{Q} \subset \varTheta$ and weights $\omega: \varTheta \to \mathbb{R}$ then compute the sum
+* Choose nodes $\vartheta \in \mathcal{Q} \subset \varTheta$ and weights $\omega: \varTheta \to \mathbb{R}$ and compute the weighted sum
 $$
 \tilde p(y) = \sum_{\vartheta \in \mathcal{Q}} p(y, \vartheta) \omega(\vartheta)
 $$
@@ -40,19 +40,20 @@ $$
 
 * Remember how integration is taught? (Rienmann sums)
 * Try computing $\int_0^\pi \sin(x) \text{d}x = 2$ using trapezoid rule
+* Nodes evenly spaced through $[0, \pi]$
 
 ```{r}
 trapezoid_rule <- function(x, spacing) {
-  w <- rep(spacing, length(x))
-  w[1] <- w[1] / 2
-  w[length(x)] <- w[length(x)] / 2
-  sum(w * x)
+  w <- rep(spacing, length(x)) # Weights given by space between nodes
+  w[1] <- w[1] / 2 # Apart from the first which is halved
+  w[length(x)] <- w[length(x)] / 2 # And the last, also halved
+  sum(w * x) # Compute the weighted sum
 }
 ```
 
 #
 
-```{r message=FALSE, echo=FALSE}
+```{r message=FALSE, echo=FALSE,  fig.cap="With 10 nodes it's 0.02 off."}
 library(tidyverse)
 cbpalette <- c("#56B4E9","#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
 
@@ -75,7 +76,7 @@ trapezoid_plot <- function(N) {
       inherit.aes = FALSE, fill = cbpalette[2]) +
     theme_minimal() +
     labs(
-      subtitle = paste0("Number of quadrature points: ", N, "\nTrapezoid rule estimate: ", round(int, 3), "\nTruth: 2"),
+      subtitle = paste0("Number of nodes: ", N, "\nTrapezoid rule estimate: ", round(int, 3), "\nTruth: 2"),
       x = "x", y = "sin(x)"
     )
 }
@@ -85,24 +86,25 @@ trapezoid_plot(N = 10)
 
 #
 
-```{r message=FALSE, echo=FALSE}
+```{r message=FALSE, echo=FALSE, fig.cap="With 30 nodes it's 0.002 off."}
 trapezoid_plot(N = 30)
 ```
 
 #
 
-```{r message=FALSE, echo=FALSE}
+```{r message=FALSE, echo=FALSE, fig.cap="With 100 nodes it's pretty much correct."}
 trapezoid_plot(N = 100)
 ```
 
 # Monte Carlo as an example of numerical integration
 
 * Suppose we can sample $\vartheta_i \sim p(y, \vartheta)$ for $i = 1, \ldots, N$
-* If we set $\omega(\vartheta_i) = 1/N$ for all $i$ then we get a **Monte Carlo** (MC) estimate
+* The Monte Carlo (MC) estimate is
 $$
 \tilde p(y) = \frac{1}{N} \sum_i p(y, \vartheta_i)
 $$
-* For complicated models^[Or not even that complicated] it's not possible to sample directly from $p(y, \vartheta)$, but we can usually sample from a Markov chain which if you squint a bit is good enough (MCMC)
+which is quadrature with nodes given by the samples and $\omega(\vartheta_i) = 1/N$ for all $i$
+* For complicated models^[Or not even that complicated] it's not possible to sample directly from $p(y, \vartheta)$, but we can usually sample from a Markov chain (MCMC)
 
 # Monte Carlo is fundamentally unsound
 
@@ -127,10 +129,17 @@ For some half-baked thoughts, see \texttt{athowes.github.io/fourth-gen/paper.pdf
 \end{tcolorbox}
 \end{center}
 
+# Curse of dimensionality
+
+* Quadrature doesn't work very well when $\text{dim}(\vartheta)$ gets even moderately sized, because there is an exponential increase in the volume you need to cover
+* If you're using $k$ points per dimension it's $k^{\text{dim}(\vartheta)}$ e.g. $k = 5$ then
+  
+```{r}
+5^{1:8}
+```
+
 # Latent variables and hyperparameters
 
-* Quadrature doesn't work very well when $\text{dim}(\vartheta)$ gets even moderately sized
-  * If you're using $k$ points per dimension it's $k^{\text{dim}(\vartheta)}$
 * Previously all of the parameters were under the symbol $\vartheta$ -- what if we split them up as being $\vartheta = (x, \theta)$
 * The key part about this is that $\dim(x) = N$ is big and $\dim(\theta) = m$ is small
 
@@ -140,16 +149,14 @@ For some half-baked thoughts, see \texttt{athowes.github.io/fourth-gen/paper.pdf
 
 # Spatio-temporal statistics
 
-* There is nothing inherently special about spatio-temporal statistics, but we do often end up in similar situations because of the structures of the problems we tackle
+* There is nothing inherently special about spatio-temporal statistics, but we do often end up tackling problems with similar structures
 * We have observations indexed by space $s \in \mathcal{S}$ and time $t \in \mathcal{T}$
-* Usually we associate parameters to spatio-temporal locations as well as observations
-* This ends up with us having something like $\{x_{s, t}\}$
+* Usually we associate parameters to spatio-temporal locations, giving us something like $\{x_{s, t}\}_{s \in \mathcal{S}, t \in \mathcal{T}}$
 
 # What's important about this?
 
-1. There might be \textcolor{hilit}{a lot} of spatio-temporal locations, so $\text{dim}(x)$ might be pretty big! If you have 100 districts and 10 years, that's already $100 \times 10 = 1000$ parameters
-2. Perhaps we're willing to make quite strong assumptions about how things vary over space-time^[Are there any slides about spatial statistics that don't describe Tobler's first law of geography?]
-* Not IID anymore!
+1. There might be \textcolor{hilit}{a lot} of spatio-temporal locations, so $N$ might be pretty big! If you have 100 districts and 10 years, that's already $100 \times 10 = 1000$ parameters
+2. Perhaps we're willing to make quite strong assumptions about how things vary over space-time^[Are there any slides about spatial statistics that don't describe Tobler's first law of geography?]: not IID anymore!
 
 <!-- As you get more data, the posterior approaches a Gaussian -->
 
@@ -273,10 +280,10 @@ $$
 # Marginal Laplace approximation
 
 * Hey wait a second, is it reasonable to just assume $p(\vartheta \, | \, y)$ is Gaussian?
-* No, not in general. But...
+* There is the Bernstein–von Mises theorem, but we can't rely on that in general. However...
 
 1. We just described a class of models (LGMs) where some subset of the parameters ($x$) have a Gaussian prior $\implies$ it's a lot more reasonable to think that they would have a marginal posterior which is close to Gaussian
-2. We just talked about how big $x$ is in comparison to $\theta$! $\implies$ most of the work in our integral can be done using a **marginal Laplace** approximation to get rid of $x$
+2. We just talked about how big $x$ is in comparison to $\theta$! $\implies$ most of the work in our integral can be done using a \textcolor{hilit}{marginal Laplace} approximation to get rid of $x$
 
 # Generalist versus specialist methods
 
@@ -310,7 +317,7 @@ $$
 # Integrated nested Laplace approximation
 
 * Now we can compute $p_{\texttt{LA}}(\theta, y)$ but what we really want is still $p(y)$
-* But hopefully^[Really: hopefully] the dimension of $\theta$ is small enough that we can now tackle this with quadrature
+* But hopefully^[Really: hopefully] $m$ is small enough that we can now tackle this with quadrature
 * So pick some nodes $\mathcal{Q}$ and a weighting function $\omega$ and away we go
 $$
 p(y) \approx \sum_{\theta \in \mathcal{Q}} p_{\texttt{LA}}(\theta, y) \omega(\theta)
@@ -362,9 +369,9 @@ knitr::include_graphics("naomi_user.png")
 
 # Template Model Builder refresher
 
-* `TMB` [@kristensen2015tmb] is an R package which implements the Laplace approximation for latent variable models
-* To use `TMB`, you write your objective function $- \log p(\y \, | \, \x, \btheta) p(\x \, | \, \btheta) p(\btheta)$ in `TMB`'s C++ syntax
-* For example, for the model $\y \sim \mathcal{N}(\mu, 1)$ with $p(\mu) \propto 1$ then the `TMB` user template looks as follows
+* To use `TMB` [@kristensen2015tmb], you write your objective function $- \log p(y, x, \theta)$ in the C++ syntax
+* For example, for the model $\y \sim \mathcal{N}(\mu, 1)$ with $p(\mu) \propto 1$ then the `TMB` user template looks like (next slide)
+* `TMB` implements the Laplace approximation! Set `random = "x"`
 
 # 
 
@@ -387,16 +394,18 @@ Type objective_function<Type>::operator()() {
 # Why do we use `TMB`
 
 * It runs quickly, and is flexible enough to write the model
-* Another answer: we don't have any better options
-  * Markov chain Monte Carlo (MCMC) is accurate (eventually) but takes too long
-  * Though Naomi is a spatial model with a large Gaussian latent field, it isn't technically a latent Gaussian model, and isn't compatible with the `R-INLA` implementation of INLA
+* Another answer is that we don't have any better options
+
+| Option | Would it work? |
+|--------|--------------------|
+| MCMC | No! It is accurate (eventually) but takes too long |
+| INLA via `R-INLA`        | No! Though Naomi is a spatial model with a large Gaussian latent field, it isn't technically a LGM, and isn't compatible with `R-INLA` |
 
 # Idea
 
-* Implement an algorithm similar to INLA which
-1. is compatible with Naomi
-2. uses `TMB` to perform Laplace approximation 
-* Does this improves the quality of the inferences we get?
+* Implement an algorithm inspired by INLA which
+1. is compatible with Naomi and its intricacies
+2. uses `TMB` -- and thereby automatic differentiation -- to perform the Laplace approximation
 
 # Not a new idea!
 
@@ -406,9 +415,9 @@ Type objective_function<Type>::operator()() {
 
 # Meanwhile in Canada...
 
-* Alex Stringer in Toronto $\to$ Waterloo had been thinking along similar lines, and made a lot of progress
+* Alex Stringer in Toronto $\to$ Waterloo had independently been thinking along similar lines, and made a lot of progress
 
-1. Implementing an algorithm similar to INLA, using a specific quadrature rule $\mathcal{Q}$ called adaptive Gauss-Hermite quadrature (AGHQ) which he and others argue should be the default for this problem
+1. Implementing an algorithm similar to INLA, using a specific quadrature rule $\mathcal{Q}$ called adaptive Gauss-Hermite quadrature (AGHQ) which arguably should be the default for this problem
 2. Defining a class of models called extended latent Gaussian models (ELGMs) which Naomi fits into
 
 * I will explain what both of these acronyms (AGHQ^[Amusingly similar to AGYW: adolescent girls and young women] and ELGM) mean!
@@ -425,8 +434,15 @@ $$
 # Adaptation
 
 * The nodes and weights we use should probably depend on the integrand
-  * Especially when the integrand is also a function of $y$ as in $p(y, \vartheta)$
-* Let $z \in \mathcal{Q}(m, k)$ then $\theta(z) = \hat \theta + Lz$ where $L$ is the lower Cholesky of $H(\hat \theta)$
+* Especially when the integrand is also a function of $y$, which we don't know in advance, as in $p(y, \vartheta)$
+  * i.e. how could any fixed quadrature rule be appropriate for all possible $y$?
+* Let $z \in \mathcal{Q}(m, k)$ then
+$$
+\theta(z) = \hat \theta + Lz
+$$
+where $L$ is the lower Cholesky of $H = LL^\top$
+* Other matrix decompositions can also be used e.g. spectral $H = E \Lambda E^\top = (E\Lambda^{1/2})(E\Lambda^{1/2})$
+  * Arguably this is preferable: symmetric with respect to the principle axis [@jackel2005note]
 
 # 
 
@@ -483,9 +499,19 @@ add_points(plot0, gg2) +
 
 #
 
-```{r, echo=FALSE, message=FALSE, fig.cap="Rotate by the lower Cholesky."}
+```{r, echo=FALSE, message=FALSE, fig.cap="First option: rotate by the lower Cholesky $L$."}
 gg3 <- gg
 mvQuad::rescale(gg3, m = mu, C = cov, dec.type = 2)
+
+add_points(plot0, gg3) +
+  labs(size = "Weight", caption = "")
+```
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Second option: rotate using the eigendecomposition $E \\Lambda^{1/2}$."}
+gg3 <- gg
+mvQuad::rescale(gg3, m = mu, C = cov, dec.type = 1)
 
 add_points(plot0, gg3) +
   labs(size = "Weight", caption = "")
