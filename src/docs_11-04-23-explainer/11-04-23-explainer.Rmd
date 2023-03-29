@@ -520,35 +520,40 @@ add_points(plot0, gg3) +
 
 # Extended latent Gaussian models
 
-* To explain what an extended latent Gaussian model (ELGM) is, we need a little more detail on LGMs
-* In an LGM the conditional mean depends on exactly one structured additive predictor, specifically
+* Before defining extended latent Gaussian model (ELGM), first more detail on LGMs:
+* Conditional mean depends on exactly one structured additive predictor
 \begin{align*}
 y_i &\sim p(y_i \, | \, \eta_i, \theta_1), \quad i \in [n]\\
 \mu_i &= \mathbb{E}(y_i \, | \, \eta_i) = g(\eta_i), \\
 \eta_i &= \beta_0 + \sum_{l = 1}^{p} \beta_j z_{ji} + \sum_{k = 1}^{r} f_k(u_{ki}),
 \end{align*}
+where $\beta_0$, $\{\beta_j\}$ and $\{f_k(\cdot)\}$ have Gaussian priors (and can be collected into the latent field $x$)
 
 # Extended latent Gaussian models
 
 * ELGM remove this requirement such that
 $$
-\mu_i = g(\eta_{\mathcal{J}_i})
+\mu_i = g_i(\eta_{\mathcal{J}_i})
 $$
-where $g_i: \mathbb{R}^{|\mathcal{J}_i|} \to \mathbb{R}$ and $\mathcal{J_i}$ is some set of indices
-* This allow for a higher degree of non-linearity in the model
+where $g_i: \mathbb{R}^{|\mathcal{J}_i|} \to \mathbb{R}$ and $\mathcal{J}_i$ is some set of indices
+* Let $\dim(\eta) = N_n$ with $\mathcal{J}_i \subseteq \{1, \ldots, N_n\}$
+  * $N_n < n$: more data points than structured additive predictors
+  * $N_n = n$: as many data points as structured additive predictors (LGM case)
+  * $N_n > n$: fewer data points than structured additive predictors
+* The $g_i$ allow for a higher degree of non-linearity in the model
 
 # Why is Naomi an ELGM?
 
-| | Things I thought made Naomi an ELGM | Does it actually? |
+| | Things I thought made Naomi an ELGM | Does it? |
 |-|---------------|--------------------|
 |1| ANC offset from household survey | ? |
 |2| Incidence depends on adult prevalence and coverage | ? |
 |3| ART coverage and recent infection are products | ? |
 |4| ART attendance uses a multinomial | ? |
 |5| Aggregation of finer processes | ? |
+|6| Multiple link functions | ? |
 
-* I will explain each of these, and whether or not they make Naomi an ELGM, in more detail in slides to follow
-  * The notation may not have been introduced properly, but hopefully the gist will still make sense
+* I will explain each of these^[The notation may not have been introduced properly, but hopefully the gist will still make sense], and whether or not they make Naomi an ELGM, in more detail in slides to follow
 
 # ANC offset from household survey
 
@@ -557,9 +562,46 @@ where $g_i: \mathbb{R}^{|\mathcal{J}_i|} \to \mathbb{R}$ and $\mathcal{J_i}$ is 
 \text{logit}(\rho_{x, a}^{\text{ANC}}) &= \text{logit}(\rho_{x, F, a}) + \beta^{\rho^{\text{ANC}}} + u_x^{\rho^{\text{ANC}}} + \eta_{R_x, a}^{\rho^{\text{ANC}}}, \\
 \text{logit}(\alpha_{x, a}^{\text{ANC}}) &= \text{logit}(\alpha_{x, F, a}) + \beta^{\alpha^{\text{ANC}}} + u_x^{\alpha^{\text{ANC}}} + \eta_{R_x, a}^{\alpha^{\text{ANC}}}. 
 \end{align*}
-* Here $\text{logit}(\rho_{x, F, a})$ and $\text{logit}(\alpha_{x, F, a})$ *are* Gaussian
-* `R-INLA` does have the `copy` feature $\eta^\star = A \eta$ but $A$ must be $n \times n$
+* Here $\text{logit}(\rho_{x, F, a})$ and $\text{logit}(\alpha_{x, F, a})$ *are* Gaussian, but we have dependency of $\mu_i$ on two $\eta_i$
 * Conclusion: \textcolor{hilit}{does} make Naomi an ELGM
+
+# ANC offset from household survey
+
+* Note that `R-INLA` does have the `copy` feature $\eta^\star = A \eta$ where $A$ is $n \times n$^[I've also seen it claimed that it could be $m \times n$ where $m \neq n$, so I'm unsure which is right]
+$$
+\begin{pmatrix}
+\eta^\star \\
+\eta^\star
+\end{pmatrix}
+=
+\begin{pmatrix}
+1 & 1 \\
+0 & 1
+\end{pmatrix}
+\begin{pmatrix}
+\eta_1 \\
+\eta_2
+\end{pmatrix}
+=
+\begin{pmatrix}
+\eta_1 + \eta_2 \\
+\eta_2
+\end{pmatrix}
+$$
+* If it's possible to have effects only apply to a subset of indices (?) then perhaps it could work
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+
+Warning!
+
+\begin{enumerate}
+    \item Is an LGM $\nRightarrow$ can be fit with \texttt{R-INLA}
+    \item Can be fit with \texttt{R-INLA} $\nRightarrow$ is an LGM
+\end{enumerate}
+
+\end{tcolorbox}
+\end{center}
 
 # Incidence depends on adult prevalence and coverage
 
@@ -589,6 +631,8 @@ Warning! These equations as writen do not appear in Naomi: instead there are agg
 
 # ART attendance uses the multinomial
 
+
+
 # Aggregation of finer processes
 
 * There are many instances of models being placed on aggregate quantities
@@ -602,6 +646,28 @@ y^{\hat \theta}_{\mathcal{I}} &\sim \text{xBin}(m^{\hat \theta}_{\mathcal{I}}, \
 \begin{center}
 \begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
 I've previously worked on this "disaggregation regression" situation with respect to space, see \texttt{athowes/areal-comparison}
+\end{tcolorbox}
+\end{center}
+
+# Multiple link functions
+
+* The Naomi model uses both $\text{logit}$ and $\log$ (inverse) link functions
+* For LGMs there is only one $g$, whereas ELGMs allow $g_i$
+* Conclusion: \textcolor{hilit}{does} make Naomi an ELGM
+* In `R-INLA` it is possible for `y` to be a matrix where each column contains observations with shared likelihood family (and hyperparameters) and `family = c("family1", "family2", ...)`
+
+# Statistical software
+
+|           | Interface `y ~ 1 + x`  | General |
+|-----------|------------|---------|
+| Example   | `brms`     | Stan    |
+| Users     | Scientists | Statisticians |
+| Benefits  | Ease of use, sensible defaults, trust | Flexibility, development |
+| Drawbacks | Being fenced in | Barrier to entry, failing silently |
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+\texttt{athowes/multi-agyw} case-study: attempting to define $\text{AR}(1) \times \text{Besag} \times \text{IID}$ random effects in \texttt{R-INLA}
 \end{tcolorbox}
 \end{center}
 
@@ -659,35 +725,31 @@ Our primary interest is in the model outputs: do any of the inference methods do
 \end{tcolorbox}
 \end{center}
 
-<!-- # Moments -->
+# Moments
 
-<!-- * Are the means and standard deviations the same? More generally the $t$th moment -->
-<!-- $$ -->
-<!-- \hat \mathbb{E}(\theta^t) = \frac{1}{n} \sum_{i = 1}^n \theta_i^t -->
-<!-- $$ -->
-<!-- * Won't do a great job if you're only looking at the first few moments $t = 1, 2$ -->
+* Are the means and standard deviations the same? More generally the $t$th moment can be estimated by
+$$
+\hat{\mathbb{E}}(\theta^t) = \frac{1}{n} \sum_{i = 1}^n \theta_i^t
+$$
+* Not great if you're only looking at the first few moments $t = 1, 2$
 
-<!-- # Kolmogorov-Smirov test -->
+# Kolmogorov-Smirov test
 
-<!-- * Compare $F_\bullet(\vartheta)$ to $F_\texttt{NUTS}(\vartheta)$ -->
-<!-- $$ -->
-<!-- D_\bullet = \sup_\vartheta | F_\texttt{NUTS}(\vartheta) - F_\bullet(\vartheta)|. -->
-<!-- $$ -->
-<!-- * A value $D_\bullet$ means there is at most a $100 \cdot D_\bullet$% difference between posterior densities -->
+* Compare $F_\bullet(\vartheta)$ to $F_{\texttt{NUTS}}(\vartheta)$
+$$
+D_\bullet = \sup_\vartheta | F_{\texttt{NUTS}}(\vartheta) - F_\bullet(\vartheta)|.
+$$
+* A value $D_\bullet$ means there is at most a $(100 \cdot D_\bullet)$% difference between posterior densities
 
-<!-- # -->
+#
 
-<!-- ```{r, echo=FALSE, message=FALSE, fig.cap="KS test example."} -->
-<!-- plot(1:10) -->
-<!-- ``` -->
-
-# Maximum mean discrepancy
-
-# Pareto smoothed importance sampling
+```{r, echo=FALSE, message=FALSE, fig.cap="KS test example."}
+plot(1:10)
+```
 
 # Thanks for listening!
 
-* Working on a paper "Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model" based on this work, joint with Alex Stringer (Waterloo) and my PhD supervisors Seth Flaxman (Oxford) and Jeff Eaton (Imperial)
+* Working on a paper "Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model" based on this work,     * Joint with Alex Stringer (Waterloo), Seth Flaxman (Oxford), Jeff Eaton (Imperial)
 * Let me know if you'd be up for being an early reader!
 * Code for this project is at `athowes.github.io/elgm-inf`
 
