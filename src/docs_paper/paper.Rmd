@@ -62,6 +62,16 @@ output:
       in_header: preamble.tex
 ---
 
+<!-- Remaining things to add, and or desiderata: -->
+
+<!-- * [ ] Description of the ART attendance component of the model -->
+<!-- * [ ] Tying together Naomi model within LGM / ELGM mathematical notation -->
+<!-- * [ ] Create DAG representing Naomi model -->
+<!-- * [ ] Rewrite section on why Naomi is an ELGM, drawing from slides -->
+<!-- * [ ] Write section on Laplace approximation -->
+<!-- * [ ] Write section on AGHQ, tying together connection to Laplace for k = 1 -->
+<!-- * [ ] Move algorithm to algorithm environment -->
+
 ```{r echo = FALSE}
 options(scipen = 100)
 
@@ -271,7 +281,7 @@ We consider approximations to the posterior marginals of each latent random vari
   \tilde p(x_i \, | \, \y) \approx p(x_i \, | \, \y) &= \int p(x_i, \btheta \, | \, \y) \text{d} \btheta = \int p(x_i \, | \, \btheta, \y) p(\btheta \, | \, \y) \text{d}\btheta, \quad i \in [N], \label{eq:inla1} \\
   \tilde p(\theta_j \, | \, \y) \approx p(\theta_j \, | \, \y) &= \int p(\btheta \, | \, \y) \text{d}\btheta_{-j} \quad j \in [m]. \label{eq:inla2}
 \end{align}
-Given the negative unnormalised log posterior $- \log p(\y, \x, \btheta)$, we obtain the above posterior marginal approximations $\{ \tilde p(x_i \, | \, \y) \}_{i = 1}^n$ and $\tilde p(\theta_j \, | \, \y)_{j = 1}^m$ via nested applications of the Laplace approximation and AGHQ, described below.
+Given the negative unnormalised log posterior $- \log p(\y, \x, \btheta)$, we obtain the above posterior marginal approximations $\{ \tilde p(x_i \, | \, \y) \}_{i = 1}^n$ and $\{\tilde p(\theta_j \, | \, \y)\}_{j = 1}^m$ via nested applications of the Laplace approximation and AGHQ.
 
 ## Laplace approximation
 
@@ -285,7 +295,7 @@ where $\z \in \mathcal{Q} \subset \mathcal{Z}$ are a set of nodes and $\omega: \
 In Gauss-Hermite quadrature [@davis1975methods] the nodes are selected as zeros of the Hermite polynomials.
 These nodes and weights can be shifted and scaled to suit the particular integrand using adaptive Gauss-Hermite quadrature [@naylor1982applications; @tierney1986accurate].
 
-```{r aghq, fig.cap="The Gauss-Hermite quadrature nodes $\\z \\in \\mathcal{Q}(2, 3)$ for this two dimensional integral with three nodes per dimension are adapted based on the mean and covariance matrix of the target via $\\btheta(\\z) = \\hat \\btheta + \\mathbf{L} \\z$.."}
+```{r aghq, fig.cap="The Gauss-Hermite quadrature nodes $\\z \\in \\mathcal{Q}(2, 3)$ for this two dimensional integral with three nodes per dimension are adapted based on the mean and covariance matrix of the target via $\\btheta(\\z) = \\hat \\btheta + \\mathbf{L} \\z$."}
 mu <- c(1, 1.5)
 cov <- matrix(c(2, 1, 1, 1), ncol = 2)
 
