@@ -211,6 +211,7 @@ b <- 1
 
 prior <- ggplot(data = data.frame(x = c(0, 10)), aes(x)) +
   stat_function(fun = dgamma, n = 500, args = list(shape = a, rate = b), col = cbpalette[1]) +
+  annotate("text", x = 6, y = 0.15, label = "Gamma(3, 1)", col = cbpalette[1], size = 5) +
   labs(x = "", y = "") +
   theme_minimal()
   
@@ -225,7 +226,8 @@ y <- rpois(3, lambda = 2)
 
 posterior <- prior +
   geom_point(data = data.frame(x = y, y = 0), aes(x = x, y = y), inherit.aes = FALSE, alpha = 0.7, size = 2) +
-  stat_function(data = data.frame(x = c(0, 10)), aes(x), fun = dgamma, n = 500, args = list(shape = a + sum(y), rate = b + length(y)), col = cbpalette[2])
+  stat_function(data = data.frame(x = c(0, 10)), aes(x), fun = dgamma, n = 500, args = list(shape = a + sum(y), rate = b + length(y)), col = cbpalette[2]) +
+  annotate("text", x = 5, y = 0.25, label = "Gamma(9, 4)", col = cbpalette[2], size = 5)
 
 posterior
 ```
@@ -263,8 +265,9 @@ laplace <- posterior +
 
 # Laplace approximation
 
-```{r message=FALSE, echo=FALSE,  fig.cap="The Laplace approximation matches the true posterior near the mode but it's not great in the tails."}
-laplace
+```{r message=FALSE, echo=FALSE,  fig.cap="The Laplace approximation is good near the mode but not in the tails."}
+laplace +
+  annotate("text", x = 5.5, y = 0.35, label = "Laplace approximation", col = cbpalette[3], size = 5)
 ```
 
 # Laplace approximation
@@ -280,7 +283,7 @@ $$
 
 # Marginal Laplace approximation
 
-* Hey wait a second, is it reasonable to just assume $p(\vartheta \, | \, y)$ is Gaussian?
+* Is it reasonable to just assume $p(\vartheta \, | \, y)$ is Gaussian?
 * There is the Bernstein–von Mises theorem, but we can't rely on that in general. However...
 
 1. We just described a class of models (LGMs) where some subset of the parameters ($x$) have a Gaussian prior $\implies$ it's a lot more reasonable to think that they would have a marginal posterior which is close to Gaussian
@@ -317,9 +320,9 @@ $$
 
 # Integrated nested Laplace approximation
 
-* Now we can compute $p_{\texttt{LA}}(\theta, y)$ but what we really want is still $p(y)$
-* But hopefully^[Really: hopefully] $m$ is small enough that we can now tackle this with quadrature
-* So pick some nodes $\mathcal{Q}$ and a weighting function $\omega$ and away we go
+* Now we can compute $p_{\texttt{LA}}(\theta, y)$ -- but what we really want is still $p(y)$ for which we need to integrate out $\theta$
+* Hopefully^[Really: hopefully] $m$ is small enough that we can now tackle this with quadrature
+* Given nodes $\mathcal{Q}$ and a weighting function $\omega$ we can compute
 $$
 p(y) \approx \sum_{\theta \in \mathcal{Q}} p_{\texttt{LA}}(\theta, y) \omega(\theta)
 $$
@@ -490,7 +493,7 @@ add_points(plot0, gg) +
 
 #
 
-```{r, echo=FALSE, message=FALSE, fig.cap="Add the mean."}
+```{r, echo=FALSE, message=FALSE, fig.cap="Add the mean $z + \\hat \\theta$."}
 gg2 <- gg
 mvQuad::rescale(gg2, m = mu, C = diag(c(1, 1)), dec.type = 2)
 
@@ -500,7 +503,7 @@ add_points(plot0, gg2) +
 
 #
 
-```{r, echo=FALSE, message=FALSE, fig.cap="First option: rotate by the lower Cholesky $L$."}
+```{r, echo=FALSE, message=FALSE, fig.cap="First option: rotate by the lower Cholesky $Lz + \\hat \\theta$."}
 gg3 <- gg
 mvQuad::rescale(gg3, m = mu, C = cov, dec.type = 2)
 
@@ -510,7 +513,7 @@ add_points(plot0, gg3) +
 
 #
 
-```{r, echo=FALSE, message=FALSE, fig.cap="Second option: rotate using the eigendecomposition $E \\Lambda^{1/2}$."}
+```{r, echo=FALSE, message=FALSE, fig.cap="Second option: rotate using the eigendecomposition $E \\Lambda^{1/2} z + \\hat \\theta$."}
 gg3 <- gg
 mvQuad::rescale(gg3, m = mu, C = cov, dec.type = 1)
 
@@ -520,8 +523,7 @@ add_points(plot0, gg3) +
 
 # Extended latent Gaussian models
 
-* Before defining extended latent Gaussian model (ELGM), first more detail on LGMs:
-* Conditional mean depends on exactly one structured additive predictor
+* In an LGM, the conditional mean depends on exactly one structured additive predictor
 \begin{align*}
 y_i &\sim p(y_i \, | \, \eta_i, \theta_1), \quad i \in [n]\\
 \mu_i &= \mathbb{E}(y_i \, | \, \eta_i) = g(\eta_i), \\
@@ -570,8 +572,8 @@ where $g_i: \mathbb{R}^{|\mathcal{J}_i|} \to \mathbb{R}$ and $\mathcal{J}_i$ is 
 * Note that `R-INLA` does have the `copy` feature $\eta^\star = A \eta$ where $A$ is $n \times n$^[I've also seen it claimed that it could be $m \times n$ where $m \neq n$, so I'm unsure which is right]
 $$
 \begin{pmatrix}
-\eta^\star \\
-\eta^\star
+\eta_1^\star \\
+\eta_2^\star
 \end{pmatrix}
 =
 \begin{pmatrix}
@@ -588,7 +590,7 @@ $$
 \eta_2
 \end{pmatrix}
 $$
-* If it's possible to have effects only apply to a subset of indices (?) then perhaps it could work
+* By having effects only apply to a subset of indices (`idx = c(NA, 1)` say) perhaps it can work
 
 \begin{center}
 \begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
@@ -749,7 +751,8 @@ plot(1:10)
 
 # Thanks for listening!
 
-* Working on a paper "Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model" based on this work,     * Joint with Alex Stringer (Waterloo), Seth Flaxman (Oxford), Jeff Eaton (Imperial)
+* Working on a paper "Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model" based on this work
+  * Joint with Alex Stringer (Waterloo), Seth Flaxman (Oxford), Jeff Eaton (Imperial)
 * Let me know if you'd be up for being an early reader!
 * Code for this project is at `athowes.github.io/elgm-inf`
 

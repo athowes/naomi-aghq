@@ -4,10 +4,10 @@ artefacts:
   - data:
       description: Slides
       filenames:
-        - 11-04-23-explainer.pdf
+        - 18-04-23-explainer.pdf
 
 resources:
-  - 11-04-23-explainer.Rmd
+  - 18-04-23-explainer.Rmd
   - naomi_hex.png
   - naomi_user.png
   - preamble.tex
