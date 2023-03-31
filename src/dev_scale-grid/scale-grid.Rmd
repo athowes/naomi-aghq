@@ -25,7 +25,7 @@ Start by fitting the model with `TMB`.
 This is quick to do and allows us to get a model we can play with to figure out which hyperparmeters are important.
 In particular we obtain the mode and Hessian at the mode of the Laplace approximation to the hyperparameter marginal posterior.
 
-```{r}
+```{r, class.source = 'fold-hide'}
 compile("naomi_simple.cpp")
 dyn.load(dynlib("naomi_simple"))
 
@@ -52,7 +52,7 @@ sd_out <- sdreport(obj = fit$obj, par.fixed = fit$par, getJointPrecision = TRUE)
 
 The marginal standard deviations for each of the hyperparameters are:
 
-```{r sd, fig.cap="Marginal standard deviations."}
+```{r sd, class.source = 'fold-hide', fig.cap="Marginal standard deviations."}
 sd <- sqrt(diag(sd_out$cov.fixed))
 
 data.frame(par = names(sd), sd = unname(sd)) %>%
@@ -66,7 +66,7 @@ data.frame(par = names(sd), sd = unname(sd)) %>%
 
 Or, more generally, the covariance matrix is:
 
-```{r cov, fig.cap="Covariance matrix."}
+```{r cov, class.source = 'fold-hide', fig.cap="Covariance matrix."}
 C <- sd_out$cov.fixed
 C_df <- reshape2::melt(as.matrix(C))
 
@@ -106,7 +106,7 @@ prod(base_grid$level)
 Let's try fitting this, and see how long it takes.
 First prepare the data:
 
-```{r results="hide", message=FALSE}
+```{r, class.source = 'fold-hide', results="hide", message=FALSE}
 area_merged <- read_sf(system.file("extdata/demo_areas.geojson", package = "naomi"))
 pop_agesex <- read_csv(system.file("extdata/demo_population_agesex.csv", package = "naomi"))
 survey_hiv_indicators <- read_csv(system.file("extdata/demo_survey_hiv_indicators.csv", package = "naomi"))
@@ -183,7 +183,7 @@ Are there any theoretical considerations statements that can be made e.g. scalin
 
 Some hyperparameters have higher standard deviation than others in part due to the different scales that they are on.
 For example if the hyperparameter is on the logit scale then it looks as though it will have a higher standard deviation than another those on the log scale (Figure \@ref(fig:sd)).
-The average standard deviation for hyperparameters starting with `"log_"` is `r data.frame(par = names(sd), sd = unname(sd)) %>% filter(str_detect(par, "^log_")) %>% summarise(mean_sd = mean(sd)) %>% pull(mean_sd)` as compared with `r data.frame(par = names(sd), sd = unname(sd)) %>% filter(str_detect(par, "^logit_")) %>% summarise(mean_sd = mean(sd)) %>% pull(mean_sd)` for those starting with `"logit_"`.
+The average standard deviation for hyperparameters starting with `"log_"` is `r round(data.frame(par = names(sd), sd = unname(sd)) %>% filter(str_detect(par, "^log_")) %>% summarise(mean_sd = mean(sd)) %>% pull(mean_sd), 3)` as compared with `r round(data.frame(par = names(sd), sd = unname(sd)) %>% filter(str_detect(par, "^logit_")) %>% summarise(mean_sd = mean(sd)) %>% pull(mean_sd), 3)` for those starting with `"logit_"`.
 
 It is not clear that this reflects our intuitions regarding which hyperparameters it is important to take greater account of.
 Perhaps ideally we would like to know how much variation in each hyperparameter effects variation in model outputs, and then take that into account in the importance we place on each dimension.
@@ -212,9 +212,9 @@ Such that `C` can be obtained by $E \Lambda E^\top$, or in code `E %*% diag(lamb
 max(C - (E %*% Lambda %*% t(E))) < 10E-12
 ```
 
-The relative contributions of each principle component are:
+The relative contributions of each principle component are given by $\lambda_i / \sum_i \lambda_i$:
 
-```{r scree, fig.cap="Scree plot."}
+```{r scree, class.source = 'fold-hide', fig.cap="Scree plot."}
 tv_df <- data.frame(
   n = 1:length(lambda),
   tv = cumsum(lambda / sum(lambda))
@@ -234,7 +234,7 @@ Or, with 10 dimensions included, that percentage increases to `r round(100 * fil
 
 What do the PC loadings (columns of the matrix `E`) look like?
 
-```{r pc-loadings, fig.cap="PC loadings."}
+```{r pc-loadings, class.source = 'fold-hide', fig.cap="PC loadings."}
 reshape2::melt(as.matrix(E)) %>%
   ggplot(aes(x = Var1, y = Var2, fill = value)) +
   labs(x = "", y = "", fill = "E[i, j]") +
@@ -263,7 +263,7 @@ This grid has $2^5 = 32$ nodes:
 
 How does the reconstruction of the covariance matrix with `r s` components look?
 
-```{r cov-reconstruction, fig.cap="PC loadings."}
+```{r cov-reconstruction, class.source = 'fold-hide', fig.cap="PC loadings."}
 E_s <- E[, 1:s]
 Lambda_s <- Lambda[1:s, 1:s]
 C_s <- E_s %*% Lambda_s %*% t(E_s)
@@ -284,20 +284,7 @@ C_s_plot <- reshape2::melt(as.matrix(C_s)) %>%
 {C_plot + theme(legend.position = "bottom")} + C_s_plot
 ```
 
-Let $a \in \mathbb{R}^d$ and $b \in \mathbb{R}^s$.
-The PCA provides a mapping $f: \mathbb{R}^d \to \mathbb{R}^s$ which compresses each $a$ to a smaller $b$ given by $f(a) = (E_s \Lambda_s^{1/2})^\top a = b$.
-Then $f^{-1}$ is given by $f^{-1}(b) = E_s \Lambda_s^{-1/2} b = a$, using the fact that $E_s^\top = E_s^{-1}$.
-So we need to multiply our nodes by $E_s \Lambda_s^{- 1/2}$ as follows:
-
-```{r}
-a_nodes <- mvQuad::getNodes(gg_s)
-b_nodes <- t(E_s %*% diag(lambda[1:s]^{-0.5}) %*% t(a_nodes))
-
-dim(a_nodes)
-dim(b_nodes)
-```
-
-Put this into a function, which also adjusts according to the mean and reweights the nodes:
+Create a function to do the PCA rescaling, which also adapts according to the mean and reweights the nodes:
 
 ```{r}
 #' @param m Mean vector
@@ -313,7 +300,7 @@ pca_rescale <- function(m, C, s, k) {
   E <- eigenC$vectors
   E_s <- E[, 1:s] 
   gg_s <- mvQuad::createNIGrid(dim = s, type = "GHe", level = k) 
-  nodes_out <- t(E_s %*% diag(lambda[1:s]^{-0.5}, ncol = s) %*% t(mvQuad::getNodes(gg_s)))
+  nodes_out <- t(E_s %*% diag(lambda[1:s]^{0.5}, ncol = s) %*% t(mvQuad::getNodes(gg_s)))
   for(j in 1:d) nodes_out[, j] <- nodes_out[, j] + m[j]
   weights_out <- mvQuad::getWeights(gg_s) * as.numeric(mvQuad::getWeights(mvQuad::createNIGrid(dim = d - s, type = "GHe", level = 1)))
   
@@ -357,11 +344,11 @@ x_2
 $$
 
 ```{r gaussian-2d, class.source = 'fold-hide', fig.cap="Gaussian 2D objective function."}
-mu <- c(1, 1.5)
-cov <- matrix(c(2, 1, 1, 1), ncol = 2)
+m <- c(1, 1.5)
+C <- matrix(c(2, 1, 1, 1), ncol = 2)
 
 obj <- function(theta) {
-  mvtnorm::dmvnorm(theta, mean = mu, sigma = cov, log = TRUE)
+  mvtnorm::dmvnorm(theta, mean = m, sigma = C, log = TRUE)
 }
 
 ff <- list(
@@ -389,15 +376,15 @@ plot
 Define four AGHQ-PCA grids, with `k` running from 1 to 7:
 
 ```{r}
-pca_grid_1 <- pca_rescale(m = mu, C = cov, s = 1, k = 1)
-pca_grid_3 <- pca_rescale(m = mu, C = cov, s = 1, k = 3)
-pca_grid_5 <- pca_rescale(m = mu, C = cov, s = 1, k = 5)
-pca_grid_7 <- pca_rescale(m = mu, C = cov, s = 1, k = 7)
+pca_grid_1 <- pca_rescale(m = m, C = C, s = 1, k = 1)
+pca_grid_3 <- pca_rescale(m = m, C = C, s = 1, k = 3)
+pca_grid_5 <- pca_rescale(m = m, C = C, s = 1, k = 5)
+pca_grid_7 <- pca_rescale(m = m, C = C, s = 1, k = 7)
 ```
 
-For example, the version with 7 points looks as follows:
+For example, the version with 3 points looks as follows:
 
-```{r pca-grid-7, fig.cap="AGHQ-PCA grid for Gaussian with $k = 7$."}
+```{r pca-grid-3, class.source = 'fold-hide', fig.cap="AGHQ-PCA grid for Gaussian with $k = 3$."}
 plot_points <- function(gg) {
   plot +
     geom_point(
@@ -414,16 +401,17 @@ plot_points <- function(gg) {
     theme_minimal()
 }
 
-plot_points(pca_grid_7)
+plot_points(pca_grid_3)
 ```
 
 We can optimise the objective function using the BFGS algorithm to recover the mode and Hessian at the mode.
 Of course, for this example, these are known in advance as we are dealing with a Gaussian, but in general this is how they will be computed.
 
 ```{r}
-opt_bfgs <- aghq::optimize_theta(ff, mu, control = default_control(method = "BFGS"))
+opt_bfgs <- aghq::optimize_theta(ff, m, control = default_control(method = "BFGS"))
 opt_bfgs$mode
 opt_bfgs$hessian
+Matrix::forceSymmetric(solve(opt_bfgs$hessian))
 ```
 
 Now we can perform regular AGHQ with a product grid (again with a range of values for `k`):
@@ -446,18 +434,42 @@ norm_pca_bfgs_7 <- local_normalize_logpost(opt_bfgs, basegrid = pca_grid_7, adap
 norm_pca_bfgs <- list(norm_pca_bfgs_1, norm_pca_bfgs_3, norm_pca_bfgs_5, norm_pca_bfgs_7)
 ```
 
+And a second way of producing the AGHQ-PCA grids directly using `mvQuad`:
+
+```{r, fig.cap="Alternative approach AGHQ-PCA grid for Gaussian with $k = 3$."}
+pca2_grid_1 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = c(1, 1))
+mvQuad::rescale(pca2_grid_1, m = m, C = C, dec.type = 1)
+
+pca2_grid_3 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = c(3, 1))
+mvQuad::rescale(pca2_grid_3, m = m, C = C, dec.type = 1)
+
+pca2_grid_5 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = c(5, 1))
+mvQuad::rescale(pca2_grid_5, m = m, C = C, dec.type = 1)
+
+pca2_grid_7 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = c(7, 1))
+mvQuad::rescale(pca2_grid_7, m = m, C = C, dec.type = 1)
+
+plot_points(pca2_grid_3)
+
+norm_pca2_bfgs_1 <- local_normalize_logpost(opt_bfgs, basegrid = pca2_grid_1, adapt = FALSE)
+norm_pca2_bfgs_3 <- local_normalize_logpost(opt_bfgs, basegrid = pca2_grid_3, adapt = FALSE)
+norm_pca2_bfgs_5 <- local_normalize_logpost(opt_bfgs, basegrid = pca2_grid_5, adapt = FALSE)
+norm_pca2_bfgs_7 <- local_normalize_logpost(opt_bfgs, basegrid = pca2_grid_7, adapt = FALSE)
+norm_pca2_bfgs <- list(norm_pca2_bfgs_1, norm_pca2_bfgs_3, norm_pca2_bfgs_5, norm_pca2_bfgs_7)
+```
+
 The density is already normalised, so it has a normalising constant of 1, and a log normalising constant of $\log(1) = 0$:
 
-```{r fig.cap="Unit test for the Gaussian example"}
+```{r, class.source = 'fold-hide', fig.cap="Unit test for the Gaussian example"}
 truelognormconst <- 0
 
 results <- data.frame(
-  "method" = c("Truth", paste0("aghq, k = ", c(1, 3, 5, 7)), paste0("aghq-pca, k = ", c(1, 3, 5, 7))),
-  "lognormconst" = c(truelognormconst, sapply(norm_bfgs, function(x) x$lognormconst), sapply(norm_pca_bfgs, function(x) x$lognormconst)),
-  "type" = as.factor(c("Truth", rep("AGHQ", 4), rep("AGHQ-PCA", 4)))
+  "method" = c("Truth", paste0("aghq, k = ", c(1, 3, 5, 7)), paste0("aghq-pca, k = ", c(1, 3, 5, 7)), paste0("aghq-pca2, k = ", c(1, 3, 5, 7))),
+  "lognormconst" = c(truelognormconst, sapply(c(norm_bfgs, norm_pca_bfgs, norm_pca2_bfgs), function(x) x$lognormconst)),
+  "type" = c("Truth", rep("AGHQ", 4), rep("AGHQ-PCA", 4), rep("AGHQ-PCA2", 4))
 )
 
-ggplot(results, aes(x = method, y = lognormconst, col = type)) +
+ggplot(results, aes(x = method, y = lognormconst, col = as.factor(type))) +
   geom_point(size = 1) +
   labs(x = "Method", y = "Log normalising constant", col = "") +
   scale_color_manual(values = multi.utils::cbpalette()) +
@@ -529,7 +541,7 @@ opt_bfgs <- aghq::optimize_theta(ff, c(1.5, 1.5), control = default_control(meth
 eigen(C)
 ```
 
-```{r}
+```{r, fig.cap="AGHQ grid for non-Gaussian with $k = 3$."}
 grid_bfgs_1 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 1)
 mvQuad::rescale(grid_bfgs_1, m = m, C = C)
 
@@ -548,17 +560,14 @@ norm_bfgs_5 <- aghq::normalize_logpost(opt_bfgs, 5, 1)
 norm_bfgs_7 <- aghq::normalize_logpost(opt_bfgs, 7, 1)
 norm_bfgs <- list(norm_bfgs_1, norm_bfgs_3, norm_bfgs_5, norm_bfgs_7)
 
+plot_points(grid_bfgs_3)
+```
+
+```{r, fig.cap="AGHQ-PCA grid for non-Gaussian with $k = 3$."}
 pca_grid_bfgs_1 <- pca_rescale(m = m, C = C, s = 1, k = 1)
 pca_grid_bfgs_3 <- pca_rescale(m = m, C = C, s = 1, k = 3)
 pca_grid_bfgs_5 <- pca_rescale(m = m, C = C, s = 1, k = 5)
 pca_grid_bfgs_7 <- pca_rescale(m = m, C = C, s = 1, k = 7)
-
-#' AGHQ
-plot_points(grid_bfgs_7)
-
-#' PCA-AGHQ
-#' Something to fix here: points not being scaled to the right place
-plot_points(pca_grid_bfgs_7)
 
 norm_pca_bfgs_1 <- local_normalize_logpost(opt_bfgs, basegrid = pca_grid_bfgs_1, adapt = FALSE)
 norm_pca_bfgs_3 <- local_normalize_logpost(opt_bfgs, basegrid = pca_grid_bfgs_3, adapt = FALSE)
@@ -566,10 +575,36 @@ norm_pca_bfgs_5 <- local_normalize_logpost(opt_bfgs, basegrid = pca_grid_bfgs_5,
 norm_pca_bfgs_7 <- local_normalize_logpost(opt_bfgs, basegrid = pca_grid_bfgs_7, adapt = FALSE)
 norm_pca_bfgs <- list(norm_pca_bfgs_1, norm_pca_bfgs_3, norm_pca_bfgs_5, norm_pca_bfgs_7)
 
+plot_points(pca_grid_bfgs_3)
+```
+
+```{r, fig.cap="Alternative approach AGHQ-PCA grid for non-Gaussian with $k = 3$."}
+pca2_grid_1 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = c(1, 1))
+mvQuad::rescale(pca2_grid_1, m = m, C = C, dec.type = 1)
+
+pca2_grid_3 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = c(3, 1))
+mvQuad::rescale(pca2_grid_3, m = m, C = C, dec.type = 1)
+
+pca2_grid_5 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = c(5, 1))
+mvQuad::rescale(pca2_grid_5, m = m, C = C, dec.type = 1)
+
+pca2_grid_7 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = c(7, 1))
+mvQuad::rescale(pca2_grid_7, m = m, C = C, dec.type = 1)
+
+norm_pca2_bfgs_1 <- local_normalize_logpost(opt_bfgs, basegrid = pca2_grid_1, adapt = FALSE)
+norm_pca2_bfgs_3 <- local_normalize_logpost(opt_bfgs, basegrid = pca2_grid_3, adapt = FALSE)
+norm_pca2_bfgs_5 <- local_normalize_logpost(opt_bfgs, basegrid = pca2_grid_5, adapt = FALSE)
+norm_pca2_bfgs_7 <- local_normalize_logpost(opt_bfgs, basegrid = pca2_grid_7, adapt = FALSE)
+norm_pca2_bfgs <- list(norm_pca2_bfgs_1, norm_pca2_bfgs_3, norm_pca2_bfgs_5, norm_pca2_bfgs_7)
+
+plot_points(pca2_grid_3)
+```
+
+```{r, class.source = 'fold-hide', fig.cap="Unit test for the non-Gaussian example"}
 results <- data.frame(
-  "method" = c("Truth", paste0("aghq, k = ", c(1, 3, 5, 7)), paste0("aghq-pca, k = ", c(1, 3, 5, 7))),
-  "lognormconst" = c(truelognormconst, sapply(norm_bfgs, function(x) x$lognormconst), sapply(norm_pca_bfgs, function(x) x$lognormconst)),
-  "type" = as.factor(c("Truth", rep("AGHQ", 4), rep("AGHQ-PCA", 4)))
+  "method" = c("Truth", paste0("aghq, k = ", c(1, 3, 5, 7)), paste0("aghq-pca, k = ", c(1, 3, 5, 7)), paste0("aghq-pca2, k = ", c(1, 3, 5, 7))),
+  "lognormconst" = c(truelognormconst, sapply(c(norm_bfgs, norm_pca_bfgs, norm_pca2_bfgs), function(x) x$lognormconst)),
+  "type" = as.factor(c("Truth", rep("AGHQ", 4), rep("AGHQ-PCA", 4), rep("AGHQ-PCA2", 4)))
 )
 
 ggplot(results, aes(x = method, y = lognormconst, col = type)) +
