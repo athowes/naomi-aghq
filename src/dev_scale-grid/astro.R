@@ -1,0 +1,375 @@
+#' Milky way mass estimation
+
+library(tidyverse)
+library(patchwork)
+library(TMB)
+library(tmbstan)
+
+#' Originally Alex used the ipoptr package for this, but it's not possible, or at
+#' least very difficult, to install it anymore (01/04/2023)
+# install.packages("ipoptr")
+# library(ipoptr)
+
+#' We will here use the nloptr package instead
+library(nloptr)
+
+library(aghq)
+library(Matrix)
+
+data(gcdatalist, package = "aghq")
+precompile()
+
+set.seed(4365789)
+
+globalpath <- normalizePath(tempdir(), winslash = "/")
+plotpath <- normalizePath(file.path(globalpath, "astro"), winslash = "/", mustWork = FALSE)
+if (!dir.exists(plotpath)) dir.create(plotpath)
+
+#' TMB
+#' Get the template from the aghq package, the compile and load it
+file.copy(normalizePath(system.file("extsrc/01_astro.cpp", package = "aghq"), winslash = "/"), globalpath)
+compile(normalizePath(file.path(globalpath, "01_astro.cpp"), winslash = "/"))
+dyn.load(normalizePath(dynlib(file.path(globalpath, "01_astro")), winslash = "/"))
+
+#' Parameter transformations
+parambounds <- list(
+  Psi0 = c(1, 200),
+  gamma = c(0.3, 0.7),
+  alpha = c(3.0, 3.7),
+  beta = c(-0.5, 1)
+)
+
+get_Psi0 <- function(theta) {
+  # theta = -log( (Psi0 - 1) / (200 - 1) )
+  (parambounds$Psi0[2] - parambounds$Psi0[1]) * exp(-exp(theta)) + parambounds$Psi0[1]
+}
+
+get_theta1 <- function(Psi0) {
+  log(-log((Psi0 - parambounds$Psi0[1]) / (parambounds$Psi0[2] - parambounds$Psi0[1])))
+}
+
+get_gamma <- function(theta) {
+  # theta = -log( (gamma - 0.3) / (0.7 - 0.3) )
+  (parambounds$gamma[2] - parambounds$gamma[1]) * exp(-exp(theta)) + parambounds$gamma[1]
+}
+
+get_theta2 <- function(gamma) {
+  log(-log((gamma - parambounds$gamma[1]) / (parambounds$gamma[2] - parambounds$gamma[1])))
+}
+
+get_alpha <- function(theta) {
+  # theta = log(alpha - 3)
+  exp(theta) + parambounds$alpha[1]
+}
+
+get_theta3 <- function(alpha) {
+  log(alpha - parambounds$alpha[1])
+}
+
+get_beta <- function(theta) {
+  # theta = -log( (beta - (-0.5)) / (1 - (-0.5)) )
+  (parambounds$beta[2] - parambounds$beta[1]) * exp(-exp(theta)) + parambounds$beta[1]
+}
+
+get_theta4 <- function(beta) {
+  log(-log((beta - parambounds$beta[1]) / (parambounds$beta[2] - parambounds$beta[1])))
+}
+
+#' Optimisation using IPOPT replaced by optimisation using nloptr
+
+nloptr_objective <- function(theta) ff$fn(theta)
+nloptr_objective_gradient <- function(theta) ff$gr(theta)
+
+# Box constraints, to improve stability of optimization
+lowerbounds <- c(
+  get_theta1(parambounds$Psi0[2] - 0.001),
+  get_theta2(parambounds$gamma[2] - 0.001),
+  get_theta3(parambounds$alpha[1] + 0.001),
+  get_theta4(parambounds$beta[2] - 0.001)
+)
+
+upperbounds <- c(
+  get_theta1(parambounds$Psi0[1] + 1),
+  get_theta2(parambounds$gamma[1] + 0.01),
+  get_theta3(parambounds$alpha[2] - 0.01),
+  get_theta4(parambounds$beta[1] + 0.01)
+)
+
+# Start optimisation at the midpoint
+thetastart <- (upperbounds + lowerbounds) / 2
+thetastart_list <- list(theta1 = thetastart[1], theta2 = thetastart[2], theta3 = thetastart[3], theta4 = thetastart[4])
+
+data.frame(
+  "param" = paste0("theta", 1:4),
+  lowerbound = lowerbounds,
+  upperbound = upperbounds,
+  thetastart = thetastart
+) %>%
+  ggplot(aes(ymin = lowerbound, y = thetastart, ymax = upperbound, x = param)) +
+    geom_pointrange() +
+    coord_flip() +
+    labs(x = "", y = "") +
+    theme_minimal()
+
+# Nonlinear constraints, specified as a function
+nloptr_nonlinear_constraints <- function(theta) -1 * Es$fn(theta)
+
+nloptr_nonlinear_constraints_jacobian <- function(theta) {
+  J <- -1 * Es$gr(theta)
+  as.matrix(J)
+}
+
+nonlinear_lowerbound <- rep(0, nrow(gcdata) + 2)
+nonlinear_upperbound <- rep(Inf, nrow(gcdata) + 2)
+
+#' Objective function and its derivatives
+ff <- MakeADFun(
+  data = gcdatalist,
+  parameters = thetastart_list,
+  DLL = "01_astro",
+  ADreport = FALSE,
+  silent = TRUE
+)
+
+#' Nonlinear constraints and their Jacobian
+Es <- MakeADFun(
+  data = gcdatalist,
+  parameters = thetastart_list,
+  DLL = "01_astro",
+  ADreport = TRUE,
+  silent = TRUE
+)
+
+#' Check starting value satisfies constraints
+#' Note that constraints in nloptr are of the form g(x) <= 0
+stopifnot(all(nloptr_nonlinear_constraints(thetastart) <= 0))
+
+tm <- Sys.time()
+
+tmp <- capture.output(
+  nloptr_result <- nloptr::nloptr(
+    x0 = thetastart,
+    eval_f = nloptr_objective,
+    eval_grad_f = nloptr_objective_gradient,
+    lb = lowerbounds,
+    ub = upperbounds,
+    eval_g_ineq = nloptr_nonlinear_constraints,
+    eval_jac_g_ineq = nloptr_nonlinear_constraints_jacobian,
+    opts = list("algorithm" = "NLOPT_LD_MMA", obj_scaling_factor = 1, "xtol_rel" = 1.0e-3)
+  )
+)
+
+optruntime <- difftime(Sys.time(), tm, units = "secs")
+cat("Run time for mass model optimisation:", optruntime, "seconds.\n")
+
+#' Check that the optimisation results look right (based on Figure 2 from Bilodeau, Stringer, Tang)
+get_Psi0(nloptr_result$solution[1])
+get_gamma(nloptr_result$solution[2])
+get_alpha(nloptr_result$solution[3])
+get_beta(nloptr_result$solution[4])
+
+#' AGHQ
+#' Create the optimization template
+ffa <- list(
+  fn = function(x) -1 * ff$fn(x),
+  gr = function(x) -1 * ff$gr(x),
+  he = function(x) -1 * ff$he(x)
+)
+
+useropt <- list(
+  ff = ffa,
+  mode = nloptr_result$solution,
+  hessian = ff$he(nloptr_result$solution)
+)
+
+#' Fit it with "reuse" first, then correct marginals later
+cntrl <- aghq::default_control(negate = TRUE)
+
+#' Do the quadrature
+tm <- Sys.time()
+
+k <- 5
+astroquad <- aghq::aghq(ff, k, thetastart, optresults = useropt, control = cntrl)
+
+#' Correct the marginals except for beta, which gave NA due to the constraints
+for (j in 1:3) astroquad$marginals[[j]] <- marginal_posterior(astroquad, j, method = "correct")
+quadruntime <- difftime(Sys.time(), tm, units = "secs")
+
+cat("Run time for mass model quadrature:", quadruntime ,"seconds.\n")
+
+#' Total runtime for AGHQ
+optruntime + quadruntime
+
+#' Fit with PCA-AGHQ
+s <- 2
+m <- length(useropt$mode)
+levels <- c(rep(k, s), rep(1, m - s))
+pca_grid <- mvQuad::createNIGrid(dim = m, type = "GHe", level = levels)
+mvQuad::rescale(pca_grid, m = useropt$mode, C = Matrix::forceSymmetric(solve(useropt$hessian)), dec.type = 1)
+
+#' Check that the PCA grid has the correct number of nodes
+stopifnot(nrow(mvQuad::getNodes(pca_grid)) == k^s)
+
+tm <- Sys.time()
+
+astropcaquad <- local_aghq(ff, k, thetastart, optresults = useropt, basegrid = pca_grid, adapt = FALSE, control = cntrl)
+
+#' Correct the marginals except for beta, which gave NA due to the constraints
+for (j in 1:3) astropcaquad$marginals[[j]] <- marginal_posterior(astropcaquad, j, method = "correct")
+pcaquadruntime <- difftime(Sys.time(), tm, units = "secs")
+
+cat("Run time for mass model quadrature:", quadruntime ,"seconds.\n")
+
+#' Total runtime for AGHQ
+optruntime + quadruntime
+
+#' Fit with MCMC
+stanmod <- tmbstan(
+  ff,
+  chains = 4,
+  cores = 4,
+  iter = 1e04,
+  warmup = 1e03,
+  init = nloptr_result$solution,
+  seed = 48645,
+  algorithm = "NUTS"
+)
+
+# Time
+get_elapsed_time(stanmod)
+
+standata <- as.data.frame(stanmod)
+standata$Psi0 <- get_Psi0(standata[ ,1])
+standata$gamma <- get_gamma(standata[ ,2])
+standata$alpha <- get_alpha(standata[ ,3])
+standata$beta <- get_beta(standata[ ,4])
+
+#' Manual plots
+parambounds <- list(
+  Psi0 = c(1, 200),
+  gamma = c(0.3, 0.7),
+  alpha = c(3.0, 3.7),
+  beta = c(-0.5, 1)
+)
+
+#' Add small buffers for stability
+get_theta2_robust <- function(gamma) {
+  log(-log((gamma - parambounds$gamma[1] + 1e-03) / (parambounds$gamma[2] - parambounds$gamma[1] + 1e-03)))
+}
+
+get_theta3_robust <- function(alpha) log(alpha - parambounds$alpha[1] + 1e-03)
+
+#' Transformed PDFs
+translist1 <- make_transformation(totheta = get_theta1, fromtheta = get_Psi0)
+translist2 <- make_transformation(totheta = get_theta2_robust, fromtheta = get_gamma)
+translist3 <- make_transformation(totheta = get_theta3_robust, fromtheta = get_alpha)
+translist4 <- make_transformation(totheta = get_theta4, fromtheta = get_beta)
+
+Psi0pdf <- compute_pdf_and_cdf(astroquad$marginals[[1]], translist1)
+gammapdf <- compute_pdf_and_cdf(astroquad$marginals[[2]], translist2)
+alphapdf <- compute_pdf_and_cdf(astroquad$marginals[[3]], translist3, interpolation = "polynomial")
+betapdf <- compute_pdf_and_cdf(astroquad$marginals[[4]], translist4)
+
+Psi0pcapdf <- compute_pdf_and_cdf(astropcaquad$marginals[[1]], translist1)
+gammapcapdf <- compute_pdf_and_cdf(astropcaquad$marginals[[2]], translist2)
+alphapcapdf <- compute_pdf_and_cdf(astropcaquad$marginals[[3]], translist3, interpolation = "polynomial")
+betapcapdf <- compute_pdf_and_cdf(astropcaquad$marginals[[4]], translist4)
+
+Psi0prior <- function(Psi0) dunif(Psi0, parambounds$Psi0[1], parambounds$Psi0[2], log = FALSE)
+gammaprior <- function(gamma) dunif(gamma, parambounds$gamma[1], parambounds$gamma[2], log = FALSE)
+alphaprior <- function(alpha) dgamma(alpha - parambounds$alpha[1], shape = 1, rate = 4.6, log = FALSE)
+betaprior <- function(beta) dunif(beta, parambounds$beta[1], parambounds$beta[2], log = FALSE)
+
+Psi0_postplot <- Psi0pdf %>%
+  ggplot(aes(x = transparam, y = pdf_transparam)) +
+  geom_histogram(
+    data = standata,
+    mapping = aes(x = Psi0, y = after_stat(density)),
+    bins = 50,
+    colour = "white",
+    fill = "grey"
+  ) +
+  geom_line(linewidth = 1) +
+  geom_line(
+    data = Psi0pcapdf,
+    mapping = aes(x = transparam, y = pdf_transparam),
+    linewidth = 1,
+    colour = "blue",
+  ) +
+  stat_function(fun = Psi0prior, linetype = "dashed") +
+  labs(title = "", x = "", y = "Density") +
+  scale_x_continuous(breaks = seq(10, 60, by = 5)) +
+  coord_cartesian(xlim = c(24, 43)) +
+  theme_classic() +
+  theme(text = element_text(size = 28))
+
+gamma_postplot <- gammapdf %>%
+  ggplot(aes(x = transparam, y = pdf_transparam)) +
+  geom_histogram(
+    data = standata,
+    mapping = aes(x = gamma, y = after_stat(density)),
+    bins = 100,
+    colour = "white",
+    fill = "grey"
+  ) +
+  geom_line(linewidth = 1) +
+  geom_line(
+    data = gammapcapdf,
+    mapping = aes(x = transparam, y = pdf_transparam),
+    linewidth = 1,
+    colour = "blue",
+  ) +
+  stat_function(fun = gammaprior, linetype = "dashed") +
+  labs(title = "", x = "", y = "Density") +
+  scale_x_continuous(breaks = seq(0, 0.44, by = 0.02)) +
+  coord_cartesian(xlim = c(0.3, 0.4)) +
+  theme_classic() +
+  theme(text = element_text(size = 28))
+
+alpha_postplot <- alphapdf %>%
+  ggplot(aes(x = transparam, y = pdf_transparam)) +
+  geom_histogram(
+    data = standata,
+    mapping = aes(x = alpha, y = after_stat(density)),
+    bins = 2000,
+    colour = "white",
+    fill = "grey"
+  ) +
+  geom_line(linewidth = 1) +
+  geom_line(
+    data = alphapcapdf,
+    mapping = aes(x = transparam, y = pdf_transparam),
+    linewidth = 1,
+    colour = "blue",
+  ) +
+  stat_function(fun = alphaprior, linetype = "dashed") +
+  labs(title = "",x = "",y = "Density") +
+  scale_x_continuous(breaks = seq(3, 4, by = 0.02)) +
+  coord_cartesian(xlim = c(3, 3.05)) +
+  theme_classic() +
+  theme(text = element_text(size = 28))
+
+beta_postplot <- betapdf %>%
+  ggplot(aes(x = transparam, y = pdf_transparam)) +
+  geom_histogram(
+    data = standata,
+    mapping = aes(x = beta, y = after_stat(density)),
+    bins = 50,
+    colour = "white",
+    fill = "grey"
+  ) +
+  geom_line(linewidth = 1) +
+  geom_line(
+    data = betapcapdf,
+    mapping = aes(x = transparam, y = pdf_transparam),
+    linewidth = 1,
+    colour = "blue",
+  ) +
+  stat_function(fun = betaprior,linetype = "dashed") +
+  labs(title = "",x = "",y = "Density") +
+  scale_x_continuous(breaks = seq(-0.5, 1, by = 0.1)) +
+  coord_cartesian(xlim = c(-0.3, 0.4)) +
+  theme_classic() +
+  theme(text = element_text(size = 28))
+
+{Psi0_postplot + gamma_postplot} / {alpha_postplot + beta_postplot}
