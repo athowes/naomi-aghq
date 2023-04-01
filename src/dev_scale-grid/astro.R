@@ -15,6 +15,7 @@ library(nloptr)
 
 library(aghq)
 library(Matrix)
+library(gt)
 
 data(gcdatalist, package = "aghq")
 precompile()
@@ -188,8 +189,8 @@ cntrl <- aghq::default_control(negate = TRUE)
 #' Do the quadrature
 tm <- Sys.time()
 
-k <- 5
-astroquad <- aghq::aghq(ff, k, thetastart, optresults = useropt, control = cntrl)
+k_dense <- 5
+astroquad <- aghq::aghq(ff, k = k_dense, thetastart, optresults = useropt, control = cntrl)
 
 #' Correct the marginals except for beta, which gave NA due to the constraints
 for (j in 1:3) astroquad$marginals[[j]] <- marginal_posterior(astroquad, j, method = "correct")
@@ -201,27 +202,43 @@ cat("Run time for mass model quadrature:", quadruntime ,"seconds.\n")
 optruntime + quadruntime
 
 #' Fit with PCA-AGHQ
-s <- 2
+C <- Matrix::forceSymmetric(solve(useropt$hessian))
+eigenC <- eigen(C)
+lambda <- eigenC$values
+
+data.frame(
+  n = 1:length(lambda),
+  tv = cumsum(lambda / sum(lambda))
+) %>% ggplot(aes(x = n, y = tv)) +
+  geom_point() +
+  geom_hline(yintercept = 0.9, col = "grey", linetype = "dashed") +
+  annotate("text", x = 3, y = 0.875, label = "90% of total variation explained", col = "grey") +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = "PCA dimensions included", y = "Total variation explained") +
+  theme_minimal()
+
+k_pca <- 5
+s <- 1 #' Could choose this based on the Scree plot
 m <- length(useropt$mode)
-levels <- c(rep(k, s), rep(1, m - s))
+levels <- c(rep(k_pca, s), rep(1, m - s))
 pca_grid <- mvQuad::createNIGrid(dim = m, type = "GHe", level = levels)
-mvQuad::rescale(pca_grid, m = useropt$mode, C = Matrix::forceSymmetric(solve(useropt$hessian)), dec.type = 1)
+mvQuad::rescale(pca_grid, m = useropt$mode, C = C, dec.type = 1)
 
 #' Check that the PCA grid has the correct number of nodes
-stopifnot(nrow(mvQuad::getNodes(pca_grid)) == k^s)
+stopifnot(nrow(mvQuad::getNodes(pca_grid)) == k_pca^s)
 
 tm <- Sys.time()
 
-astropcaquad <- local_aghq(ff, k, thetastart, optresults = useropt, basegrid = pca_grid, adapt = FALSE, control = cntrl)
+astropcaquad <- local_aghq(ff, k_pca, thetastart, optresults = useropt, basegrid = pca_grid, adapt = FALSE, control = cntrl)
 
 #' Correct the marginals except for beta, which gave NA due to the constraints
 for (j in 1:3) astropcaquad$marginals[[j]] <- marginal_posterior(astropcaquad, j, method = "correct")
 pcaquadruntime <- difftime(Sys.time(), tm, units = "secs")
 
-cat("Run time for mass model quadrature:", quadruntime ,"seconds.\n")
+cat("Run time for mass model quadrature:", pcaquadruntime ,"seconds.\n")
 
 #' Total runtime for AGHQ
-optruntime + quadruntime
+optruntime + pcaquadruntime
 
 #' Fit with MCMC
 stanmod <- tmbstan(
@@ -373,3 +390,31 @@ beta_postplot <- betapdf %>%
   theme(text = element_text(size = 28))
 
 {Psi0_postplot + gamma_postplot} / {alpha_postplot + beta_postplot}
+
+#' KS tests
+kstable <- function(quad) {
+  aghqpostsamps_spline <- sample_marginal(astroquad, nrow(standata), interpolation = "spline")
+  aghqpostsamps_poly <- sample_marginal(astroquad, nrow(standata), interpolation = "polynomial")
+
+  suppressWarnings({
+    kstable <- data.frame(
+      Psi0 = ks.test(standata[[1]], aghqpostsamps_poly[[1]])$statistic,
+      gamma = ks.test(standata[[2]], aghqpostsamps_spline[[2]])$statistic,
+      alpha = ks.test(standata[[3]], aghqpostsamps_poly[[3]])$statistic,
+      beta = ks.test(standata[[4]], aghqpostsamps_poly[[4]])$statistic
+    )
+  })
+
+  return(kstable)
+}
+
+kstable_astroquad <- kstable(astroquad) %>%
+  pivot_longer(cols = everything()) %>%
+  mutate(method = "AGHQ", k = k_dense, s = NA, total_points = k^4)
+
+kstable_astropcaquad <- kstable(astroquad) %>%
+  pivot_longer(cols = everything()) %>%
+  mutate(method = "AGHQ-PCA", k = k_pca, s = s, total_points = k^s)
+
+bind_rows(kstable_astroquad, kstable_astropcaquad) %>%
+  gt::gt()
