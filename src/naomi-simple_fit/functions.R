@@ -260,17 +260,12 @@ sample_tmbstan <- function(mcmc, M = NULL, verbose = TRUE) {
 }
 
 #' Inference for the Naomi model using aghq plus Laplace marginals, edited to work with DLL = "naomi_simple"
-fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple",  ...) {
-  warning("For the aghq, k must be set to 1 as thing stand currently.")
-
-  if (DLL == "naomi_simple") {
-    stopifnot(inherits(tmb_input, "naomi_simple_tmb_input"))
-  } else {
-    stopifnot(inherits(tmb_input, "naomi_tmb_input"))
-  }
-
-  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL)
-  quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, k = 1)
+#' Compatible with a custom basegrid for the hyperparameter integration step
+fit_adam <- function(tmb_input, basegrid, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple",  ...) {
+  stopifnot(inherits(tmb_input, "naomi_tmb_input"))
+  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL = DLL)
+  # Can optresults be passed in here from previous TMB fit?
+  quad <- aghq::marginal_laplace_tmb(obj, basegrid = basegrid, startingvalue = obj$par)
   objout <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 1L, inner_verbose, progress, map, DLL = DLL)
   quad$obj <- objout
 
@@ -287,7 +282,6 @@ fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NU
   tmb_input_i$data$x_starts <- x_starts
 
   theta_names <- make.unique(names(obj$par), sep = "")
-  theta <- as.numeric(quad$modesandhessians[theta_names])
 
   .f <- function(i) {
     tmb_input_i$data$i <- i
@@ -297,13 +291,16 @@ fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NU
     gg <- create_approx_grid(quad$modesandhessians, i = i, k = 5)
     out <- data.frame(index = i, par = x_names[i], x = mvQuad::getNodes(gg), w = mvQuad::getWeights(gg))
 
-    # Inclusion of the weights argument here is meaningless for now, but will become
-    # of importance when there are multiple hyperparameter grid points used. We also
-    # always put mode_i in as the last parameter so that optimisation starts there.
-    # It's unclear to me if there is a better way to do this.
     .g <- function(x) {
-      obj_i$env$last.par[random_i] <- mode_i
-      return(as.numeric(- obj_i$fn(c(x, theta))) + log(quad$normalized_posterior$nodesandweights$weights))
+      lp <- vector(mode = "numeric", length = nrow(quad$modesandhessians))
+
+      for(z in 1:nrow(quad$modesandhessians)) {
+        theta <- as.numeric(quad$modesandhessians[z, theta_names])
+        obj_i$env$last.par[random_i] <- quad$modesandhessians[z, "mode"][[1]][-tmb_input_i$data$i]
+        lp[z] <- as.numeric(- obj_i$fn(c(x, theta)))
+      }
+
+      return(logSumExpWeights(lp, w = quad$normalized_posterior$nodesandweights$weights))
     }
 
     out$lp <- purrr::map_dbl(out$x, .g) # Calculate log-posterior
@@ -704,65 +701,6 @@ sample_cdf <- function(df, M) {
   samples <- numeric(M)
   for(i in 1:M) samples[i] <- df$x[max(which(df$cdf < q[i]))]
   return(samples)
-}
-
-#' Inference for the Naomi model using aghq plus Laplace marginals, edited to work with DLL = "naomi_simple"
-#' Altered to work with a custom basegrid for the hyperparameter integration step
-fit_adam_basegrid <- function(tmb_input, basegrid, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple",  ...) {
-  stopifnot(inherits(tmb_input, "naomi_tmb_input"))
-  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL = DLL)
-  # Can optresults be passed in here from previous TMB fit?
-  quad <- aghq::marginal_laplace_tmb(obj, basegrid = basegrid, startingvalue = obj$par)
-  objout <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 1L, inner_verbose, progress, map, DLL = DLL)
-  quad$obj <- objout
-
-  random <- obj$env$random
-  x_names <- names(obj$env$par[random])
-  x_lengths <- lengths(tmb_input$par_init[unique(x_names)])
-  x_starts <- cumsum(x_lengths) - x_lengths
-
-  tmb_input_i <- tmb_input
-  tmb_input_i$par_init$x_minus_i <- rep(0, sum(x_lengths) - 1)
-  tmb_input_i$par_init$x_i <- 0
-  tmb_input_i$par_init[unique(x_names)] <- NULL
-  tmb_input_i$data$x_lengths <- x_lengths
-  tmb_input_i$data$x_starts <- x_starts
-
-  theta_names <- make.unique(names(obj$par), sep = "")
-
-  .f <- function(i) {
-    tmb_input_i$data$i <- i
-    obj_i <- local_make_tmb_obj(tmb_input_i$data, tmb_input_i$par, calc_outputs = 0L, inner_verbose, progress, DLL = "naomi_simple_x_index")
-    random_i <- obj_i$env$random
-    mode_i <- quad$modesandhessians[["mode"]][[1]][-i]
-    gg <- create_approx_grid(quad$modesandhessians, i = i, k = 5)
-    out <- data.frame(index = i, par = x_names[i], x = mvQuad::getNodes(gg), w = mvQuad::getWeights(gg))
-
-    .g <- function(x) {
-      lp <- vector(mode = "numeric", length = nrow(quad$modesandhessians))
-
-      for(z in 1:nrow(quad$modesandhessians)) {
-        theta <- as.numeric(quad$modesandhessians[z, theta_names])
-        obj_i$env$last.par[random_i] <- quad$modesandhessians[z, "mode"][[1]][-tmb_input_i$data$i]
-        lp[z] <- as.numeric(- obj_i$fn(c(x, theta)))
-      }
-
-      return(logSumExpWeights(lp, w = quad$normalized_posterior$nodesandweights$weights))
-    }
-
-    out$lp <- purrr::map_dbl(out$x, .g) # Calculate log-posterior
-    lognormconst <- logSumExpWeights(out$lp, out$w) # Calculate log normalising constant
-    out$lp_normalised <- out$lp - lognormconst # Calculate normalised log-posterior
-
-    return(out)
-  }
-
-  d <- length(random)
-  laplace_marginals <- purrr::map(.x = 1:d, .f = .f)
-  laplace_marginals <- dplyr::bind_rows(laplace_marginals)
-
-  out <- list("quad" = quad, "laplace_marginals" = laplace_marginals)
-  return(out)
 }
 
 #' Create a quadrature grid

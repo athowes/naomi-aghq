@@ -79,6 +79,9 @@ dyn.load(dynlib("naomi_simple_x_index"))
 tmb_inputs <- prepare_tmb_inputs(naomi_data)
 tmb_inputs_simple <- local_exclude_inputs(tmb_inputs)
 
+#' The number of hyperparameters is 24, as compared with 31 for the full model
+n_hyper <- 24
+
 if(tmb) {
   start <- Sys.time()
 
@@ -100,9 +103,6 @@ if(tmb) {
 
 if(aghq) {
   start <- Sys.time()
-
-  #' The number of hyperparameters is 24, as compared with 31 for the full model
-  n_hyper <- 24
 
   if(!(ndConstruction %in% c("product", "sparse"))) {
     warning('ndConstuction must be either "product" or "sparse"')
@@ -144,14 +144,9 @@ if(aghq) {
 if(adam) {
   start <- Sys.time()
 
-  basegrid <- NULL
-
-  #' AGHQ k = 1 with Laplace marginals here
-  if(is.null(basegrid)) {
-    adam <- fit_adam(tmb_inputs_simple)
-  } else {
-    adam <- fit_adam_basegrid(tmb_inputs_simple, base_grid = basegrid)
-  }
+  #' k = 1 empirical Bayes with Laplace marginals
+  basegrid <- mvQuad::createNIGrid(dim = n_hyper, type = "GHe", level = 1, ndConstruction = "product")
+  adam <- fit_adam(tmb_inputs_simple, base_grid = basegrid)
 
   #' Add uncertainty
   adam <- sample_adam(adam, M = nsample)
