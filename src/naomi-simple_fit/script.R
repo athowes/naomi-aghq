@@ -1,5 +1,5 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(tmbstan = TRUE, area_level = 4, hmc_laplace = FALSE))
+# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(aghq = TRUE, area_level = 4, ndConstruction = "pca"))
 # setwd("src/naomi-simple_fit")
 
 if(tmb + aghq + adam + tmbstan != 1) {
@@ -79,7 +79,7 @@ dyn.load(dynlib("naomi_simple_x_index"))
 tmb_inputs <- prepare_tmb_inputs(naomi_data)
 tmb_inputs_simple <- local_exclude_inputs(tmb_inputs)
 
-#' The number of hyperparameters is 24, as compared with 31 for the full model
+#' The number of hyperparameters is 24 (as compared with 31 for the full model)
 n_hyper <- 24
 
 if(tmb) {
@@ -104,8 +104,8 @@ if(tmb) {
 if(aghq) {
   start <- Sys.time()
 
-  if(!(ndConstruction %in% c("product", "sparse"))) {
-    warning('ndConstuction must be either "product" or "sparse"')
+  if(!(ndConstruction %in% c("product", "sparse", "pca"))) {
+    warning('ndConstuction must be either "product", "sparse", or "pca"')
   }
 
   if(ndConstruction == "product") {
@@ -115,7 +115,7 @@ if(aghq) {
     #' Add uncertainty
     quad <- sample_aghq(quad, M = nsample)
 
-    #' Note that local_output_package_naomi_simple would need to be adapted to work with aghq fits
+    #' Note that local_output_package_naomi_simple needs to be adapted to work with aghq fits
   }
 
   if(ndConstruction == "sparse") {
@@ -127,12 +127,24 @@ if(aghq) {
 
     quad <- fit_aghq(tmb_inputs_simple, k = k, basegrid = sparse_grid, control = control)
 
-    #' Error sampling from sparse quadratures at the moment due to negative weights
+    #' Error sampling from sparse quadratures due to negative weights
     # sparse_quad <- sample_aghq(sparse_quad, M = nsample)
 
-    #' Notes on sparse grid sizes and time taken:
+    #' Note on time taken for sparse grids:
     #' * k = 2 and ndConstruction = "sparse" is 49 points, and takes ~45 minutes
     #' * k = 3 and ndConstruction = "sparse" it's 1225 points, and takes ~10 hours (on a cluster)
+  }
+
+  if(ndConstruction == "pca") {
+    levels <- c(rep(k, s), rep(1, n_hyper - s))
+
+    pca_grid <- mvQuad::createNIGrid(dim = n_hyper, type = "GHe", level = levels)
+
+    #' Fit AGHQ model
+    quad <- fit_aghq(tmb_inputs_simple, basegrid = pca_grid, dec.type = 1)
+
+    #' Add uncertainty
+    quad <- sample_aghq(quad, M = nsample)
   }
 
   end <- Sys.time()
