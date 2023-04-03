@@ -64,7 +64,6 @@ output:
 
 <!-- Remaining things to add, and or desiderata: -->
 
-<!-- * [ ] Description of the ART attendance component of the model -->
 <!-- * [ ] Tying together Naomi model within LGM / ELGM mathematical notation -->
 <!-- * [ ] Create DAG representing Naomi model -->
 <!-- * [ ] Rewrite section on why Naomi is an ELGM, drawing from slides -->
@@ -254,18 +253,19 @@ y_i &\sim p(y_i \, | \, \bmeta_{\mathcal{J}_i}, \btheta_1), \quad i \in [n] \\
 \eta_j &= \beta_0 + \sum_{l = 1}^{p} \beta_j z_{ji} + \sum_{k = 1}^{r} f_k(u_{ki}), \quad j \in [N_n].
 \end{align*}
 
-Naomi is not an LGM, and instead falls into the ELGM class, for the following reasons:
+Naomi is not an LGM, and instead falls into the ELGM class, because:
 
-1. In the household survey component (Section \ref{sec:household}), the HIV incidence rate depends on the HIV prevalence and ART coverage linear predictors.
-2. In the ANC testing component (Section \ref{sec:anc}), the HIV prevalence and ART coverage depend upon the household survey component.
+1. In the ANC testing component (Section \ref{sec:anc}), the HIV prevalence and ART coverage depend upon the household survey component.
 Specifically, $|\mathcal{J}_i| = 2$ such that for $\theta \in \{\rho, \alpha\}$
 $$
 \mu_i = g_i(\eta^\theta_i, \eta^{\theta^{\text{ANC}}}_i) = \text{logit}^{-1}(\eta^\theta_i + \eta^{\theta^{\text{ANC}}}_i).
 $$
-3. In the ART attendance component (Section \ref{sec:art}), the multinomial logistic regression.
-4. In all components the data we model is aggregated. Processes are modelled at the finest distict-age-sex division $i$, but likelihoods are defined for observations over sets of indices $\mathcal{I}$.
-
-<!-- To-do: define what exactly $p(\y, \x, \btheta)$ is for the Naomi model -->
+2. In the household survey component (Section \ref{sec:household}), the HIV incidence rate depends on adult HIV prevalence and adult ART coverage via non-linear transformations.
+3. Individuals who are taking ART, or have been recently infected, must be HIV positive. As a result observations are made taking the product of HIV prevalence with ART coverge or recent HIV infection.
+4. Recent HIV infection is non-linearly linked to both HIV incidence and HIV prevalence.
+5. The ART attendance component (Section \ref{sec:art}) uses a multinomial model.
+6. Processes are modelled at the finest distict-age-sex division $i$, but likelihoods are defined for observations aggregated over sets of indices $\mathcal{I}$.
+7. Multiple link functions are used: there is no one $g$.
 
 # Fast approximate inference method\label{sec:fastinferencemethods}
 
@@ -283,15 +283,18 @@ Given the negative unnormalised log posterior $- \log p(\y, \x, \btheta)$, we ob
 
 ## Laplace approximation
 
+To write.
+
 ## AGHQ
 
-A quadrature rule can be used to approximate the integral of a function $f: \mathcal{Z} \to \mathbb{R}$ by a weighted sum
+A quadrature rule can be used to approximate the integral of a function $f: \mathcal{Z} \to \mathbb{R}$ by the following weighted sum
 $$
-\int_{\z \in \mathcal{Z}} f(\z) \text{d}\z \approx \sum_{\z \in \mathcal{Q}} f(\z) w(\z)
+\int_{\z \in \mathcal{Z}} f(\z) \text{d}\z \approx \sum_{\z \in \mathcal{Q}} f(\z) w(\z),
 $$
 where $\z \in \mathcal{Q} \subset \mathcal{Z}$ are a set of nodes and $\omega: \mathcal{Q} \to \mathbb{R}$ is a weighting function.
-In Gauss-Hermite quadrature [@davis1975methods] the nodes are selected as zeros of the Hermite polynomials.
+In Gauss-Hermite quadrature [@davis1975methods] the nodes are selected as zeros of the Hermite polynomials, and weights so as to interpolate functions of the form $f(\z) = \tilde f(\z) \exp(-\z^2)$.
 These nodes and weights can be shifted and scaled to suit the particular integrand using adaptive Gauss-Hermite quadrature [@naylor1982applications; @tierney1986accurate].
+AGHQ with $k = 1$ recovers the Laplace approximation.
 
 ```{r aghq, fig.cap="The Gauss-Hermite quadrature nodes $\\z \\in \\mathcal{Q}(2, 3)$ for this two dimensional integral with three nodes per dimension are adapted based on the mean and covariance matrix of the target via $\\btheta(\\z) = \\hat \\btheta + \\mathbf{L} \\z$."}
 mu <- c(1, 1.5)
