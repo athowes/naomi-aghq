@@ -144,7 +144,7 @@ Finally, in Section \ref{sec:conclusions} we discuss our conclusions, how we ant
 @eaton2021naomi specify a joint model linking three small-area estimation models, and defined over three time points: $T_1$ the time of the most recent household survey with HIV testing; $T_2$, the current time period; and $T_3$, a short term projection period.
 We consider a simplified version defined only at $T_1$ omitting nowcasting and temporal projection, as these time points involve limited additional inference.
 An overview of this simplified model is given below, highlighting the aspects which make it a challenge for existing inferential approaches.
-A more complete mathematical description, as well as a \textsf{C++} template for the log-posterior, are provided in the appendix.
+A more complete mathematical description (Appendix S1) as well as a \textsf{C++} template for the log-posterior (Appendix S3) are provided in the supplementary material.
 
 ## Household survey component \label{sec:household}
 
@@ -217,15 +217,13 @@ with $\Psi_i$ the number of pregnant women.
 
 ## ART attendance component \label{sec:art}
 
-People living with HIV may choose to access ART services outside of the district that they reside in.
+We use a multinomial logistic regression model to account for people living with HIV choosing to access ART services outside of the district that they reside in.
 Let $\gamma_{x, x'} \in [0, 1]$ be the probability that a person on ART residing in district $x$ receives ART in district $x'$.
 We assume that $\gamma_{x, x'} = 0$ unless $x = x'$ or the two districts are adjacent such that $x \sim x'$. 
-We model the log-odds $\tilde \gamma_{x, x'} = \text{logit}(\gamma_{x, x'})$ using a multinomial logistic regression model.
-
-This section remains to write, and is quite challenging.
-
-<!-- Let $\dot A_\mathcal{I} = \sum_{x \sim x', x = x'} \dot A_{x', x}$ be the number of people receiving ART. -->
-<!-- Model $\dot A_\mathcal{I} \sim \mathcal{N}(\tilde A_\mathcal{I}, \sigma^{\tilde A_\mathcal{I}})$ using a normal distribution with mean $\sum_{x \sim x', x = x'} N_{x'} \pi_{x', x}$ and standard deviation $\sigma^{\tilde A_\mathcal{I}}) = \sqrt{\sum_{x \sim x', x = x'} N_{x'} \pi_{x', x} (1 - \pi_{x', x})}$. -->
+We model the log-odds $\tilde \gamma_{x, x'} = \text{logit}(\gamma_{x, x'})$ using a linear predictor $\eta_x^{\tilde \gamma}$ which only depends on the home district $x$, such that travel to each neighbouring district, for all age-sex strata, is equally likely.
+We model aggregate ART attendance data $\dot A_\mathcal{I}$ using a Gaussian approximation to a sum of binomials.
+The sum results both by aggregation over $i \in \mathcal{I}$ and by number of ART clients travelling from district $x'$ to $x$.
+More details regarding this part of the model are provided in Appendix S1.
 
 # Extended Latent Gaussian models\label{sec:elgm}
 
