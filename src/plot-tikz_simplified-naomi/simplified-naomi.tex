@@ -1,0 +1,21 @@
+\documentclass[tikz]{standalone}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning}
+\usepackage{bm}
+
+\begin{document}
+
+\tikzstyle{category} = [circle, draw, text width=4em, text centered, rounded corners, minimum height=2em]
+\tikzstyle{line} = [draw, -latex']
+
+\begin{tikzpicture}[node distance = 2cm, auto]
+  \node[category] at (0, 0) (1) {$\rho_{x, s, a}$};
+  \node[category] at (3, 0) (2) {$\alpha_{x, s, a}$};
+  \node[category] at (6, 0) (3) {$\lambda_{x, s, a}$};
+  \node[category] at (9, 0) (4) {$\kappa_{x, s, a}$};
+
+  \path[line] (3) -- (4);
+\end{tikzpicture}
+
+\end{document}

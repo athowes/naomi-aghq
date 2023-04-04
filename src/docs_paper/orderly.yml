@@ -40,3 +40,11 @@ depends:
       id: latest
       use:
         depends/naomi_results.png: fig3.png
+  - plot-tikz_algorithm-flowchart:
+      id: latest
+      use:
+        depends/algorithm-flowchart.pdf: algorithm-flowchart.pdf
+  - plot-tikz_simplified-naomi:
+      id: latest
+      use:
+        depends/simplified-naomi.pdf: simplified-naomi.pdf

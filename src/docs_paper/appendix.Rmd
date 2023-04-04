@@ -41,6 +41,16 @@ knitr::opts_chunk$set(
 \renewcommand{\thesection}{S\arabic{section}}
 ```
 
+\newpage
+
+# Inferential algorithm
+
+```{r algorithm-flowchart, fig.cap="Flowchart describing the algorithm we propose (work in progress)."}
+knitr::include_graphics("depends/algorithm-flowchart.pdf")
+```
+
+\newpage
+
 # Simplified Naomi model description \label{sec:math}
 
 In this section we describe the simplified Naomi model [@eaton2021naomi] considered in the main text in more complete detail.
@@ -220,7 +230,6 @@ $$
 where $N_{x, \text{F}, a}$ are the female population sizes, $\psi_{R_x, a}$ are fixed age-sex fertility ratios in Spectrum region $R_x$, $\beta^\psi$ are log rate ratios for the number of ANC clients relative to the predicted fertility, and $u_x^\psi \sim \mathcal{N}(0, \sigma^\psi)$ are district random effects.
 Here we fix $\beta^\psi = u_x^\psi = 0$ such that $\Psi_{x, a}$ are simply constants.
 
-
 <!-- Latent field size -->
 <!-- 1 + n + 1 + n = 2 + 2n -->
 <!-- Hyperparameter size -->
@@ -326,6 +335,10 @@ In particular:
 1. If survey data on HIV prevalence or ART coverage by age and sex are not available then we set $u_a^\theta = 0$ and $u_{a, s = \text{M}}^\theta = 0$ and use the average age-sex pattern of from the Spectrum offset $\eta_{R_x, s, a}^\theta$. For the Malawi example considered in the main text HIV prevalence and ART coverage data are not available for those aged 65+. As a result, there are $|\{\text{0-4}, \ldots, \text{50-54}\}| = 13$ age bands included for the age random effects.
 2. If no ART data, either survey or ART programme, are available but data on ART coverage among ANC clients are available, the level of ART coverage is not identifiable, but spatial variation is identifiable. In this instance, overall ART coverage is determined by the Spectrum offset, and only area random effects are estimated such that $\text{logit} \left(\alpha_{x, s, a} \right) = u_x^\alpha + \eta_{R_x, s, a}^\alpha$.
 3. If survey data on recent HIV infection are not included in the model, then $\beta_0^\lambda = \beta_S^{\lambda, s = \text{M}} = u_x^\lambda = 0$. The sex ratio for HIV incidence is determined by the sex incidence rate ratio from Spectrum in the same years and the incidence rate in all districts is modelled assuming the same average HIV transmission rate for untreated adults, but varies according to district estimates of HIV prevalence and ART coverage.
+
+```{r simplified-naomi, fig.cap="Directed acyclic graph describing the simplified Naomi model (work in progress)."}
+knitr::include_graphics("depends/simplified-naomi.pdf")
+```
 
 \newpage
 

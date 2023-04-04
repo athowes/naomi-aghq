@@ -1,0 +1,14 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Simplified Naomi
+      filenames:
+        - simplified-naomi.pdf
+        - simplified-naomi.png
+
+resources:
+  - simplified-naomi.tex
+
+packages:
+  - tools

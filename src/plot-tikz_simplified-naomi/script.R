@@ -1,8 +1,8 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("plot-tikz_algorithm-flowchart")
-# setwd("src/plot-tikz_algorithm-flowchart")
+# orderly::orderly_develop_start("plot-tikz_simplified-naomi")
+# setwd("src/plot-tikz_simplified-naomi")
 
-tools::texi2dvi("algorithm-flowchart.tex", pdf = TRUE, clean = TRUE)
+tools::texi2dvi("simplified-naomi.tex", pdf = TRUE, clean = TRUE)
 
 convert_pdf_png <- function(name) {
   command <- paste0(
@@ -12,4 +12,4 @@ convert_pdf_png <- function(name) {
   system(command)
 }
 
-convert_pdf_png("algorithm-flowchart")
+convert_pdf_png("simplified-naomi")

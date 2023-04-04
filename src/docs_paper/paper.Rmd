@@ -65,7 +65,7 @@ output:
 <!-- Remaining things to add, and or desiderata: -->
 
 <!-- * [ ] Tying together Naomi model within LGM / ELGM mathematical notation -->
-<!-- * [ ] Create DAG representing Naomi model -->
+<!-- * [ ] Create DAG representing Naomi model. This would likely go into the appenxix, so use that notation -->
 <!-- * [ ] Rewrite section on why Naomi is an ELGM, drawing from slides -->
 <!-- * [ ] Write section on Laplace approximation -->
 <!-- * [ ] Write section on AGHQ, tying together connection to Laplace for k = 1 -->
