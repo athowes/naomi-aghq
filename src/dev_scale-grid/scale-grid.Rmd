@@ -175,6 +175,41 @@ end <- Sys.time()
 end - start
 ```
 
+Verifying that there are two grid points used in the 16th dimension:
+
+```{r}
+stopifnot(nrow(quad$modesandhessians) == 2)
+
+quad$modesandhessians[, 1:24] %>%
+  pivot_longer(cols = everything()) %>%
+  ggplot(aes(x = name, y = value)) +
+    geom_point(alpha = 0.8) +
+    labs(x = "", y = "Value") + 
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1))
+```
+
+Note that for the Cholesky adapted grid with `levels = c(1, 1, ..., 2, 1, ..., 1)` we see variation in all of the dimensions further than the one with a level above one.
+I would assume this is related in some way to the Cholesky adaption being based on a lower triangular matrix.
+This is something it would be worthwhile to work out in more detail.
+
+```{r}
+diff(as.matrix(quad$modesandhessians[, 1:24]))
+```
+
+Verifying that adaption is happening as we expect it to be:
+
+```{r}
+#' This is what the base grid looks like
+mvQuad::getNodes(base_grid)
+
+#' Rescale it according to the mode and Hessian with Cholesky factor
+mvQuad::rescale(base_grid, m = quad$optresults$mode, C = Matrix::forceSymmetric(solve(quad$optresults$hessian)), dec.type=2)
+
+#' Verify that the adapted grid has the same nodes and are used by aghq::aghq
+stopifnot(all(mvQuad::getNodes(base_grid) == unname(as.matrix(quad$modesandhessians[, 1:24]))))
+```
+
 This model fit in a very reasonable amount of time.
 More generally, it would be of interest to know more about the relationship between the number of points in the grid, and the length of time it takes run `fit_aghq`.
 Are there any theoretical considerations statements that can be made e.g. scaling $\mathcal{O}(n)$ where $n$ is the number of grid points?
