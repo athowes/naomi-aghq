@@ -44,8 +44,30 @@ run_commit_push("naomi-simple_compare")
 run_commit_push("naomi-simple_model-checks")
 
 #' Statistical methods development
-run_commit_push("dev_sinla") #' Without experiments
+
+#' Scaling up the grid
 run_commit_push("dev_scale-grid")
+
+#' With PCA AGHQ experiments
+id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 2, s = 1, ndConstruction = "pca"))
+orderly::orderly_commit(id)
+
+id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 2, s = 2, ndConstruction = "pca"))
+orderly::orderly_commit(id)
+
+id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 2, s = 3, ndConstruction = "pca"))
+orderly::orderly_commit(id)
+
+id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 2, s = 4, ndConstruction = "pca"))
+orderly::orderly_commit(id)
+
+id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 2, s = 5, ndConstruction = "pca"))
+orderly::orderly_commit(id)
+
+run_commit_push("naomi-simple_increase-s-k")
+
+#' SINLA development
+run_commit_push("dev_sinla") #' Without experiments
 
 #' With experiments
 id <- orderly::orderly_run("dev_sinla", param = list(run_experiments = TRUE))
