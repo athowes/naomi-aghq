@@ -6,7 +6,7 @@ library(TMB)
 library(tmbstan)
 
 #' Originally Alex used the ipoptr package for this, but it's not possible, or at
-#' least very difficult, to install it anymore (01/04/2023)
+#' least very difficult, to install it anymore (as of 01/04/2023)
 # install.packages("ipoptr")
 # library(ipoptr)
 
@@ -418,3 +418,11 @@ kstable_astropcaquad <- kstable(astroquad) %>%
 
 bind_rows(kstable_astroquad, kstable_astropcaquad) %>%
   gt::gt()
+
+bind_rows(kstable_astroquad, kstable_astropcaquad) %>%
+  ggplot(aes(x = name, y = value, col = method)) +
+    geom_point() +
+    scale_y_continuous(limits = c(0, 0.05)) +
+    scale_colour_manual(values = multi.utils::cbpalette()) +
+    labs(x = "Parameter", y = "KS(method, NUTS)", col = "Method") +
+    theme_minimal()
