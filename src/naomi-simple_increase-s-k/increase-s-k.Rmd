@@ -1,0 +1,29 @@
+---
+title: "How does increasing $s$ and $k$ effect log normalising constant estimation"
+author:
+- name: Adam Howes
+output:
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    df_print: paged
+    code_folding: show
+    theme: lumen
+abstract: |
+  **Background**
+  
+  **Task**
+---
+
+# Data import
+
+We start by reading in a selection of fitted PCA-AGHQ models:
+
+```{r}
+s1k2 <- readRDS("aghq-s1-k2.rds")
+s2k2 <- readRDS("aghq-s2-k2.rds")
+s3k2 <- readRDS("aghq-s3-k2.rds")
+s4k2 <- readRDS("aghq-s4-k2.rds")
+s5k2 <- readRDS("aghq-s5-k2.rds")
+```
