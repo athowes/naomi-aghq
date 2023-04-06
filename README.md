@@ -22,5 +22,5 @@ devtools::install_github("athowes/inf.utils")
 We also use the [`aghq`](https://github.com/awstringer1/aghq) package for inference, which is available from CRAN, though the latest development version can be installed from Github via:
 
 ```r
-devtools::install_github("awstringer1/aghq")
+devtools::install_github("athowes/aghq", ref = "adam-dev")
 ```
