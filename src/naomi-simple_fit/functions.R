@@ -181,7 +181,6 @@ local_sample_tmb <- function(fit, nsample = 1000, rng_seed = NULL, random_only =
 
 #' Inference for the Naomi model using aghq, edited to work with DLL = "naomi_simple"
 fit_aghq <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple", ...) {
-
   if (DLL == "naomi_simple") {
     stopifnot(inherits(tmb_input, "naomi_simple_tmb_input"))
   } else {

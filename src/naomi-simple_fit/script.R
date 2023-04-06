@@ -1,5 +1,5 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(aghq = TRUE, area_level = 4, grid_type = "pca"))
+# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(aghq = TRUE, area_level = 4, k = 2, s = 1, grid_type = "pca"))
 # setwd("src/naomi-simple_fit")
 
 if(tmb + aghq + adam + tmbstan != 1) {
@@ -141,8 +141,8 @@ if(aghq) {
     pca_base_grid <- mvQuad::createNIGrid(dim = n_hyper, type = "GHe", level = levels)
 
     #' Fit AGHQ model
-    #' Note that the argument k = k should not be doing anything in this function call
-    quad <- fit_aghq(tmb_inputs_simple, k = k, basegrid = pca_base_grid, dec.type = 1)
+    #' The k argument here shouldn't be doing anything: this should be fixed in aghq::aghq
+    quad <- fit_aghq(tmb_inputs_simple, k = 1, basegrid = pca_base_grid, dec.type = 1)
 
     #' Add uncertainty
     quad <- sample_aghq(quad, M = nsample)
