@@ -1,5 +1,5 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(aghq = TRUE, area_level = 4, ndConstruction = "pca"))
+# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(aghq = TRUE, area_level = 4, grid_type = "pca"))
 # setwd("src/naomi-simple_fit")
 
 if(tmb + aghq + adam + tmbstan != 1) {
@@ -104,11 +104,11 @@ if(tmb) {
 if(aghq) {
   start <- Sys.time()
 
-  if(!(ndConstruction %in% c("product", "sparse", "pca"))) {
-    warning('ndConstuction must be either "product", "sparse", or "pca"')
+  if(!(grid_type %in% c("product", "sparse", "pca"))) {
+    warning('grid_type must be either "product", "sparse", or "pca"')
   }
 
-  if(ndConstruction == "product") {
+  if(grid_type == "product") {
     #' Fit AGHQ model
     quad <- fit_aghq(tmb_inputs_simple, k = k)
 
@@ -118,7 +118,7 @@ if(aghq) {
     #' Note that local_output_package_naomi_simple needs to be adapted to work with aghq fits
   }
 
-  if(ndConstruction == "sparse") {
+  if(grid_type == "sparse") {
     sparse_grid <- mvQuad::createNIGrid(n_hyper, "GHe", k, "sparse")
 
     control <- aghq::default_control_tmb()
@@ -135,13 +135,14 @@ if(aghq) {
     #' * k = 3 and ndConstruction = "sparse" it's 1225 points, and takes ~10 hours (on a cluster)
   }
 
-  if(ndConstruction == "pca") {
+  if(grid_type == "pca") {
     levels <- c(rep(k, s), rep(1, n_hyper - s))
 
-    pca_grid <- mvQuad::createNIGrid(dim = n_hyper, type = "GHe", level = levels)
+    pca_base_grid <- mvQuad::createNIGrid(dim = n_hyper, type = "GHe", level = levels)
 
     #' Fit AGHQ model
-    quad <- fit_aghq(tmb_inputs_simple, basegrid = pca_grid, dec.type = 1)
+    #' Note that the argument k = k should not be doing anything in this function call
+    quad <- fit_aghq(tmb_inputs_simple, k = k, basegrid = pca_base_grid, dec.type = 1)
 
     #' Add uncertainty
     quad <- sample_aghq(quad, M = nsample)

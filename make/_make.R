@@ -49,19 +49,19 @@ run_commit_push("naomi-simple_model-checks")
 run_commit_push("dev_scale-grid")
 
 #' With PCA AGHQ experiments
-id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 2, s = 1, ndConstruction = "pca"))
+id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 2, s = 1, grid_type = "pca"))
 orderly::orderly_commit(id)
 
-id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 2, s = 2, ndConstruction = "pca"))
+id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 2, s = 2, grid_type = "pca"))
 orderly::orderly_commit(id)
 
-id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 2, s = 3, ndConstruction = "pca"))
+id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 2, s = 3, grid_type = "pca"))
 orderly::orderly_commit(id)
 
-id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 2, s = 4, ndConstruction = "pca"))
+id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 2, s = 4, grid_type = "pca"))
 orderly::orderly_commit(id)
 
-id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 2, s = 5, ndConstruction = "pca"))
+id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 2, s = 5, grid_type = "pca"))
 orderly::orderly_commit(id)
 
 run_commit_push("naomi-simple_increase-s-k")

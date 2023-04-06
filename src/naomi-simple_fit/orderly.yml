@@ -20,7 +20,7 @@ parameters:
   k:
     default: 2
   #' Type of grid to use for aghq: either product, sparse or pca
-  ndConstruction:
+  grid_type:
     default: "product"
   #' If a PCA grid is to be used, how many dimensions should be kept?
   s:
