@@ -6,4 +6,4 @@
 rmarkdown::render("scale-grid.Rmd")
 
 #' Run astronomy example
-# source("astro.R")
+rmarkdown::render("astro.Rmd")
