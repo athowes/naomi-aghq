@@ -1,25 +1,5 @@
----
-title: "Milky way mass estimation using PCA-AGHQ"
-author:
-- name: Adam Howes
-output:
-  bookdown::html_document2:
-    toc: yes
-    toc_float: yes
-    toc_collapsed: yes
-    df_print: paged
-    code_folding: show
-    theme: lumen
-abstract: |
-  **Background** 
-  
-  **Task** 
-editor_options: 
-  markdown: 
-    wrap: sentence
----
+#' Milky way mass estimation
 
-```{r}
 library(tidyverse)
 library(patchwork)
 library(TMB)
@@ -446,4 +426,3 @@ bind_rows(kstable_astroquad, kstable_astropcaquad) %>%
     scale_colour_manual(values = multi.utils::cbpalette()) +
     labs(x = "Parameter", y = "KS(method, NUTS)", col = "Method") +
     theme_minimal()
-```

@@ -175,54 +175,39 @@ end <- Sys.time()
 end - start
 ```
 
-Verifying the number of grid points used:
+Verifying that there are two grid points used in the 16th dimension:
 
 ```{r}
 stopifnot(nrow(quad$modesandhessians) == 2)
-```
 
-How are these grid points spaced across the 24 dimensions?^[Note that this section was added in later after in order to build intuitions, and doesn't flow very naturally!]
-
-```{r}
 quad$modesandhessians[, 1:24] %>%
   pivot_longer(cols = everything()) %>%
-  mutate(id = rep(1:24, times = 2)) %>%
-  ggplot(aes(x = reorder(name, id), y = value)) +
+  ggplot(aes(x = name, y = value)) +
     geom_point(alpha = 0.8) +
     labs(x = "", y = "Value") + 
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1))
 ```
 
-Interesting to note that for the Cholesky adapted grid with `levels = c(1, 1, ..., 2, 1, ..., 1)` we see variation in all of the dimensions greater than or equal to the 16th.
-This is related to the Cholesky adaption being based on a lower triangular matrix.
-To verify this, we can look at the differences between the two grid points:
+Note that for the Cholesky adapted grid with `levels = c(1, 1, ..., 2, 1, ..., 1)` we see variation in all of the dimensions further than the one with a level above one.
+I would assume this is related in some way to the Cholesky adaption being based on a lower triangular matrix.
+This is something it would be worthwhile to work out in more detail.
 
 ```{r}
 diff(as.matrix(quad$modesandhessians[, 1:24]))
 ```
 
-Let's also verify that adaption is happening as we expect it to be:
+Verifying that adaption is happening as we expect it to be:
 
 ```{r}
 #' This is what the base grid looks like
 mvQuad::getNodes(base_grid)
 
-base_grid_copy <- rlang::duplicate(base_grid)
-
 #' Rescale it according to the mode and Hessian with Cholesky factor
-mvQuad::rescale(base_grid, m = quad$optresults$mode, C = Matrix::forceSymmetric(solve(quad$optresults$hessian)), dec.type = 2)
+mvQuad::rescale(base_grid, m = quad$optresults$mode, C = Matrix::forceSymmetric(solve(quad$optresults$hessian)), dec.type=2)
 
 #' Verify that the adapted grid has the same nodes and are used by aghq::aghq
 stopifnot(all(mvQuad::getNodes(base_grid) == unname(as.matrix(quad$modesandhessians[, 1:24]))))
-```
-
-How would a spectral grid behave with the same choice of `levels`?
-Notice that there is a difference for all of the 24 dimenions when `dec.type = 1` (spectral) is used:
-
-```{r}
-mvQuad::rescale(base_grid_copy, m = quad$optresults$mode, C = Matrix::forceSymmetric(solve(quad$optresults$hessian)), dec.type = 1)
-diff(mvQuad::getNodes(base_grid_copy))
 ```
 
 This model fit in a very reasonable amount of time.
@@ -665,9 +650,9 @@ ggplot(results, aes(x = method, y = lognormconst, col = type)) +
   theme(axis.text.x = element_text(angle = 70, vjust = 0.5, hjust = 0.5))
 ```
 
-## Scoping the application to Naomi
+## Application to Naomi
 
-Let's see how large the PCA approach would make the grids for Naomi:
+Let's apply this PCA approach to the grids for the Naomi model:
 
 ```{r}
 m <- sd_out$par.fixed
