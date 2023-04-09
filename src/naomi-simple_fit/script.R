@@ -141,8 +141,9 @@ if(aghq) {
     pca_base_grid <- mvQuad::createNIGrid(dim = n_hyper, type = "GHe", level = levels)
 
     #' Fit AGHQ model
-    #' The k argument here shouldn't be doing anything: this should be fixed in aghq::aghq
-    quad <- fit_aghq(tmb_inputs_simple, k = 1, basegrid = pca_base_grid, dec.type = 1)
+    #' The k argument here shouldn't be doing anything: this should (in future) be fixed in aghq::aghq
+    k <- 1
+    quad <- fit_aghq(tmb_inputs_simple, k = k, basegrid = pca_base_grid, dec.type = 1)
 
     #' Add uncertainty
     quad <- sample_aghq(quad, M = nsample)
