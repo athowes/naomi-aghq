@@ -15,6 +15,7 @@
 * [model-checks](https://athowes.github.io/elgm-inf/model-checks.html): checking the fit of the simplified Naomi model to data
 * [scale-grid](https://athowes.github.io/elgm-inf/scale-grid.html): how can we scale up the number of points in the hyperparameter grid in an intelligent way?
 * [astro](https://athowes.github.io/elgm-inf/astro.html): application of scalable grid to astronomy example from [Bilodeau, Stringer and Tang (2022)](https://www.tandfonline.com/doi/full/10.1080/01621459.2022.2141635)
+* [increase-s-k](https://athowes.github.io/elgm-inf/increase-s-k.html): how does increasing $s$ or $k$ change estimation of the log normalising constant for Naomi?
 
 <!--
 

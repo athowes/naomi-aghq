@@ -32,22 +32,22 @@ packages:
 
 depends:
   - naomi-simple_fit:
-      id: latest(parameter:aghq == TRUE && parameter:ndConstruction == "pca", parameter:s == 1, parameter:k == 2)
+      id: latest(parameter:aghq == TRUE && parameter:grid_type == "pca" && parameter:s == 1 && parameter:k == 2)
       use:
         depends/aghq-s1-k2.rds: out.rds
   - naomi-simple_fit:
-      id: latest(parameter:aghq == TRUE && parameter:ndConstruction == "pca", parameter:s == 2, parameter:k == 2)
+      id: latest(parameter:aghq == TRUE && parameter:grid_type == "pca" && parameter:s == 2 && parameter:k == 2)
       use:
         depends/aghq-s2-k2.rds: out.rds
   - naomi-simple_fit:
-      id: latest(parameter:aghq == TRUE && parameter:ndConstruction == "pca", parameter:s == 3, parameter:k == 2)
+      id: latest(parameter:aghq == TRUE && parameter:grid_type == "pca" && parameter:s == 3 && parameter:k == 2)
       use:
         depends/aghq-s3-k2.rds: out.rds
   - naomi-simple_fit:
-      id: latest(parameter:aghq == TRUE && parameter:ndConstruction == "pca", parameter:s == 4, parameter:k == 2)
+      id: latest(parameter:aghq == TRUE && parameter:grid_type == "pca" && parameter:s == 4 && parameter:k == 2)
       use:
         depends/aghq-s4-k2.rds: out.rds
   - naomi-simple_fit:
-      id: latest(parameter:aghq == TRUE && parameter:ndConstruction == "pca", parameter:s == 5, parameter:k == 2)
+      id: latest(parameter:aghq == TRUE && parameter:grid_type == "pca" && parameter:s == 5 && parameter:k == 2)
       use:
         depends/aghq-s5-k2.rds: out.rds

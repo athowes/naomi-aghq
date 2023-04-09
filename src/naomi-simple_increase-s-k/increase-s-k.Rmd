@@ -11,9 +11,9 @@ output:
     code_folding: show
     theme: lumen
 abstract: |
-  **Background**
+  **Background** We have fit the Naomi model with a range of grids.
   
-  **Task**
+  **Task** How does changing the number of points per dimension $k$, or the number of dimensions of variation kept $s$ change the log normalising constant estimated?
 ---
 
 # Data import
@@ -21,9 +21,38 @@ abstract: |
 We start by reading in a selection of fitted PCA-AGHQ models:
 
 ```{r}
-s1k2 <- readRDS("aghq-s1-k2.rds")
-s2k2 <- readRDS("aghq-s2-k2.rds")
-s3k2 <- readRDS("aghq-s3-k2.rds")
-s4k2 <- readRDS("aghq-s4-k2.rds")
-s5k2 <- readRDS("aghq-s5-k2.rds")
+s1k2 <- readRDS("depends/aghq-s1-k2.rds")
+s2k2 <- readRDS("depends/aghq-s2-k2.rds")
+s3k2 <- readRDS("depends/aghq-s3-k2.rds")
+s4k2 <- readRDS("depends/aghq-s4-k2.rds")
+s5k2 <- readRDS("depends/aghq-s5-k2.rds")
+```
+# Table processing
+
+```{r}
+lognormconsts <- c(
+  s1k2$quad$normalized_posterior$lognormconst,
+  s2k2$quad$normalized_posterior$lognormconst,
+  s3k2$quad$normalized_posterior$lognormconst,
+  s4k2$quad$normalized_posterior$lognormconst,
+  s5k2$quad$normalized_posterior$lognormconst
+)
+
+df <- data.frame(
+  s = 1:5,
+  k = 2,
+  lognormconst = lognormconsts
+)
+
+write_csv(df, "increase-s-k.csv")
+```
+
+# Visualisation
+
+```{r}
+ggplot(df, aes(x = s, y = lognormconst)) +
+  geom_point() +
+  facet_grid(k ~ .) +
+  labs(x = "Dimensions kept of the PCA", y = "Log normalising constant") +
+  theme_minimal()
 ```

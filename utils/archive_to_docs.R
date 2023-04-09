@@ -37,3 +37,5 @@ archive_to_docs("plot-tikz_algorithm-flowchart")
 archive_to_docs("naomi-simple_mcmc")
 archive_to_docs("naomi-simple_compare")
 archive_to_docs("naomi-simple_model-checks")
+archive_to_docs("naomi-simple_increase-s-k")
+
