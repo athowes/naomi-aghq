@@ -56,3 +56,95 @@ if (control$numhessian) {
 
 #' This doesn't
 quad <- aghq(ff = ff, k = k, transformation = transformation, startingvalue = startingvalue, optresults = optresults, basegrid = basegrid, control = control)
+
+#' Debug the above
+# function(ff,k,startingvalue,transformation = default_transformation(),optresults = NULL,basegrid = NULL,control = default_control(),...) {
+ff <- ff
+k <- k
+transformation <- transformation
+startingvalue <- startingvalue
+optresults <- optresults
+basegrid <- basegrid
+control <- control
+
+validate_control(control)
+validate_transformation(transformation)
+transformation <- make_transformation(transformation)
+# ff <- make_moment_function(ff)
+# validate_moment(ff)
+
+print(paste0("The value of k is ", k))
+
+# Optimization
+if (is.null(optresults)) utils::capture.output(optresults <- aghq::optimize_theta(ff,startingvalue,control))
+
+print("Optimisation complete")
+
+# Normalization
+normalized_posterior <- aghq::normalize_logpost(optresults, k, basegrid = basegrid, ndConstruction = control$ndConstruction, dec.type = dec.type)
+
+print("Normalisation complete")
+
+if (control$onlynormconst) return(normalized_posterior$lognormconst)
+
+out <- list(
+  normalized_posterior = normalized_posterior,
+  # marginals = marginals,
+  optresults = optresults,
+  control = control,
+  transformation = transformation
+)
+
+class(out) <- "aghq"
+
+# Marginals
+
+d <- length(startingvalue)
+marginals <- vector(mode = "list",length = d)
+
+if (control$method_summaries[1] == 'correct') {
+  # Getting k = 2 again here
+  # It's because get_... uses levels[1]
+  # Change this to min(levels)
+  for (j in 1:d) marginals[[j]] <- aghq:::marginal_posterior.aghq(out,j,method = 'correct')
+} else {
+  for (j in 1:d) marginals[[j]] <- aghq:::marginal_posterior.aghq(out,j,method = 'reuse')
+}
+
+out$marginals <- marginals
+quad <- out
+
+## Add on the info needed for marginal Laplace ##
+# Add on the quad point modes and curvatures
+distinctthetas <- quad$normalized_posterior$nodesandweights[ ,grep('theta',colnames(quad$normalized_posterior$nodesandweights))]
+if (!is.data.frame(distinctthetas)) distinctthetas <- data.frame(theta1 = distinctthetas)
+
+modesandhessians <- distinctthetas
+if (is.null(thetanames)) {
+  thetanames <- colnames(distinctthetas)
+} else {
+  colnames(modesandhessians) <- thetanames
+  colnames(quad$normalized_posterior$nodesandweights)[grep('theta',colnames(quad$normalized_posterior$nodesandweights))] <- thetanames
+}
+
+modesandhessians$mode <- vector(mode = 'list',length = nrow(distinctthetas))
+modesandhessians$H <- vector(mode = 'list',length = nrow(distinctthetas))
+
+for (i in 1:nrow(distinctthetas)) {
+  # Get the theta
+  theta <- as.numeric(modesandhessians[i,thetanames])
+  # Set up the mode and hessian of the random effects. This happens when you run
+  # the TMB objective with a particular theta
+  ff$fn(theta)
+  # Now pull the mode and hessian. Have to be careful about scoping
+  mm <- ff$env$last.par
+  modesandhessians[i,'mode'] <- list(list(mm[ff$env$random]))
+  H <- ff$env$spHess(mm,random = TRUE)
+  H <- rlang::duplicate(H) # Somehow, TMB puts all evals of spHess in the same memory location.
+  modesandhessians[i,'H'] <- list(list(H))
+}
+
+quad$modesandhessians <- modesandhessians
+
+class(quad) <- c("marginallaplace","aghq")
+quad
