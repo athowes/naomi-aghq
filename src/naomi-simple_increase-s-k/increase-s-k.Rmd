@@ -49,18 +49,13 @@ stopifnot(nrow(s3k3$modesandhessians) == 3^3)
 # Table processing
 
 ```{r}
-lognormconsts <- c(
-  s1k2$normalized_posterior$lognormconst,
-  s2k2$normalized_posterior$lognormconst,
-  s3k2$normalized_posterior$lognormconst,
-  s4k2$normalized_posterior$lognormconst,
-  s5k2$normalized_posterior$lognormconst
-)
+k2 <- list(s1k2, s2k2, s3k2, s4k2, s5k2)
+k3 <- list(s1k3, s2k3, s3k3, s4k2, s5k3)
 
 df <- data.frame(
-  s = 1:5,
-  k = 2,
-  lognormconst = lognormconsts
+  s = rep(1:5, times = 2),
+  k = rep(2:3, each = 5),
+  lognormconst = sapply(c(k2, k2), function(x) x$normalized_posterior$lognormconst)
 )
 
 write_csv(df, "increase-s-k.csv")
@@ -71,7 +66,7 @@ write_csv(df, "increase-s-k.csv")
 ```{r}
 ggplot(df, aes(x = s, y = lognormconst)) +
   geom_point() +
-  facet_grid(k ~ .) +
+  facet_grid(. ~ k) +
   labs(x = "Dimensions kept of the PCA", y = "Log normalising constant") +
   theme_minimal()
 ```
