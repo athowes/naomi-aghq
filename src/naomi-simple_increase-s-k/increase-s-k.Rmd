@@ -18,24 +18,43 @@ abstract: |
 
 # Data import
 
-We start by reading in a selection of fitted PCA-AGHQ models:
+We start by reading in a selection of fitted PCA-AGHQ models.
+We only need the quadrature part of the returned object:
 
 ```{r}
-s1k2 <- readRDS("depends/aghq-s1-k2.rds")
-s2k2 <- readRDS("depends/aghq-s2-k2.rds")
-s3k2 <- readRDS("depends/aghq-s3-k2.rds")
-s4k2 <- readRDS("depends/aghq-s4-k2.rds")
-s5k2 <- readRDS("depends/aghq-s5-k2.rds")
+read_sk <- function(s, k) {
+  assign(paste0("s", s, "k", k), readRDS(paste0("depends/aghq-s", s, "-k", k, ".rds"))$quad, envir = parent.frame())
+}
+
+read_sk(s = 1, k = 2)
+read_sk(s = 2, k = 2)
+read_sk(s = 3, k = 2)
+read_sk(s = 4, k = 2)
+read_sk(s = 5, k = 2)
+
+read_sk(s = 1, k = 3)
+read_sk(s = 2, k = 3)
+read_sk(s = 3, k = 3)
+read_sk(s = 4, k = 3)
+read_sk(s = 5, k = 3)
 ```
+
+Check that a few of the runs have the correct number of grid points:
+
+```{r}
+stopifnot(nrow(s5k2$modesandhessians) == 2^5)
+stopifnot(nrow(s3k3$modesandhessians) == 3^3)
+```
+
 # Table processing
 
 ```{r}
 lognormconsts <- c(
-  s1k2$quad$normalized_posterior$lognormconst,
-  s2k2$quad$normalized_posterior$lognormconst,
-  s3k2$quad$normalized_posterior$lognormconst,
-  s4k2$quad$normalized_posterior$lognormconst,
-  s5k2$quad$normalized_posterior$lognormconst
+  s1k2$normalized_posterior$lognormconst,
+  s2k2$normalized_posterior$lognormconst,
+  s3k2$normalized_posterior$lognormconst,
+  s4k2$normalized_posterior$lognormconst,
+  s5k2$normalized_posterior$lognormconst
 )
 
 df <- data.frame(
