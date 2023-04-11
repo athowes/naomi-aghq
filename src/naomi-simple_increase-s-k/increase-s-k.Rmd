@@ -16,6 +16,24 @@ abstract: |
   **Task** How does changing the number of points per dimension $k$, or the number of dimensions of variation kept $s$ change the log normalising constant estimated?
 ---
 
+# What might be possible?
+
+```{r}
+k_seq <- seq(1, 15, by = 2)
+s_seq <- 1:10
+
+M <- matrix(0, length(k_seq), length(s_seq))
+
+for (i in 1:length(k_seq)) {
+	for (j in 1:length(s_seq)) {
+		M[i, j] <- k_seq[i]^(s_seq[j])
+  }
+}
+
+# Assume anything more than a million isn't possible
+M[M > 1e6] <- NA
+```
+
 # Data import
 
 We start by reading in a selection of fitted PCA-AGHQ models.
@@ -23,7 +41,7 @@ We only need the quadrature part of the returned object:
 
 ```{r}
 read_sk <- function(s, k) {
-  assign(paste0("s", s, "k", k), readRDS(paste0("depends/aghq-s", s, "-k", k, ".rds"))$quad, envir = parent.frame())
+  assign(paste0("s", s, "k", k), readRDS(paste0("depends/aghq-s", s, "-k", k, ".rds"))[c("quad", "time")], envir = parent.frame())
 }
 
 read_sk(s = 1, k = 2)
@@ -42,8 +60,8 @@ read_sk(s = 5, k = 3)
 Check that a few of the runs have the correct number of grid points:
 
 ```{r}
-stopifnot(nrow(s5k2$modesandhessians) == 2^5)
-stopifnot(nrow(s3k3$modesandhessians) == 3^3)
+stopifnot(nrow(s5k2$quad$modesandhessians) == 2^5)
+stopifnot(nrow(s3k3$quad$modesandhessians) == 3^3)
 ```
 
 # Table processing
@@ -55,7 +73,8 @@ k3 <- list(s1k3, s2k3, s3k3, s4k2, s5k3)
 df <- data.frame(
   s = rep(1:5, times = 2),
   k = rep(2:3, each = 5),
-  lognormconst = sapply(c(k2, k2), function(x) x$normalized_posterior$lognormconst)
+  lognormconst = sapply(c(k2, k3), function(x) x$quad$normalized_posterior$lognormconst),
+  time = sapply(c(k2, k3), function(x) x$time)
 )
 
 write_csv(df, "increase-s-k.csv")
@@ -68,5 +87,15 @@ ggplot(df, aes(x = s, y = lognormconst)) +
   geom_point() +
   facet_grid(. ~ k) +
   labs(x = "Dimensions kept of the PCA", y = "Log normalising constant") +
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(df, aes(x = s, y = time)) +
+  geom_point() +
+  facet_grid(. ~ k) +
+  scale_y_continuous(limits = c(0, NA)) +
+  labs(x = "Dimensions kept of the PCA", y = "Time (mins)") +
   theme_minimal()
 ```
