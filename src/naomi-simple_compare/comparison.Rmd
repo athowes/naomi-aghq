@@ -631,6 +631,10 @@ summary_ks_plot <- function(ks_summary, method1, method2) {
   densityplot + ridgeplot
 }
 
+ks_summary %>%
+  filter(Type != "Hyper") %>%
+  summary_ks_plot("TMB", "aghq")
+
 summary_ks_plot(ks_summary, "TMB", "aghq")
 summary_ks_plot(ks_summary, "TMB", "adam")
 summary_ks_plot(ks_summary, "aghq", "adam")
@@ -676,28 +680,28 @@ ks_comparison <- function(ks_summary, method1, method2, n) {
 }
 ```
 
-Nodes where `TMB` beats `adam`:
+Nodes where `TMB` beats `aghq`:
 
 ```{r}
-ks_comparison(ks_summary, method1 = "adam", method2 = "TMB", 10)
+ks_comparison(ks_summary, method1 = "aghq", method2 = "TMB", 10)
 ```
 
 ```{r}
+histogram_and_ecdf(par = "ui_anc_alpha_x", i = 18)
 histogram_and_ecdf(par = "u_alpha_xs", i = 18)
-histogram_and_ecdf(par = "u_alpha_xs", i = 29)
 histogram_and_ecdf(par = "ui_anc_alpha_x", i = 29)
 ```
 
-Nodes where `adam` beats `TMB`:
+Nodes where `aghq` beats `TMB`:
 
 ```{r}
-ks_comparison(ks_summary, method1 = "TMB", method2 = "adam", 10)  
+ks_comparison(ks_summary, method1 = "TMB", method2 = "aghq", 10)  
 ```
 
 ```{r}
-histogram_and_ecdf(par = "log_or_gamma", i = 18)
-histogram_and_ecdf(par = "ui_anc_rho_x", i = 10)
-histogram_and_ecdf(par = "log_or_gamma", i = 1)
+histogram_and_ecdf(par = "us_alpha_xs", i = 30)
+histogram_and_ecdf(par = "us_alpha_xs", i = 31)
+histogram_and_ecdf(par = "us_alpha_xs", i = 26)
 ```
 
 ## Correlation between KS values and ESS

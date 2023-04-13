@@ -49,18 +49,18 @@ depends:
       use:
         depends/tmb.rds: out.rds
   - naomi-simple_fit:
-      id: latest(parameter:aghq == TRUE && parameter:k == 1)
+      id: latest(parameter:aghq == TRUE && parameter:k == 3 && parameter:s == 8)
       use:
         depends/aghq.rds: out.rds
   - naomi-simple_fit:
       id: latest(parameter:adam == TRUE)
       use:
         depends/adam.rds: out.rds
-  - naomi-simple_fit:
-      id: latest(parameter:tmbstan == TRUE)
-      use:
-        depends/tmbstan.rds: out.rds
   # - naomi-simple_fit:
-  #     id: latest(parameter:tmbstan == TRUE && parameter:niter > 50000)
+  #     id: latest(parameter:tmbstan == TRUE)
   #     use:
   #       depends/tmbstan.rds: out.rds
+  - naomi-simple_fit:
+      id: latest(parameter:tmbstan == TRUE && parameter:niter > 50000)
+      use:
+        depends/tmbstan.rds: out.rds
