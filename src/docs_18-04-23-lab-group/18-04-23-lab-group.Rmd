@@ -1,0 +1,345 @@
+---
+title: "Deterministic Bayesian inference methods for the Naomi model"
+author: "Adam Howes"
+date: "April 2023"
+output:
+  beamer_presentation:
+    latex_engine: pdflatex
+    highlight: haddock
+    fig_width: 7
+    fig_height: 3
+    includes:
+      in_header: preamble.tex
+subtitle: HIV Inference Lab Group Meeting
+bibliography: citations.bib
+institute: Imperial College London
+---
+# The Naomi model
+
+:::::::::::::: {.columns}
+
+::: {.column width=.65}
+
+* Naomi is a complicated spatio-temporal evidence synthesis model
+* Used by countries to produce HIV estimates in a yearly process supported by UNAIDS
+* Fast inference is important to allow for interactive review and development of estimates
+* Inference for Naomi is currently conducted using Template Model Builder (`TMB`) [@kristensen2015tmb]
+
+:::
+
+::: {.column width=.35}
+
+```{r, echo=FALSE, fig.cap="A supermodel", out.width = '65%'}
+knitr::include_graphics("naomi_hex.png")
+```
+
+:::
+
+::::::::::::::
+
+# 
+
+```{r, echo=FALSE, fig.cap="Example of the user interface from \\texttt{https://naomi.unaids.org/}", out.width = '70%'}
+knitr::include_graphics("naomi_user.png")
+```
+
+# Why do we use `TMB`
+
+1. It runs quickly
+2. It is flexible enough to be compatible with the model
+3. We don't have better options
+
+# What problem we are trying to solve
+
+* Ideally we want exact Bayesian inference: compute the posterior distribution of the parameters of the model given the data
+* Computationally this amounts to solving a difficult integral
+* We can't solve this, but we can give approximate answers
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+
+Goal: approximate this integral for Naomi better than \texttt{TMB} does. In doing so, more accurately reflect uncertainty over hyperparameters
+
+\end{tcolorbox}
+\end{center}
+
+# Two deterministic methods
+
+* We use two deterministic^[In contrast to the most famous approximate Bayesian inference method, Markov chain Monte Carlo, which is fundamentally stochastic.] methods to approximate our integral
+
+1. The Laplace approximation
+2. Quadrature
+
+# The Laplace approximation
+
+* Pretend the posterior distribution is a Gaussian! Then it's easy
+
+#
+
+```{r message=FALSE, echo=FALSE,  fig.cap="A Gamma prior with $a = 3$ and $b = 1$."}
+cbpalette <- c("#56B4E9","#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
+
+a <- 3
+b <- 1
+
+prior <- ggplot(data = data.frame(x = c(0, 10)), aes(x)) +
+  stat_function(fun = dgamma, n = 500, args = list(shape = a, rate = b), col = cbpalette[1]) +
+  annotate("text", x = 6, y = 0.15, label = "Gamma(3, 1)", col = cbpalette[1], size = 5) +
+  labs(x = "", y = "") +
+  theme_minimal()
+  
+prior
+```
+
+#
+
+```{r message=FALSE, echo=FALSE,  fig.cap="Draw 3 points from $\\text{Poisson}(3)$, then compute the posterior."}
+set.seed(2)
+y <- rpois(3, lambda = 2)
+
+posterior <- prior +
+  geom_point(data = data.frame(x = y, y = 0), aes(x = x, y = y), inherit.aes = FALSE, alpha = 0.7, size = 2) +
+  stat_function(data = data.frame(x = c(0, 10)), aes(x), fun = dgamma, n = 500, args = list(shape = a + sum(y), rate = b + length(y)), col = cbpalette[2]) +
+  annotate("text", x = 5, y = 0.25, label = "Gamma(9, 4)", col = cbpalette[2], size = 5)
+
+posterior
+```
+
+#
+
+```{r message=FALSE}
+fn <- function(x) dgamma(x, a + sum(y), b + length(y), log = TRUE)
+
+# Here we are using numerical derivatives
+ff <- list(
+  fn = fn,
+  gr = function(x) numDeriv::grad(fn, x),
+  he = function(x) numDeriv::hessian(fn, x)
+)
+
+opt_bfgs <- aghq::optimize_theta(
+  ff, 1, control = aghq::default_control(method = "BFGS")
+)
+```
+
+# Laplace approximation
+
+```{r}
+laplace <- posterior +
+  stat_function(
+    data = data.frame(x = c(0, 10)),
+    aes(x),
+    fun = dnorm,
+    n = 500,
+    args = list(mean = opt_bfgs$mode, sd = sqrt(1 / opt_bfgs$hessian)),
+    col = cbpalette[3]
+  )
+```
+
+# Laplace approximation
+
+```{r message=FALSE, echo=FALSE,  fig.cap="The Laplace approximation in this case is good near the mode but not in the tails."}
+laplace +
+  annotate("text", x = 5.5, y = 0.35, label = "Laplace approximation", col = cbpalette[3], size = 5)
+```
+
+# Computation of the Laplace approximation
+
+* This computation was simple, and involved
+
+1. Optimising a function to obtain `opt_bfgs`
+2. Taking the mode `opt_bfgs$mode` and the Hessian at the mode `opt_bfgs$hessian`
+
+# The marginal Laplace approximation
+
+* If we don't want to pretend the whole posterior distribution is Gaussian, another option is to pretend some of its marginals are
+* This is how `TMB` works: it's up to the user to choose which parameters should be Gaussian using the `random` option
+
+# Small interlude
+
+* In spatio-temporal statistics we have data indexed by space and time
+* To model this data, we use random effects also indexed by space and time
+* There might be a lot of spatio-temporal locations
+
+# What about the hyperparameters?
+
+* `TMB` uses optimisation to find the hyperparameters which maximise the marginal Laplace approximation
+* This is the "outer" optimisation loop, where the "inner" is for computation of the Gaussian distribution
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+
+Inference for the latent field is based on a single value of the hyperparameters (the mode) -- so called empirical Bayes $\implies$ no uncertainty in the hyperparameters taken into account! How can you sleep at night.
+
+\end{tcolorbox}
+\end{center}
+
+# Quadrature
+
+* This brings us to our other method for solving integrals deterministically
+* Say we have a function, then quadrature has two ingredients
+
+1. Nodes: points to evaluate the function at
+2. Weights: importance of function evaluation at that point
+
+# Trapezoid rule example
+
+* Let's compute $\int_0^\pi \sin(x) \text{d}x = 2$ using quadrature
+
+```{r}
+trapezoid_rule <- function(x, spacing) {
+  # Assumes nodes are evenly spaced
+  w <- rep(spacing, length(x)) # Weights given by space between nodes
+  w[1] <- w[1] / 2 # Apart from the first which is halved
+  w[length(x)] <- w[length(x)] / 2 # And the last, also halved
+  sum(w * x) # Compute the weighted sum
+}
+```
+
+#
+
+```{r message=FALSE, echo=FALSE,  fig.cap="With 10 nodes it's 0.02 off."}
+finegrid <- seq(0, pi, length.out = 1000)
+
+plot <- data.frame(x = finegrid, y = sin(finegrid)) %>%
+  ggplot(aes(x = x, y = y)) +
+   geom_line(col = cbpalette[1]) +
+   theme_minimal() +
+   labs(x = "x", y = "sin(x)")
+
+trapezoid_plot <- function(N) {
+  grid <- seq(0, pi, length.out = N)
+  int <- trapezoid_rule(x = sin(grid), spacing = grid[2] - grid[1])
+
+  plot + 
+    geom_bar(
+      data = data.frame(x = grid, y = sin(grid)),
+      aes(x = x, y = y), alpha = 0.7, stat = "identity",
+      inherit.aes = FALSE, fill = cbpalette[2]) +
+    theme_minimal() +
+    labs(
+      subtitle = paste0("Number of nodes: ", N, "\nTrapezoid rule estimate: ", round(int, 3), "\nTruth: 2"),
+      x = "x", y = "sin(x)"
+    )
+}
+
+trapezoid_plot(N = 10)
+```
+
+#
+
+```{r message=FALSE, echo=FALSE, fig.cap="With 30 nodes it's 0.002 off."}
+trapezoid_plot(N = 30)
+```
+
+#
+
+```{r message=FALSE, echo=FALSE, fig.cap="With 100 nodes it's pretty much correct."}
+trapezoid_plot(N = 100)
+```
+
+# Adaptive Gauss-Hermite quadrature
+
+* Gauss-Hermite quadrature is a method for picking nodes and weights based on the theory of polynomial interpolation
+* It works especially well for statistical problems where the integrand looks like something multiplied by a Gaussian distribution
+* The "adaptive" part means the nodes and weights are changed depending on the integrand. This makes sense, especially when the integrand is also a function of the data
+* Implemented by the `aghq` package [@stringer2021implementing]
+
+# 
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Unadapted points in two dimensions with $k = 3$."}
+mu <- c(1, 1.5)
+cov <- matrix(c(2, 1, 1, 1), ncol = 2)
+
+obj <- function(theta) {
+  mvtnorm::dmvnorm(theta, mean = mu, sigma = cov)
+}
+
+grid <- expand.grid(
+  theta1 = seq(-2, 5, length.out = 700),
+  theta2 = seq(-2, 5, length.out = 700)
+)
+
+ground_truth <- cbind(grid, pdf = obj(grid))
+
+plot0 <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
+  geom_contour(col = cbpalette[1]) +
+  coord_fixed(xlim = c(-2, 4.5), ylim = c(-2, 4.5), ratio = 1) +
+  labs(x = "", y = "") +
+  theme_minimal()
+
+gg <- mvQuad::createNIGrid(2, "GHe", 3)
+
+add_points <- function(plot0, gg) {
+  plot0 +
+    geom_point(
+      data = mvQuad::getNodes(gg) %>%
+              as.data.frame() %>%
+              mutate(weights = mvQuad::getWeights(gg)), 
+      aes(x = V1, y = V2, size = weights),
+      alpha = 0.8,
+      col = cbpalette[2],
+      inherit.aes = FALSE
+    ) +
+    scale_size_continuous(range = c(1, 2))
+}
+
+add_points(plot0, gg) +
+  labs(size = "Weight", caption = "")
+```
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Add the mean $z + \\hat \\theta$."}
+gg2 <- gg
+mvQuad::rescale(gg2, m = mu, C = diag(c(1, 1)), dec.type = 2)
+
+add_points(plot0, gg2) +
+  labs(size = "Weight", caption = "")
+```
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="First option: rotate by the lower Cholesky $Lz + \\hat \\theta$."}
+gg3 <- gg
+mvQuad::rescale(gg3, m = mu, C = cov, dec.type = 2)
+
+add_points(plot0, gg3) +
+  labs(size = "Weight", caption = "")
+```
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Second option: rotate using the eigendecomposition $E \\Lambda^{1/2} z + \\hat \\theta$."}
+gg3 <- gg
+mvQuad::rescale(gg3, m = mu, C = cov, dec.type = 1)
+
+add_points(plot0, gg3) +
+  labs(size = "Weight", caption = "")
+```
+
+# The plan
+
+* Write and implement an algorithm for fast approximate Bayesian inference using the Laplace approximation and quadrature for the Naomi model
+* Use `TMB` for writing the model in C++ and implementing the Laplace approximation via automatic differentitation
+* Use a adaptive Gauss-Hermite quadrature to integrate the hyperparameters
+
+# Long prophecised
+
+> My main comment is that several aspects of the computational machineery that is presented by Rue and his colleagues **could benefit from the use of a numerical technique known as automatic differentiation (AD)** ... By the use of AD one could obtain a system that is automatic from a user's perspective... the benefit would be a fast, flexible and easy-to-use system for doing Bayesian analysis in models with Gaussian latent variables 
+
+-- Hans J. Skaug (coauthor of `TMB`), RSS discussion of @rue2009approximate
+
+# One challenge
+
+* For Malawi, Naomi has 24 hyperparameters: too many for a dense grid
+* Proposed solution: use principle components analysis
+
+# Thanks for listening!
+
+* Working on a paper "Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model" based on this work
+  * Joint with Alex Stringer (Waterloo), Seth Flaxman (Oxford), Jeff Eaton (Imperial)
+* Let me know if you'd be up for being an early reader!
+* Code for this project is at `athowes.github.io/elgm-inf`
+
+# References {.allowframebreaks}

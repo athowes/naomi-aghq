@@ -1,5 +1,5 @@
 ---
-title: "Deterministic Bayesian inference methods for the Naomi model"
+title: "Deterministic Bayesian inference methods for the Naomi model but make it verbose"
 author: "Adam Howes"
 date: "April 2023"
 output:
@@ -10,7 +10,7 @@ output:
     fig_height: 3
     includes:
       in_header: preamble.tex
-subtitle: HIV Inference Lab Group Meeting
+subtitle: Preseneted to some future mathematical audience
 bibliography: citations.bib
 institute: Imperial College London
 ---
@@ -97,38 +97,38 @@ trapezoid_plot(N = 30)
 trapezoid_plot(N = 100)
 ```
 
-# Monte Carlo as it relates to numerical integration
+<!-- # Monte Carlo as it relates to numerical integration -->
 
-* Suppose we can sample $\vartheta_i \sim p(y, \vartheta)$ for $i = 1, \ldots, N$
-* The Monte Carlo (MC) estimate is
-$$
-\tilde p(y) = \frac{1}{N} \sum_i p(y, \vartheta_i)
-$$
-which is quadrature with the samples as nodes and $\omega(\vartheta_i) = 1/N$ for all $i$
-* For complicated models^[Or not even that complicated] it's not possible to sample directly from $p(y, \vartheta)$, but we can usually sample from a Markov chain (MCMC)
+<!-- * Suppose we can sample $\vartheta_i \sim p(y, \vartheta)$ for $i = 1, \ldots, N$ -->
+<!-- * The Monte Carlo (MC) estimate is -->
+<!-- $$ -->
+<!-- \tilde p(y) = \frac{1}{N} \sum_i p(y, \vartheta_i) -->
+<!-- $$ -->
+<!-- which is quadrature with the samples as nodes and $\omega(\vartheta_i) = 1/N$ for all $i$ -->
+<!-- * For complicated models^[Or not even that complicated] it's not possible to sample directly from $p(y, \vartheta)$, but we can usually sample from a Markov chain (MCMC) -->
 
-# Monte Carlo is fundamentally unsound
+<!-- # Monte Carlo is fundamentally unsound -->
 
-* "Monte Carlo ignores information" according to @o1987monte
-* Suppose $N = 3$ and we sample $\vartheta_1, \vartheta_2, \vartheta_3$ with $\vartheta_2 = \vartheta_3$ then our MC estimate is
-$$
-\tilde p(y) = \frac{1}{3} \left( p(y, \vartheta_1) + p(y, \vartheta_2) + p(y, \vartheta_3) \right)
-$$
-* This is despite the fact that nothing new about the function has been learned by adding $\{\vartheta_3, p(y, \vartheta_3)\}$
+<!-- * "Monte Carlo ignores information" according to @o1987monte -->
+<!-- * Suppose $N = 3$ and we sample $\vartheta_1, \vartheta_2, \vartheta_3$ with $\vartheta_2 = \vartheta_3$ then our MC estimate is -->
+<!-- $$ -->
+<!-- \tilde p(y) = \frac{1}{3} \left( p(y, \vartheta_1) + p(y, \vartheta_2) + p(y, \vartheta_3) \right) -->
+<!-- $$ -->
+<!-- * This is despite the fact that nothing new about the function has been learned by adding $\{\vartheta_3, p(y, \vartheta_3)\}$ -->
 
-# Application to HIV survey sampling
+<!-- # Application to HIV survey sampling -->
 
-* This is a digression but...
-* Say we're running a household survey, and sample the same individual twice
-* We didn't learn anything new about HIV by surveying them again!
-* This doesn't just bite for nodes or individuals which are exactly the same: an analogous argument can be made if they are close together and we expect their function evaluations to be similar
+<!-- * This is a digression but... -->
+<!-- * Say we're running a household survey, and sample the same individual twice -->
+<!-- * We didn't learn anything new about HIV by surveying them again! -->
+<!-- * This doesn't just bite for nodes or individuals which are exactly the same: an analogous argument can be made if they are close together and we expect their function evaluations to be similar -->
 
-\begin{center}
-\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
-$\implies$ Bayesian quadrature, Bayesian survey design \\
-For some half-baked thoughts, see \texttt{athowes.github.io/fourth-gen/paper.pdf}
-\end{tcolorbox}
-\end{center}
+<!-- \begin{center} -->
+<!-- \begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}] -->
+<!-- $\implies$ Bayesian quadrature, Bayesian survey design \\ -->
+<!-- For some half-baked thoughts, see \texttt{athowes.github.io/fourth-gen/paper.pdf} -->
+<!-- \end{tcolorbox} -->
+<!-- \end{center} -->
 
 # Curse of dimensionality
 
