@@ -54,6 +54,7 @@ run_pca_aghq <- function(k, s) {
   orderly::orderly_commit(id)
 }
 
+#' Runs for scoping out times
 run_pca_aghq(k = 2, s = 1) #' [x]
 run_pca_aghq(k = 2, s = 2) #' [x]
 run_pca_aghq(k = 2, s = 3) #' [x]
@@ -71,6 +72,10 @@ run_pca_aghq(k = 5, s = 2) #' [x]
 run_pca_aghq(k = 5, s = 3) #' [x]
 run_pca_aghq(k = 5, s = 4) #' [x]
 run_pca_aghq(k = 5, s = 5) #' [x]
+
+#' Runs I think could be actually good
+run_pca_aghq(k = 3, s = 7) #' [x]
+run_pca_aghq(k = 3, s = 8) #' [x]
 
 run_commit_push("naomi-simple_increase-s-k")
 
