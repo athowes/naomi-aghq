@@ -97,7 +97,7 @@ df <- data.frame(
   s = rep(1:5, times = 3),
   k = rep(c(2, 3, 5), each = 5),
   lognormconst = c(k2_lognormconsts, k3_lognormconsts, k5_lognormconsts),
-  time = c(k2_times, k3_times, k5_times),
+  time = c(k2_times, k3_times, k5_times)
 )
 
 write_csv(df, "increase-s-k.csv")
