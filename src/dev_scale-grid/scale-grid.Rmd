@@ -77,7 +77,10 @@ C_plot <- C_df %>%
   scale_fill_viridis_c() +
   labs(x = "i", y = "j") +
   theme_minimal() +
-  theme(axis.text.x = element_blank())
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank()
+  )
 
 C_plot
 ```
@@ -169,7 +172,7 @@ Now let's fit the model with `aghq`, and time how long it takes:
 
 ```{r}
 start <- Sys.time()
-quad <- fit_aghq(tmb_inputs, basegrid = base_grid)
+quad <- fit_aghq(tmb_inputs, k = 1, basegrid = base_grid)
 end <- Sys.time()
 
 end - start
@@ -270,13 +273,15 @@ tv_df <- data.frame(
   tv = cumsum(lambda / sum(lambda))
 )
 
-ggplot(tv_df, aes(x = n, y = tv)) +
+(tv_plot <- ggplot(tv_df, aes(x = n, y = tv)) +
   geom_point() +
   geom_hline(yintercept = 0.9, col = "grey", linetype = "dashed") +
   annotate("text", x = 20, y = 0.875, label = "90% of total variation explained", col = "grey") +
   scale_y_continuous(labels = scales::percent) +
   labs(x = "PCA dimensions included", y = "Total variation explained") +
-  theme_minimal()
+  theme_minimal())
+
+ggsave("tv-plot.png", plot = tv_plot, h = 4, w = 6.25)
 ```
 
 Based on Figure \@ref(fig:scree) with 5 dimensions included, we can explain `r round(100 * filter(tv_df, n == 5) %>% pull(tv), 1)`% of the total variation.
@@ -296,16 +301,16 @@ reshape2::melt(as.matrix(E)) %>%
 
 ## Keeping a smaller number of dimensions
 
-Let's start by keeping `s = 5` dimensions.
-We can create a dense GHQ grid with `k = 2` on 5 dimensions.
+Let's start by keeping `s = 8` dimensions.
+We can create a dense GHQ grid with `k = 3` on 8 dimensions.
 
 ```{r}
-s <- 5
+s <- 8
 d <- dim(E)[1]
-gg_s <- mvQuad::createNIGrid(dim = s, type = "GHe", level = 2) 
+gg_s <- mvQuad::createNIGrid(dim = s, type = "GHe", level = 3) 
 ```
 
-This grid has $2^5 = 32$ nodes:
+This grid has $3^8 = 6561$ nodes:
 
 ```{r}
 (n_nodes <- nrow(mvQuad::getNodes(gg_s)))
@@ -319,7 +324,7 @@ Lambda_s <- Lambda[1:s, 1:s]
 C_s <- E_s %*% Lambda_s %*% t(E_s)
 
 C_s_plot <- reshape2::melt(as.matrix(C_s)) %>%
-  ggplot(aes(x = Var1, y = Var2, fill = value)) +
+  ggplot(aes(x = as.factor(Var1), y = as.factor(Var2), fill = value)) +
   labs(x = "", y = "", fill = "C_s[i, j]") +
   geom_tile() +
   scale_fill_viridis_c() +
@@ -328,10 +333,12 @@ C_s_plot <- reshape2::melt(as.matrix(C_s)) %>%
   theme(
     axis.text.x = element_blank(),
     axis.text.y = element_blank(),
-    legend.position = "bottom"
+    legend.position = "none"
   )
 
-{C_plot + theme(legend.position = "bottom")} + C_s_plot
+(reduced_rank_plot <- {C_plot + theme(legend.position = "none") + labs(subtitle = "Full rank")} + {C_s_plot + labs(subtitle = "Reduced rank")})
+
+ggsave("reduced-rank-plot.png", reduced_rank_plot, h = 4, w = 6.25)
 ```
 
 Create a function to do the PCA rescaling, which also adapts according to the mean and reweights the nodes:
@@ -363,8 +370,6 @@ pca_rescale <- function(m, C, s, k) {
   return(gg)
 }
 ```
-
-Adaptive Gauss-Hermite quadrature involves
 
 ## Testing with simple examples
 

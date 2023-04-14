@@ -47,7 +47,7 @@ knitr::include_graphics("naomi_user.png")
 
 1. It runs quickly
 2. It is flexible enough to be compatible with the model
-3. We don't have better options
+3. We don't have better viable options
 
 # What problem we are trying to solve
 
@@ -58,7 +58,7 @@ knitr::include_graphics("naomi_user.png")
 \begin{center}
 \begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
 
-Goal: approximate this integral for Naomi better than \texttt{TMB} does. In doing so, more accurately reflect uncertainty over hyperparameters
+Goal: approximate this integral for Naomi better than \texttt{TMB} does, without taking too long. In doing so, more accurately reflect uncertainty over hyperparameters
 
 \end{tcolorbox}
 \end{center}
@@ -72,7 +72,7 @@ Goal: approximate this integral for Naomi better than \texttt{TMB} does. In doin
 
 # The Laplace approximation
 
-* Pretend the posterior distribution is a Gaussian! Then it's easy
+* If you pretend the posterior distribution is a Gaussian, computation is easy
 
 #
 
@@ -147,19 +147,28 @@ laplace +
 
 * This computation was simple, and involved
 
-1. Optimising a function to obtain `opt_bfgs`
-2. Taking the mode `opt_bfgs$mode` and the Hessian at the mode `opt_bfgs$hessian`
+1. Optimising a function
+2. Taking the mode and the Hessian at the mode
 
 # The marginal Laplace approximation
 
 * If we don't want to pretend the whole posterior distribution is Gaussian, another option is to pretend some of its marginals are
 * This is how `TMB` works: it's up to the user to choose which parameters should be Gaussian using the `random` option
 
-# Small interlude
+# Which parameters should we treat as Gaussian?
 
 * In spatio-temporal statistics we have data indexed by space and time
-* To model this data, we use random effects also indexed by space and time
-* There might be a lot of spatio-temporal locations
+* We use random effects also indexed by space and time to model this data
+* Spatio-temporal fields can be big
+* Willing to make assumptions about how things vary over spacetime
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+
+$\implies$ treat the latent field parameters as Gaussian! That's the majority of the integral done.
+
+\end{tcolorbox}
+\end{center}
 
 # What about the hyperparameters?
 
@@ -181,6 +190,8 @@ Inference for the latent field is based on a single value of the hyperparameters
 
 1. Nodes: points to evaluate the function at
 2. Weights: importance of function evaluation at that point
+
+* You evaluate the function at the nodes, then do a weighted sum to calculate your integral
 
 # Trapezoid rule example
 
@@ -242,7 +253,7 @@ trapezoid_plot(N = 100)
 
 * Gauss-Hermite quadrature is a method for picking nodes and weights based on the theory of polynomial interpolation
 * It works especially well for statistical problems where the integrand looks like something multiplied by a Gaussian distribution
-* The "adaptive" part means the nodes and weights are changed depending on the integrand. This makes sense, especially when the integrand is also a function of the data
+* The "adaptive" part means the nodes and weights are changed depending on the integrand -- this makes sense, especially when the integrand is also a function of the data
 * Implemented by the `aghq` package [@stringer2021implementing]
 
 # 
@@ -318,11 +329,27 @@ add_points(plot0, gg3) +
   labs(size = "Weight", caption = "")
 ```
 
-# The plan
+# The plan?
+
+:::::::::::::: {.columns}
+
+::: {.column width=.55}
 
 * Write and implement an algorithm for fast approximate Bayesian inference using the Laplace approximation and quadrature for the Naomi model
 * Use `TMB` for writing the model in C++ and implementing the Laplace approximation via automatic differentitation
-* Use a adaptive Gauss-Hermite quadrature to integrate the hyperparameters
+* Use adaptive Gauss-Hermite quadrature to integrate the hyperparameters
+
+:::
+
+::: {.column width=.45}
+
+```{r, echo=FALSE, fig.cap="One of the best engineering schools in Canada", out.width = '90%'}
+knitr::include_graphics("the-plan.png")
+```
+
+:::
+
+::::::::::::::
 
 # Long prophecised
 
@@ -333,13 +360,68 @@ add_points(plot0, gg3) +
 # One challenge
 
 * For Malawi, Naomi has 24 hyperparameters: too many for a dense grid
-* Proposed solution: use principle components analysis
+* Proposed solution use principal components analysis and keep only first $s < 24$ dimensions
+* We will use $k = 3$ points per dimension
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Illustration of what this looks like for the 2D example, keeping only the first principal component, $s = 1$."}
+gg3 <- gg
+mvQuad::rescale(gg3, m = mu, C = cov, dec.type = 2)
+
+add_points(plot0, gg3) +
+  labs(size = "Weight", caption = "")
+```
+
+#
+
+```{r, echo=FALSE, fig.cap="This Scree plot suggests 10 or so dimensions is enough. We use $s = 8$.", out.width = '80%'}
+knitr::include_graphics("depends/tv-plot.png")
+```
+
+# 
+
+```{r, echo=FALSE, fig.cap="With 8 dimenions, the covariance matrix is accurately reproduced.", out.width = '80%'}
+knitr::include_graphics("depends/reduced-rank-plot.png")
+```
+
+# Comparison of posterior distributions
+
+* Use test data from Malawi
+* Run HMC for as long as it takes to get a good answer
+* Compare output of `TMB` with `aghq`: which is more similar to HMC?
+* There are many ways you might do this: I'll show you Kolmogorov-Smirnov test results
+
+#
+
+Worse case TMB plot demonstrating KS test
+
+#
+
+Overall KS results plot
+
+
+# Conclusions 
 
 # Thanks for listening!
 
 * Working on a paper "Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model" based on this work
   * Joint with Alex Stringer (Waterloo), Seth Flaxman (Oxford), Jeff Eaton (Imperial)
-* Let me know if you'd be up for being an early reader!
-* Code for this project is at `athowes.github.io/elgm-inf`
+* Code and notebooks for this project are at `athowes.github.io/elgm-inf`
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+
+Let me know if you'd be up for being an early reader!
+
+\end{tcolorbox}
+\end{center}
+
+# Risk group retrospective
+
+```{r, echo=FALSE, fig.cap="Available at \\texttt{athowes.github.io}", out.width = '90%'}
+knitr::include_graphics("blog-post.png")
+```
+
 
 # References {.allowframebreaks}

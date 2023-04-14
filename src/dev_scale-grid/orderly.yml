@@ -18,6 +18,11 @@ artefacts:
       description: Application to astronomy example
       filenames:
         - astro.html
+  - data:
+      description: Plots
+      filenames:
+        - tv-plot.png
+        - reduced-rank-plot.png
 
 packages:
   - dplyr

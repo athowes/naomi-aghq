@@ -10,6 +10,8 @@ resources:
   - 18-04-23-lab-group.Rmd
   - naomi_hex.png
   - naomi_user.png
+  - the-plan.png
+  - blog-post.png
   - preamble.tex
   - citations.bib
 
@@ -24,7 +26,8 @@ packages:
   - kableExtra
 
 depends:
-  example_inla-grid:
+  dev_scale-grid:
     id: latest
     use:
-      depends/inla-grid.pdf: inla-grid.pdf
+      depends/tv-plot.png: tv-plot.png
+      depends/reduced-rank-plot.png: reduced-rank-plot.png
