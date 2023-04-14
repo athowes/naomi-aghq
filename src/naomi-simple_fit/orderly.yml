@@ -70,16 +70,17 @@ packages:
   - sf
   - naomi
 
-depends:
-  - naomi-simple_compare:
-      id: latest
-      use:
-        depends/beta_rho.rds: beta_rho.rds
-  - naomi-simple_fit:
-      id: latest(parameter:aghq == TRUE && parameter:k == 1)
-      use:
-        depends/aghq.rds: out.rds
-  - naomi-simple_fit:
-      id: latest(parameter:adam == TRUE)
-      use:
-        depends/adam.rds: out.rds
+# These have been used for debugging
+# depends:
+#   - naomi-simple_compare:
+#       id: latest
+#       use:
+#         depends/beta_rho.rds: beta_rho.rds
+#   - naomi-simple_fit:
+#       id: latest(parameter:aghq == TRUE && parameter:k == 1)
+#       use:
+#         depends/aghq.rds: out.rds
+#   - naomi-simple_fit:
+#       id: latest(parameter:adam == TRUE)
+#       use:
+#         depends/adam.rds: out.rds
