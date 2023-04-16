@@ -23,7 +23,7 @@ institute: Imperial College London
 * Naomi is a complicated spatio-temporal evidence synthesis model
 * Used by countries to produce HIV estimates in a yearly process supported by UNAIDS
 * Fast inference is important to allow for interactive review and development of estimates
-* Inference for Naomi is currently conducted using Template Model Builder (`TMB`) [@kristensen2015tmb]
+* Inference for Naomi is currently conducted using Template Model Builder (`TMB`) [@kristensen2016tmb]
 
 :::
 
@@ -336,14 +336,14 @@ add_points(plot0, gg3) +
 ::: {.column width=.55}
 
 * Write and implement an algorithm for fast approximate Bayesian inference using the Laplace approximation and quadrature for the Naomi model
-* Use `TMB` for writing the model in C++ and implementing the Laplace approximation via automatic differentitation
+* Use `TMB` for writing the model in C++, and implementing the Laplace approximation via automatic differentitation
 * Use adaptive Gauss-Hermite quadrature to integrate the hyperparameters
 
 :::
 
 ::: {.column width=.45}
 
-```{r, echo=FALSE, fig.cap="One of the best engineering schools in Canada", out.width = '90%'}
+```{r, echo=FALSE, fig.cap="I attended one of the best engineering schools in Canada", out.width = '90%'}
 knitr::include_graphics("the-plan.png")
 ```
 
@@ -360,22 +360,22 @@ knitr::include_graphics("the-plan.png")
 # One challenge
 
 * For Malawi, Naomi has 24 hyperparameters: too many for a dense grid
-* Proposed solution use principal components analysis and keep only first $s < 24$ dimensions
-* We will use $k = 3$ points per dimension
+* One proposed solution is to use principal components analysis (PCA) and keep only the first $s < 24$ dimensions
+* We will use $k = 3$ points per dimension ($k = 2$ doesn't include the mode)
 
 #
 
-```{r, echo=FALSE, message=FALSE, fig.cap="Illustration of what this looks like for the 2D example, keeping only the first principal component, $s = 1$."}
-gg3 <- gg
-mvQuad::rescale(gg3, m = mu, C = cov, dec.type = 2)
+```{r, echo=FALSE, message=FALSE, fig.cap="Illustration of what PCA-AGHQ looks like for the 2D example, keeping only the first principal component, $s = 1$."}
+gg4 <- gg
+mvQuad::rescale(gg4, m = mu, C = cov, dec.type = 1, levels = c(3, 1))
 
-add_points(plot0, gg3) +
+add_points(plot0, gg4) +
   labs(size = "Weight", caption = "")
 ```
 
 #
 
-```{r, echo=FALSE, fig.cap="This Scree plot suggests 10 or so dimensions is enough. We use $s = 8$.", out.width = '80%'}
+```{r, echo=FALSE, fig.cap="This Scree plot suggests 10 or so dimensions is enough. We use $s = 8$. Avoiding long computation times is still important.", out.width = '80%'}
 knitr::include_graphics("depends/tv-plot.png")
 ```
 
@@ -387,10 +387,10 @@ knitr::include_graphics("depends/reduced-rank-plot.png")
 
 # Comparison of posterior distributions
 
-* Use test data from Malawi
-* Run HMC for as long as it takes to get a good answer
+* We run HMC for as long as it takes to get a good answer (around 3 days)
 * Compare output of `TMB` with `aghq`: which is more similar to HMC?
-* There are many ways you might do this: I'll show you Kolmogorov-Smirnov test results
+* There are many ways you might compare posterior distributions
+* We'll show Kolmogorov-Smirnov test results here
 
 #
 
@@ -400,13 +400,23 @@ Worse case TMB plot demonstrating KS test
 
 Overall KS results plot
 
+# Conclusions
 
-# Conclusions 
+* Developed an approximate Bayesian inference method more accurate than `TMB` and faster than MCMC
+* Scaled hyperparameter grid to >20 dimesions using PCA
+* Relatively straightforward implementation using the `aghq` R package
+
+# Future work
+
+* More comprehensive inference comparison, particularly of model outputs
+  * Maximum mean discrepancy
+  * Pareto-smoothed importance sampling
+* Extension to Laplace marginals via @wood2020simplified
+  * May be more accurate, but have to think about computational costs
 
 # Thanks for listening!
 
-* Working on a paper "Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model" based on this work
-  * Joint with Alex Stringer (Waterloo), Seth Flaxman (Oxford), Jeff Eaton (Imperial)
+* Working on a paper based on this work called "Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model" joint with Alex Stringer (Waterloo), Seth Flaxman (Oxford), Jeff Eaton (Imperial)
 * Code and notebooks for this project are at `athowes.github.io/elgm-inf`
 
 \begin{center}
@@ -422,6 +432,5 @@ Let me know if you'd be up for being an early reader!
 ```{r, echo=FALSE, fig.cap="Available at \\texttt{athowes.github.io}", out.width = '90%'}
 knitr::include_graphics("blog-post.png")
 ```
-
 
 # References {.allowframebreaks}
