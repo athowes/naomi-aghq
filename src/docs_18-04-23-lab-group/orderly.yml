@@ -11,6 +11,10 @@ resources:
   - naomi_hex.png
   - naomi_user.png
   - the-plan.png
+  - beta-alpha-histogram.png
+  - ecdf-plot.png
+  - ecdf-diff-plot.png
+  - ks-density-plot.png
   - blog-post.png
   - preamble.tex
   - citations.bib
