@@ -37,7 +37,7 @@ affiliation:
     name: MRC Centre for Global Infectious Disease Analysis, School of Public Health, Imperial College London
     authorsLabels: e4
 abstract: |
-  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of policy interest, including HIV prevalence, HIV incidence and antiretroviral therapy treatment coverage, are jointly modelled using both household survey data and routinely reported health system data. Inference for Naomi is currently conducted using an empirical Bayes Gaussian approximation via the \texttt{TMB} \textsc{R} package. We propose a new inference method combining adaptive Gauss-Hermite quadrature together with the simplified integrated nested Laplace approximation approach of @wood2020simplified to enable fast and accurate inference for Naomi and other extended latent Gaussian models. Using data from Malawi, our method provides more accurate inferences than \texttt{TMB}, and is comparable to Hamiltonian Monte Carlo with the No-U-Turn sampler, but faster to run. By extending the \texttt{aghq} \textsc{R} package we facilitate easy, flexible use of our method when provided a \texttt{TMB} \textsf{C++} template for the model's log-posterior. In doing so, we enable inference via integrated nested Laplace approximations for a larger class of models than was previously possible.
+  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of policy interest, including HIV prevalence, HIV incidence, and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. Inference for Naomi is currently conducted using an empirical Bayes Gaussian approximation via the \texttt{TMB} \textsc{R} package. We propose a new inference method combining adaptive Gauss-Hermite quadrature together with the simplified integrated nested Laplace approximation approach of @wood2020simplified to enable fast and accurate inference for Naomi and other extended latent Gaussian models. Using data from Malawi, our method provides more accurate inferences than \texttt{TMB}, and is comparable to Hamiltonian Monte Carlo with the No-U-Turn sampler, but faster to run. By extending the \texttt{aghq} \textsc{R} package we facilitate easy, flexible use of our method when provided a \texttt{TMB} \textsf{C++} template for the model's log-posterior. In doing so, we enable inference via integrated nested Laplace approximations for a larger class of models than was previously possible.
 keyword-subclass: | 
  \begin{keyword}[class=MSC2020] % It must be define for aap, aop, aos journals. For aoas, sts is not used
  \kwd[Primary ]{00X00}
@@ -71,6 +71,10 @@ output:
 <!-- * [ ] Write section on AGHQ, tying together connection to Laplace for k = 1 -->
 <!-- * [ ] Move algorithm to algorithm environment -->
 
+<!-- Seth notes that Naomi is a spatial evidence synthesis model used to produce district- level HIV epidemic indicators in sub-Saharan Africa is not the right topic sentence for the abstract -->
+<!-- Better to lead with something about the inference method? -->
+
+
 ```{r echo = FALSE}
 options(scipen = 100)
 
@@ -90,11 +94,12 @@ knitr::opts_chunk$set(
 
 # Introduction
 
-To mount an effective public health response to the HIV epidemic, it's crucial to have accurate, timely estimates of HIV indicators at the geographic level at which health systems are planned and delivered.
-However, producing these estimates is challenging due to the shortcomings of all available data sources.
+To mount an effective public health response to the HIV epidemic, it is crucial to have accurate, timely estimates of HIV indicators at the geographic level at which health systems are planned and delivered.
+However, producing these estimates is challenging due to the limitations of all available data sources.
+<!-- Phrasing? -->
 Nationally-representative household surveys provide the most statistically reliable data, but due to their high cost, in most countries they are conducted only every five years or so, with limited sample size at the district level.
 Other data sources, such as routine health surveillance of antenatal care (ANC) clinics, are available in more real-time but based on limited or non-representative samples of the population.
-To address challenges, the Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV indicators at a district-level.
+To address these challenges, the Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV indicators at a district-level.
 Modelling multiple data sources jointly has many benefits, including mitigating the limitations of any single source, increasing statistical power, and prompting investigation into any conflicts of information between sources.
 Software (\url{https://naomi.unaids.org}) has been developed for Naomi, allowing countries to input their data and interactively generate estimates in a yearly process supported by UNAIDS.
 Creation of estimates by country teams, rather than external agencies, is a noteworthy feature of the HIV response.
@@ -108,7 +113,7 @@ Owing to its speed and flexibility, `TMB` has recently been gaining popularity m
 Inference in `TMB` is based on optimisation of a \textsf{C++} template function, with the option available to use a Laplace approximation to integrate out any subset of the function arguments.
 In the Naomi model, this subset is the high-dimensional latent field.
 Taking inspiration from the AD Model Builder (ADMB) package [@fournier2012ad], `TMB` uses automatic differentiation [@baydin2017automatic] to calculate the derivatives required for numerical optimisation routines and the Laplace approximation.
-Although this approach is fast, we would prefer to account more fully for hyperparameter uncertainty than as is the case in an empirical Bayes framework.
+Although this approach is fast, it has the downside that within the empirical Bayes framework hyperparameter uncertainty is not accounted for in the latent field posterior.
 This has motivated us to look for an approach closer to full Bayesian inference, which is also flexible enough to be compatible with the model, as well as fast enough to be run in production by country teams.
 
 To obtain fast, accurate Bayesian inferences for the Naomi model we develop an inference methodology which combines adaptive Gauss-Hermite quadrature (AGHQ) with the simplified integrated nested Laplace approximation (INLA) approach of @wood2020simplified.
@@ -151,10 +156,10 @@ Consider a country in sub-Saharan Africa where a household survey with complex d
 Let $x \in \mathcal{X}$ index district, $a \in \mathcal{A}$ index five-year age band, and $s \in \mathcal{S}$ index sex.
 For ease of notation, let $i$ index the finest district-age-sex division included in the model.
 The data we observe may be aggregated over indices $i$.
-Let $\mathcal{I} \subseteq \mathcal{X} \times \mathcal{A} \times \mathcal{S}$ be a set of  indicies $i$ for which an observation is reported.
+Let $\mathcal{I} \subseteq \mathcal{X} \times \mathcal{A} \times \mathcal{S}$ be a set of  indices $i$ for which an observation is reported.
 
 Let $N_i \in \mathbb{N}$ be the known, fixed population size.
-We infer the following unknown HIV indicators: HIV prevalence $\rho_i \in [0, 1]$, the proporiton of indviduals who are HIV positive; antiretroviral therapy (ART) coverage $\alpha_i \in [0, 1]$, the proportion of people living with HIV who receive ART treatment; and annual HIV incidence rate $\lambda_i > 0$, the yearly rate of new HIV infections occurring.
+We infer the following unknown HIV indicators: HIV prevalence $\rho_i \in [0, 1]$, the proporiton of individuals who are HIV positive; antiretroviral therapy (ART) coverage $\alpha_i \in [0, 1]$, the proportion of people living with HIV who receive ART treatment; and annual HIV incidence rate $\lambda_i > 0$, the yearly rate of new HIV infections occurring.
 Independent logistic regression models for HIV prevalence and ART coverage in the general population are specified such that
 \begin{align*}
 \text{logit}(\rho_i) &= \eta^\rho_i, \\
@@ -166,7 +171,7 @@ Finally, let $\kappa_i$ be the proportion recently infected among HIV positive p
 $$
 \kappa_i = 1- \exp \left( - \lambda_i \cdot \frac{1 - \rho_i}{\rho_i} \cdot (\Omega_T - \beta_T) - \beta_T \right),
 $$
-where the mean duration of recent infection $\Omega_T$ and false recent ratio $\beta_T$ are strongly informed by priors for the particular survey.
+where the mean duration of recent infection $\Omega_T$ and the proportion of long-term HIV infections misclassified as recent $\beta_T$ are strongly informed by priors for the particular survey.
 
 For $\theta \in \{\rho, \alpha, \kappa\}$ we calculate the weighted, aggregated survey observations
 $$
@@ -363,7 +368,7 @@ plot1 + plot2 + plot3
 1. Calculate the mode, Hessian at the mode, and lower Cholesky
 \begin{align*}
 \hat{\btheta} &= \argmax_{\btheta} {\tilde p_\texttt{LA}(\btheta, \y)}, \\
-\mathbf{H} &= \frac{\partial^2}{\partial \btheta \partial \btheta^\top} - \log \tilde p_\texttt{LA}(\btheta, \y) \rvert_{\btheta = \hat \btheta} \\
+\mathbf{H} &= - \frac{\partial^2}{\partial \btheta \partial \btheta^\top} \log \tilde p_\texttt{LA}(\btheta, \y) \rvert_{\btheta = \hat \btheta} \\
 \mathbf{H}^{-1} &= \mathbf{L} \mathbf{L}^\top,
 \end{align*}
 of the Laplace approximation
@@ -372,8 +377,8 @@ $$
 $$
 where $\tilde p_\texttt{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \x(\btheta), \mathbf{H}(\btheta)^{-1})$ is a Gaussian approximation to $p(\x \, | \, \btheta, \y)$ with mode and precision matrix given by
 \begin{align*}
-\hat \x(\btheta) &= \argmin_\x - \log p(\y, \x, \btheta), \\
-\mathbf{H}(\btheta) &= \frac{\partial^2}{\partial x \partial x^\top} - \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}.
+\hat \x(\btheta) &= \argmax_\x \log p(\y, \x, \btheta), \\
+\mathbf{H}(\btheta) &= - \frac{\partial^2}{\partial x \partial x^\top} \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}.
 \end{align*}
 2. Generate a set of nodes $\bu \in \mathcal{Q}(m, k)$ and weights $\omega: \bu \to \mathbb{R}$ from a Gauss-Hermite quadrature rule with $k$ nodes per dimension, which are then adapted based on the mode and lower Choleksy via $\btheta(\bu) = \hat{\btheta} + \mathbf{L} \bu$.
 If possible $k \geq 3$ is preferred, though the number of grid points scales exponentially with choice of $k$.
@@ -384,8 +389,8 @@ Then, use this quadrature rule to calculate the normalising constant $\tilde p_{
 4. For $i \in [n]$ generate $l$ nodes $x_i(\bv)$ via a Gauss-Hermite quadrature rule $\bv \in \mathcal{Q}(1, l)$ adapted based on the mode $\hat \x(\btheta)_i$ and standard deviation $\sqrt{\text{diag}[\mathbf{H}(\btheta)^{-1}]_i}$ of the Gaussian marginal. A value of $l \geq 4$ is recommended to enable B-spline interpolation.
 Then, for $x_i \in \{ x_i(\bv) \}_{\bv \in \mathcal{Q}(1, l)}$  and $\btheta \in \{ \btheta(\bu) \}_{\bu \in \mathcal{Q}(m, k)}$ calculate the modes and Hessians
 \begin{align*}
-\hat \x_{-i}(x_i, \btheta) &= \argmin_{\x_{-i}} - \log p(\y, x_i, \x_{-i}, \btheta), \\
-\mathbf{H}_{-i, -i}(x_i, \btheta) &= \frac{\partial^2}{\partial \x_{-i} \partial \x_{-i}^\top} - \log p(\y, x_i, \x_{-i}, \btheta) \rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)},
+\hat \x_{-i}(x_i, \btheta) &= \argmax_{\x_{-i}} \log p(\y, x_i, \x_{-i}, \btheta), \\
+\mathbf{H}_{-i, -i}(x_i, \btheta) &= - \frac{\partial^2}{\partial \x_{-i} \partial \x_{-i}^\top} \log p(\y, x_i, \x_{-i}, \btheta) \rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)},
 \end{align*}
 where optimisation to obtain $\hat \x_{-i}(x_i, \btheta)$ is initialised at $\hat \x(\btheta)_{-i}$.
 6. For $x_i \in \{ x_i(\bv) \}_{\bv \in \mathcal{Q}(1, l)}$ calculate
@@ -409,13 +414,14 @@ $$
 
 # Application to data from Malawi\label{sec:results}
 
-Using one `TMB` C++ user-template (available in the appendix), we fit the simplified Naomi model (Section \ref{sec:naomi}) to data from Malawi using four inferential approaches.
-These were:
+We fit the simplified Naomi model (Section \ref{sec:naomi}) to data from Malawi using four inferential approaches.
+For each approach, the `TMB` C++ user-template (available in the appendix) used to specify the log-posterior was the same.
+The four approaches were:
 1. `TMB`: EB combined with a Gaussian approximation via `TMB`,
 2. `aghq`: AGHQ combined with a Gaussian approximation via `aghq`,
 3. `adam`: AGHQ combined with a Laplace approximation by extending `aghq`, and
 4. `NUTS`: the Hamiltonian Monte Carlo (HMC) algorithm No-U-Turn Sampling (NUTS) using Stan [@carpenter2017stan] via the `tmbstan` package [@monnahan2018no].
-In this instance, the dimension of the latent field $N = 491$ and the dimension of the hyperparameters $m = 24$.
+In this instance, the dimension of the latent field is $N = 491$ and the dimension of the hyperparameters is $m = 24$.
 Settings used for each inferential method are provided in Table \ref{tab:inference-methods}.
 For the deterministic methods, following inference we simulated hyperparameter and latent field samples.
 For all methods, we simulated age-sex-district specific HIV prevalence, ART coverage and HIV incidence from the latent field and hyperparameter posteriors.
@@ -450,7 +456,7 @@ Inferential method & Details \\
 Inferential results from MCMC are only accurate once convergence has been reached and the chain lengths are sufficient.
 We assessed the quality of our MCMC results using the potential scale reduction factor $\hat R$, bulk and tail effective sample size (ESS), autocorrelation decay plots, univariate traceplots, pairs density plots, and NUTS specific divergent transition and energy assessments.
 Full details are provided in the appendix.
-We treat these results from NUTS as a gold-standard to which other inferential methods are compared to.
+We treat these results from NUTS as a gold-standard to which other inferential methods are compared.
 
 ## Model assessment \label{sec:model-assessment}
 
@@ -507,7 +513,7 @@ For the simplified Naomi model in Malawi (Section \ref{sec:results}) our method 
 We anticipate that our method could be added to the Naomi web interface as an alternative to `TMB`.
 Analysts might quickly iterate over model options using the faster, less accurate inference approach, switching to the slower, more accurate approach once they are happy with the results.
 
-We provide a flexible implementation of the algoritm, building on the`TMB` and `aghq` \textsc{R} packages.
+We provide a flexible implementation of the algorithm, building on the `TMB` and `aghq` \textsc{R} packages.
 In doing so, we hope our work enables use of deterministic inference algorithms for ELGMs in applied settings, as well as further methodological exploration of their accuracy and limitations.
 Among the ELGMs structures of particular interest in spatial epidemiology, many of which are included in the structure of Naomi, are: aggregated Gaussian process models [@nandi2020disaggregation], evidence synthesis models [@amoah2020geostatistical].
 Although our method is designed for ELGMs, it is possible to use it outside this class, as it is compatible with any model with a `TMB` \textsc{C++} template.
