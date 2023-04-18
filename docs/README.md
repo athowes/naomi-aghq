@@ -1,21 +1,36 @@
 ## Notebooks
 
-* [aghq](https://athowes.github.io/elgm-inf/aghq.html): following `aghq` vignettes to explore the package
-* [walkthrough](https://athowes.github.io/elgm-inf/walkthrough.html): stepping through `aghq` code line-by-line
-* [epil](https://athowes.github.io/elgm-inf/epil.html): comparison of Stan, `R-INLA`, `TMB`, `glmmTMB`, `tmbstan` and `aghq` for the epilepsy example from [Rue, Martino and Chopin (2009)](https://rss.onlinelibrary.wiley.com/doi/10.1111/j.1467-9868.2008.00700.x)
-* [inla-grid](https://athowes.github.io/elgm-inf/inla-grid.html): illustration of how the hyperparameter posterior marginal is explored in the INLA method
-* [inla-replication](https://athowes.github.io/elgm-inf/inla-replication.html): replicating the "INLA from scratch" section of [Spatial and Spatio-temporal Bayesian Models with `R-INLA`](https://onlinelibrary.wiley.com/doi/book/10.1002/9781118950203) using R and `TMB`
-* [sinla](https://athowes.github.io/elgm-inf/sinla.html): implementing approximations for the posterior marginal of the latent field, building to the approach of [Wood (2021)](https://academic.oup.com/biomet/article/107/1/223/5572662)
-* [prev-anc-art](https://athowes.github.io/elgm-inf/prev-anc-art.html): comparison of `tmbstan`, `TMB` and `aghq` for a collection of models based on Joint small-area estimation of HIV prevalence, ART coverage, and HIV incidence (Eaton et al. 2019)
+### Learning and capacity building
+
 * [naomi](https://athowes.github.io/elgm-inf/naomi.html): following `naomi` vignettes
 * [maths](https://athowes.github.io/elgm-inf/maths.html): mathematical description of the Naomi model
-* [posterior-comparison](https://athowes.github.io/elgm-inf/posterior-comparison.html): exploring methods (Kolmogorov-Smirnov, simulation-based calibration, Pareto smoothed importance sampling, maximum mean discrepancy) for comparison of posterior distributions from approximate Bayesian inference methods
-* [mcmc-convergence](https://athowes.github.io/elgm-inf/mcmc-convergence.html): assessing MCMC (NUTS using `tmbstan`) convergence for the simplified Naomi model
-* [comparison](https://athowes.github.io/elgm-inf/comparison.html): comparison of inference methods for the simplified Naomi model
-* [model-checks](https://athowes.github.io/elgm-inf/model-checks.html): checking the fit of the simplified Naomi model to data
+* [aghq](https://athowes.github.io/elgm-inf/aghq.html): following `aghq` vignettes to explore the package
+* [walkthrough](https://athowes.github.io/elgm-inf/walkthrough.html): stepping through `aghq` code line-by-line
+* [`TMB`](https://athowes.github.io/elgm-inf/tmb.pdf): note about what `TMB` is doing
+* [inla-replication](https://athowes.github.io/elgm-inf/inla-replication.html): replicating the "INLA from scratch" section of [Spatial and Spatio-temporal Bayesian Models with `R-INLA`](https://onlinelibrary.wiley.com/doi/book/10.1002/9781118950203) using R and `TMB`
+* [inla-grid](https://athowes.github.io/elgm-inf/inla-grid.html): illustration of how the hyperparameter posterior marginal is explored in the INLA method
+* [epil](https://athowes.github.io/elgm-inf/epil.html): comparison of Stan, `R-INLA`, `TMB`, `glmmTMB`, `tmbstan` and `aghq` for the epilepsy example from [Rue, Martino and Chopin (2009)](https://rss.onlinelibrary.wiley.com/doi/10.1111/j.1467-9868.2008.00700.x)
+* [prev-anc-art](https://athowes.github.io/elgm-inf/prev-anc-art.html): comparison of `tmbstan`, `TMB` and `aghq` for a collection of models based on Joint small-area estimation of HIV prevalence, ART coverage, and HIV incidence (Eaton et al. 2019)
+
+### Grid scale-up
+
 * [scale-grid](https://athowes.github.io/elgm-inf/scale-grid.html): how can we scale up the number of points in the hyperparameter grid in an intelligent way?
 * [astro](https://athowes.github.io/elgm-inf/astro.html): application of scalable grid to astronomy example from [Bilodeau, Stringer and Tang (2022)](https://www.tandfonline.com/doi/full/10.1080/01621459.2022.2141635)
 * [increase-s-k](https://athowes.github.io/elgm-inf/increase-s-k.html): how does increasing $s$ or $k$ change estimation of the log normalising constant for Naomi?
+
+### Laplace marginals
+
+* [sinla](https://athowes.github.io/elgm-inf/sinla.html): implementing approximations for the posterior marginal of the latent field, building to the approach of [Wood (2021)](https://academic.oup.com/biomet/article/107/1/223/5572662)
+
+### Posterior comparison approaches
+
+* [posterior-comparison](https://athowes.github.io/elgm-inf/posterior-comparison.html): exploring methods (Kolmogorov-Smirnov, simulation-based calibration, Pareto smoothed importance sampling, maximum mean discrepancy) for comparison of posterior distributions from approximate Bayesian inference methods
+
+### Results
+
+* [comparison](https://athowes.github.io/elgm-inf/comparison.html): comparison of inference methods for the simplified Naomi model
+* [mcmc-convergence](https://athowes.github.io/elgm-inf/mcmc-convergence.html): assessing MCMC (NUTS using `tmbstan`) convergence for the simplified Naomi model
+* [model-checks](https://athowes.github.io/elgm-inf/model-checks.html): checking the fit of the simplified Naomi model to data
 
 <!--
 
@@ -54,4 +69,3 @@
 
 * [bayescomp](https://athowes.github.io/elgm-inf/bayescomp.html): abstract for BayesComp 2023
 * [bioinference](https://athowes.github.io/elgm-inf/bioinference.html): abstract for BioInference 2023
-* [`TMB`](https://athowes.github.io/elgm-inf/tmb.pdf): note about what `TMB` is doing
