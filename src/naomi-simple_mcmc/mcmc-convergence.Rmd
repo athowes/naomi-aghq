@@ -10,6 +10,7 @@ output:
     df_print: paged
     code_folding: show
     theme: lumen
+bibliography: citations.bib
 abstract: |
   **Background** In the report `naomi-simple_fit` with parameter `tmbstan = TRUE`, we used the NUTS algorithm to perform MCMC inference for the simplified Naomi model.
   
@@ -20,7 +21,7 @@ We start by obtaining results from the latest version of `naomi-simple_fit` with
 
 ```{r}
 out <- readRDS("depends/out.rds")
-mcmc <- out$mcmc
+mcmc <- out$mcmc$stanfit
 ```
 
 This MCMC took `r out$time` to run
@@ -168,7 +169,7 @@ np %>%
 bayesplot::mcmc_nuts_divergence(np, bayesplot::log_posterior(mcmc))
 ```
 
-We can also use energy plots (Betancourt 2017): ideally these two histograms would be the same 
+We can also use energy plots [@betancourt2017conceptual]: ideally these two histograms would be the same 
 When the histograms are quite different, it may suggest the chains are not fully exploring the tails of the target distribution.
 
 ```{r}
