@@ -24,7 +24,7 @@ out <- readRDS("depends/out.rds")
 mcmc <- out$mcmc$stanfit
 ```
 
-This MCMC took `r out$time` to run
+This MCMC took `r round(out$time, 3)` days to run
 
 ```{r}
 bayesplot::color_scheme_set("viridisA")
@@ -175,3 +175,11 @@ When the histograms are quite different, it may suggest the chains are not fully
 ```{r}
 bayesplot::mcmc_nuts_energy(np)
 ```
+
+# Original computing environment {-}
+
+```{r}
+sessionInfo()
+```
+
+# Bibliography {-}
