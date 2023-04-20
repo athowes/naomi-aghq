@@ -136,143 +136,143 @@ histogram_and_ecdf_helper <- function(par) lapply(1:sum(names(tmb$fit$obj$env$pa
 histogram_and_ecdf_helper("beta_rho")
 ```
 
-<!-- ## `beta_alpha` -->
+## `beta_alpha`
 
-<!-- ```{r eval = pars_eval[["beta_rho"]]} -->
-<!-- histogram_and_ecdf_helper("beta_alpha") -->
-<!-- ``` -->
+```{r eval = pars_eval[["beta_rho"]]}
+histogram_and_ecdf_helper("beta_alpha")
+```
 
-<!-- ## `beta_lambda` -->
+## `beta_lambda`
 
-<!-- ```{r eval = pars_eval[["beta_rho"]]} -->
-<!-- histogram_and_ecdf_helper("beta_lambda") -->
-<!-- ``` -->
+```{r eval = pars_eval[["beta_rho"]]}
+histogram_and_ecdf_helper("beta_lambda")
+```
 
-<!-- ## `beta_anc_rho` -->
+## `beta_anc_rho`
 
-<!-- ```{r eval = pars_eval[["beta_rho"]]} -->
-<!-- histogram_and_ecdf("beta_anc_rho") -->
-<!-- ``` -->
+```{r eval = pars_eval[["beta_rho"]]}
+histogram_and_ecdf("beta_anc_rho")
+```
 
-<!-- ## `beta_anc_alpha` -->
+## `beta_anc_alpha`
 
-<!-- ```{r eval = pars_eval[["beta_rho"]]} -->
-<!-- histogram_and_ecdf("beta_anc_alpha") -->
-<!-- ``` -->
+```{r eval = pars_eval[["beta_rho"]]}
+histogram_and_ecdf("beta_anc_alpha")
+```
 
-<!-- ## `logit` -->
+## `logit`
 
-<!-- ```{r eval = FALSE} -->
-<!-- lapply(pars[stringr::str_starts(pars, "logit")], histogram_and_ecdf) -->
-<!-- ``` -->
+```{r eval = FALSE}
+lapply(pars[stringr::str_starts(pars, "logit")], histogram_and_ecdf)
+```
 
-<!-- ## `log_sigma` -->
+## `log_sigma`
 
-<!-- ```{r eval = FALSE} -->
-<!-- lapply(pars[stringr::str_starts(pars, "log_sigma")], histogram_and_ecdf) -->
-<!-- ``` -->
+```{r eval = FALSE}
+lapply(pars[stringr::str_starts(pars, "log_sigma")], histogram_and_ecdf)
+```
 
-<!-- ## `u_rho_x` -->
+## `u_rho_x`
 
-<!-- ```{r eval = pars_eval[["u_rho_x"]]} -->
-<!-- histogram_and_ecdf_helper("u_rho_x") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_rho_x"]]}
+histogram_and_ecdf_helper("u_rho_x")
+```
 
-<!-- ## `u_rho_x` -->
+## `u_rho_x`
 
-<!-- ```{r eval = pars_eval[["u_rho_x"]]} -->
-<!-- histogram_and_ecdf_helper("u_rho_x") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_rho_x"]]}
+histogram_and_ecdf_helper("u_rho_x")
+```
 
-<!-- ## `us_rho_x` -->
+## `us_rho_x`
 
-<!-- ```{r eval = pars_eval[["us_rho_x"]]} -->
-<!-- histogram_and_ecdf_helper("us_rho_x") -->
-<!-- ``` -->
+```{r eval = pars_eval[["us_rho_x"]]}
+histogram_and_ecdf_helper("us_rho_x")
+```
 
-<!-- ## `u_rho_xs` -->
+## `u_rho_xs`
 
-<!-- ```{r eval = pars_eval[["u_rho_xs"]]} -->
-<!-- histogram_and_ecdf_helper("u_rho_xs") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_rho_xs"]]}
+histogram_and_ecdf_helper("u_rho_xs")
+```
 
-<!-- ## `us_rho_xs` -->
+## `us_rho_xs`
 
-<!-- ```{r eval = pars_eval[["us_rho_xs"]]} -->
-<!-- histogram_and_ecdf_helper("us_rho_xs") -->
-<!-- ``` -->
+```{r eval = pars_eval[["us_rho_xs"]]}
+histogram_and_ecdf_helper("us_rho_xs")
+```
 
-<!-- ## `u_rho_as` -->
+## `u_rho_as`
 
-<!-- ```{r eval = pars_eval[["u_rho_as"]]} -->
-<!-- histogram_and_ecdf_helper("u_rho_as") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_rho_as"]]}
+histogram_and_ecdf_helper("u_rho_as")
+```
 
-<!-- ## `u_alpha_x` -->
+## `u_alpha_x`
 
-<!-- ```{r eval = pars_eval[["u_alpha_x"]]} -->
-<!-- histogram_and_ecdf_helper("u_alpha_x") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_alpha_x"]]}
+histogram_and_ecdf_helper("u_alpha_x")
+```
 
-<!-- ## `us_alpha_x` -->
+## `us_alpha_x`
 
-<!-- ```{r eval = pars_eval[["us_alpha_x"]]} -->
-<!-- histogram_and_ecdf_helper("us_alpha_x") -->
-<!-- ``` -->
+```{r eval = pars_eval[["us_alpha_x"]]}
+histogram_and_ecdf_helper("us_alpha_x")
+```
 
-<!-- ## `u_alpha_xs` -->
+## `u_alpha_xs`
 
-<!-- ```{r eval = pars_eval[["u_alpha_xs"]]} -->
-<!-- histogram_and_ecdf_helper("u_alpha_xs") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_alpha_xs"]]}
+histogram_and_ecdf_helper("u_alpha_xs")
+```
 
-<!-- ## `us_alpha_xs` -->
+## `us_alpha_xs`
 
-<!-- ```{r eval = pars_eval[["beta_rho"]]} -->
-<!-- histogram_and_ecdf_helper("us_alpha_xs") -->
-<!-- ``` -->
+```{r eval = pars_eval[["beta_rho"]]}
+histogram_and_ecdf_helper("us_alpha_xs")
+```
 
-<!-- ## `u_alpha_a` -->
+## `u_alpha_a`
 
-<!-- ```{r eval = pars_eval[["u_alpha_a"]]} -->
-<!-- histogram_and_ecdf_helper("u_alpha_a") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_alpha_a"]]}
+histogram_and_ecdf_helper("u_alpha_a")
+```
 
-<!-- ## `u_alpha_as` -->
+## `u_alpha_as`
 
-<!-- ```{r eval = pars_eval[["u_alpha_as"]]} -->
-<!-- histogram_and_ecdf_helper("u_alpha_as") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_alpha_as"]]}
+histogram_and_ecdf_helper("u_alpha_as")
+```
 
-<!-- ## `u_alpha_xa` -->
+## `u_alpha_xa`
 
-<!-- ```{r eval = pars_eval[["u_alpha_xa"]]} -->
-<!-- histogram_and_ecdf_helper("u_alpha_xa") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_alpha_xa"]]}
+histogram_and_ecdf_helper("u_alpha_xa")
+```
 
-<!-- ## `ui_lambda_x` -->
+## `ui_lambda_x`
 
-<!-- ```{r eval = pars_eval[["ui_lambda_x"]]} -->
-<!-- histogram_and_ecdf_helper("ui_lambda_x") -->
-<!-- ``` -->
+```{r eval = pars_eval[["ui_lambda_x"]]}
+histogram_and_ecdf_helper("ui_lambda_x")
+```
 
-<!-- ## `ui_anc_rho_x` -->
+## `ui_anc_rho_x`
 
-<!-- ```{r eval = pars_eval[["ui_anc_rho_x"]]} -->
-<!-- histogram_and_ecdf_helper("ui_anc_rho_x") -->
-<!-- ``` -->
+```{r eval = pars_eval[["ui_anc_rho_x"]]}
+histogram_and_ecdf_helper("ui_anc_rho_x")
+```
 
-<!-- ## `ui_anc_alpha_x` -->
+## `ui_anc_alpha_x`
 
-<!-- ```{r eval = pars_eval[["ui_anc_alpha_x"]]} -->
-<!-- histogram_and_ecdf_helper("ui_anc_alpha_x") -->
-<!-- ``` -->
+```{r eval = pars_eval[["ui_anc_alpha_x"]]}
+histogram_and_ecdf_helper("ui_anc_alpha_x")
+```
 
-<!-- ## `log_or_gamma` -->
+## `log_or_gamma`
 
-<!-- ```{r eval = pars_eval[["log_or_gamma"]]} -->
-<!-- histogram_and_ecdf_helper("log_or_gamma") -->
-<!-- ``` -->
+```{r eval = pars_eval[["log_or_gamma"]]}
+histogram_and_ecdf_helper("log_or_gamma")
+```
 
 ## Outcome variables
 
@@ -281,7 +281,7 @@ These are all of the outcome variables which we might be interested in to monito
 ```{r}
 names(tmb$fit$sample)[!(names(tmb$fit$sample) %in% unique(names(tmb$fit$obj$env$par)))]
 ```
-The most important ones (checked with Jeff) are HIV prevalence (`rho_t1_out`), ART coverage (`alpha_t1_out`), and HIV incidence (`lambda_t1_out`).
+The most important ones (this has been checked with Jeff) are HIV prevalence (`rho_t1_out`), ART coverage (`alpha_t1_out`), and HIV incidence (`lambda_t1_out`).
 
 * HIV prevalence has `r dim(tmb$fit$sample$rho_t1_out)[1]` variables (rows)
 * ART coverage has `r dim(tmb$fit$sample$alpha_t1_out)[1]` variables (rows)
@@ -360,168 +360,144 @@ ks_helper <- function(par, starts_with = FALSE, ...) {
 
 ```{r}
 ks_helper("beta", starts_with = TRUE)
-ks_helper("beta", starts_with = TRUE, method1 = "TMB", method2 = "adam")
 ```
 
-<!-- ### `logit` -->
+### `logit`
 
-<!-- ```{r} -->
-<!-- ks_helper("logit", starts_with = TRUE) -->
-<!-- ks_helper("logit", starts_with = TRUE, method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r}
+ks_helper("logit", starts_with = TRUE)
+```
 
-<!-- ### `log_sigma` -->
+### `log_sigma`
 
-<!-- ```{r} -->
-<!-- ks_helper("log_sigma", starts_with = TRUE) -->
-<!-- ks_helper("log_sigma", starts_with = TRUE , method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r}
+ks_helper("log_sigma", starts_with = TRUE)
+```
 
-<!-- ### `u_rho_x` -->
+### `u_rho_x`
 
-<!-- ```{r eval = pars_eval[["u_rho_x"]]} -->
-<!-- ks_helper("u_rho_x") -->
-<!-- ks_helper("u_rho_x", method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_rho_x"]]}
+ks_helper("u_rho_x")
+```
 
-<!-- ### `u_rho_xs` -->
+### `u_rho_xs`
 
-<!-- ```{r eval = pars_eval[["u_rho_xs"]]} -->
-<!-- ks_helper("u_rho_xs") -->
-<!-- ks_helper("u_rho_xs", method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_rho_xs"]]}
+ks_helper("u_rho_xs")
+```
 
-<!-- ### `us_rho_x` -->
+### `us_rho_x`
 
-<!-- ```{r eval = pars_eval[["us_rho_x"]]} -->
-<!-- ks_helper("us_rho_x") -->
-<!-- ks_helper("us_rho_x", method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r eval = pars_eval[["us_rho_x"]]}
+ks_helper("us_rho_x")
+```
 
-<!-- ### `us_rho_xs` -->
+### `us_rho_xs`
 
-<!-- ```{r eval = pars_eval[["us_rho_xs"]]} -->
-<!-- ks_helper("us_rho_xs") -->
-<!-- ks_helper("us_rho_xs", method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r eval = pars_eval[["us_rho_xs"]]}
+ks_helper("us_rho_xs")
+```
 
-<!-- ### `u_rho_a` -->
+### `u_rho_a`
 
-<!-- ```{r eval = pars_eval[["u_rho_a"]]} -->
-<!-- ks_helper("u_rho_a") -->
-<!-- ks_helper("u_rho_a", method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_rho_a"]]}
+ks_helper("u_rho_a")
+```
 
-<!-- ### `u_rho_as` -->
+### `u_rho_as`
 
-<!-- ```{r eval = pars_eval[["u_rho_as"]]} -->
-<!-- ks_helper("u_rho_as") -->
-<!-- ks_helper("u_rho_as", method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_rho_as"]]}
+ks_helper("u_rho_as")
+```
 
-<!-- ### `u_alpha_x` -->
+### `u_alpha_x`
 
-<!-- ```{r eval = pars_eval[["u_alpha_x"]]} -->
-<!-- ks_helper("u_alpha_x") -->
-<!-- ks_helper("u_alpha_x", method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_alpha_x"]]}
+ks_helper("u_alpha_x")
+```
 
-<!-- ### `u_alpha_xs` -->
+### `u_alpha_xs`
 
-<!-- ```{r eval = pars_eval[["u_alpha_xs"]]} -->
-<!-- ks_helper("u_alpha_xs") -->
-<!-- ks_helper("u_alpha_xs", method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_alpha_xs"]]}
+ks_helper("u_alpha_xs")
+```
 
-<!-- ### `us_alpha_x` -->
+### `us_alpha_x`
 
-<!-- ```{r eval = pars_eval[["us_alpha_x"]]} -->
-<!-- ks_helper("us_alpha_x") -->
-<!-- ks_helper("us_alpha_x", method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r eval = pars_eval[["us_alpha_x"]]}
+ks_helper("us_alpha_x")
+```
 
-<!-- ### `us_alpha_xs` -->
+### `us_alpha_xs`
 
-<!-- ```{r eval = pars_eval[["us_alpha_xs"]]} -->
-<!-- ks_helper("us_alpha_xs") -->
-<!-- ks_helper("us_alpha_xs", method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r eval = pars_eval[["us_alpha_xs"]]}
+ks_helper("us_alpha_xs")
+```
 
-<!-- ### `u_alpha_a` -->
+### `u_alpha_a`
 
-<!-- ```{r eval = pars_eval[["u_alpha_a"]]} -->
-<!-- ks_helper("u_alpha_a") -->
-<!-- ks_helper("u_alpha_a", method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_alpha_a"]]}
+ks_helper("u_alpha_a")
+```
 
-<!-- ### `u_alpha_as` -->
+### `u_alpha_as`
 
-<!-- ```{r eval = pars_eval[["u_alpha_as"]]} -->
-<!-- ks_helper("u_alpha_as") -->
-<!-- ks_helper("u_alpha_as", method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_alpha_as"]]}
+ks_helper("u_alpha_as")
+```
 
-<!-- ### `u_alpha_xa` -->
+### `u_alpha_xa`
 
-<!-- ```{r eval = pars_eval[["u_alpha_xa"]]} -->
-<!-- ks_helper("u_alpha_xa") -->
-<!-- ks_helper("u_alpha_xa", method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r eval = pars_eval[["u_alpha_xa"]]}
+ks_helper("u_alpha_xa")
+```
 
-<!-- ### `ui_anc_rho_x` -->
+### `ui_anc_rho_x`
 
-<!-- ```{r eval = pars_eval[["ui_anc_rho_x"]]} -->
-<!-- ks_helper("ui_anc_rho_x") -->
-<!-- ks_helper("ui_anc_rho_x", method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r eval = pars_eval[["ui_anc_rho_x"]]}
+ks_helper("ui_anc_rho_x")
+```
 
-<!-- ### `ui_anc_alpha_x` -->
+### `ui_anc_alpha_x`
 
-<!-- ```{r eval = pars_eval[["ui_anc_alpha_x"]]} -->
-<!-- ks_helper("ui_anc_alpha_x") -->
-<!-- ks_helper("ui_anc_alpha_x", method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r eval = pars_eval[["ui_anc_alpha_x"]]}
+ks_helper("ui_anc_alpha_x")
+```
 
-<!-- ### `log_or_gamma` -->
+### `log_or_gamma`
 
-<!-- ```{r eval = pars_eval[["log_or_gamma"]]} -->
-<!-- ks_helper("log_or_gamma") -->
-<!-- ks_helper("log_or_gamma", method1 = "TMB", method2 = "adam") -->
-<!-- ``` -->
+```{r eval = pars_eval[["log_or_gamma"]]}
+ks_helper("log_or_gamma")
+```
 
 ### Outcome variables
 
 ```{r}
-ks_rho_t1_out <- to_ks_df(par = "rho_t1_out", outputs = TRUE, id = mf_out_fine$id)
-
-merge_to_mf_out_fine <- function(ks_df) {
-  ks_df %>%
+ks_df_out <- function(par) {
+  to_ks_df(par = par, outputs = TRUE, id = mf_out_fine$id) %>%
   select(-par) %>%
   left_join(
     mf_out_fine %>%
       rename("full_id" = "id") %>%
       tibble::rowid_to_column("index") %>%
       mutate(index = as.numeric(index))
-  ) %>%
-  select(-index)
+  )
 }
-  
-ks_rho_t1_out <- merge_to_mf_out_fine(ks_rho_t1_out)
 
-ks_alpha_t1_out <- to_ks_df(par = "alpha_t1_out", outputs = TRUE, id = mf_out_fine$id) %>%
-  merge_to_mf_out_fine()
+ks_rho_t1_out <- ks_df_out(par = "rho_t1_out")
+ks_alpha_t1_out <- ks_df_out(par = "alpha_t1_out")
+ks_lambda_t1_out <- ks_df_out(par = "lambda_t1_out")
 
-ks_lambda_t1_out <- to_ks_df(par = "lambda_t1_out", outputs = TRUE, id = mf_out_fine$id) %>%
-  merge_to_mf_out_fine()
-
-ks_plot(ks_df = ks_rho_t1_out, par = "rho_t1_out")
-ks_plot(ks_df = ks_alpha_t1_out, par = "alpha_t1_out")
-ks_plot(ks_df = ks_lambda_t1_out, par = "lambda_t1_out")
+ks_plot(ks_df = ks_rho_t1_out, par = "rho_t1_out", alpha = 0.2)
+ks_plot(ks_df = ks_alpha_t1_out, par = "alpha_t1_out", alpha = 0.2)
+ks_plot(ks_df = ks_lambda_t1_out, par = "lambda_t1_out", alpha = 0.2)
 ```
 
 ## Summary table
 
-```{r}
+Values in dark blue are the lowest KS difference for that particular parameter:
+
+```{r class.source = 'fold-hide'}
 options(dplyr.summarise.inform = FALSE)
 
 ks_summary <- lapply(unique(names(tmb$fit$obj$env$par)), function(x) {
@@ -550,11 +526,7 @@ dict <- data.frame(
 
 ks_summary <- ks_summary %>%
   left_join(dict, by = "Parameter")
-```
 
-Values in green are the lowest KS difference for that particular parameter:
-
-```{r}
 ks_summary %>%
   gt::gt() %>%
   gt::fmt_number(
@@ -562,21 +534,21 @@ ks_summary %>%
     decimals = 3
   ) %>%
   gt::tab_style(
-    style = cell_fill(color = "#009E73"),
+    style = cell_fill(color = "#0072B2"),
     locations = cells_body(
       columns = `KS(adam, tmbstan)`,
       rows = `KS(adam, tmbstan)` < `KS(aghq, tmbstan)` & `KS(adam, tmbstan)` < `KS(TMB, tmbstan)`
     )
   ) %>%
     gt::tab_style(
-    style = cell_fill(color = "#009E73"),
+    style = cell_fill(color = "#0072B2"),
     locations = cells_body(
       columns = `KS(aghq, tmbstan)`,
       rows = `KS(aghq, tmbstan)` < `KS(adam, tmbstan)` & `KS(aghq, tmbstan)` < `KS(TMB, tmbstan)`
     )
   ) %>%
     gt::tab_style(
-    style = cell_fill(color = "#009E73"),
+    style = cell_fill(color = "#0072B2"),
     locations = cells_body(
       columns = `KS(TMB, tmbstan)`,
       rows = `KS(TMB, tmbstan)` < `KS(aghq, tmbstan)` & `KS(TMB, tmbstan)` < `KS(adam, tmbstan)`
@@ -584,60 +556,10 @@ ks_summary %>%
   )
 ```
 
-This plot could be improved by making the red to green transition smooth, then adding legend for KS difference.
-The density plots could be filled according to KS difference.
-
 ```{r}
-summary_ks_plot <- function(ks_summary, method1, method2) {
-  ks_method1 <- paste0("KS(", method1, ", tmbstan)")
-  ks_method2 <- paste0("KS(", method2, ", tmbstan)")
-  
-  xy_length <- min(1, max(ks_summary[[ks_method1]], ks_summary[[ks_method2]]) + 0.05)
-  
-  x <- y <- seq(0, xy_length, length.out = 20)
-
-  gradient_base <- expand.grid(x, y) %>%
-    mutate(diff = Var1 - Var2) %>%
-    ggplot(aes(x = Var1, y = Var2)) +
-    geom_tile(aes(fill = diff), alpha = 0.7) +
-    scale_fill_gradientn(
-      colours = c("#56B4E9", "white", "#009E73"),
-      rescaler = ~ scales::rescale_mid(.x, mid = 0)
-    )
-  
-  densityplot <- gradient_base +
-    stat_density_2d(data = ks_summary, aes(x = .data[[ks_method1]], y = .data[[ks_method2]], linetype = Type), col = "black") +
-    xlim(0, xy_length) +
-    ylim(0, xy_length) +
-    geom_abline(intercept = 0, slope = 1, linetype = "dashed", alpha = 0.5) +
-    scale_linetype_manual(values = c("solid", "dashed")) +
-    labs(x = ks_method1, y = ks_method2) +
-    theme_minimal() +
-    guides(fill = "none") +
-    theme(
-      legend.position = "bottom"
-    )
-  
-  ks_summary[["KS difference"]] <- ks_summary[[ks_method1]] - ks_summary[[ks_method2]]
-  
-  ridgeplot <- ggplot(ks_summary, aes(y = Type, x = `KS difference`)) +
-    ggridges::geom_density_ridges(alpha = 0.7, fill = NA, aes(linetype = Type)) +
-    coord_flip() +
-    scale_linetype_manual(values = c("solid", "dashed")) +
-    labs(y = "", x = paste0(ks_method1, " - ", ks_method2)) +
-    guides(linetype = FALSE) +
-    theme_minimal()
-
-  densityplot + ridgeplot
-}
-
 ks_summary %>%
   filter(Type != "Hyper") %>%
-  summary_ks_plot("TMB", "aghq")
-
-summary_ks_plot(ks_summary, "TMB", "aghq")
-summary_ks_plot(ks_summary, "TMB", "adam")
-summary_ks_plot(ks_summary, "aghq", "adam")
+  ks_plot_many("TMB", "aghq")
 
 (ks_summary_out <- ks_summary %>%
   group_by(Type) %>%
@@ -645,22 +567,13 @@ summary_ks_plot(ks_summary, "aghq", "adam")
     TMB = mean(`KS(TMB, tmbstan)`),
     aghq = mean(`KS(aghq, tmbstan)`),
     adam = mean(`KS(adam, tmbstan)`)
-  ))
-```
-Compute $p$-values, then plot expecting $\mathcal{U}(0, 1)$.
-If not conclude there is a significant difference.
-
-```{r}
-#' To write!
+  )) %>%
+  gt::gt()
 ```
 
 Save some things for output:
 
 ```{r}
-pdf("ks_summary_tmb_adam.pdf", h = 4, w = 6.25)
-summary_ks_plot(ks_summary, "TMB", "adam")
-dev.off()
-
 saveRDS(ks_summary_out, "ks_summary_out.rds")
 ```
 

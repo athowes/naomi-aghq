@@ -129,7 +129,7 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
 #' @return A dataframe
 to_ks_df <- function(par, starts_with = FALSE, outputs = FALSE, id = NULL) {
   par_names <- par
-  all_par_names <- names(tmb$fit$sample)
+  all_par_names <- names(tmb$fit$obj$env$par)
 
   if(starts_with) {
     par_names <- all_par_names[stringr::str_starts(all_par_names, par)]
@@ -189,14 +189,14 @@ to_ks_df <- function(par, starts_with = FALSE, outputs = FALSE, id = NULL) {
 #' @param method1 Samples from this method will be used as the first entry in the KS test
 #' @param method2 Samples from this method will be used as the second entry in the KS test
 #' @return A `ggplot2` object
-ks_plot <- function(ks_df, par, method1 = "TMB", method2 = "aghq") {
+ks_plot <- function(ks_df, par, method1 = "TMB", method2 = "aghq", alpha = 0.5) {
   wide_ks_df <- pivot_wider(ks_df, names_from = "method", values_from = "ks")
   wide_ks_df$ks_diff <- wide_ks_df[[method1]] - wide_ks_df[[method2]]
   mean_ks_diff <- mean(wide_ks_df$ks_diff)
 
   jitterplot <- wide_ks_df %>%
     ggplot(aes(x = "", y = ks_diff)) +
-    geom_jitter(width = 0.05, height = 0, alpha = 0.5) +
+    geom_jitter(width = 0.05, height = 0, alpha = alpha) +
     geom_boxplot(fill = NA, width = 0.2, outlier.shape = NA) +
     labs(
       title = paste0("Mean KS difference* is ", round(mean_ks_diff, 3)),
@@ -207,7 +207,7 @@ ks_plot <- function(ks_df, par, method1 = "TMB", method2 = "aghq") {
 
   xy_length <- min(1, max(wide_ks_df[[method1]], wide_ks_df[[method2]]) + 0.05)
 
-  x <- y <- seq(0, xy_length, length.out = 20)
+  x <- y <- seq(0, xy_length, length.out = 30)
 
   gradient_base <- expand.grid(x, y) %>%
     mutate(diff = Var1 - Var2) %>%
@@ -219,9 +219,9 @@ ks_plot <- function(ks_df, par, method1 = "TMB", method2 = "aghq") {
     )
 
   scatterplot <- gradient_base +
-    geom_point(data = wide_ks_df, aes(x = .data[[method1]], y = .data[[method2]]), alpha = 0.5) +
-    xlim(0, xy_length) +
-    ylim(0, xy_length) +
+    geom_point(data = wide_ks_df, aes(x = .data[[method1]], y = .data[[method2]]), alpha = alpha) +
+    xlim(0 - 0.005, xy_length + 0.005) +
+    ylim(0 - 0.005, xy_length + 0.005) +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
     labs(
       title = paste0("KS tests for ", par, " of length ", max(ks_df$index)),
@@ -232,4 +232,54 @@ ks_plot <- function(ks_df, par, method1 = "TMB", method2 = "aghq") {
     guides(fill = "none")
 
   scatterplot + jitterplot
+}
+
+#' Create a density plot and ridgeplot of the KS test statistics
+#'
+#' @param ks_df The output of `to_ks_df`
+#' @param par Parameter name (only used for labelling)
+#' @param method1 Samples from this method will be used as the first entry in the KS test
+#' @param method2 Samples from this method will be used as the second entry in the KS test
+#' @return A `ggplot2` object
+ks_plot_many <- function(ks_summary, method1, method2) {
+  ks_method1 <- paste0("KS(", method1, ", tmbstan)")
+  ks_method2 <- paste0("KS(", method2, ", tmbstan)")
+
+  xy_length <- min(1, max(ks_summary[[ks_method1]], ks_summary[[ks_method2]]) + 0.05)
+
+  x <- y <- seq(0, xy_length, length.out = 30)
+
+  gradient_base <- expand.grid(x, y) %>%
+    mutate(diff = Var1 - Var2) %>%
+    ggplot(aes(x = Var1, y = Var2)) +
+    geom_tile(aes(fill = diff), alpha = 0.7) +
+    scale_fill_gradientn(
+      colours = c("#56B4E9", "white", "#009E73"),
+      rescaler = ~ scales::rescale_mid(.x, mid = 0)
+    )
+
+  densityplot <- gradient_base +
+    stat_density_2d(data = ks_summary, aes(x = .data[[ks_method1]], y = .data[[ks_method2]], linetype = Type), col = "black") +
+    xlim(0, xy_length) +
+    ylim(0, xy_length) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed", alpha = 0.5) +
+    scale_linetype_manual(values = c("solid", "dashed")) +
+    labs(x = ks_method1, y = ks_method2) +
+    theme_minimal() +
+    guides(fill = "none") +
+    theme(
+      legend.position = "bottom"
+    )
+
+  ks_summary[["KS difference"]] <- ks_summary[[ks_method1]] - ks_summary[[ks_method2]]
+
+  ridgeplot <- ggplot(ks_summary, aes(y = Type, x = `KS difference`)) +
+    ggridges::geom_density_ridges(alpha = 0.7, fill = NA, aes(linetype = Type)) +
+    coord_flip() +
+    scale_linetype_manual(values = c("solid", "dashed")) +
+    labs(y = "", x = paste0(ks_method1, " - ", ks_method2)) +
+    guides(linetype = FALSE) +
+    theme_minimal()
+
+  densityplot + ridgeplot
 }
