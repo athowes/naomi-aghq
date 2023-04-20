@@ -278,7 +278,7 @@ ks_plot_many <- function(ks_summary, method1, method2) {
     coord_flip() +
     scale_linetype_manual(values = c("solid", "dashed")) +
     labs(y = "", x = paste0(ks_method1, " - ", ks_method2)) +
-    guides(linetype = FALSE) +
+    guides(linetype = "none") +
     theme_minimal()
 
   densityplot + ridgeplot

@@ -178,12 +178,6 @@ lapply(pars[stringr::str_starts(pars, "log_sigma")], histogram_and_ecdf)
 histogram_and_ecdf_helper("u_rho_x")
 ```
 
-## `u_rho_x`
-
-```{r eval = pars_eval[["u_rho_x"]]}
-histogram_and_ecdf_helper("u_rho_x")
-```
-
 ## `us_rho_x`
 
 ```{r eval = pars_eval[["us_rho_x"]]}
