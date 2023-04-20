@@ -1,0 +1,27 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Check that TMB output is normally distributed
+      filenames:
+        - qq-checks.pdf
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - rstan
+  - bayesplot
+  - patchwork
+  - gt
+
+depends:
+  - naomi-simple_fit:
+      id: latest(parameter:tmb == TRUE)
+      use:
+        depends/tmb.rds: out.rds
