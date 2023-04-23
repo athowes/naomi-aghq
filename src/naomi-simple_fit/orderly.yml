@@ -40,6 +40,9 @@ parameters:
   #' Run inference with new method under development? TRUE or FALSE
   adam:
     default: FALSE
+  #' Whether or not to sample from the fitted model (not applicable to tmbstan)
+  sample:
+    default: TRUE
   #' Number of samples to draw from the fitted model (not applicable to tmbstan)
   nsample:
     default: 1000

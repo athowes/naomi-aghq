@@ -1,5 +1,5 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(aghq = TRUE, area_level = 4, k = 2, s = 1, grid_type = "pca"))
+# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(aghq = TRUE, area_level = 4, k = 3, s = 1, grid_type = "pca"))
 # setwd("src/naomi-simple_fit")
 
 if(tmb + aghq + adam + tmbstan != 1) {
@@ -88,16 +88,22 @@ if(tmb) {
   #' Fit TMB model
   fit <- local_fit_tmb(tmb_inputs_simple, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL, DLL = "naomi_simple")
 
-  #' Add uncertainty
-  fit <- local_sample_tmb(fit, random_only = FALSE, nsample = nsample)
+  if(sample) {
+    #' Add uncertainty
+    fit <- local_sample_tmb(fit, random_only = FALSE, nsample = nsample)
 
-  #' Calculate model outputs
-  outputs <- local_output_package_naomi_simple(fit, naomi_data)
+    #' Calculate model outputs
+    outputs <- local_output_package_naomi_simple(fit, naomi_data)
+  }
 
   end <- Sys.time()
 
-  #' Could save fewer of these things and generate them again later if space becomes an issue, but that's unlikely
-  out <- list(fit = fit, inputs = tmb_inputs_simple, outputs = outputs, naomi_data = naomi_data, time = end - start)
+  if(sample) {
+    out <- list(fit = fit, inputs = tmb_inputs_simple, outputs = outputs, naomi_data = naomi_data, time = end - start)
+  } else {
+    out <- list(fit = fit, inputs = tmb_inputs_simple, naomi_data = naomi_data, time = end - start)
+  }
+
   saveRDS(out, "out.rds")
 }
 
@@ -112,10 +118,10 @@ if(aghq) {
     #' Fit AGHQ model
     quad <- fit_aghq(tmb_inputs_simple, k = k)
 
-    #' Add uncertainty
-    quad <- sample_aghq(quad, M = nsample)
-
-    #' Note that local_output_package_naomi_simple needs to be adapted to work with aghq fits
+    if(sample) {
+      #' Add uncertainty
+      quad <- sample_aghq(quad, M = nsample)
+    }
   }
 
   if(grid_type == "sparse") {
@@ -145,13 +151,18 @@ if(aghq) {
     k <- 1
     quad <- fit_aghq(tmb_inputs_simple, k = k, basegrid = pca_base_grid, dec.type = 1)
 
-    #' Add uncertainty
-    quad <- sample_aghq(quad, M = nsample)
+    if(sample) {
+      #' Add uncertainty
+      quad <- sample_aghq(quad, M = nsample)
+    }
   }
+
+  #' Note that local_output_package_naomi_simple needs to be adapted to work with aghq fits
 
   end <- Sys.time()
 
   out <- list(quad = quad, inputs = tmb_inputs_simple, naomi_data = naomi_data, time = end - start)
+
   saveRDS(out, "out.rds")
 }
 
@@ -162,14 +173,17 @@ if(adam) {
   basegrid <- mvQuad::createNIGrid(dim = n_hyper, type = "GHe", level = 1, ndConstruction = "product")
   adam <- fit_adam(tmb_inputs_simple, base_grid = basegrid)
 
-  #' Add uncertainty
-  adam <- sample_adam(adam, M = nsample)
+  if(sample) {
+    #' Add uncertainty
+    adam <- sample_adam(adam, M = nsample)
+  }
 
   #' Note that local_output_package_naomi_simple would need to be adapted to work with adam fits
 
   end <- Sys.time()
 
   out <- list(adam = adam, inputs = tmb_inputs_simple, naomi_data = naomi_data, time = end - start)
+
   saveRDS(out, "out.rds")
 }
 
