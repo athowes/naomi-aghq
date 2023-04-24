@@ -48,7 +48,7 @@ run_pca_aghq <- function(k, s, sample = FALSE) {
 #' Runs for scoping out times
 run_pca_aghq(k = 2, s = 1) #' [x]
 run_pca_aghq(k = 2, s = 2) #' [x]
-run_pca_aghq(k = 2, s = 3) #' [ ]
+run_pca_aghq(k = 2, s = 3) #' [x]
 run_pca_aghq(k = 2, s = 4) #' [x]
 run_pca_aghq(k = 2, s = 5) #' [x]
 

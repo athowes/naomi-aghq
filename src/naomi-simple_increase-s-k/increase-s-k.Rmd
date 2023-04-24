@@ -56,7 +56,7 @@ stopifnot(nrow(s5k2$quad$modesandhessians) == 2^5)
 
 k2 <- list(s1k2, s2k2, s3k2, s4k2, s5k2)
 k2_lognormconsts <- sapply(k2, function(x) x$quad$normalized_posterior$lognormconst)
-k2_times <- sapply(k2, function(x) x$time)
+k2_times <- sapply(k2, function(x) as.numeric(x$time, units = "mins"))
 
 rm(list = c("k2", "s1k2", "s2k2", "s3k2", "s4k2", "s5k2"))
 gc()
@@ -73,7 +73,7 @@ stopifnot(nrow(s3k3$quad$modesandhessians) == 3^3)
 
 k3 <- list(s1k3, s2k3, s3k3, s4k3, s5k3, s7k3, s8k3)
 k3_lognormconsts <- sapply(k3, function(x) x$quad$normalized_posterior$lognormconst)
-k3_times <- sapply(k3, function(x) x$time)
+k3_times <- sapply(k3, function(x) as.numeric(x$time, units = "mins"))
 
 rm(list = c("k3", "s1k3", "s2k3", "s3k3", "s4k3", "s5k3", "s7k3", "s8k3"))
 gc()
@@ -86,7 +86,7 @@ read_sk(s = 5, k = 5)
 
 k5 <- list(s1k5, s2k5, s3k5, s4k5, s5k5)
 k5_lognormconsts <- sapply(k5, function(x) x$quad$normalized_posterior$lognormconst)
-k5_times <- sapply(k5, function(x) x$time)
+k5_times <- sapply(k5, function(x) as.numeric(x$time, units = "mins"))
 
 rm(list = c("k5", "s1k5", "s2k5", "s3k5", "s4k5", "s5k5"))
 gc()
