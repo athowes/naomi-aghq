@@ -18,12 +18,8 @@ run_commit_push("explore_posterior-comparison")
 run_commit_push("naomi")
 
 #' Simplfied Naomi with TMB
-id <- orderly::orderly_run("naomi-simple_fit", parameters = list(tmb = TRUE))
-orderly::orderly_commit(id)
-
-#' Simplfied Naomi with aghq, and k = 1
-id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 1, ndConstruction = "product"))
-orderly::orderly_commit(id)
+id <- orderly::orderly_run("naomi-simple_fit", parameters = list(tmb = TRUE, sample = TRUE))
+orderly::orderly_commit(id) #' [x]
 
 #' Simplfied Naomi with aghq, k = 1, and Laplace marginals (a.k.a. adam, for some reason)
 id <- orderly::orderly_run("naomi-simple_fit", parameters = list(adam = TRUE))
@@ -31,17 +27,12 @@ orderly::orderly_commit(id)
 
 #' Simplfied Naomi with tmbstan, and niter = 1000
 #' Note that longer niter are not run locally, and instead use the cluster. See make/hpc_mcmc.R
-id <- orderly::orderly_run("naomi-simple_fit", parameters = list(tmbstan = TRUE, hmc_laplace = FALSE))
-orderly::orderly_commit(id)
+# id <- orderly::orderly_run("naomi-simple_fit", parameters = list(tmbstan = TRUE, hmc_laplace = FALSE))
+# orderly::orderly_commit(id)
 
 #' Simplfied Naomi with tmbstan, embedded Laplace approximation and niter = 1000
-#' Note that longer niter are not run locally, and instead use the cluster. See make/hpc_mcmc.R
-id <- orderly::orderly_run("naomi-simple_fit", parameters = list(tmbstan = TRUE, hmc_laplace = TRUE))
-orderly::orderly_commit(id)
-
-run_commit_push("naomi-simple_mcmc")
-run_commit_push("naomi-simple_compare")
-run_commit_push("naomi-simple_model-checks")
+# id <- orderly::orderly_run("naomi-simple_fit", parameters = list(tmbstan = TRUE, hmc_laplace = TRUE))
+# orderly::orderly_commit(id)
 
 #' Statistical methods development
 
@@ -49,15 +40,15 @@ run_commit_push("naomi-simple_model-checks")
 run_commit_push("dev_scale-grid")
 
 #' With PCA AGHQ experiments
-run_pca_aghq <- function(k, s) {
-  id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = k, s = s, grid_type = "pca"))
+run_pca_aghq <- function(k, s, sample = FALSE) {
+  id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = k, s = s, grid_type = "pca", sample = sample))
   orderly::orderly_commit(id)
 }
 
 #' Runs for scoping out times
 run_pca_aghq(k = 2, s = 1) #' [x]
 run_pca_aghq(k = 2, s = 2) #' [x]
-run_pca_aghq(k = 2, s = 3) #' [x]
+run_pca_aghq(k = 2, s = 3) #' [ ]
 run_pca_aghq(k = 2, s = 4) #' [x]
 run_pca_aghq(k = 2, s = 5) #' [x]
 
@@ -66,16 +57,15 @@ run_pca_aghq(k = 3, s = 2) #' [x]
 run_pca_aghq(k = 3, s = 3) #' [x]
 run_pca_aghq(k = 3, s = 4) #' [x]
 run_pca_aghq(k = 3, s = 5) #' [x]
+run_pca_aghq(k = 3, s = 6) #' [x]
+run_pca_aghq(k = 3, s = 7) #' [x]
+run_pca_aghq(k = 3, s = 8, sample = TRUE) #' [x]
 
 run_pca_aghq(k = 5, s = 1) #' [x]
 run_pca_aghq(k = 5, s = 2) #' [x]
 run_pca_aghq(k = 5, s = 3) #' [x]
 run_pca_aghq(k = 5, s = 4) #' [x]
 run_pca_aghq(k = 5, s = 5) #' [x]
-
-#' Runs I think could be actually good
-run_pca_aghq(k = 3, s = 7) #' [x]
-run_pca_aghq(k = 3, s = 8) #' [x]
 
 run_commit_push("naomi-simple_increase-s-k")
 
@@ -85,6 +75,11 @@ run_commit_push("dev_sinla") #' Without experiments
 #' With experiments
 id <- orderly::orderly_run("dev_sinla", param = list(run_experiments = TRUE))
 orderly::orderly_commit(id)
+
+#' Results
+run_commit_push("naomi-simple_mcmc")
+run_commit_push("naomi-simple_compare")
+run_commit_push("naomi-simple_model-checks")
 
 #' Documentation and plots
 run_commit_push("docs_paper")

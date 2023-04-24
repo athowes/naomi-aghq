@@ -72,6 +72,14 @@ depends:
       use:
         depends/aghq-s5-k3.rds: out.rds
   - naomi-simple_fit:
+      id: latest(parameter:aghq == TRUE && parameter:grid_type == "pca" && parameter:s == 7 && parameter:k == 3)
+      use:
+        depends/aghq-s7-k3.rds: out.rds
+  - naomi-simple_fit:
+      id: latest(parameter:aghq == TRUE && parameter:grid_type == "pca" && parameter:s == 8 && parameter:k == 3)
+      use:
+        depends/aghq-s8-k3.rds: out.rds
+  - naomi-simple_fit:
       id: latest(parameter:aghq == TRUE && parameter:grid_type == "pca" && parameter:s == 1 && parameter:k == 5)
       use:
         depends/aghq-s1-k5.rds: out.rds

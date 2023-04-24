@@ -66,14 +66,16 @@ read_sk(s = 2, k = 3)
 read_sk(s = 3, k = 3)
 read_sk(s = 4, k = 3)
 read_sk(s = 5, k = 3)
+read_sk(s = 7, k = 3)
+read_sk(s = 8, k = 3)
 
 stopifnot(nrow(s3k3$quad$modesandhessians) == 3^3)
 
-k3 <- list(s1k3, s2k3, s3k3, s4k3, s5k3)
+k3 <- list(s1k3, s2k3, s3k3, s4k3, s5k3, s7k3, s8k3)
 k3_lognormconsts <- sapply(k3, function(x) x$quad$normalized_posterior$lognormconst)
 k3_times <- sapply(k3, function(x) x$time)
 
-rm(list = c("k3", "s1k3", "s2k3", "s3k3", "s4k3", "s5k3"))
+rm(list = c("k3", "s1k3", "s2k3", "s3k3", "s4k3", "s5k3", "s7k3", "s8k3"))
 gc()
 
 read_sk(s = 1, k = 5)
@@ -94,8 +96,8 @@ gc()
 
 ```{r}
 df <- data.frame(
-  s = rep(1:5, times = 3),
-  k = rep(c(2, 3, 5), each = 5),
+  s = c(1:5, 1:5, 7, 8, 1:5),
+  k = rep(c(2, 3, 5), times = c(5, 7, 5)),
   lognormconst = c(k2_lognormconsts, k3_lognormconsts, k5_lognormconsts),
   time = c(k2_times, k3_times, k5_times)
 )
