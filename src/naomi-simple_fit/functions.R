@@ -227,7 +227,6 @@ sample_aghq <- function(quad, M, verbose = TRUE) {
 
 #' Inference for the Naomi model using tmbstan, edited to work with DLL = "naomi_simple"
 fit_tmbstan <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple", ...) {
-
   if (DLL == "naomi_simple") {
     stopifnot(inherits(tmb_input, "naomi_simple_tmb_input"))
   } else {
@@ -259,12 +258,15 @@ sample_tmbstan <- function(mcmc, M = NULL, verbose = TRUE) {
 }
 
 #' Inference for the Naomi model using aghq plus Laplace marginals, edited to work with DLL = "naomi_simple"
-#' Compatible with a custom basegrid for the hyperparameter integration step
-fit_adam <- function(tmb_input, basegrid, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple",  ...) {
-  stopifnot(inherits(tmb_input, "naomi_tmb_input"))
+fit_adam <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple",  ...) {
+  if (DLL == "naomi_simple") {
+    stopifnot(inherits(tmb_input, "naomi_simple_tmb_input"))
+  } else {
+    stopifnot(inherits(tmb_input, "naomi_tmb_input"))
+  }
+
   obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL = DLL)
-  # Can optresults be passed in here from previous TMB fit?
-  quad <- aghq::marginal_laplace_tmb(obj, basegrid = basegrid, startingvalue = obj$par)
+  quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, ...)
   objout <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 1L, inner_verbose, progress, map, DLL = DLL)
   quad$obj <- objout
 

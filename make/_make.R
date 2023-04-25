@@ -22,8 +22,8 @@ id <- orderly::orderly_run("naomi-simple_fit", parameters = list(tmb = TRUE, sam
 orderly::orderly_commit(id) #' [x]
 
 #' Simplfied Naomi with aghq, k = 1, and Laplace marginals (a.k.a. adam, for some reason)
-id <- orderly::orderly_run("naomi-simple_fit", parameters = list(adam = TRUE))
-orderly::orderly_commit(id)
+id <- orderly::orderly_run("naomi-simple_fit", parameters = list(adam = TRUE, sample = TRUE))
+orderly::orderly_commit(id) #' [x]
 
 #' Simplfied Naomi with tmbstan, and niter = 1000
 #' Note that longer niter are not run locally, and instead use the cluster. See make/hpc_mcmc.R
@@ -67,7 +67,7 @@ run_pca_aghq(k = 5, s = 3) #' [x]
 run_pca_aghq(k = 5, s = 4) #' [x]
 run_pca_aghq(k = 5, s = 5) #' [x]
 
-run_commit_push("naomi-simple_increase-s-k")
+run_commit_push("naomi-simple_increase-s-k") #' [x]
 
 #' SINLA development
 run_commit_push("dev_sinla") #' Without experiments

@@ -148,8 +148,7 @@ if(aghq) {
 
     #' Fit AGHQ model
     #' The k argument here shouldn't be doing anything: this should (in future) be fixed in aghq::aghq
-    k <- 1
-    quad <- fit_aghq(tmb_inputs_simple, k = k, basegrid = pca_base_grid, dec.type = 1)
+    quad <- fit_aghq(tmb_inputs_simple, k = 1, basegrid = pca_base_grid, dec.type = 1)
 
     if(sample) {
       #' Add uncertainty
@@ -170,8 +169,9 @@ if(adam) {
   start <- Sys.time()
 
   #' k = 1 empirical Bayes with Laplace marginals
-  basegrid <- mvQuad::createNIGrid(dim = n_hyper, type = "GHe", level = 1, ndConstruction = "product")
-  adam <- fit_adam(tmb_inputs_simple, base_grid = basegrid)
+  base_grid <- mvQuad::createNIGrid(dim = n_hyper, type = "GHe", level = 1, ndConstruction = "product")
+  #' The k argument here shouldn't be doing anything: this should (in future) be fixed in aghq::aghq
+  adam <- fit_adam(tmb_inputs_simple, k = 1, basegrid = base_grid)
 
   if(sample) {
     #' Add uncertainty
