@@ -60,6 +60,7 @@
 ## Posters
 
 * [bayescomp-poster](https://athowes.github.io/elgm-inf/bayescomp-poster.pdf): for BayesComp 2023
+* [bioinference-poster](https://athowes.github.io/elgm-inf/bioinference-poster.pdf): for BioInference 2023
 
 ## Manuscript
 

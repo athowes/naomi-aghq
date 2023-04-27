@@ -1,0 +1,38 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Poster for BioInference 2023
+      filenames:
+        - bioinference-poster.html
+        - bioinference-poster.pdf
+  - data:
+      description: Figures
+      filenames:
+        - fig3.png
+        - fig4.png
+
+resources:
+  - bioinference-poster.Rmd
+  - figs.R
+  - citations.bib
+  - mrc-gida-icl-uw-uo.png
+  - fig1.png
+
+packages:
+  - rmarkdown
+  - dplyr
+  - ggplot2
+  - forcats
+  - patchwork
+
+depends:
+  - naomi-simple_fit:
+      id: latest(parameter:tmb == TRUE)
+      use:
+        depends/tmb.rds: out.rds
+  - naomi-simple_compare:
+      id: latest
+      use:
+        depends/beta_anc_rho.rds: beta_anc_rho.rds
+        depends/time_taken.csv: time_taken.csv
