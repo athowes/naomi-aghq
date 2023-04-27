@@ -129,10 +129,13 @@ beta_anc_rho <- histogram_and_ecdf("beta_anc_rho", return_df = TRUE)
 saveRDS(beta_anc_rho$df, "beta_anc_rho.rds")
 ```
 
+```{r}
+histogram_and_ecdf_helper <- function(par) lapply(1:sum(names(tmb$fit$obj$env$par) == par), histogram_and_ecdf, par = par)
+```
+
 ## `beta_rho`
 
 ```{r eval = pars_eval[["beta_rho"]]}
-histogram_and_ecdf_helper <- function(par) lapply(1:sum(names(tmb$fit$obj$env$par) == par), histogram_and_ecdf, par = par)
 histogram_and_ecdf_helper("beta_rho")
 ```
 
@@ -484,7 +487,21 @@ ks_lambda_t1_out <- ks_df_out(par = "lambda_t1_out")
 
 ks_plot(ks_df = ks_rho_t1_out, par = "rho_t1_out", alpha = 0.2)
 ks_plot(ks_df = ks_alpha_t1_out, par = "alpha_t1_out", alpha = 0.2)
-ks_plot(ks_df = ks_lambda_t1_out, par = "lambda_t1_out", alpha = 0.2)
+ks_plot(ks_df = ks_lambda_t1_out %>% filter(!(age_group %in% c("Y005_009", "Y010_014", "Y080_999"))), par = "lambda_t1_out", alpha = 0.2)
+```
+
+What is going on with those very high values of KS?
+
+```{r}
+ks_lambda_t1_out %>%
+  filter(ks > 0.99) %>%
+  group_by(method) %>%
+  summarise(n = n())
+
+ks_lambda_t1_out %>%
+  filter(ks > 0.99) %>%
+  pull(age_group) %>%
+  unique()
 ```
 
 ## Summary table

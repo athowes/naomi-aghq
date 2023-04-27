@@ -197,15 +197,18 @@ ks_plot <- function(ks_df, par, method1 = "TMB", method2 = "aghq", alpha = 0.5) 
   jitterplot <- wide_ks_df %>%
     ggplot(aes(x = "", y = ks_diff)) +
     geom_jitter(width = 0.05, height = 0, alpha = alpha) +
+    scale_y_continuous(labels = scales::percent) +
     geom_boxplot(fill = NA, width = 0.2, outlier.shape = NA) +
     labs(
-      title = paste0("Mean KS difference* is ", round(mean_ks_diff, 3)),
-      caption = paste0("*If >0 then ", method1, " more different to tmbstan, and if <0 then ", method2, " more different"),
+      caption = paste0(
+        "KS tests for ", par, " of length ", nrow(ks_df) / length(unique(ks_df$method)),
+        " with a mean KS difference of ", 100 * round(mean_ks_diff, 3), "%.\n",
+        "(If >0% then ", method1, " more different to tmbstan, and if <0% then ", method2, " more different)"),
       x = "", y = paste0("KS(", method1, ", tmbstan) - KS(", method2,", tmbstan)")
     ) +
     theme_minimal()
 
-  xy_length <- min(1, max(wide_ks_df[[method1]], wide_ks_df[[method2]]) + 0.05)
+  xy_length <- min(1, max(wide_ks_df[[method1]], wide_ks_df[[method2]]) + 0.03)
 
   x <- y <- seq(0, xy_length, length.out = 30)
 
@@ -220,18 +223,18 @@ ks_plot <- function(ks_df, par, method1 = "TMB", method2 = "aghq", alpha = 0.5) 
 
   scatterplot <- gradient_base +
     geom_point(data = wide_ks_df, aes(x = .data[[method1]], y = .data[[method2]]), alpha = alpha) +
-    xlim(0 - 0.005, xy_length + 0.005) +
-    ylim(0 - 0.005, xy_length + 0.005) +
+    scale_x_continuous(labels = scales::percent) +
+    scale_y_continuous(labels = scales::percent) +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
     labs(
-      title = paste0("KS tests for ", par, " of length ", max(ks_df$index)),
       x = paste0("KS(", method1, ", tmbstan)"), y = paste0("KS(", method2,", tmbstan)"),
       fill = "KS difference"
     ) +
     theme_minimal() +
     guides(fill = "none")
 
-  scatterplot + jitterplot
+  scatterplot + jitterplot +
+    plot_layout(widths = c(2, 1))
 }
 
 #' Create a density plot and ridgeplot of the KS test statistics
@@ -245,7 +248,7 @@ ks_plot_many <- function(ks_summary, method1, method2) {
   ks_method1 <- paste0("KS(", method1, ", tmbstan)")
   ks_method2 <- paste0("KS(", method2, ", tmbstan)")
 
-  xy_length <- min(1, max(ks_summary[[ks_method1]], ks_summary[[ks_method2]]) + 0.05)
+  xy_length <- min(1, max(ks_summary[[ks_method1]], ks_summary[[ks_method2]]) + 0.03)
 
   x <- y <- seq(0, xy_length, length.out = 30)
 
