@@ -4,23 +4,29 @@
 
 tmb <- readRDS("depends/tmb.rds")
 
-qq <- function(data) {
-  qqnorm(data)
-  qqline(data)
+qq_hist <- function(par, i) {
+  df <- data.frame(y = tmb$fit$sample[[par]][i, ])
+
+  qq <- ggplot(df, aes(sample = y)) +
+    stat_qq(alpha = 0.2) +
+    stat_qq_line() +
+    labs(
+      title = paste0("QQ plot for TMB ", par, "[", i, "]"),
+      x = "", y = ""
+    ) +
+    theme_minimal()
+
+  hist <- ggplot(df, aes(x = y)) +
+    geom_histogram(alpha = 0.8) +
+    labs(x = "", y = "") +
+    theme_minimal()
+
+  qq + hist
 }
 
 pdf("qq-checks.pdf", h = 4, w = 6.25)
 
-qq(tmb$fit$sample$beta_alpha[1, ])
-qq(tmb$fit$sample$beta_alpha[2, ])
-
-qq(tmb$fit$sample$u_rho_xs[1, ])
-qq(tmb$fit$sample$u_rho_xs[2, ])
-
-qq(tmb$fit$sample$rho_t1_out[1, ])
-qq(tmb$fit$sample$rho_t1_out[2, ])
-
-qq(tmb$fit$sample$alpha_t1_out[1, ])
-qq(tmb$fit$sample$alpha_t1_out[2, ])
+qq_hist("ui_anc_alpha_x", 18)
+qq_hist("ui_anc_alpha_x", 29)
 
 dev.off()
