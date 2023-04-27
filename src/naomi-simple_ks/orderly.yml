@@ -7,7 +7,7 @@ artefacts:
   - data:
       description: Notebook comparing inferences
       filenames:
-        - comparison.html
+        - ks.html
   - data:
       description: Time taken by each method
       filenames:
@@ -26,7 +26,7 @@ artefacts:
         - ks_summary_out.rds
 
 resources:
-  - comparison.Rmd
+  - ks.Rmd
 
 packages:
   - dplyr

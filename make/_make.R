@@ -78,7 +78,7 @@ orderly::orderly_commit(id)
 
 #' Results
 run_commit_push("naomi-simple_mcmc")
-run_commit_push("naomi-simple_compare")
+run_commit_push("naomi-simple_ks")
 run_commit_push("naomi-simple_model-checks")
 
 #' Documentation and plots

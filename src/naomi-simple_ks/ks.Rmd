@@ -13,7 +13,7 @@ output:
 abstract: |
   **Background**  We have run the simplified Naomi model using a range of inference methods: `TMB`, `aghq`, `adam` and `tmbstan`.
   
-  **Task** In this report, we compare the accuracy of the posterior distributions obtained from these inference methods using histograms, Kolmogorov-Smirnov tests, maximum mean discrepancy and Pareto-smoothed importance sampling.
+  **Task** In this report, we compare the accuracy of the posterior distributions obtained from these inference methods using histograms and Kolmogorov-Smirnov tests.
 ---
 
 # Background
