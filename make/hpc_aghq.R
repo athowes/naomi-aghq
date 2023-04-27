@@ -1,9 +1,9 @@
-#' Running AGHQ with k = 3 and a sparse grid
+#' Running AGHQ with k = 3 and s = 9
 
 repo <- "elgm-inf"
 report <- "naomi-simple_fit"
 path_bundles <- "bundles"
-param <- list(aghq = TRUE, k = 3, ndConstruction = "sparse")
+param <- list(aghq = TRUE, k = 3, s = 9, grid_type = "pca", sample = TRUE)
 # param <- list(aghq = TRUE) #' For testing
 
 #' A1.
@@ -45,7 +45,7 @@ config <- didehpc::didehpc_config(
 
 #' aghq, naomi from Github
 src <- conan::conan_sources(
-  packages = c("github::awstringer1/aghq", "github::mrc-ide/naomi")
+  packages = c("github::athowes/aghq@adam-dev", "github::mrc-ide/naomi")
 )
 
 ctx <- context::context_save(
