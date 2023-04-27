@@ -1,0 +1,31 @@
+---
+title: "Exceedance probability comparison for the simplified Naomi model"
+author:
+- name: Adam Howes
+output:
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    df_print: paged
+    code_folding: show
+    theme: lumen
+abstract: |
+  **Background**  We have run the simplified Naomi model using a range of inference methods: `TMB`, `aghq`, `adam` and `tmbstan`.
+  
+  **Task** In this report, we compare the accuracy of the posterior distributions obtained from these inference methods using exceedance probabilities.
+---
+
+# Background
+
+We compare the inference results from `TMB`, `aghq`, `adam`, and `tmbstan`.
+Import these inference results as follows:
+
+```{r}
+tmb <- readRDS("depends/tmb.rds")
+aghq <- readRDS("depends/aghq.rds")
+adam <- readRDS("depends/adam.rds")
+tmbstan <- readRDS("depends/tmbstan.rds")
+```
+
+
