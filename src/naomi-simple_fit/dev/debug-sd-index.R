@@ -1,11 +1,6 @@
 #' Fit AGHQ model
 quad <- fit_aghq(tmb_inputs_simple, k = k)
-
-if (verbose) print("Sampling from aghq")
-
 M <- 1000
-verbose <- TRUE
-
 samp <- aghq::sample_marginal(quad, M)
 
 rownames(samp$samps)
@@ -29,6 +24,10 @@ aghq_cov <- solve(aghq_hess)
 
 #' Fit TMB model
 fit <- local_fit_tmb(tmb_inputs_simple, outer_verbose = TRUE, inner_verbose = FALSE, max_iter = 250, progress = NULL, DLL = "naomi_simple")
+
+#' Want to look at sdreport$jointPrecision
+sdreport <- sdreport(fit$obj, par.fixed = fit$par.fixed, getJointPrecision = TRUE)
+
 fit <- local_sample_tmb(fit, random_only = FALSE, M = M)
 
 (plot2 <- ggplot(data.frame(x = fit$sample[[par]][i, ])) +
@@ -59,8 +58,8 @@ image(tmb_hess_reduced)
 
 tmb_cov_reduced <- solve(tmb_hess_reduced)
 
-#' Consistent with the hypothesis that these are the same matrix up to numerical error
-sum(tmb_cov_reduced - aghq_cov) / length(tmb_cov_reduced)
+#' Consistent with the hypothesis that these are the same matrix up to numerical error?
+plot(tmb_cov_reduced - aghq_cov)
 
 #' AGHQ sampling algorithm: multinomial a node, then MVN from the Hessian of that node (for the latent field)
 #' TMB sampling algorithm: MVN from the Hessian of the joint latent field and hyperparameters
@@ -83,3 +82,13 @@ j3 <- which(colnames(tmb_samples_reduced) == par)[i]
 plot1 + plot2 + plot3 +
   labs(caption = "AGHQ with k = 1 matches TMB if you use the reduced Hessian")
 
+#' Checking what naomi:::sdreport_joint_precision is doing (it's the same as sdreport)
+obj <- fit$obj
+par.fixed <- fit$par.fixed
+hessian.fixed <- NULL
+bias.correct <- FALSE
+bias.correct.control <- list(sd = FALSE, split = NULL, nsplit = NULL)
+ignore.parm.uncertainty <- FALSE
+skip.delta.method <- FALSE
+
+# ...
