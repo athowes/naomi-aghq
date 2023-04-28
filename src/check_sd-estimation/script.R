@@ -113,4 +113,7 @@ df %>%
 #' Where exactly is the mismatch?
 length(colnames(cov)) == length(names(aghq$quad$modesandhessians[["mode"]][[1]]))
 
-#' Oh it's that the AGHQ doesn't have the hyperparameters baked it!
+#' Oh it's that the AGHQ doesn't have the hyperparameters baked in!
+aghq_hess <- aghq$quad$modesandhessians[["H"]][[1]]
+aghq_cov <- solve(aghq_hess)
+sqrt(aghq_cov[j1, j1])
