@@ -130,12 +130,12 @@ local_fit_tmb <- function(tmb_input, outer_verbose = TRUE, inner_verbose = FALSE
 }
 
 #' A local version of naomi::sample_tmb
-local_sample_tmb <- function(fit, nsample = 1000, rng_seed = NULL, random_only = TRUE, verbose = FALSE) {
+local_sample_tmb <- function(fit, M = 1000, rng_seed = NULL, random_only = TRUE, verbose = FALSE) {
   # Begin expose naomi::sample_tmb
   # https://github.com/mrc-ide/naomi/blob/65ac94517b910ac517a45f41e824824e1907a3c4/R/tmb-model.R#L624
   set.seed(rng_seed)
   stopifnot(methods::is(fit, "naomi_fit"))
-  stopifnot(nsample > 1)
+  stopifnot(M > 1)
   to_tape <- TMB:::isNullPointer(fit$obj$env$ADFun$ptr)
   if (to_tape) fit$obj$retape(FALSE)
   if (!random_only) {
@@ -147,16 +147,16 @@ local_sample_tmb <- function(fit, nsample = 1000, rng_seed = NULL, random_only =
       stop("cov must be a symmetric matrix")
     }
     if (verbose) print("Drawing sample")
-    smp <- mvtnorm::rmvnorm(n = nsample, mean = fit$par.full, sigma = cov, method = "eigen", checkSymmetry = FALSE)
+    smp <- mvtnorm::rmvnorm(n = M, mean = fit$par.full, sigma = cov, method = "eigen", checkSymmetry = FALSE)
   } else {
     r <- fit$obj$env$random # Indices of the random effects
     par_f <- fit$par.full[-r] # Mode of the fixed effects
     par_r <- fit$par.full[r] # Mode of the random effects
     hess_r <- fit$obj$env$spHess(fit$par.full, random = TRUE) # Hessian of the random effects
-    smp_r <- naomi:::rmvnorm_sparseprec(nsample, par_r, hess_r) # Sample from the random effects
-    smp <- matrix(0, nsample, length(fit$par.full)) # Create data structure for sample storage
+    smp_r <- naomi:::rmvnorm_sparseprec(M, par_r, hess_r) # Sample from the random effects
+    smp <- matrix(0, M, length(fit$par.full)) # Create data structure for sample storage
     smp[, r] <- smp_r # Store random effect samples
-    smp[, -r] <- matrix(par_f, nsample, length(par_f), byrow = TRUE) # For fixed effects store mode
+    smp[, -r] <- matrix(par_f, M, length(par_f), byrow = TRUE) # For fixed effects store mode
     colnames(smp)[r] <- colnames(smp_r) # Random effect names
     colnames(smp)[-r] <- names(par_f) # Fixed effect names
   }

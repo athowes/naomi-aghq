@@ -1,5 +1,5 @@
 #' Uncomment and run the two line below to resume development of this script
-# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(aghq = TRUE, area_level = 4, k = 3, s = 1, grid_type = "pca"))
+# orderly::orderly_develop_start("naomi-simple_fit", parameters = list(aghq = TRUE, area_level = 4, k = 1))
 # setwd("src/naomi-simple_fit")
 
 if(tmb + aghq + adam + tmbstan != 1) {
@@ -90,7 +90,7 @@ if(tmb) {
 
   if(sample) {
     #' Add uncertainty
-    fit <- local_sample_tmb(fit, random_only = FALSE, nsample = nsample)
+    fit <- local_sample_tmb(fit, random_only = FALSE, M = nsample)
 
     #' Calculate model outputs
     outputs <- local_output_package_naomi_simple(fit, naomi_data)
