@@ -31,9 +31,9 @@ ggplot(df, aes(x = samples, fill = method)) +
 #' Now look at the AGHQ modes and Hessians
 
 #' First find the index that this latent field element is stored at
-j <- which(names(aghq$quad$modesandhessians[["mode"]][[1]]) == par)[i]
+j1 <- which(names(aghq$quad$modesandhessians[["mode"]][[1]]) == par)[i]
 
-aghq_modes <- sapply(aghq$quad$modesandhessians[["mode"]], function(x) x[j])
+aghq_modes <- sapply(aghq$quad$modesandhessians[["mode"]], function(x) x[j1])
 
 tmb_mode <- tmb$fit$mode[[par]][i]
 
@@ -54,10 +54,63 @@ dyn.load(TMB::dynlib("naomi_simple"))
 hess <- naomi:::sdreport_joint_precision(tmb$fit$obj, tmb$fit$par.fixed)
 cov <- solve(hess)
 
-df %>%
+#' This is the marginal standard deviation
+j2 <- which(colnames(cov) == par)[i]
+sd_j2 <- sqrt(cov[j2, j2])
+
+(plot <- df %>%
   filter(method == "TMB") %>%
   ggplot(aes(x = samples, fill = method)) +
-  geom_histogram(aes(y = after_stat(density)), fill = "#56B4E9") +
-  stat_function(fun = dnorm, args = list(mean = tmb_mode, sd = sqrt(cov[j, j]))) +
+  geom_histogram(aes(y = after_stat(density)), fill = "#56B4E9", alpha = 0.7) +
+  stat_function(fun = dnorm, args = list(mean = tmb_mode, sd = sd_j2)) +
+  labs(x = "", y = "") +
+  theme_minimal())
+
+#' Expose local_sample_tmb
+fit <- tmb$fit
+nsample <- 1000
+rng_seed <- NULL
+random_only <- FALSE
+verbose <- TRUE
+
+set.seed(rng_seed)
+stopifnot(methods::is(fit, "naomi_fit"))
+stopifnot(nsample > 1)
+to_tape <- TMB:::isNullPointer(fit$obj$env$ADFun$ptr)
+if (to_tape) fit$obj$retape(FALSE)
+
+if (verbose) print("Calculating joint precision")
+hess <- naomi:::sdreport_joint_precision(fit$obj, fit$par.fixed)
+
+if (verbose) print("Inverting precision for joint covariance")
+cov <- solve(hess)
+
+if (!isSymmetric(cov, tol = sqrt(.Machine$double.eps), check.attributes = FALSE)) {
+  stop("cov must be a symmetric matrix")
+}
+
+if (verbose) print("Drawing sample")
+smp <- mvtnorm::rmvnorm(n = nsample, mean = fit$par.full, sigma = cov, method = "eigen", checkSymmetry = FALSE)
+
+plot +
+  geom_histogram(
+    data = data.frame(samples = smp[, which(colnames(smp) == par)[i]], method = "Manual TMB"),
+    aes(x = samples, y = after_stat(density)), fill = "#E69F00", alpha = 0.7
+  )
+
+#' Does the mismatched j correspond to the AGHQ posterior?
+sd_j1 <- sqrt(cov[j1, j1])
+
+#' Looks possible!
+df %>%
+  filter(method == "aghq") %>%
+  ggplot(aes(x = samples, fill = method)) +
+  geom_histogram(aes(y = after_stat(density)), fill = "#009E73", alpha = 0.7) +
+  stat_function(fun = dnorm, args = list(mean = tmb_mode, sd = sd_j1)) +
   labs(x = "", y = "") +
   theme_minimal()
+
+#' Where exactly is the mismatch?
+length(colnames(cov)) == length(names(aghq$quad$modesandhessians[["mode"]][[1]]))
+
+#' Oh it's that the AGHQ doesn't have the hyperparameters baked it!
