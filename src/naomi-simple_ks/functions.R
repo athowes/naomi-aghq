@@ -22,6 +22,10 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
       data.frame(method = "adam", samples = as.numeric(adam$sample[[par]][i, ])),
       data.frame(method = "tmbstan", samples = as.numeric(tmbstan$mcmc$sample[[par]][i, ]))
     )
+
+    rhat <- round(rstan::Rhat(tmbstan$mcmc$sample[[par]][i, ]), 3)
+    ess <- round(rstan::ess_bulk(tmbstan$mcmc$sample[[par]][i, ]), 3)
+
   } else {
     par_name <- paste0(par)
 
@@ -31,6 +35,9 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
       data.frame(method = "adam", samples = as.numeric(adam$sample[[par]])),
       data.frame(method = "tmbstan", samples = as.numeric(tmbstan$mcmc$sample[[par]]))
     )
+
+    rhat <- round(rstan::Rhat(tmbstan$mcmc$sample[[par]]), 3)
+    ess <- round(rstan::ess_bulk(tmbstan$mcmc$sample[[par]]), 3)
   }
 
   df_compare$method <- factor(df_compare$method, levels = c("TMB", "aghq", "adam", "tmbstan"))
@@ -46,9 +53,6 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
     summarise(sd = sd(samples)) %>%
     pull(sd) %>%
     round(digits = 3)
-
-  rhat <- tryCatch(round(rhats[[par_name]], 3), error = function(e) return("Missing!"))
-  ess <- tryCatch(round(ess[[par_name]], 3), error = function(e) return("Missing!"))
 
   histogram_plot <- ggplot(df_compare, aes(x = samples, fill = method, col = method)) +
     geom_histogram(aes(y = after_stat(density)), alpha = 0.5, position = "identity", bins = 30) +

@@ -25,6 +25,8 @@ Import these inference results as follows:
 tmb <- readRDS("depends/tmb.rds")
 aghq <- readRDS("depends/aghq.rds")
 adam <- readRDS("depends/adam.rds")
+adam_time <- adam$time
+adam <- adam$adam
 tmbstan <- readRDS("depends/tmbstan.rds")
 
 depends <- yaml::read_yaml("orderly.yml")$depends
@@ -81,15 +83,13 @@ tmbstan_details
 time_taken <- data.frame(
   "TMB" = tmb$time,
   "aghq" = aghq$time,
-  "adam" = adam$time,
+  "adam" = adam_time,
   "tmbstan" = tmbstan$time
 )
 
 write_csv(time_taken, "time_taken.csv")
 
 time_taken
-
-adam <- adam$adam
 ```
 
 # Histograms and ECDF difference plots {.tabset .tabset-fade}
@@ -108,15 +108,6 @@ There is no particular reason to choose this subset rather than other, it's quit
 ```{r}
 pars_eval <- pars %in% c("beta_rho", "beta_alpha", "beta_lambda", "beta_anc_rho", "beta_anc_alpha", "u_rho_x", "us_rho_x", "u_rho_xs")
 names(pars_eval) <- pars
-```
-
-We will write the `tmbstan` $\hat R$ and ESS for the particular parameter on each plot to help in deciding how seriously to take the MCMC results:
-
-```{r}
-rhats <- bayesplot::rhat(tmbstan$mcmc$stanfit)
-ess_ratio <- bayesplot::neff_ratio(tmbstan$mcmc$stanfit)
-niter <- 4 * tmbstan_details$niter / tmbstan_details$nthin
-ess <- ess_ratio * niter
 ```
 
 The `beta_rho` and `beta_anc_rho` parameters are used in other reports, so create dataframes here to save as artefacts:
@@ -633,6 +624,11 @@ histogram_and_ecdf(par = "us_alpha_xs", i = 26)
 Is there any correlation between the value of $\text{KS}(\texttt{method}, \texttt{tmbstan})$ for a particular parameter and the ESS of that parameter from `tmbstan` output?
 
 ```{r}
+rhats <- bayesplot::rhat(tmbstan$mcmc$stanfit)
+ess_ratio <- bayesplot::neff_ratio(tmbstan$mcmc$stanfit)
+niter <- 4 * tmbstan_details$niter / tmbstan_details$nthin
+ess <- ess_ratio * niter
+
 ks_summary %>%
   pivot_longer(
     col = starts_with("KS"),
