@@ -2,7 +2,7 @@
 base_grid <- mvQuad::createNIGrid(dim = n_hyper, type = "GHe", level = 1, ndConstruction = "product")
 adam <- fit_adam(tmb_inputs_simple, k = 1, basegrid = base_grid)
 
-nsample <- 100
+nsample <- 1000
 
 #' Expose sample_adam(adam, M = nsample)
 M <- nsample
@@ -96,3 +96,18 @@ names(quad$sample) <- names(r)
 
 #' This does look different
 hist(quad$sample$alpha_t1_out[1, ])
+
+#' The problem is already there at before apply(smp, 1, obj$report)
+#' It is also already there before if (verbose) print("Rearranging samples")
+#' Must be during the sampling of draws from adam
+
+#' The hyperparameter samples look the same
+lapply(samp$thetasamples, head)
+lapply(thetasamples, head)
+
+#' So it must be a difference in the latent field parameters?
+hist(samps[1, ])
+hist(samp$samps[1, ])
+
+hist(samps[2, ])
+hist(samp$samps[2, ])
