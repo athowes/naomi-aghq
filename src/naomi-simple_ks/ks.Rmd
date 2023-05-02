@@ -331,7 +331,7 @@ rho_t1_out_fine[1:10, 1:10]
 Something weird happening with `adam`, go back and check this:
 
 ```{r}
-histogram_and_ecdf(par = "alpha_t1_out", i = 1)
+histogram_and_ecdf(par = "rho_t1_out", i = 1)
 ```
 
 # KS plots 
@@ -478,19 +478,20 @@ ks_lambda_t1_out <- ks_df_out(par = "lambda_t1_out")
 
 ks_plot(ks_df = ks_rho_t1_out, par = "rho_t1_out", alpha = 0.2)
 ks_plot(ks_df = ks_alpha_t1_out, par = "alpha_t1_out", alpha = 0.2)
-ks_plot(ks_df = ks_lambda_t1_out %>% filter(!(age_group %in% c("Y005_009", "Y010_014", "Y080_999"))), par = "lambda_t1_out", alpha = 0.2)
+ks_plot(ks_df = ks_lambda_t1_out, par = "lambda_t1_out", alpha = 0.2)
 ```
 
-What is going on with those very high values of KS?
+What is going on with those very low values of KS?
+It's that there are new new infections in those age groups, and the posterior samples from each method are exactly the same, in particular draws of only zero.
 
 ```{r}
 ks_lambda_t1_out %>%
-  filter(ks > 0.99) %>%
+  filter(ks == 0) %>%
   group_by(method) %>%
   summarise(n = n())
 
 ks_lambda_t1_out %>%
-  filter(ks > 0.99) %>%
+  filter(ks == 0) %>%
   pull(age_group) %>%
   unique()
 ```
