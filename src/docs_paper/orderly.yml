@@ -34,7 +34,6 @@ depends:
   - naomi-simple_compare:
       id: latest
       use:
-        depends/ks_summary_tmb_adam.pdf: ks_summary_tmb_adam.pdf
         depends/ks_summary_out.rds: ks_summary_out.rds
   - docs_bayescomp-poster:
       id: latest

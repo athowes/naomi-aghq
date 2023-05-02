@@ -177,13 +177,13 @@ For $\theta \in \{\rho, \alpha, \kappa\}$ we calculate the weighted, aggregated 
 $$
 \hat \theta_\mathcal{I} = \frac{\sum_j w_j \cdot\theta_j}{\sum_j w_j},
 $$
-where $j$ indexes individuals across all strata $i \in \mathcal{I}$.
-The design weights are given by
-$$
-w_j = \frac{1}{\pi_j} \times \frac{1}{\omega_j},
-$$
-where $\pi_j$ is the probability of inclusion and $\omega_j$ is a non-response factor for the particular survey.
-We calculate the observed number of indicator cases as $y^{\hat \theta}_{\mathcal{I}} = m^{\hat \theta}_{\mathcal{I}} \cdot \hat \theta_{\mathcal{I}}$ where
+where $j$ indexes individuals across all strata $i \in \mathcal{I}$ and $w_j$ are design weights.
+<!-- The design weights are given by -->
+<!-- $$ -->
+<!-- w_j = \frac{1}{\pi_j} \times \frac{1}{\omega_j}, -->
+<!-- $$ -->
+<!-- where $\pi_j$ is the probability of inclusion and $\omega_j$ is a non-response factor for the particular survey. -->
+We calculate the observed number of outcomes as $y^{\hat \theta}_{\mathcal{I}} = m^{\hat \theta}_{\mathcal{I}} \cdot \hat \theta_{\mathcal{I}}$ where
 $$
 m^{\hat \theta}_\mathcal{I} = \frac{\left(\sum_j w_j\right)^2}{\sum_j w_j^2},
 $$
