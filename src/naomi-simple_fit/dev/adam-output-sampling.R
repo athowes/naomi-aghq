@@ -63,5 +63,36 @@ names(adam$sample) <- names(r)
 #' Reproduce histogram from issue showing that the Naomi outputs here are not as they should be
 hist(adam$sample$alpha_t1_out[1, ])
 
+#' Is it that the latent field and hyper samples are wrong, or that the method for sampling outputs is wrong?
+quad <- fit_aghq(tmb_inputs_simple, k = 1)
 
+#' Expose sample_aghq(quad, M = nsample)
 
+# Note that with k = 1, sample_marginal just returns the mode for the hypers
+# This needs to be debugged, maybe?
+if (verbose) print("Sampling from aghq")
+samp <- aghq::sample_marginal(quad, M)
+
+# This part replaces samples from TMB with samples from aghq
+if (verbose) print("Rearranging samples")
+r <- quad$obj$env$random
+smp <- matrix(0, M, length(quad$obj$env$par))
+smp[, r] <- unname(t(samp$samps))
+names(samp$thetasamples) <- names(samp$theta)
+smp[, -r] <- unname(as.matrix(bind_rows(samp$thetasamples)))
+smp <- as.data.frame(smp)
+colnames(smp)[r] <- rownames(samp$samps)
+colnames(smp)[-r] <- names(samp$thetasamples)
+
+# This part is the same as TMB
+if (verbose) print("Simulating from model")
+sim <- apply(smp, 1, quad$obj$report)
+r <- quad$obj$report()
+if (verbose) print("Returning sample")
+quad$sample <- Map(vapply, list(sim), "[[", lapply(lengths(r), numeric), names(r))
+is_vector <- vapply(quad$sample, inherits, logical(1), "numeric")
+quad$sample[is_vector] <- lapply(quad$sample[is_vector], matrix, nrow = 1)
+names(quad$sample) <- names(r)
+
+#' This does look different
+hist(quad$sample$alpha_t1_out[1, ])
