@@ -28,4 +28,8 @@ depends:
   - naomi-simple_fit:
       id: latest(parameter:aghq == TRUE && parameter:grid_type == "pca" && parameter:s == 8 && parameter:k == 3)
       use:
+        depends/aghq-pca.rds: out.rds
+  - naomi-simple_fit:
+      id: latest(parameter:aghq == TRUE && parameter:k == 1)
+      use:
         depends/aghq.rds: out.rds

@@ -21,6 +21,10 @@ run_commit_push("naomi")
 id <- orderly::orderly_run("naomi-simple_fit", parameters = list(tmb = TRUE, sample = TRUE))
 orderly::orderly_commit(id) #' [x]
 
+#' Simplfied Naomi with aghq, k = 1
+id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = 1, sample = TRUE))
+orderly::orderly_commit(id) #' [x]
+
 #' Simplfied Naomi with aghq, k = 1, and Laplace marginals (a.k.a. adam, for some reason)
 id <- orderly::orderly_run("naomi-simple_fit", parameters = list(adam = TRUE, sample = TRUE))
 orderly::orderly_commit(id) #' [x]
