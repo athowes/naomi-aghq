@@ -1,6 +1,8 @@
 #' Debug adam sampling of Naomi outputs
-base_grid <- mvQuad::createNIGrid(dim = n_hyper, type = "GHe", level = 1, ndConstruction = "product")
-adam <- fit_adam(tmb_inputs_simple, k = 1, basegrid = base_grid)
+#' You can just read in orderly results for adam rather than running it again
+
+# base_grid <- mvQuad::createNIGrid(dim = n_hyper, type = "GHe", level = 1, ndConstruction = "product")
+# adam <- fit_adam(tmb_inputs_simple, k = 1, basegrid = base_grid)
 
 nsample <- 1000
 
@@ -78,7 +80,7 @@ if (verbose) print("Rearranging samples")
 r <- quad$obj$env$random
 smp <- matrix(0, M, length(quad$obj$env$par))
 smp[, r] <- unname(t(samp$samps))
-names(samp$thetasamples) <- names(samp$theta)
+names(samp$thetasamples) <- theta_names
 smp[, -r] <- unname(as.matrix(bind_rows(samp$thetasamples)))
 smp <- as.data.frame(smp)
 colnames(smp)[r] <- rownames(samp$samps)
@@ -106,6 +108,15 @@ lapply(samp$thetasamples, head)
 lapply(thetasamples, head)
 
 #' So it must be a difference in the latent field parameters?
+#' samps is from adam
+#' samp$samps is from aghq
+str(samps)
+str(samp$samps)
+
+#' But they look similar enough that it would be strange to get such a large difference?
+plot(rowMeans(samps), rowMeans(samp$samps))
+plot(matrixStats::rowSds(samps), matrixStats::rowSds(samp$samps))
+
 hist(samps[1, ])
 hist(samp$samps[1, ])
 
