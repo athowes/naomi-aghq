@@ -1,0 +1,23 @@
+---
+title: "Sampling from the hyperparameters with `aghq` or `adam`"
+author:
+- name: Adam Howes
+output:
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    df_print: paged
+    code_folding: show
+    theme: lumen
+abstract: |
+  **Background**
+  
+  **Task**
+---
+
+# Original computing environment
+
+```{r}
+sessionInfo()
+```

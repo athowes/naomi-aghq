@@ -1,0 +1,27 @@
+script: script.R
+
+sources:
+  - functions.R
+
+resources:
+  - hyper-sampling.Rmd
+
+artefacts:
+  - data:
+      description: Hyperparameter sampling development notebook
+      filenames:
+        - hyper-sampling.html
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - TMB
+  - tmbstan
+  - aghq
+  - inf.utils
