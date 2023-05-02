@@ -28,7 +28,7 @@
 
 ### Results
 
-* [comparison](https://athowes.github.io/elgm-inf/comparison.html): comparison of inference methods for the simplified Naomi model
+* [ks](https://athowes.github.io/elgm-inf/ks.html): comparison of inference methods for the simplified Naomi model using histograms and KS test results
 * [mcmc-convergence](https://athowes.github.io/elgm-inf/mcmc-convergence.html): assessing MCMC (NUTS using `tmbstan`) convergence for the simplified Naomi model
 * [model-checks](https://athowes.github.io/elgm-inf/model-checks.html): checking the fit of the simplified Naomi model to data
 
