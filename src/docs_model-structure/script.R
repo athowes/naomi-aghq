@@ -1,3 +1,10 @@
+#' Uncomment and run the two line below to resume development of this script
+# orderly::orderly_develop_start("docs_model-structure")
+# setwd("src/docs_model-structure")
+
+tmb <- readRDS("depends/tmb.rds")
+fit <- tmb$fit
+
 #' How large is the incidence component of the model?
 #' Specifically: how many latent field parameters? How many hyperparameters?
 
@@ -40,3 +47,22 @@ length(hyper)
 #' 34 out of 467 latent field are in the incidence component
 sum(names(fit$obj$env$par) %in% incidence_related[incidence_related %in% latent_field])
 length(names(fit$obj$env$par)) - length(hyper)
+
+#' Analysis of inputs to Naomi outputs
+
+#' Inputs for rho_t1_out
+# vector<Type> rho_t1_out(plhiv_t1_out / population_t1_out);
+# vector<Type> plhiv_t1_out(A_out * plhiv_t1)
+# vector<Type> plhiv_t1(population_t1 * rho_t1);
+
+#' Inputs for alpha_t1_out
+# vector<Type> alpha_t1_out(artnum_t1_out / plhiv_t1_out);
+# vector<Type> artnum_t1_out(A_out * artnum_t1);
+# vector<Type> artnum_t1(population_t1 * prop_art_t1);
+
+#' Inputs for lambda_t1_out
+# vector<Type> lambda_t1_out(infections_t1_out / (population_t1_out - plhiv_t1_out));
+# vector<Type> infections_t1_out(A_out * infections_t1);
+# vector<Type> infections_t1(lambda_t1 * (population_t1 - plhiv_t1));
+
+# Add to Table S2?

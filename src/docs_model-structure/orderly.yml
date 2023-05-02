@@ -1,0 +1,17 @@
+script: script.R
+
+packages:
+  - dplyr
+  - ggplot2
+  - TMB
+  - INLA
+  - rmarkdown
+  - bsae
+  - knitr
+  - kableExtra
+
+depends:
+  - naomi-simple_fit:
+      id: latest(parameter:tmb == TRUE)
+      use:
+        depends/tmb.rds: out.rds
