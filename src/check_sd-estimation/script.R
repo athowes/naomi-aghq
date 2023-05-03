@@ -80,6 +80,7 @@ aghq_cov <- solve(aghq_hess)
 tmb_mode <- tmb$fit$par.full
 j2 <- which(names(tmb_mode) == par)[i]
 
+TMB::compile("naomi_simple.cpp")
 dyn.load(TMB::dynlib("naomi_simple"))
 tmb_hess <- naomi:::sdreport_joint_precision(tmb$fit$obj, tmb$fit$par.fixed)
 dim(tmb_hess) #' 491 x 491

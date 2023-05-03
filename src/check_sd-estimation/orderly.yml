@@ -8,6 +8,9 @@ artefacts:
         - mode-locations.pdf
         - reduced-hessian-draws.pdf
 
+resources:
+  - naomi_simple.cpp
+
 packages:
   - dplyr
   - forcats

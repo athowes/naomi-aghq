@@ -97,3 +97,6 @@ run_commit_push("docs_bayescomp-poster")
 run_commit_push("docs_bioinference-poster")
 run_commit_push("plot-tikz_algorithm-flowchart")
 run_commit_push("plot-tikz_simplified-naomi")
+
+#' Checks
+run_commit_push("check_sd-estimation")
