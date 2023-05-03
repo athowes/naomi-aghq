@@ -61,6 +61,11 @@ t <- obj$enqueue(sessionInfo())
 t$status()
 t$result()
 
+#' Check version of aghq being used
+t <- obj$enqueue(packageVersion("aghq"))
+t$status()
+t$result()
+
 #' Run larger job
 path <- file.path(recent_bundle$name)
 output_path <- "output"
@@ -79,7 +84,7 @@ recent_ctx <- dplyr::filter(ctx_info, created == max(created))
 ctx <- context::context_load(context::context_read(recent_ctx$id, "context"))
 queue <- didehpc::queue_didehpc(ctx)
 queue$task_list()
-t <- queue$task_get("e7a3af5d7848c44958cdd1e738cc821b")
+t <- queue$task_get("4be3516f7e255c91de683adeca9b6d51")
 
 t$status()
 t$log()
