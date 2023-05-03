@@ -4,7 +4,9 @@ artefacts:
   - data:
       description: Check standard deviation estimation from TMB and AGHQ
       filenames:
-        - sd-estimation.pdf
+        - problem-samples.pdf
+        - mode-locations.pdf
+        - reduced-hessian-draws.pdf
 
 packages:
   - dplyr
