@@ -290,3 +290,34 @@ ks_plot_many <- function(ks_summary, method1, method2) {
 
   densityplot + ridgeplot
 }
+
+ks_table <- function(ks_summary, type) {
+  ks_summary %>%
+    filter(Type == type) %>%
+    gt::gt() %>%
+    gt::fmt_number(
+      columns = starts_with("KS"),
+      decimals = 3
+    ) %>%
+    gt::tab_style(
+      style = cell_fill(color = "#0072B2"),
+      locations = cells_body(
+        columns = `KS(adam, tmbstan)`,
+        rows = `KS(adam, tmbstan)` < `KS(aghq, tmbstan)` & `KS(adam, tmbstan)` < `KS(TMB, tmbstan)`
+      )
+    ) %>%
+    gt::tab_style(
+      style = cell_fill(color = "#0072B2"),
+      locations = cells_body(
+        columns = `KS(aghq, tmbstan)`,
+        rows = `KS(aghq, tmbstan)` < `KS(adam, tmbstan)` & `KS(aghq, tmbstan)` < `KS(TMB, tmbstan)`
+      )
+    ) %>%
+    gt::tab_style(
+      style = cell_fill(color = "#0072B2"),
+      locations = cells_body(
+        columns = `KS(TMB, tmbstan)`,
+        rows = `KS(TMB, tmbstan)` < `KS(aghq, tmbstan)` & `KS(TMB, tmbstan)` < `KS(adam, tmbstan)`
+      )
+    )
+}

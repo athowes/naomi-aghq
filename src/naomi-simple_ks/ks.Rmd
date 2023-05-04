@@ -1,5 +1,5 @@
 ---
-title: "Inference methods comparison for the simplified Naomi model"
+title: "Inference methods comparison for the simplified Naomi model using the Kolmogorov-Smirnov test statistic"
 author:
 - name: Adam Howes
 output:
@@ -95,29 +95,71 @@ time_taken
 # Histograms and ECDF difference plots {.tabset .tabset-fade}
 
 We create histograms and empirical cumulative distribution function (ECDF) difference plots of the samples from each method.
-All of the possible parameter names are as follows:
+All of the possible latent field and hyperparamter names are given by `pars`:
 
 ```{r}
 pars <- names(tmb$fit$sample)
-pars
 ```
 
-We will produce plots about the following subset of them.
+There are also all of the Naomi outcome variables:
+
+```{r}
+names(tmb$fit$sample)[!(names(tmb$fit$sample) %in% unique(names(tmb$fit$obj$env$par)))]
+```
+
+We will especially focus on the outputs:
+
+* HIV prevalence (`rho_t1_out`) which has `r dim(tmb$fit$sample$rho_t1_out)[1]` variables (rows)
+* ART coverage (`alpha_t1_out`) which has `r dim(tmb$fit$sample$alpha_t1_out)[1]` variables (rows)
+* HIV incidence (`lambda_t1_out`) which has `r dim(tmb$fit$sample$lambda_t1_out)[1]` variables (rows)
+
+These outputs are at an aggregate resolution as well as at the finest resolution.
+It seems to make sense to only to assess inferential accuracy at the finest resolution so as to avoid double counting.
+As such, we need to find the subset of these variables at the finest resolution.
+Within `tmb$naomi_data` there is a dataframe called `mf_out` (model frame output) which contains the area, age, sex mapping for these `r dim(tmb$fit$sample$rho_t1_out)[1]` rows.
+As a sanity check, confirm that the number of areas times number of ages times number of sexes indeed equals the number of rows:
+
+```{r}
+mf_out <- tmb$naomi_data$mf_out
+(n_area <- length(unique(mf_out$area_id)))
+(n_age <- length(unique(mf_out$age_group)))
+(n_sex <- length(unique(mf_out$sex)))
+
+stopifnot(n_area * n_age * n_sex == dim(tmb$fit$sample$rho_t1_out)[1])
+```
+
+The unique levels for area, age and sex are:
+
+```{r}
+mf_out$area_id %>% unique()
+mf_out$age_group %>% unique()
+mf_out$sex %>% unique()
+```
+
+Filter to only the finest resolution, adding an `id` column has to enable merging to the samples:
+
+```{r}
+mf_out_fine <- mf_out %>%
+  tibble::rownames_to_column("id") %>%
+  mutate(id = as.numeric(id)) %>%
+  filter(
+    area_id %in% paste0("MWI_4_", 1:32, "_demo"),
+    sex %in% c("male", "female"),
+    age_group %in%
+      c(
+        "Y000_004", "Y005_009", "Y010_014", "Y015_019", "Y020_024", "Y025_029",
+        "Y025_034", "Y030_034", "Y035_039", "Y040_044", "Y045_049", "Y050_054",
+        "Y055_059", "Y060_064", "Y065_069", "Y070_074", "Y075_079", "Y080_999"
+      )
+  )
+```
+
+We will produce plots about the a small subset of parameters for the time being.
 There is no particular reason to choose this subset rather than other, it's quite arbitrary.
 
 ```{r}
-pars_eval <- pars %in% c("beta_rho", "beta_alpha", "beta_lambda", "beta_anc_rho", "beta_anc_alpha", "u_rho_x", "us_rho_x", "u_rho_xs")
+pars_eval <- pars %in% c("beta_rho", "u_rho_x")
 names(pars_eval) <- pars
-```
-
-The `beta_rho` and `beta_anc_rho` parameters are used in other reports, so create dataframes here to save as artefacts:
-
-```{r}
-beta_rho <- histogram_and_ecdf("beta_rho", i = 1, return_df = TRUE)
-saveRDS(beta_rho$df, "beta_rho.rds")
-
-beta_anc_rho <- histogram_and_ecdf("beta_anc_rho", return_df = TRUE)
-saveRDS(beta_anc_rho$df, "beta_anc_rho.rds")
 ```
 
 ```{r}
@@ -262,77 +304,17 @@ histogram_and_ecdf_helper("ui_anc_alpha_x")
 histogram_and_ecdf_helper("log_or_gamma")
 ```
 
-## Outcome variables
+## `rho_t1_out`
 
-These are all of the outcome variables which we might be interested in to monitor:
+There are too many variables to plot this here!
 
-```{r}
-names(tmb$fit$sample)[!(names(tmb$fit$sample) %in% unique(names(tmb$fit$obj$env$par)))]
-```
-The most important ones (this has been checked with Jeff) are HIV prevalence (`rho_t1_out`), ART coverage (`alpha_t1_out`), and HIV incidence (`lambda_t1_out`).
+## `alpha_t1_out`
 
-* HIV prevalence has `r dim(tmb$fit$sample$rho_t1_out)[1]` variables (rows)
-* ART coverage has `r dim(tmb$fit$sample$alpha_t1_out)[1]` variables (rows)
-* HIV incidence has `r dim(tmb$fit$sample$lambda_t1_out)[1]` variables (rows)
+There are too many variables to plot this here!
 
-```{r}
-dim(tmb$fit$sample$rho_t1_out)
-dim(tmb$fit$sample$alpha_t1_out)
-dim(tmb$fit$sample$lambda_t1_out)
-```
+## `lambda_t1_out`
 
-Within `tmb$naomi_data` there is a dataframe called `mf_out` (modelframe output) which contains the area, age, sex mapping these `r dim(tmb$fit$sample$rho_t1_out)[1]` rows.
-As a sanity check, confirm that the number of areas times number of ages times number of sexes indeed equals the number of rows:
-
-```{r}
-mf_out <- tmb$naomi_data$mf_out
-(n_area <- length(unique(mf_out$area_id)))
-(n_age <- length(unique(mf_out$age_group)))
-(n_sex <- length(unique(mf_out$sex)))
-
-stopifnot(n_area * n_age * n_sex == dim(tmb$fit$sample$rho_t1_out)[1])
-```
-
-It makes sense only to assess inferential accuracy at the finest level so as to avoid double counting.
-
-```{r}
-mf_out$area_id %>% unique()
-mf_out$sex %>% unique()
-mf_out$age_group %>% unique()
-
-mf_out_fine <- mf_out %>%
-  tibble::rownames_to_column("id") %>%
-  mutate(id = as.numeric(id)) %>%
-  filter(
-    area_id %in% paste0("MWI_4_", 1:32, "_demo"),
-    sex %in% c("male", "female"),
-    age_group %in%
-      c(
-        "Y000_004", "Y005_009", "Y010_014", "Y015_019", "Y020_024", "Y025_029",
-        "Y025_034", "Y030_034", "Y035_039", "Y040_044", "Y045_049", "Y050_054",
-        "Y055_059", "Y060_064", "Y065_069", "Y070_074", "Y075_079", "Y080_999"
-      )
-  )
-```
-
-An `id` column has been added to `mf_out_fine` to enable merging to the samples.
-
-```{r}
-head(mf_out_fine)
-nrow(mf_out_fine)
-```
-
-```{r}
-rho_t1_out_fine <- tmb$fit$sample$rho_t1_out[mf_out_fine$id, ]
-dim(rho_t1_out_fine)
-rho_t1_out_fine[1:10, 1:10]
-```
-
-Something weird happening with `adam`, go back and check this:
-
-```{r}
-histogram_and_ecdf(par = "rho_t1_out", i = 1)
-```
+There are too many variables to plot this here!
 
 # KS plots 
 
@@ -342,6 +324,20 @@ histogram_and_ecdf(par = "rho_t1_out", i = 1)
 ks_helper <- function(par, starts_with = FALSE, ...) {
   to_ks_df(par, starts_with = starts_with) %>% ks_plot(par, ...)
 }
+
+ks_df_out <- function(par) {
+  to_ks_df(par = par, outputs = TRUE, id = mf_out_fine$id) %>%
+  select(-par) %>%
+  left_join(
+    mf_out_fine %>%
+      rename("full_id" = "id") %>%
+      tibble::rowid_to_column("index") %>%
+      mutate(index = as.numeric(index))
+  )
+}
+
+
+
 ```
 
 ### `beta`
@@ -458,31 +454,29 @@ ks_helper("ui_anc_alpha_x")
 ks_helper("log_or_gamma")
 ```
 
-### Outcome variables
+### `rho_t1_out`
 
 ```{r}
-ks_df_out <- function(par) {
-  to_ks_df(par = par, outputs = TRUE, id = mf_out_fine$id) %>%
-  select(-par) %>%
-  left_join(
-    mf_out_fine %>%
-      rename("full_id" = "id") %>%
-      tibble::rowid_to_column("index") %>%
-      mutate(index = as.numeric(index))
-  )
-}
-
-ks_rho_t1_out <- ks_df_out(par = "rho_t1_out")
-ks_alpha_t1_out <- ks_df_out(par = "alpha_t1_out")
-ks_lambda_t1_out <- ks_df_out(par = "lambda_t1_out")
-
-ks_plot(ks_df = ks_rho_t1_out, par = "rho_t1_out", alpha = 0.2)
-ks_plot(ks_df = ks_alpha_t1_out, par = "alpha_t1_out", alpha = 0.2)
-ks_plot(ks_df = ks_lambda_t1_out, par = "lambda_t1_out", alpha = 0.2)
+ks_df_out(par = "rho_t1_out") %>%
+  ks_plot(par = "rho_t1_out", alpha = 0.2)
 ```
 
-What is going on with those very low values of KS?
-It's that there are new new infections in those age groups, and the posterior samples from each method are exactly the same, in particular draws of only zero.
+### `alpha_t1_out`
+
+```{r}
+ks_df_out(par = "alpha_t1_out") %>%
+  ks_plot(par = "rho_t1_out", alpha = 0.2)
+```
+
+### `lambda_t1_out`
+
+```{r}
+ks_df_out(par = "rho_t1_out") %>%
+  filter(!age_group %in% c("Y005_009", "Y010_014", "Y080_999")) %>%
+  ks_plot(par = "lambda_t1_out", alpha = 0.2)
+```
+
+Filter out the age group 5-9, 10-14 and 80+ here becausethere are new new infections in those age groups, and the posterior samples from each method are exactly the same: in particular draws of identically zero.
 
 ```{r}
 ks_lambda_t1_out %>%
@@ -496,7 +490,7 @@ ks_lambda_t1_out %>%
   unique()
 ```
 
-## Summary table
+## Summary {.tabset .tabset-fade}
 
 Values in dark blue are the lowest KS difference for that particular parameter:
 
@@ -530,40 +524,14 @@ dict <- data.frame(
 ks_summary <- ks_summary %>%
   left_join(dict, by = "Parameter")
 
-ks_summary %>%
-  gt::gt() %>%
-  gt::fmt_number(
-    columns = starts_with("KS"),
-    decimals = 3
-  ) %>%
-  gt::tab_style(
-    style = cell_fill(color = "#0072B2"),
-    locations = cells_body(
-      columns = `KS(adam, tmbstan)`,
-      rows = `KS(adam, tmbstan)` < `KS(aghq, tmbstan)` & `KS(adam, tmbstan)` < `KS(TMB, tmbstan)`
-    )
-  ) %>%
-    gt::tab_style(
-    style = cell_fill(color = "#0072B2"),
-    locations = cells_body(
-      columns = `KS(aghq, tmbstan)`,
-      rows = `KS(aghq, tmbstan)` < `KS(adam, tmbstan)` & `KS(aghq, tmbstan)` < `KS(TMB, tmbstan)`
-    )
-  ) %>%
-    gt::tab_style(
-    style = cell_fill(color = "#0072B2"),
-    locations = cells_body(
-      columns = `KS(TMB, tmbstan)`,
-      rows = `KS(TMB, tmbstan)` < `KS(aghq, tmbstan)` & `KS(TMB, tmbstan)` < `KS(adam, tmbstan)`
-    )
-  )
-```
+saveRDS(ks_summary_out, "ks_summary_out.rds")
 
-```{r}
 ks_summary %>%
   filter(Type != "Hyper") %>%
   ks_plot_many("TMB", "aghq")
+```
 
+```{r}
 (ks_summary_out <- ks_summary %>%
   group_by(Type) %>%
   summarise(
@@ -574,10 +542,23 @@ ks_summary %>%
   gt::gt()
 ```
 
-Save some things for output:
+### Latent field
 
 ```{r}
-saveRDS(ks_summary_out, "ks_summary_out.rds")
+ks_table(ks_summary, type = "Latent field")
+```
+
+
+### Hyperparameters
+
+```{r}
+ks_table(ks_summary, type = "Latent field")
+```
+
+### Outputs
+
+```{r}
+#' To-do
 ```
 
 ## Investigation into large KS values
@@ -596,28 +577,24 @@ ks_comparison <- function(ks_summary, method1, method2, n) {
 }
 ```
 
-Nodes where `TMB` beats `aghq`:
+### Nodes where `TMB` beats `aghq`
 
 ```{r}
 ks_comparison(ks_summary, method1 = "aghq", method2 = "TMB", 10)
+
+histogram_and_ecdf(par = "us_rho_x", i = 19)
+histogram_and_ecdf(par = "ui_anc_rho_x", i = 2)
+histogram_and_ecdf(par = "u_rho_x", i = 2)
 ```
 
-```{r}
-histogram_and_ecdf(par = "ui_anc_alpha_x", i = 18)
-histogram_and_ecdf(par = "u_alpha_xs", i = 18)
-histogram_and_ecdf(par = "ui_anc_alpha_x", i = 29)
-```
-
-Nodes where `aghq` beats `TMB`:
+### Nodes where `aghq` beats `TMB`
 
 ```{r}
 ks_comparison(ks_summary, method1 = "TMB", method2 = "aghq", 10)  
-```
 
-```{r}
+histogram_and_ecdf(par = "us_alpha_xs", i = 18)
 histogram_and_ecdf(par = "us_alpha_xs", i = 30)
-histogram_and_ecdf(par = "us_alpha_xs", i = 31)
-histogram_and_ecdf(par = "us_alpha_xs", i = 26)
+histogram_and_ecdf(par = "u_alpha_xa", i = 10)
 ```
 
 ## Correlation between KS values and ESS

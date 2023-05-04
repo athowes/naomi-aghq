@@ -44,7 +44,7 @@ packages:
 
 depends:
   - naomi-simple_fit:
-      id: latest(parameter:tmb == TRUE)
+      id: latest(parameter:tmb == TRUE && parameter:random_only == TRUE)
       use:
         depends/tmb.rds: out.rds
   - naomi-simple_fit:
