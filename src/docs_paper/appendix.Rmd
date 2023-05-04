@@ -199,7 +199,7 @@ $$
 is the ART coverage among adults 15-49 calculated by aggregating age-specific ART coverages.
 The term $\omega$ is the average reduction in HIV transmission rate per 1% increase in population ART coverage and is fixed at $\omega = 0.7$ based on inputs to the Estimation and Projection Package (EPP) model [@eaton2019estimation].
 The terms $u_x^\lambda \sim \mathcal{N}(0, \sigma^\lambda)$ with $\sigma^\lambda \sim \mathcal{N}^+(0, 1)$ are IID spatial random effects.
-Finally, $\eta^\lambda_{R_x, s, a}$ specify fixed log incidence rate ratios by sex and age group calculated from Spectrum model output.
+Finally, $\eta^\lambda_{R_x, s, a}$ specify fixed log incidence rate ratios by sex and age group calculated from Spectrum model output^[Note that these outputs are the only source of age structure for this part of the model. Furthermore, Spectrum assumes that there are no new infections in children apart from via mother to child transmission. One result is that it is possible for the posterior over new infections in certain age groups to be exactly zero by definition. Where this occurs, we remove these age groups from any inference comparisons.]
 
 We model the proportion recently infected among HIV positive persons $\kappa_{x, s, a} \in [0, 1]$ as
 $$
