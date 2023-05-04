@@ -55,6 +55,7 @@
 * [01-07-21-stats-epi-group](https://athowes.github.io/elgm-inf/01-07-21-stats-epi-group.pdf): [Machine Learning & Global Health Network](https://mlgh.net/) group meeting
 * [15-11-22-seminar](https://athowes.github.io/elgm-inf/15-11-22-seminar.pdf): Waterloo [SAS Student Seminar Series](https://uwaterloo.ca/statistics-and-actuarial-science/student-seminar-series), and [abstract](https://athowes.github.io/elgm-inf/seminar.html)
 * [18-04-23-lab-group](https://athowes.github.io/elgm-inf/18-04-23-lab-group.pdf): HIV inference group lab meeting
+* [21-06-23-mlgh](https://athowes.github.io/elgm-inf/19-05-23-turing.pdf): [Alan Turing Insitute PhD Student Presentation and Networking](https://www.turing.ac.uk/events/phd-student-presentation-and-networking-may-2023)
 * [21-06-23-mlgh](https://athowes.github.io/elgm-inf/21-06-23-mlgh.pdf): [Machine Learning & Global Health Network](https://mlgh.net/) group meeting
 
 ## Posters

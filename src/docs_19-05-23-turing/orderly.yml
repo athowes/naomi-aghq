@@ -1,0 +1,37 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Slides
+      filenames:
+        - 19-05-23-turing.pdf
+
+resources:
+  - 19-05-23-turing.Rmd
+  - naomi_hex.png
+  - naomi_user.png
+  - the-plan.png
+  - beta-alpha-histogram.png
+  - ecdf-plot.png
+  - ecdf-diff-plot.png
+  - ks-density-plot.png
+  - blog-post.png
+  - preamble.tex
+  - citations.bib
+
+packages:
+  - dplyr
+  - ggplot2
+  - TMB
+  - INLA
+  - rmarkdown
+  - bsae
+  - knitr
+  - kableExtra
+
+depends:
+  dev_scale-grid:
+    id: latest
+    use:
+      depends/tv-plot.png: tv-plot.png
+      depends/reduced-rank-plot.png: reduced-rank-plot.png

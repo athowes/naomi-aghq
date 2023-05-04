@@ -85,18 +85,23 @@ run_commit_push("naomi-simple_mcmc")
 run_commit_push("naomi-simple_ks")
 run_commit_push("naomi-simple_model-checks")
 
+#' Checks
+run_commit_push("check_sd-estimation")
+
 #' Documentation and plots
 run_commit_push("docs_paper")
+run_commit_push("plot-tikz_algorithm-flowchart")
+run_commit_push("plot-tikz_simplified-naomi")
+
+#' Presentations
 run_commit_push("docs_01-04-20-mini")
 run_commit_push("docs_01-07-21-stats-epi-group")
 run_commit_push("docs_15-11-22-seminar")
 run_commit_push("docs_18-04-23-explainer")
 run_commit_push("docs_18-04-23-lab-group")
+run_commit_push("docs_19-05-23-turing")
 run_commit_push("docs_21-06-23-mlgh")
+
+#' Posters
 run_commit_push("docs_bayescomp-poster")
 run_commit_push("docs_bioinference-poster")
-run_commit_push("plot-tikz_algorithm-flowchart")
-run_commit_push("plot-tikz_simplified-naomi")
-
-#' Checks
-run_commit_push("check_sd-estimation")
