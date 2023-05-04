@@ -18,7 +18,7 @@ run_commit_push("explore_posterior-comparison")
 run_commit_push("naomi")
 
 #' Simplfied Naomi with TMB
-id <- orderly::orderly_run("naomi-simple_fit", parameters = list(tmb = TRUE, sample = TRUE))
+id <- orderly::orderly_run("naomi-simple_fit", parameters = list(tmb = TRUE, random_only = TRUE, sample = TRUE))
 orderly::orderly_commit(id) #' [x]
 
 #' Simplfied Naomi with aghq, k = 1

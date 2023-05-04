@@ -13,6 +13,9 @@ parameters:
   #' Run inference with TMB? TRUE or FALSE
   tmb:
     default: FALSE
+  #' Sample from just the random effects with TMB? Alternative would be to sample from the joint Hessian
+  random_only:
+    default: TRUE
   #' Run inference with aghq? TRUE or FALSE
   aghq:
     default: FALSE
