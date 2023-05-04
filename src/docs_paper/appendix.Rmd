@@ -349,61 +349,61 @@ knitr::include_graphics("depends/simplified-naomi.pdf")
 ```{=tex}
 \begin{table}[p!]
 \centering
-\begin{tabularx}{\textwidth}{lllll}
+\begin{tabularx}{\textwidth}{llllllll}
 \toprule
-Variable name & Mathematical notation & Type & Dimension & Domain \\ 
+Variable name & Notation & Type & Size & Domain & $\rho$ input? & $\alpha$ input? & $\lambda$ input? \\
 \midrule
-\texttt{logit\_phi\_rho\_x} & $\text{logit}(\phi_X^\rho)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{log\_sigma\_rho\_x} & $\log(\sigma_X^\rho)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{logit\_phi\_rho\_xs} & $\text{logit}(\phi_{XS}^\rho)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{log\_sigma\_rho\_xs} & $\log(\sigma_{XS}^\rho)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{logit\_phi\_rho\_a} & $\text{logit}(\phi_A^\rho)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{log\_sigma\_rho\_a} & $\log(\sigma_A^\rho)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{logit\_phi\_rho\_as} & $\text{logit}(\phi_{AS}^\rho)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{log\_sigma\_rho\_as} & $\log(\sigma_{AS}^\rho)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{log\_sigma\_rho\_xa} & $\log(\sigma_{XA}^\rho)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{logit\_phi\_alpha\_x} & $\text{logit}(\phi_X^\alpha)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{log\_sigma\_alpha\_x} & $\log(\sigma_X^\alpha)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{logit\_phi\_alpha\_xs} & $\text{logit}(\phi_{XS}^\alpha)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{log\_sigma\_alpha\_xs} & $\log(\sigma_{XS}^\alpha)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{logit\_phi\_alpha\_a} & $\text{logit}(\phi_A^\alpha)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{log\_sigma\_alpha\_a} & $\log(\sigma_A^\alpha)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{logit\_phi\_alpha\_as} & $\text{logit}(\phi_{AS}^\alpha)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{log\_sigma\_alpha\_as} & $\log(\sigma_{AS}^\alpha)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{log\_sigma\_alpha\_xa} & $\log(\sigma_{XA}^\alpha)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{OmegaT\_raw} & $\Omega_T$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{log\_betaT} & $\log(\beta_T)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{log\_sigma\_lambda\_x} & $\log(\sigma^\lambda)$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{log\_sigma\_ancrho\_x} & $\log(\sigma_X^{\rho^{\text{ANC}}})$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{log\_sigma\_ancalpha\_x} & $\log(\sigma_X^{\alpha^{\text{ANC}}})$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{log\_sigma\_or\_gamma} & $\log(\sigma_X^{\tilde \gamma})$ & Hyper & 1 & $\mathbb{R}$ \\
-\texttt{beta\_rho} & $(\beta^\rho_0, \beta_{s}^{\rho, s = \text{M}})$ & Latent & 2 & $\mathbb{R}^2$ \\
-\texttt{beta\_alpha} & $(\beta^\alpha_0, \beta_{S}^{\alpha, s = \text{M}})$ & Latent & 2 & $\mathbb{R}^2$ \\
-\texttt{beta\_lambda} & $(\beta_0^\lambda, \beta_S^{\lambda, s = \text{M}})$ & Latent & 2 & $\mathbb{R}^2$ \\
-\texttt{beta\_anc\_rho} & $\beta^{\rho^{\text{ANC}}}$ & Latent & 1 & $\mathbb{R}$ \\
-\texttt{beta\_anc\_alpha} & $\beta^{\alpha^{\text{ANC}}}$ & Latent & 1 & $\mathbb{R}$ \\
-\texttt{u\_rho\_x} & $w^\rho_x$ & Latent & $n$ & $\mathbb{R}^{n}$ \\
-\texttt{us\_rho\_x} & $v^\rho_x$ & Latent & $n$ & $\mathbb{R}^{n}$ \\
-\texttt{u\_rho\_xs} & $w_x^{\rho, s = \text{M}}$ & Latent & $n$ & $\mathbb{R}^{n}$ \\
-\texttt{us\_rho\_xs} & $v_x^{\rho, s = \text{M}}$ & Latent & $n$ & $\mathbb{R}^{n}$ \\
-\texttt{u\_rho\_a} & $u^\rho_a$ & Latent & 10 & $\mathbb{R}^{10}$ \\
-\texttt{u\_rho\_as} & $u_a^{\rho, s = \text{M}}$ & Latent & 10 & $\mathbb{R}^{10}$ \\
-\texttt{u\_rho\_xa} & $u_x^{\rho, a < 15}$ & Latent & $n$ & $\mathbb{R}^{n}$ \\
-\texttt{u\_alpha\_x} & $w^\alpha_x$ & Latent & $n$ & $\mathbb{R}^{n}$ \\
-\texttt{us\_alpha\_x} & $v^\alpha_x$ & Latent & $n$ & $\mathbb{R}^{n}$ \\
-\texttt{u\_alpha\_xs} & $w_x^{\alpha, s = \text{M}}$ & Latent & $n$ & $\mathbb{R}^{n}$ \\
-\texttt{us\_alpha\_xs} & $v_x^{\alpha, s = \text{M}}$ & Latent & $n$ & $\mathbb{R}^{n}$ \\
-\texttt{u\_alpha\_a} & $u^\alpha_a$ & Latent & 13 & $\mathbb{R}^{13}$ \\
-\texttt{u\_alpha\_as} & $u_a^{\alpha, s = \text{M}}$ & Latent & 10 & $\mathbb{R}^{10}$ \\
-\texttt{u\_alpha\_xa} & $u_x^{\alpha, a < 15}$ & Latent & $n$ & $\mathbb{R}^{n}$ \\
-\texttt{ui\_lambda\_x} & $u_x^\lambda$ & Latent & $n$ & $\mathbb{R}^{n}$ \\
-\texttt{ui\_anc\_rho\_x} & $u_x^{\rho^{\text{ANC}}}$ & Latent & $n$ & $\mathbb{R}^{n}$ \\
-\texttt{ui\_anc\_alpha\_x} & $u_x^{\alpha^{\text{ANC}}}$ & Latent & $n$ & $\mathbb{R}^{n}$ \\
-\texttt{log\_or\_gamma} & $u_x^{\tilde \gamma}$ & Latent & $n$ & $\mathbb{R}^{n}$ \\
+\texttt{logit\_phi\_rho\_x} & $\text{logit}(\phi_X^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
+\texttt{log\_sigma\_rho\_x} & $\log(\sigma_X^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
+\texttt{logit\_phi\_rho\_xs} & $\text{logit}(\phi_{XS}^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
+\texttt{log\_sigma\_rho\_xs} & $\log(\sigma_{XS}^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
+\texttt{logit\_phi\_rho\_a} & $\text{logit}(\phi_A^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
+\texttt{log\_sigma\_rho\_a} & $\log(\sigma_A^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
+\texttt{logit\_phi\_rho\_as} & $\text{logit}(\phi_{AS}^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
+\texttt{log\_sigma\_rho\_as} & $\log(\sigma_{AS}^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
+\texttt{log\_sigma\_rho\_xa} & $\log(\sigma_{XA}^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
+\texttt{logit\_phi\_alpha\_x} & $\text{logit}(\phi_X^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
+\texttt{log\_sigma\_alpha\_x} & $\log(\sigma_X^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
+\texttt{logit\_phi\_alpha\_xs} & $\text{logit}(\phi_{XS}^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
+\texttt{log\_sigma\_alpha\_xs} & $\log(\sigma_{XS}^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
+\texttt{logit\_phi\_alpha\_a} & $\text{logit}(\phi_A^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
+\texttt{log\_sigma\_alpha\_a} & $\log(\sigma_A^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
+\texttt{logit\_phi\_alpha\_as} & $\text{logit}(\phi_{AS}^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
+\texttt{log\_sigma\_alpha\_as} & $\log(\sigma_{AS}^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
+\texttt{log\_sigma\_alpha\_xa} & $\log(\sigma_{XA}^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
+\texttt{OmegaT\_raw} & $\Omega_T$ & Hyper & 1 & $\mathbb{R}$ & & & \cmark \\
+\texttt{log\_betaT} & $\log(\beta_T)$ & Hyper & 1 & $\mathbb{R}$ & & & \cmark \\
+\texttt{log\_sigma\_lambda\_x} & $\log(\sigma^\lambda)$ & Hyper & 1 & $\mathbb{R}$ & & & \cmark \\
+\texttt{log\_sigma\_ancrho\_x} & $\log(\sigma_X^{\rho^{\text{ANC}}})$ & Hyper & 1 & $\mathbb{R}$ & & & \\
+\texttt{log\_sigma\_ancalpha\_x} & $\log(\sigma_X^{\alpha^{\text{ANC}}})$ & Hyper & 1 & $\mathbb{R}$ & & & \\
+\texttt{log\_sigma\_or\_gamma} & $\log(\sigma_X^{\tilde \gamma})$ & Hyper & 1 & $\mathbb{R}$ & & & \\
+\texttt{beta\_rho} & $(\beta^\rho_0, \beta_{s}^{\rho, s = \text{M}})$ & Latent & 2 & $\mathbb{R}^2$ & \cmark & & \\
+\texttt{beta\_alpha} & $(\beta^\alpha_0, \beta_{S}^{\alpha, s = \text{M}})$ & Latent & 2 & $\mathbb{R}^2$ & & \cmark & \\
+\texttt{beta\_lambda} & $(\beta_0^\lambda, \beta_S^{\lambda, s = \text{M}})$ & Latent & 2 & $\mathbb{R}^2$ & & & \cmark \\
+\texttt{beta\_anc\_rho} & $\beta^{\rho^{\text{ANC}}}$ & Latent & 1 & $\mathbb{R}$ & & & \\
+\texttt{beta\_anc\_alpha} & $\beta^{\alpha^{\text{ANC}}}$ & Latent & 1 & $\mathbb{R}$ & & & \\
+\texttt{u\_rho\_x} & $w^\rho_x$ & Latent & $n$ & $\mathbb{R}^{n}$ & \cmark & & \\
+\texttt{us\_rho\_x} & $v^\rho_x$ & Latent & $n$ & $\mathbb{R}^{n}$ & \cmark & & \\
+\texttt{u\_rho\_xs} & $w_x^{\rho, s = \text{M}}$ & Latent & $n$ & $\mathbb{R}^{n}$ & \cmark & & \\
+\texttt{us\_rho\_xs} & $v_x^{\rho, s = \text{M}}$ & Latent & $n$ & $\mathbb{R}^{n}$ & \cmark & & \\
+\texttt{u\_rho\_a} & $u^\rho_a$ & Latent & 10 & $\mathbb{R}^{10}$ & \cmark & & \\
+\texttt{u\_rho\_as} & $u_a^{\rho, s = \text{M}}$ & Latent & 10 & $\mathbb{R}^{10}$ & \cmark & & \\
+\texttt{u\_rho\_xa} & $u_x^{\rho, a < 15}$ & Latent & $n$ & $\mathbb{R}^{n}$ & \cmark & & \\
+\texttt{u\_alpha\_x} & $w^\alpha_x$ & Latent & $n$ & $\mathbb{R}^{n}$ && \cmark & \\
+\texttt{us\_alpha\_x} & $v^\alpha_x$ & Latent & $n$ & $\mathbb{R}^{n}$ & & \cmark & \\
+\texttt{u\_alpha\_xs} & $w_x^{\alpha, s = \text{M}}$ & Latent & $n$ & $\mathbb{R}^{n}$ & & \cmark & \\
+\texttt{us\_alpha\_xs} & $v_x^{\alpha, s = \text{M}}$ & Latent & $n$ & $\mathbb{R}^{n}$ & & \cmark & \\
+\texttt{u\_alpha\_a} & $u^\alpha_a$ & Latent & 13 & $\mathbb{R}^{13}$ & & \cmark & \\
+\texttt{u\_alpha\_as} & $u_a^{\alpha, s = \text{M}}$ & Latent & 10 & $\mathbb{R}^{10}$ & & \cmark & \\
+\texttt{u\_alpha\_xa} & $u_x^{\alpha, a < 15}$ & Latent & $n$ & $\mathbb{R}^{n}$ & & \cmark & \\
+\texttt{ui\_lambda\_x} & $u_x^\lambda$ & Latent & $n$ & $\mathbb{R}^{n}$ & & & \cmark \\
+\texttt{ui\_anc\_rho\_x} & $u_x^{\rho^{\text{ANC}}}$ & Latent & $n$ & $\mathbb{R}^{n}$ & & & \\
+\texttt{ui\_anc\_alpha\_x} & $u_x^{\alpha^{\text{ANC}}}$ & Latent & $n$ & $\mathbb{R}^{n}$ & & & \\
+\texttt{log\_or\_gamma} & $u_x^{\tilde \gamma}$ & Latent & $n$ & $\mathbb{R}^{n}$ & & & \\
 \bottomrule
 \end{tabularx}
 \label{tab:tmb-lookup}
-\caption{Correspondence between mathematical notation and variable names used in our \texttt{TMB} code. The total number of hyperparameters is 24, and the total number of latent field parameters is $51 + 14n$, where $n$ is the number of districts.}
+\caption{Correspondence between mathematical notation and variable names used in our \texttt{TMB} code. The total number of hyperparameters is 24, and the total number of latent field parameters is $51 + 14n$, where $n$ is the number of districts. We use the notation \cmark \ to refer to direct dependence of the parameter on the variable, \xmark \ to refer to no dependence, and a blank entry to refer to dependence conditional on the data.}
 \end{table}
 ```
 
