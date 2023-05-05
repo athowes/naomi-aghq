@@ -1,10 +1,18 @@
-#' Running AGHQ with k = 3 and s = 9
-
 repo <- "elgm-inf"
 report <- "naomi-simple_fit"
 path_bundles <- "bundles"
+
+#' k = 3 and s = 9: should take 3 hours
 param <- list(aghq = TRUE, k = 3, s = 9, grid_type = "pca", sample = TRUE)
-# param <- list(aghq = TRUE) #' For testing
+
+#' k = 3 and s = 10: should take 9 hours
+# param <- list(aghq = TRUE, k = 3, s = 9, grid_type = "pca", sample = TRUE)
+
+#' k = 5 and s = 6: should take 1.5 hours
+# param <- list(aghq = TRUE, k = 3, s = 9, grid_type = "pca", sample = TRUE)
+
+#' k = 5 and s = 7: should take 7.5 hours
+# param <- list(aghq = TRUE, k = 3, s = 9, grid_type = "pca", sample = TRUE)
 
 #' A1.
 bundle <- orderly::orderly_bundle_pack(path = path_bundles, name = report, parameters = param)
@@ -56,13 +64,8 @@ ctx <- context::context_save(
 
 obj <- didehpc::queue_didehpc(ctx, config = config)
 
-#' Test that queue works correctly
+#' Test that queue works correctly: can also check the version of packages, including aghq, from here
 t <- obj$enqueue(sessionInfo())
-t$status()
-t$result()
-
-#' Check version of aghq being used
-t <- obj$enqueue(packageVersion("aghq"))
 t$status()
 t$result()
 
@@ -84,7 +87,7 @@ recent_ctx <- dplyr::filter(ctx_info, created == max(created))
 ctx <- context::context_load(context::context_read(recent_ctx$id, "context"))
 queue <- didehpc::queue_didehpc(ctx)
 queue$task_list()
-t <- queue$task_get("4be3516f7e255c91de683adeca9b6d51")
+t <- queue$task_get("0a5191fb0869a717374a327d65289916")
 
 t$status()
 t$log()
