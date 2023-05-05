@@ -1,0 +1,89 @@
+---
+title: "Inference methods comparison for the simplified Naomi model using Pareto-smoothed importance sampling"
+author:
+- name: Adam Howes
+output:
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    df_print: paged
+    code_folding: show
+    theme: lumen
+abstract: |
+  **Background**  We have run the simplified Naomi model using a range of inference methods: `TMB`, `aghq`, `adam` and `tmbstan`.
+  
+  **Task** In this report, we compare the accuracy of the posterior distributions obtained from these inference methods using Pareto-smoothed importance sampling.
+---
+
+# Background
+
+We compare the inference results from `TMB`, `aghq`, `adam`, and `tmbstan`.
+Import these inference results as follows:
+
+```{r}
+tmb <- readRDS("depends/tmb.rds")
+aghq <- readRDS("depends/aghq.rds")
+adam <- readRDS("depends/adam.rds")
+adam_time <- adam$time
+adam <- adam$adam
+tmbstan <- readRDS("depends/tmbstan.rds")
+
+depends <- yaml::read_yaml("orderly.yml")$depends
+```
+
+Check that the parameters (latent field, hyperparameters, model outputs) sampled from each of the four methods are the same:
+
+```{r}
+stopifnot(names(tmb$fit$sample) == names(aghq$quad$sample))
+stopifnot(names(tmb$fit$sample) == names(adam$adam$sample))
+stopifnot(names(tmb$fit$sample) == names(tmbstan$mcmc$sample))
+```
+
+## Run details {.tabset}
+
+For more information about the conditions under which these results were generated, see:
+
+### `TMB`
+
+```{r}
+dependency_details <- function(i) {
+  report_name <- names(depends[[i]])
+  print(paste0("Inference results obtained from ", report_name, " with the query ", depends[[i]][[report_name]]$id))
+  report_id <- orderly::orderly_search(query = depends[[i]][[report_name]]$id, report_name)
+  print(paste0("Obtained report had ID ", report_id, " and was run with the following parameters:"))
+  print(orderly::orderly_info(report_id, report_name)$parameters)
+}
+
+dependency_details(1)
+```
+
+### `aghq`
+
+```{r}
+dependency_details(2)
+```
+
+### `adam`
+
+```{r}
+dependency_details(3)
+```
+
+### `tmbstan`
+
+```{r}
+tmbstan_details <- dependency_details(4)
+tmbstan_details
+```
+
+# Pareto-smoothed importance sampling
+
+Suppose we have two sets of samples from the posterior.
+For each sample we are going to want to evaluate the log-likelihood, so that we can calculate the log-likelihood ratios.
+We can extract the `TMB` objective function for the log-likelihood as follows:
+
+```{r}
+tmb$fit$obj$fn()
+#' To write!
+```
