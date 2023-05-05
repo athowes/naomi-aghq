@@ -86,7 +86,9 @@ run_commit_push("naomi-simple_ks")
 run_commit_push("naomi-simple_model-checks")
 
 #' Checks
+run_commit_push("check_hyper-marginals")
 run_commit_push("check_sd-estimation")
+run_commit_push("check_tmb-output")
 
 #' Documentation and plots
 run_commit_push("docs_paper")

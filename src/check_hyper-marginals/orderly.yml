@@ -1,0 +1,28 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Hyperparameter marginals (and some pairs)
+      filenames:
+        - hist.pdf
+        - pairs.pdf
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - rstan
+  - bayesplot
+  - patchwork
+  - gt
+
+depends:
+  - naomi-simple_fit:
+      id: latest(parameter:tmbstan == TRUE && parameter:niter > 50000)
+      use:
+        depends/tmbstan.rds: out.rds
