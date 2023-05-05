@@ -29,6 +29,7 @@
 ### Results
 
 * [ks](https://athowes.github.io/elgm-inf/ks.html): comparison of inference methods for the simplified Naomi model using histograms and KS test results
+* [exceedance](https://athowes.github.io/elgm-inf/exceedance.html): case-study of exceedance probabilities: probability to meet the second 90 target, high incidence strata, and amount of unmet treatment need
 * [psis](https://athowes.github.io/elgm-inf/psis.html): comparison of inference methods for the simplified Naomi model using Pareto-smoothed importance sampling
 * [mmd](https://athowes.github.io/elgm-inf/mmd.html): comparison of inference methods for the simplified Naomi model using maximum mean discrepancy
 * [mcmc-convergence](https://athowes.github.io/elgm-inf/mcmc-convergence.html): assessing MCMC (NUTS using `tmbstan`) convergence for the simplified Naomi model

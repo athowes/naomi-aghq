@@ -24,8 +24,89 @@ Import these inference results as follows:
 ```{r}
 tmb <- readRDS("depends/tmb.rds")
 aghq <- readRDS("depends/aghq.rds")
-adam <- readRDS("depends/adam.rds")
 tmbstan <- readRDS("depends/tmbstan.rds")
 ```
 
+# Second 90
 
+The 90-90-90 treatment targets are that
+
+* 90% of PLHIV know their status
+* 90% of PLHIV who kno wtheir status are on antiretroviral therapy (ART)
+* 90% of PLHIV on ART have suppressed viral load
+
+To meet the second 90, we require that $90\% \times 90\% = 81\%$ of PLHIV are on ART.
+
+```{r}
+mf_out <- tmb$naomi_data$mf_out
+
+mf_out_fine <- mf_out %>%
+  tibble::rownames_to_column("id") %>%
+  mutate(id = as.numeric(id)) %>%
+  filter(
+    area_id %in% paste0("MWI_4_", 1:32, "_demo"),
+    sex %in% c("male", "female"),
+    age_group %in%
+      c(
+        "Y000_004", "Y005_009", "Y010_014", "Y015_019", "Y020_024", "Y025_029",
+        "Y025_034", "Y030_034", "Y035_039", "Y040_044", "Y045_049", "Y050_054",
+        "Y055_059", "Y060_064", "Y065_069", "Y070_074", "Y075_079", "Y080_999"
+      )
+  )
+
+tmbstan_second90 <- apply(tmbstan$mcmc$sample$alpha_t1_out[mf_out_fine$id, ], 1, function(x) sum(x > 0.81) / length(x))
+tmb_second90 <- apply(tmb$fit$sample$alpha_t1_out[mf_out_fine$id, ], 1, function(x) sum(x > 0.81) / length(x))
+aghq_second90 <- apply(aghq$quad$sample$alpha_t1_out[mf_out_fine$id, ], 1, function(x) sum(x > 0.81) / length(x))
+
+plot(tmbstan_second90, tmb_second90)
+plot(tmbstan_second90, aghq_second90)
+
+cor(tmbstan_second90, tmb_second90)
+cor(tmbstan_second90, aghq_second90)
+
+mse_tmb_second90 <- mean((tmbstan_second90 - tmb_second90)^2)
+mse_aghq_second90 <- mean((tmbstan_second90 - aghq_second90)^2)
+round(100 * (mse_aghq_second90 - mse_tmb_second90) / mse_tmb_second90)
+
+rmse_tmb_second90 <- sqrt(mse_tmb_second90)
+rmse_aghq_second90 <- sqrt(mse_aghq_second90)
+round(100 * (rmse_aghq_second90 - rmse_tmb_second90) / rmse_tmb_second90)
+```
+
+# High incidence strata
+
+Above 1% incidence is considered high, and could be met with intensified interventions.
+
+* Very high (>3%)
+* High (1-3%)
+* Moderate (0.3-1%)
+* Low (<0.3%)
+
+```{r}
+tmbstan_1inc <- apply(tmbstan$mcmc$sample$lambda_t1_out[mf_out_fine$id, ], 1, function(x) sum(x > 0.01) / length(x))
+tmb_1inc <- apply(tmb$fit$sample$lambda_t1_out[mf_out_fine$id, ], 1, function(x) sum(x > 0.01) / length(x))
+aghq_1inc <- apply(aghq$quad$sample$lambda_t1_out[mf_out_fine$id, ], 1, function(x) sum(x > 0.01) / length(x))
+
+plot(tmbstan_1inc, tmb_1inc)
+plot(tmbstan_1inc, aghq_1inc)
+
+cor(tmbstan_1inc, tmb_1inc)
+cor(tmbstan_1inc, aghq_1inc)
+
+mse_tmb_1inc <- mean((tmbstan_1inc - tmb_1inc)^2)
+mse_aghq_1inc <- mean((tmbstan_1inc - aghq_1inc)^2)
+round(100 * (mse_aghq_1inc - mse_tmb_1inc) / mse_tmb_1inc)
+
+rmse_tmb_1inc <- sqrt(mse_tmb_1inc)
+rmse_aghq_1inc <- sqrt(mse_aghq_1inc)
+round(100 * (rmse_aghq_1inc - rmse_tmb_1inc) / rmse_tmb_1inc)
+```
+
+# Unmet treatment need
+
+Number of people needing treatment is a function of ART coverage, HIV prevalence and population size.
+What summaries of unmet treatment need might be important to calculate?
+
+```{r}
+#' To-do!
+```
