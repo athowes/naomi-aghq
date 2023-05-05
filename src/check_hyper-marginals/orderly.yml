@@ -6,6 +6,7 @@ artefacts:
       filenames:
         - hist.pdf
         - pairs.pdf
+        - nodes-samples-comparison.pdf
 
 packages:
   - dplyr
@@ -26,3 +27,7 @@ depends:
       id: latest(parameter:tmbstan == TRUE && parameter:niter > 50000)
       use:
         depends/tmbstan.rds: out.rds
+  - naomi-simple_fit:
+      id: latest(parameter:aghq == TRUE && parameter:k == 3 && parameter:s == 8)
+      use:
+        depends/aghq.rds: out.rds
