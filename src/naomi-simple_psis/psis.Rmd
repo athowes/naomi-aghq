@@ -24,9 +24,6 @@ Import these inference results as follows:
 ```{r}
 tmb <- readRDS("depends/tmb.rds")
 aghq <- readRDS("depends/aghq.rds")
-adam <- readRDS("depends/adam.rds")
-adam_time <- adam$time
-adam <- adam$adam
 tmbstan <- readRDS("depends/tmbstan.rds")
 
 depends <- yaml::read_yaml("orderly.yml")$depends
@@ -40,50 +37,39 @@ stopifnot(names(tmb$fit$sample) == names(adam$adam$sample))
 stopifnot(names(tmb$fit$sample) == names(tmbstan$mcmc$sample))
 ```
 
-## Run details {.tabset}
-
-For more information about the conditions under which these results were generated, see:
-
-### `TMB`
-
-```{r}
-dependency_details <- function(i) {
-  report_name <- names(depends[[i]])
-  print(paste0("Inference results obtained from ", report_name, " with the query ", depends[[i]][[report_name]]$id))
-  report_id <- orderly::orderly_search(query = depends[[i]][[report_name]]$id, report_name)
-  print(paste0("Obtained report had ID ", report_id, " and was run with the following parameters:"))
-  print(orderly::orderly_info(report_id, report_name)$parameters)
-}
-
-dependency_details(1)
-```
-
-### `aghq`
-
-```{r}
-dependency_details(2)
-```
-
-### `adam`
-
-```{r}
-dependency_details(3)
-```
-
-### `tmbstan`
-
-```{r}
-tmbstan_details <- dependency_details(4)
-tmbstan_details
-```
-
 # Pareto-smoothed importance sampling
 
 Suppose we have two sets of samples from the posterior.
 For each sample we are going to want to evaluate the log-likelihood, so that we can calculate the log-likelihood ratios.
-We can extract the `TMB` objective function for the log-likelihood as follows:
+
+Although we can extract a `TMB` objective function from `tmb` directly, it would correspond to the Laplace approximation.
+As such we use a new objective function using `naomi_simple.cpp` directly:
 
 ```{r}
-tmb$fit$obj$fn()
-#' To write!
+objfull <- readRDS("depends/objfull.rds")
+objfull$fn(objfull$par)
+```
+
+The samples from `tmbstan` have the following values of `lp__`.
+These should be equal to what would be obtained by putting the sample into `objfull$fn` (check this):
+
+```{r}
+tmbstan_samples <- rstan::extract(tmbstan$mcmc$stanfit)
+
+data.frame(
+  y = tmbstan_samples$lp__,
+  x = 1:length(tmbstan_samples$lp__)
+) %>%
+  ggplot(aes(x = x, y = y)) +
+    geom_point(alpha = 0.4) +
+    labs(y = "Log-likelihood", x = "Draw number") +
+    theme_minimal() 
+```
+
+Need to write a function which reformats `TMB` or `tmbstan` samples to be evaluated using `objfull$fn`:
+
+```{r}
+objfull$par
+
+#' TODO
 ```

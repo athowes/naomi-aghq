@@ -11,6 +11,7 @@ artefacts:
 
 resources:
   - psis.Rmd
+  - naomi_simple.cpp
 
 packages:
   - dplyr
@@ -31,14 +32,11 @@ depends:
       id: latest(parameter:tmb == TRUE && parameter:random_only == TRUE)
       use:
         depends/tmb.rds: out.rds
+        depends/objfull.rds: objfull.rds
   - naomi-simple_fit:
       id: latest(parameter:aghq == TRUE && parameter:k == 3 && parameter:s == 8)
       use:
         depends/aghq.rds: out.rds
-  - naomi-simple_fit:
-      id: latest(parameter:adam == TRUE)
-      use:
-        depends/adam.rds: out.rds
   - naomi-simple_fit:
       id: latest(parameter:tmbstan == TRUE && parameter:niter > 50000)
       use:
