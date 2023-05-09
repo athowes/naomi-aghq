@@ -1,5 +1,5 @@
 #' A local version of naomi::make_tmb_obj, edited to work with DLL = "naomi_simple"
-local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, progress = NULL, map = NULL, DLL = "naomi_simple") {
+local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, progress = NULL, map = NULL, DLL = "naomi_simple", laplace = TRUE) {
   # Begin expose naomi:::make_tmb_obj
   # https://github.com/mrc-ide/naomi/blob/e9de40f12cf2e652f78966bb351fa5718ecd7867/R/tmb-model.R#L496
   data$calc_outputs <- as.integer(calc_outputs)
@@ -27,6 +27,10 @@ local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, prog
 
   if(DLL == "naomi_simple_x_index") {
     integrate_out <- "x_minus_i"
+  }
+
+  if(!laplace) {
+    integrate_out <- NULL
   }
 
   obj <- TMB::MakeADFun(

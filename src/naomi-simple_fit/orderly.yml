@@ -8,6 +8,10 @@ artefacts:
       description: Inference output
       filenames:
         - out.rds
+  - data:
+      description: Full objective function (without Laplace approximation)
+      filenames:
+        - objfull.rds
 
 parameters:
   #' Run inference with TMB? TRUE or FALSE

@@ -82,6 +82,11 @@ tmb_inputs_simple <- local_exclude_inputs(tmb_inputs)
 #' The number of hyperparameters is 24 (as compared with 31 for the full model)
 n_hyper <- 24
 
+#' Create version of the objective function with no Laplace approximation
+#' This will be used in later reports, such as to do PSIS
+objfull <- local_make_tmb_obj(tmb_inputs$data, tmb_inputs$par_init, calc_outputs = FALSE, inner_verbose = FALSE, DLL = "naomi_simple", laplace = FALSE)
+saveRDS(objfull, file = "objfull.rds")
+
 if(tmb) {
   start <- Sys.time()
 
