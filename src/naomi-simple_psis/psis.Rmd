@@ -11,14 +11,14 @@ output:
     code_folding: show
     theme: lumen
 abstract: |
-  **Background**  We have run the simplified Naomi model using a range of inference methods: `TMB`, `aghq`, `adam` and `tmbstan`.
+  **Background**  We have run the simplified Naomi model using a range of inference methods: `TMB`, `aghq`, and `tmbstan`.
   
   **Task** In this report, we compare the accuracy of the posterior distributions obtained from these inference methods using Pareto-smoothed importance sampling.
 ---
 
 # Background
 
-We compare the inference results from `TMB`, `aghq`, `adam`, and `tmbstan`.
+We compare the inference results from `TMB`, `aghq`, and `tmbstan`.
 Import these inference results as follows:
 
 ```{r}
