@@ -9,13 +9,7 @@ artefacts:
 resources:
   - 19-05-23-turing.Rmd
   - naomi_hex.png
-  - naomi_user.png
-  - the-plan.png
-  - beta-alpha-histogram.png
-  - ecdf-plot.png
-  - ecdf-diff-plot.png
-  - ks-density-plot.png
-  - blog-post.png
+  - mrc-gida-icl-mlgh.png
   - preamble.tex
   - citations.bib
 
@@ -30,8 +24,12 @@ packages:
   - kableExtra
 
 depends:
-  dev_scale-grid:
-    id: latest
-    use:
-      depends/tv-plot.png: tv-plot.png
-      depends/reduced-rank-plot.png: reduced-rank-plot.png
+  - dev_scale-grid:
+      id: latest
+      use:
+        depends/tv-plot.png: tv-plot.png
+        depends/reduced-rank-plot.png: reduced-rank-plot.png
+  - docs_bayescomp-poster:
+      id: latest
+      use:
+        depends/naomi_results.png: fig3.png
