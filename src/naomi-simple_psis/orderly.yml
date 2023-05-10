@@ -11,6 +11,7 @@ artefacts:
 
 resources:
   - psis.Rmd
+  - naomi_simple.cpp
 
 packages:
   - dplyr

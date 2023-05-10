@@ -24,16 +24,13 @@ Import these inference results as follows:
 ```{r}
 tmb <- readRDS("depends/tmb.rds")
 aghq <- readRDS("depends/aghq.rds")
-tmbstan <- readRDS("depends/tmbstan.rds")
-
-depends <- yaml::read_yaml("orderly.yml")$depends
+tmbstan <- readRDS("depends/tmbstan.rds")å
 ```
 
 Check that the parameters (latent field, hyperparameters, model outputs) sampled from each of the four methods are the same:
 
 ```{r}
 stopifnot(names(tmb$fit$sample) == names(aghq$quad$sample))
-stopifnot(names(tmb$fit$sample) == names(adam$adam$sample))
 stopifnot(names(tmb$fit$sample) == names(tmbstan$mcmc$sample))
 ```
 
@@ -43,9 +40,13 @@ Suppose we have two sets of samples from the posterior.
 For each sample we are going to want to evaluate the log-likelihood, so that we can calculate the log-likelihood ratios.
 
 Although we can extract a `TMB` objective function from `tmb` directly, it would correspond to the Laplace approximation.
-As such we use a new objective function using `naomi_simple.cpp` directly:
+Instead we use `objfull` obtained from a previous report, and load the `naomi_simple` DLL:
+
 
 ```{r}
+TMB::compile("naomi_simple.cpp")
+dyn.load(TMB::dynlib("naomi_simple"))
+
 objfull <- readRDS("depends/objfull.rds")
 objfull$fn(objfull$par)
 ```
@@ -54,22 +55,64 @@ The samples from `tmbstan` have the following values of `lp__`.
 These should be equal to what would be obtained by putting the sample into `objfull$fn` (check this):
 
 ```{r}
-tmbstan_samples <- rstan::extract(tmbstan$mcmc$stanfit)
+tmbstan_extract <- rstan::extract(tmbstan$mcmc$stanfit)
 
 data.frame(
-  y = tmbstan_samples$lp__,
-  x = 1:length(tmbstan_samples$lp__)
+  y = tmbstan_extract$lp__,
+  x = 1:length(tmbstan_extract$lp__)
 ) %>%
   ggplot(aes(x = x, y = y)) +
     geom_point(alpha = 0.4) +
     labs(y = "Log-likelihood", x = "Draw number") +
-    theme_minimal() 
+    theme_minimal()
 ```
 
 Need to write a function which reformats `TMB` or `tmbstan` samples to be evaluated using `objfull$fn`:
 
 ```{r}
-objfull$par
+par_samp_matrix <- function(sample) {
+  # Remove the Naomi outputs, ending with either _out or _ll
+  x <- sample[!(stringr::str_ends(names(sample), "_out") | stringr::str_ends(names(sample), "_ll"))]
+  # Reorder to be the same as objfull$par
+  x <- x[unique(names(objfull$par))]
+  # Bind rows together
+  do.call(rbind, x)
+}
 
-#' TODO
+tmb_samples <- par_samp_matrix(tmb$fit$sample)
+aghq_samples <- par_samp_matrix(aghq$quad$sample)
+tmbstan_samples <- par_samp_matrix(tmbstan$mcmc$sample)
+
+tmb_ll <- apply(tmb_samples, 2, FUN = function(x) -1 * objfull$fn(x))
+aghq_ll <- apply(aghq_samples, 2, FUN = function(x) -1 * objfull$fn(x))
+tmbstan_ll <- apply(tmbstan_samples, 2, FUN = function(x) -1 * objfull$fn(x))
+
+data.frame(
+  y = c(tmb_ll, aghq_ll, tmbstan_ll),
+  x = c(1:length(tmb_ll), 1:length(aghq_ll), 1:length(tmbstan_ll)),
+  method = c(rep("TMB", times = length(tmb_ll)), rep("aghq", times = length(aghq_ll)), rep("tmbstan", times = length(tmbstan_ll)))
+) %>%
+  ggplot(aes(x = x, y = y, col = method)) +
+    geom_point(alpha = 0.4) +
+    facet_grid(~ method, scales = "free_x") +
+    scale_colour_manual(values = c("#56B4E9", "#009E73", "#E69F00")) +
+    labs(y = "Log-likelihood", x = "Draw number", col = "Method") +
+    theme_minimal()
+
+#' Check that these are the same
+plot(sort(tmbstan_extract$lp__), sort(tmbstan_ll))
+
+-1 * mean(tmb_ll)
+-1 * mean(aghq_ll)
+-1 * mean(tmbstan_ll)
+
+#' Run PSIS
+#' Need to get log-likelihood under the proposal
+#' A Gaussian for TMB
+#' A mixture of Gaussians for aghq
+lw <- tmb_ll
+loo::psis(log_ratios = lw, r_eff = 1)
+
+lw <- aghq_ll
+loo::psis(log_ratios = lw, r_eff = 1)
 ```
