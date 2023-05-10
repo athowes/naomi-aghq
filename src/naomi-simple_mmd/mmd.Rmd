@@ -25,8 +25,6 @@ Import these inference results as follows:
 tmb <- readRDS("depends/tmb.rds")
 aghq <- readRDS("depends/aghq.rds")
 tmbstan <- readRDS("depends/tmbstan.rds")
-
-depends <- yaml::read_yaml("orderly.yml")$depends
 ```
 
 Check that the parameters (latent field, hyperparameters, model outputs) sampled from each of the four methods are the same:
@@ -39,9 +37,34 @@ stopifnot(names(tmb$fit$sample) == names(tmbstan$mcmc$sample))
 # Maximum mean discrepancy
 
 ```{r}
-mmd1 <- kernlab::kmmd(matrix(tmb$fit$sample$beta_rho), matrix(tmbstan$mcmc$sample$beta_rho))
-mmd2 <- kernlab::kmmd(matrix(aghq$quad$sample$beta_rho), matrix(tmbstan$mcmc$sample$beta_rho))
+par_samp_matrix <- function(sample) {
+  x <- sample[!(stringr::str_ends(names(sample), "_out") | stringr::str_ends(names(sample), "_ll"))]
+  do.call(rbind, x)
+}
 
-mmd1
-mmd2
+tmb_samples <- par_samp_matrix(tmb$fit$sample)
+aghq_samples <- par_samp_matrix(aghq$quad$sample)
+tmbstan_samples <- par_samp_matrix(tmbstan$mcmc$sample)
+
+#' Keep only the final 1000 samples from tmbstan
+tmbstan_samples <- tmbstan_samples[, 4001:5000]
+
+mmd_tmb <- kernlab::kmmd(tmb_samples, tmbstan_samples, kernel = "rbfdot")
+mmd_aghq <- kernlab::kmmd(aghq_samples, tmbstan_samples, kernel = "rbfdot")
+
+#' Take sigma to be the mean estimated for the two different methods
+kpar <- list(sigma = mean(mmd_tmb@kernelf@kpar$sigma, mmd_aghq@kernelf@kpar$sigma))
+
+#' Rerun with sigma the same across the different tests
+mmd_tmb <- kernlab::kmmd(tmb_samples, tmbstan_samples, kernel = "rbfdot", kpar = kpar, alpha = 0.05)
+mmd_aghq <- kernlab::kmmd(aghq_samples, tmbstan_samples, kernel = "rbfdot", kpar = kpar, alpha = 0.05)
+
+mmd_tmb
+mmd_aghq
+
+mmd_tmb@mmdstats
+mmd_aghq@mmdstats
+
+round(100 * (mmd_aghq@mmdstats[1] - mmd_tmb@mmdstats[1]) / mmd_tmb@mmdstats[1])
+round(100 * (mmd_aghq@mmdstats[2] - mmd_tmb@mmdstats[2]) / mmd_tmb@mmdstats[2])
 ```
