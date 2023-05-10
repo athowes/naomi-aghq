@@ -10,6 +10,7 @@ output:
     df_print: paged
     code_folding: show
     theme: lumen
+bibliography: citations.bib
 abstract: |
   **Background**  We have run the simplified Naomi model using a range of inference methods: `TMB`, `aghq`, `adam` and `tmbstan`.
   
@@ -110,3 +111,14 @@ What summaries of unmet treatment need might be important to calculate?
 ```{r}
 #' To-do!
 ```
+
+# Excursion and contour uncertainty regions
+
+Based on @bolin2015excursion.
+
+* $D_m = \{s: P(x(s) > u) \geq 1 - \alpha\}$ runs into the problem of multiple hypothesis testing
+* Care about $P(x(s) > u, s \in D_m)$ which is smaller than $1 - \alpha$
+* You can use the marginals and adjust the threshold to control type 1 error, false discovery rate, or posteior probabilites
+* Bolin and Lindgren use sequential importance sampling to estimate the joint probabilities
+* $x(s) > u$ is called a positive excursion set, and $x(s) < u$ is called a negative excursion set
+* The `excursions` package can calculate excursion sets, contour credible regions and level avoiding sets, excursion functions, contour maps and their quality measures, and simultaneous confidence bands

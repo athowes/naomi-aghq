@@ -11,6 +11,7 @@ artefacts:
 
 resources:
   - exceedance.Rmd
+  - citations.bib
 
 packages:
   - dplyr
