@@ -1,0 +1,35 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Check that TMB output is essentially the same as that of AGHQ with k = 1
+      filenames:
+        - tmb-aghq-k1.pdf
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - rstan
+  - bayesplot
+  - patchwork
+  - gt
+
+depends:
+  - naomi-simple_fit:
+      id: latest(parameter:tmb == TRUE)
+      use:
+        depends/tmb.rds: out.rds
+  - naomi-simple_fit:
+      id: latest(parameter:aghq == TRUE && parameter:k == 1)
+      use:
+        depends/aghqk1.rds: out.rds
+  - naomi-simple_fit:
+      id: latest(parameter:aghq == TRUE && parameter:k == 3 && parameter:s == 8)
+      use:
+        depends/aghq.rds: out.rds
