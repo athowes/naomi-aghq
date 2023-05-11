@@ -1,0 +1,29 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Plots
+      filenames:
+        - posterior-shrinkage.pdf
+
+resources:
+  - naomi_simple_prior.cpp
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - rstan
+  - bayesplot
+  - sf
+
+depends:
+  - naomi-simple_fit:
+      id: latest(parameter:tmbstan == TRUE && parameter:niter > 50000)
+      use:
+        depends/out.rds: out.rds
