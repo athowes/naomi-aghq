@@ -95,8 +95,7 @@ knitr::opts_chunk$set(
 # Introduction
 
 To mount an effective public health response to the HIV epidemic, it is crucial to have accurate, timely estimates of HIV indicators at the geographic level at which health systems are planned and delivered.
-However, producing these estimates is challenging due to the limitations of all available data sources.
-<!-- Phrasing? -->
+However, producing these estimates is challenging, in large part due to limitations of the available data sources.
 Nationally-representative household surveys provide the most statistically reliable data, but due to their high cost, in most countries they are conducted only every five years or so, with limited sample size at the district level.
 Other data sources, such as routine health surveillance of antenatal care (ANC) clinics, are available in more real-time but based on limited or non-representative samples of the population.
 To address these challenges, the Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV indicators at a district-level.
@@ -105,9 +104,11 @@ Software (\url{https://naomi.unaids.org}) has been developed for Naomi, allowing
 Creation of estimates by country teams, rather than external agencies, is a noteworthy feature of the HIV response.
 Drawing on expertise closest to the data being modelled improves the accuracy of the process, as well as strengthening trust and ownership of the resulting estimates.
 
-Practical requirements for the model, in combination with its relative complexity, present a difficult Bayesian inference problem.
-Any inferential strategy must be fast enough for interactive review and iteration of modelling results, as well as easy to run in production.
-Markov chain Monte Carlo (MCMC) approaches are prohibitively slow due to the scale of the model and challenging features of its posterior geometry [@neal2003slice].
+The complexity of the model, in combination with practical requirements for its operation, present a difficult Bayesian inference problem.
+First, due to dependence of observations on multiple structured additive predictors, Naomi falls into the class of extended latent Gaussian models (ELGMs) [@stringer2022fast].
+Furthermore, as well as hundreds of latent field parameters, Naomi has >20 hyperparameters: substantially more than the small number typically required for use of integrated nested Laplace approximations [@rue2009approximate].
+Any inferential strategy must be fast enough for interactive review and iteration of modelling results, as well as easy to run in production across a range of countries.
+In this setting, Markov chain Monte Carlo (MCMC) approaches are prohibitively slow, both due to the scale of the model and challenging features of its posterior geometry [@neal2003slice].
 Inference is currently conducted using an empirical Bayes (EB) approach, with a Gaussian approximation to the latent field, via the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
 Owing to its speed and flexibility, `TMB` has recently been gaining popularity more broadly in spatial statistics [@osgood2022statistical].
 Inference in `TMB` is based on optimisation of a \textsf{C++} template function, with the option available to use a Laplace approximation to integrate out any subset of the function arguments.
@@ -116,25 +117,9 @@ Taking inspiration from the AD Model Builder (ADMB) package [@fournier2012ad], `
 Although this approach is fast, it has the downside that within the empirical Bayes framework hyperparameter uncertainty is not accounted for in the latent field posterior.
 This has motivated us to look for an approach closer to full Bayesian inference, which is also flexible enough to be compatible with the model, as well as fast enough to be run in production by country teams.
 
-To obtain fast, accurate Bayesian inferences for the Naomi model we develop an inference methodology which combines adaptive Gauss-Hermite quadrature (AGHQ) with the simplified integrated nested Laplace approximation (INLA) approach of @wood2020simplified.
-INLA is an approximate inference approach based on nested Laplace approximations and numerical quadrature.
-The key innovation of @rue2009approximate is an approximation which enables accurate latent field posterior marginals without explicitly computing the full Laplace approximation for each element.
-Simplified INLA [@wood2020simplified] extends INLA by relaxing the sparsity assumptions on precision matrix of the latent field required for this approximation to be accurate.
-This extension facilitates inference for models like Naomi, which are not quite latent Gaussian models (LGMs) and so were not previously amenable to inference with INLA.
-In particular, due to dependence of observations on multiple structured additive predictors, Naomi falls into the class of extended latent Gaussian models (ELGMs) [@stringer2022fast].
-We combine simplified INLA with AGHQ, a quadrature rule based on the theory of polynomial interpolation which adapts to the integrand based on the Hessian at the mode.
-Though no theory yet exists for the nested case, the first stochastic convergence results for adaptive quadrature rules were recently obtained by @bilodeau2022stochastic using AGHQ.
+To obtain fast, accurate Bayesian inferences for the Naomi model we develop an inference methodology which extends adaptive Gauss-Hermite quadrature (AGHQ) to handle a higher number of hyperparameters. 
 We implement our method as an extension of the `aghq` \textsf{R} package [@stringer2021implementing].
 Since `aghq` is designed to naturally interface with `TMB`, use of our method is simple when provided a \textsf{C++} user template for the log-posterior.
-
-Other work aiming to extend the scope of the INLA method includes the `inlabru` \textsc{R} package [@bachl2019inlabru], INLA within MCMC [@gomez2018markov], and importance sampling with INLA [@berild2022importance], all of which leverage the `R-INLA` \textsc{R} package [@martins2013bayesian].
-`inlabru` approximates non-linear predictors using linearisation, which involves making iterative calls to `R-INLA`.
-<!-- See https://inlabru-org.github.io/inlabru/articles/method.html -->
-<!-- Want to say in particular what the class of models that `inlabru` allows you to fit are -->
-<!-- Don't know the answer to this yet, but asking Janine Illian I'm told you don't have to call R-INLA that many times -->
-<!-- I think it'd obviously depend on the exact details of the problem at hand -->
-INLA within MCMC and importance sampling with INLA are suitable for models which are LGMs conditional on some subset of the parameters being fixed.
-<!-- It would or would not be possible to fit the Naomi model in these frameworks. -->
 
 The remainder of this paper is organised as follows.
 Section \ref{sec:naomi} outlines the version of the Naomi model that we consider in this paper, and  Section \ref{sec:elgm} describes how it falls within the ELGM framework.
@@ -145,21 +130,20 @@ Finally, in Section \ref{sec:conclusions} we discuss our conclusions, how we ant
 
 # A simplified Naomi model\label{sec:naomi}
 
-@eaton2021naomi specify a joint model linking three small-area estimation models, and defined over three time points: $T_1$ the time of the most recent household survey with HIV testing; $T_2$, the current time period; and $T_3$, a short term projection period.
-We consider a simplified version defined only at $T_1$ omitting nowcasting and temporal projection, as these time points involve limited additional inference.
-An overview of this simplified model is given below, highlighting the aspects which make it a challenge for existing inferential approaches.
+@eaton2021naomi specify a joint model linking three small-area estimation models, defined over three time points $T_i, i = 1, 2, 3$.
+We consider a simplified version defined only at the time of the most recent household survey with HIV testing ($T_1$), omitting nowcasting ($T_2$) and temporal projection ($T_3$), as these time points involve limited additional inference.
+An overview of this simplified model is given below.
 A more complete mathematical description (Appendix S1) as well as a \textsf{C++} template for the log-posterior (Appendix S3) are provided in the supplementary material.
 
 ## Household survey component \label{sec:household}
 
 Consider a country in sub-Saharan Africa where a household survey with complex design has taken place at time $T_1$.
-Let $x \in \mathcal{X}$ index district, $a \in \mathcal{A}$ index five-year age band, and $s \in \mathcal{S}$ index sex.
+Let $x \in \mathcal{X}$ index district, $a \in \mathcal{A}$ index five-year age group, and $s \in \mathcal{S}$ index sex.
 For ease of notation, let $i$ index the finest district-age-sex division included in the model.
-The data we observe may be aggregated over indices $i$.
-Let $\mathcal{I} \subseteq \mathcal{X} \times \mathcal{A} \times \mathcal{S}$ be a set of  indices $i$ for which an observation is reported.
+Let $\mathcal{I} \subseteq \mathcal{X} \times \mathcal{A} \times \mathcal{S}$ be a set of indices $i$ for which an aggregate observation is reported.
 
 Let $N_i \in \mathbb{N}$ be the known, fixed population size.
-We infer the following unknown HIV indicators: HIV prevalence $\rho_i \in [0, 1]$, the proporiton of individuals who are HIV positive; antiretroviral therapy (ART) coverage $\alpha_i \in [0, 1]$, the proportion of people living with HIV who receive ART treatment; and annual HIV incidence rate $\lambda_i > 0$, the yearly rate of new HIV infections occurring.
+We infer the following unknown HIV indicators: HIV prevalence $\rho_i \in [0, 1]$, the proportion of individuals who are HIV positive; antiretroviral therapy (ART) coverage $\alpha_i \in [0, 1]$, the proportion of people living with HIV who receive ART treatment; and annual HIV incidence rate $\lambda_i > 0$, the yearly rate of new HIV infections occurring.
 Independent logistic regression models for HIV prevalence and ART coverage in the general population are specified such that
 \begin{align*}
 \text{logit}(\rho_i) &= \eta^\rho_i, \\
@@ -178,11 +162,6 @@ $$
 \hat \theta_\mathcal{I} = \frac{\sum_j w_j \cdot\theta_j}{\sum_j w_j},
 $$
 where $j$ indexes individuals across all strata $i \in \mathcal{I}$ and $w_j$ are design weights.
-<!-- The design weights are given by -->
-<!-- $$ -->
-<!-- w_j = \frac{1}{\pi_j} \times \frac{1}{\omega_j}, -->
-<!-- $$ -->
-<!-- where $\pi_j$ is the probability of inclusion and $\omega_j$ is a non-response factor for the particular survey. -->
 We calculate the observed number of outcomes as $y^{\hat \theta}_{\mathcal{I}} = m^{\hat \theta}_{\mathcal{I}} \cdot \hat \theta_{\mathcal{I}}$ where
 $$
 m^{\hat \theta}_\mathcal{I} = \frac{\left(\sum_j w_j\right)^2}{\sum_j w_j^2},
@@ -206,7 +185,8 @@ HIV prevalence $\rho^\text{ANC}_i$ and ART coverage $\alpha^\text{ANC}_i$ among 
 \text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho_i) + \eta^{\rho^\text{ANC}}_i, \\
 \text{logit}(\alpha^\text{ANC}_i) &= \text{logit}(\alpha_i) + \eta^{\alpha^\text{ANC}}_i.
 \end{align*}
-These processes are informed by likelihoods specified for the following aggregate ANC data from the year of the most recent survey: the number of ANC clients with ascertained status $x^\text{ANC}_\mathcal{I}$, the number of those with positive status $y^\text{ANC}_\mathcal{I}$, and the number of ANC clients already on ART prior to their first ANC visit $z^\text{ANC}_\mathcal{I}$.
+These processes are informed by likelihoods specified for aggregate ANC data from the year of the most recent survey.
+In particular, the number of ANC clients with ascertained status $x^\text{ANC}_\mathcal{I}$, the number of those with positive status $y^\text{ANC}_\mathcal{I}$, and the number of ANC clients already on ART prior to their first ANC visit $z^\text{ANC}_\mathcal{I}$.
 We use the binomial working likelihoods
 \begin{align*}
 y^\text{ANC}_\mathcal{I} &\sim \text{Bin}(x^\text{ANC}_\mathcal{I}, \rho^\text{ANC}_{\mathcal{I}}), \\
@@ -217,19 +197,21 @@ where, again, we use weighted aggregates
 \rho^\text{ANC}_{\mathcal{I}} = \frac{\sum_{i \in \mathcal{I}} \Psi_i \rho_i^\text{ANC}}{\sum_{i \in \mathcal{I}} \Psi_i}, \quad
 \alpha^\text{ANC}_{\mathcal{I}} = \frac{\sum_{i \in \mathcal{I}} \Psi_i \rho_i^\text{ANC} \alpha^\text{ANC}_i}{\sum_{i \in \mathcal{I}} \Psi_i \rho_i^\text{ANC}},
 \end{equation*}
-with $\Psi_i$ the number of pregnant women.
+with $\Psi_i$ the number of pregnant women, which we assume to be fixed.
 
-## ART attendance component \label{sec:art}
+<!-- ## ART attendance component \label{sec:art} -->
 
-We use a multinomial logistic regression model to account for people living with HIV choosing to access ART services outside of the district that they reside in.
-Let $\gamma_{x, x'} \in [0, 1]$ be the probability that a person on ART residing in district $x$ receives ART in district $x'$.
-We assume that $\gamma_{x, x'} = 0$ unless $x = x'$ or the two districts are adjacent such that $x \sim x'$. 
-We model the log-odds $\tilde \gamma_{x, x'} = \text{logit}(\gamma_{x, x'})$ using a linear predictor $\eta_x^{\tilde \gamma}$ which only depends on the home district $x$, such that travel to each neighbouring district, for all age-sex strata, is equally likely.
-We model aggregate ART attendance data $\dot A_\mathcal{I}$ using a Gaussian approximation to a sum of binomials.
-The sum results both by aggregation over $i \in \mathcal{I}$ and by number of ART clients travelling from district $x'$ to $x$.
-More details regarding this part of the model are provided in Appendix S1.
+<!-- We use a multinomial logistic regression model to account for people living with HIV choosing to access ART services outside of the district that they reside in. -->
+<!-- Let $\gamma_{x, x'} \in [0, 1]$ be the probability that a person on ART residing in district $x$ receives ART in district $x'$. -->
+<!-- We assume that $\gamma_{x, x'} = 0$ unless $x = x'$ or the two districts are adjacent such that $x \sim x'$.  -->
+<!-- We model the log-odds $\tilde \gamma_{x, x'} = \text{logit}(\gamma_{x, x'})$ using a linear predictor $\eta_x^{\tilde \gamma}$ which only depends on the home district $x$, such that travel to each neighbouring district, for all age-sex strata, is equally likely. -->
+<!-- We model aggregate ART attendance data $\dot A_\mathcal{I}$ using a Gaussian approximation to a sum of binomials. -->
+<!-- The sum results both by aggregation over $i \in \mathcal{I}$ and by number of ART clients travelling from district $x'$ to $x$. -->
+<!-- More details regarding this part of the model are provided in Appendix S1. -->
 
 # Extended Latent Gaussian models\label{sec:elgm}
+
+## Definitions
 
 Latent Gaussian models (LGMs) [@rue2009approximate] are three-stage hierarchical models of the form
 \begin{align*}
@@ -258,19 +240,21 @@ y_i &\sim p(y_i \, | \, \bmeta_{\mathcal{J}_i}, \btheta_1), \quad i \in [n] \\
 \eta_j &= \beta_0 + \sum_{l = 1}^{p} \beta_j z_{ji} + \sum_{k = 1}^{r} f_k(u_{ki}), \quad j \in [N_n].
 \end{align*}
 
-Naomi is not an LGM, and instead falls into the ELGM class, because:
+## Naomi
 
-1. In the ANC testing component (Section \ref{sec:anc}), the HIV prevalence and ART coverage depend upon the household survey component.
-Specifically, $|\mathcal{J}_i| = 2$ such that for $\theta \in \{\rho, \alpha\}$
-$$
-\mu_i = g_i(\eta^\theta_i, \eta^{\theta^{\text{ANC}}}_i) = \text{logit}^{-1}(\eta^\theta_i + \eta^{\theta^{\text{ANC}}}_i).
-$$
-2. In the household survey component (Section \ref{sec:household}), the HIV incidence rate depends on adult HIV prevalence and adult ART coverage via non-linear transformations.
-3. Individuals who are taking ART, or have been recently infected, must be HIV positive. As a result observations are made taking the product of HIV prevalence with ART coverge or recent HIV infection.
-4. Recent HIV infection is non-linearly linked to both HIV incidence and HIV prevalence.
-5. The ART attendance component (Section \ref{sec:art}) uses a multinomial model.
-6. Processes are modelled at the finest distict-age-sex division $i$, but likelihoods are defined for observations aggregated over sets of indices $\mathcal{I}$.
-7. Multiple link functions are used: there is no one $g$.
+The Naomi model is not an LGM, and instead falls into the ELGM class.
+
+<!-- 1. In the ANC testing component (Section \ref{sec:anc}), the HIV prevalence and ART coverage depend upon the household survey component. -->
+<!-- Specifically, $|\mathcal{J}_i| = 2$ such that for $\theta \in \{\rho, \alpha\}$ -->
+<!-- $$ -->
+<!-- \mu_i = g_i(\eta^\theta_i, \eta^{\theta^{\text{ANC}}}_i) = \text{logit}^{-1}(\eta^\theta_i + \eta^{\theta^{\text{ANC}}}_i). -->
+<!-- $$ -->
+<!-- 2. In the household survey component (Section \ref{sec:household}), the HIV incidence rate depends on adult HIV prevalence and adult ART coverage via non-linear transformations. -->
+<!-- 3. Individuals who are taking ART, or have been recently infected, must be HIV positive. As a result observations are made taking the product of HIV prevalence with ART coverge or recent HIV infection. -->
+<!-- 4. Recent HIV infection is non-linearly linked to both HIV incidence and HIV prevalence. -->
+<!-- 5. The ART attendance component (Section \ref{sec:art}) uses a multinomial model. -->
+<!-- 6. Processes are modelled at the finest distict-age-sex division $i$, but likelihoods are defined for observations aggregated over sets of indices $\mathcal{I}$. -->
+<!-- 7. Multiple link functions are used: there is no one $g$. -->
 
 # Fast approximate inference method\label{sec:fastinferencemethods}
 
@@ -334,7 +318,7 @@ add_points <- function(plot0, gg) {
     geom_point(
       data = mvQuad::getNodes(gg) %>%
               as.data.frame() %>%
-              mutate(weights = mvQuad::getWeights(gg)), 
+              mutate(weights = mvQuad::getWeights(gg)),
       aes(x = V1, y = V2, size = weights),
       alpha = 0.8,
       col = multi.utils::cbpalette()[2],
@@ -365,52 +349,7 @@ plot1 + plot2 + plot3
 
 ## Algorithm\label{sec:algorithm}
 
-1. Calculate the mode, Hessian at the mode, and lower Cholesky
-\begin{align*}
-\hat{\btheta} &= \argmax_{\btheta} {\tilde p_\texttt{LA}(\btheta, \y)}, \\
-\mathbf{H} &= - \frac{\partial^2}{\partial \btheta \partial \btheta^\top} \log \tilde p_\texttt{LA}(\btheta, \y) \rvert_{\btheta = \hat \btheta} \\
-\mathbf{H}^{-1} &= \mathbf{L} \mathbf{L}^\top,
-\end{align*}
-of the Laplace approximation
-$$
-\tilde p_\texttt{LA}(\btheta, \y) = \frac{p(\y, \x, \btheta)}{\tilde p_\texttt{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat \x(\btheta)}
-$$
-where $\tilde p_\texttt{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \x(\btheta), \mathbf{H}(\btheta)^{-1})$ is a Gaussian approximation to $p(\x \, | \, \btheta, \y)$ with mode and precision matrix given by
-\begin{align*}
-\hat \x(\btheta) &= \argmax_\x \log p(\y, \x, \btheta), \\
-\mathbf{H}(\btheta) &= - \frac{\partial^2}{\partial x \partial x^\top} \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}.
-\end{align*}
-2. Generate a set of nodes $\bu \in \mathcal{Q}(m, k)$ and weights $\omega: \bu \to \mathbb{R}$ from a Gauss-Hermite quadrature rule with $k$ nodes per dimension, which are then adapted based on the mode and lower Choleksy via $\btheta(\bu) = \hat{\btheta} + \mathbf{L} \bu$.
-If possible $k \geq 3$ is preferred, though the number of grid points scales exponentially with choice of $k$.
-Then, use this quadrature rule to calculate the normalising constant $\tilde p_{\texttt{AQ}}(\y)$ as follows
-\begin{equation}
-\tilde p_{\texttt{AQ}}(\y) = \sum_{\bu \in \mathcal{Q}(m, k)} \tilde p_\texttt{LA}(\btheta(\bu), \y) \omega(\bu). \label{eq:evidence1}
-\end{equation}
-4. For $i \in [n]$ generate $l$ nodes $x_i(\bv)$ via a Gauss-Hermite quadrature rule $\bv \in \mathcal{Q}(1, l)$ adapted based on the mode $\hat \x(\btheta)_i$ and standard deviation $\sqrt{\text{diag}[\mathbf{H}(\btheta)^{-1}]_i}$ of the Gaussian marginal. A value of $l \geq 4$ is recommended to enable B-spline interpolation.
-Then, for $x_i \in \{ x_i(\bv) \}_{\bv \in \mathcal{Q}(1, l)}$  and $\btheta \in \{ \btheta(\bu) \}_{\bu \in \mathcal{Q}(m, k)}$ calculate the modes and Hessians
-\begin{align*}
-\hat \x_{-i}(x_i, \btheta) &= \argmax_{\x_{-i}} \log p(\y, x_i, \x_{-i}, \btheta), \\
-\mathbf{H}_{-i, -i}(x_i, \btheta) &= - \frac{\partial^2}{\partial \x_{-i} \partial \x_{-i}^\top} \log p(\y, x_i, \x_{-i}, \btheta) \rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)},
-\end{align*}
-where optimisation to obtain $\hat \x_{-i}(x_i, \btheta)$ is initialised at $\hat \x(\btheta)_{-i}$.
-6. For $x_i \in \{ x_i(\bv) \}_{\bv \in \mathcal{Q}(1, l)}$ calculate
-\begin{equation}
-\tilde p_\texttt{AQ}(x_i \, | \, \y) = \frac{\tilde p_\texttt{LA}(x_i, \y)}{\tilde p_{\texttt{AQ}}(\y)}. \label{eq:laplace-marginal}
-\end{equation}
-where
-$$
-\tilde p_\texttt{LA}(x_i, \y) = \sum_{\bu \in \mathcal{Q}(m, k)} \tilde p_\texttt{LA}(x_i, \btheta(\bu), \y) \omega(\bu).
-$$
-and
-$$
-\tilde p_\texttt{LA}(x_i, \btheta, \y) = \frac{p(x_i, \x_{-i}, \btheta, \y)}{\tilde p_\texttt{G}(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)}.
-$$
-Although Equation \ref{eq:laplace-marginal} can be calculated using the estimate of the evidence in Equation \ref{eq:evidence1} it is more numerically accurate to use the estimate
-$$
-\tilde p_{\texttt{AQ}}(\y) = \sum_{\bv \in \mathcal{Q}(1, l)} \tilde p_\texttt{LA}(x_i(\bv), \y) \omega(\bv)
-$$
 
-7. Given $\{x_i(\bv), \tilde p_\texttt{AQ}(x_i(\bv) \, | \, \y)\}_{\bv \in \mathcal{Q}(1, l)}$ create a spline interpolant to each posterior marginal on the log-scale. Samples, and thereby relevant posterior marginal summaries, may be obtained using inverse transform sampling.
 
 # Application to data from Malawi\label{sec:results}
 

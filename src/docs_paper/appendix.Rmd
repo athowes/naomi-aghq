@@ -43,14 +43,6 @@ knitr::opts_chunk$set(
 
 \newpage
 
-# Inferential algorithm
-
-```{r algorithm-flowchart, fig.cap="Flowchart describing the algorithm we propose (work in progress)."}
-knitr::include_graphics("depends/algorithm-flowchart.pdf")
-```
-
-\newpage
-
 # Simplified Naomi model description \label{sec:math}
 
 In this section we describe the simplified Naomi model [@eaton2021naomi] considered in the main text in more complete detail.
@@ -59,10 +51,10 @@ In this section we describe the simplified Naomi model [@eaton2021naomi] conside
 
 ### Indexing
 
-Let $\nu$ be the most recent national household survey with HIV testing which has taken place in the country of interest.
+Consider the most recent national household survey with HIV testing which has taken place in the country of interest.
 Let $x \in \{1, \ldots, n\}$ refer to a district located within the Spectrum [@stover2010spectrum] region $R_x$.
-Let $s \in \{\text{F}, \text{M}\}$ be sex, and $a \in \{\text{0-5}, \text{5-10}, \ldots, \text{75-80}, \text{80+}\}$ be five-year age bands.
-As short-hand, we write $a = l$ to refer to the age band with lower bound $l$, e.g. $a = 20$ for $a = \text{20-25}$.
+Let $s \in \{\text{F}, \text{M}\}$ be sex, and $a \in \{\text{0-5}, \text{5-10}, \ldots, \text{75-80}, \text{80+}\}$ be five-year age groups.
+As short-hand, we write $a = l$ to refer to the age group with lower bound $l$, e.g. $a = 20$ for $a = \text{20-25}$.
 We index the known quantity population size $N_{x, s, a}$ by district, sex and age-band, as well as the following unknown quantities: HIV prevalence $\rho_{x, s, a} \in [0, 1]$, ART coverage $\alpha_{x, s, a} \in [0, 1]$, annual HIV incidence rate $\lambda_{x, s, a} > 0$, and proportion of HIV positive persons recently infected $\kappa_{x, s, a} \in [0, 1]$.
 Sometimes data are observed at an aggregate level, rather than the more granular modelled level.
 In this instance, we use $\{\cdot\}$ to generically refer to a aggregate set over which an observation is made, e.g. $\{a\} = \{\text{15-19}, \ldots, \text{45-49}\}$ for the adult age range 15-49.
@@ -265,7 +257,7 @@ $$
 
 ### Household survey data
 
-For HIV prevalence, ART coverage and recent HIV infections, denoted by $\theta \in \{\rho, \alpha, \kappa\}$, the household survey $\nu$ furnishes weighted observations $\hat \theta_{\{x\}, \{s\}, \{a\}}$ with respective Kish effective sample sizes $m^{\hat \theta}_{\{x\}, \{s\}, \{a\}} \in \mathbb{R}$, and observed number of cases
+For HIV prevalence, ART coverage and recent HIV infections, denoted by $\theta \in \{\rho, \alpha, \kappa\}$, the most recent household survey furnishes weighted observations $\hat \theta_{\{x\}, \{s\}, \{a\}}$ with respective Kish effective sample sizes $m^{\hat \theta}_{\{x\}, \{s\}, \{a\}} \in \mathbb{R}$, and observed number of cases
 $$
 y^{\hat \theta}_{\{x\}, \{s\}, \{a\}} = m^{\hat \theta}_{\{x\}, \{s\}, \{a\}} \cdot \hat \theta_{\{x\}, \{s\}, \{a\}} \in \mathbb{R}.
 $$
@@ -332,7 +324,7 @@ $$
 If data are missing, some parameters are fixed to default values to help with identifiability.
 In particular:
 
-1. If survey data on HIV prevalence or ART coverage by age and sex are not available then we set $u_a^\theta = 0$ and $u_{a, s = \text{M}}^\theta = 0$ and use the average age-sex pattern of from the Spectrum offset $\eta_{R_x, s, a}^\theta$. For the Malawi example considered in the main text HIV prevalence and ART coverage data are not available for those aged 65+. As a result, there are $|\{\text{0-4}, \ldots, \text{50-54}\}| = 13$ age bands included for the age random effects.
+1. If survey data on HIV prevalence or ART coverage by age and sex are not available then we set $u_a^\theta = 0$ and $u_{a, s = \text{M}}^\theta = 0$ and use the average age-sex pattern of from the Spectrum offset $\eta_{R_x, s, a}^\theta$. For the Malawi example considered in the main text HIV prevalence and ART coverage data are not available for those aged 65+. As a result, there are $|\{\text{0-4}, \ldots, \text{50-54}\}| = 13$ age groups included for the age random effects.
 2. If no ART data, either survey or ART programme, are available but data on ART coverage among ANC clients are available, the level of ART coverage is not identifiable, but spatial variation is identifiable. In this instance, overall ART coverage is determined by the Spectrum offset, and only area random effects are estimated such that $\text{logit} \left(\alpha_{x, s, a} \right) = u_x^\alpha + \eta_{R_x, s, a}^\alpha$.
 3. If survey data on recent HIV infection are not included in the model, then $\beta_0^\lambda = \beta_S^{\lambda, s = \text{M}} = u_x^\lambda = 0$. The sex ratio for HIV incidence is determined by the sex incidence rate ratio from Spectrum in the same years and the incidence rate in all districts is modelled assuming the same average HIV transmission rate for untreated adults, but varies according to district estimates of HIV prevalence and ART coverage.
 
@@ -436,6 +428,61 @@ The following draft text and references may be useful in that expanded write-up.
 - Traceplots helpful for diagnosis of problems
 - Pairs density plots helpful for understanding relationships between parameters, including possible identifiability issues
 - Energy plot from @betancourt2017conceptual
+
+\newpage
+
+# Laplace marginals algorithm
+
+1. Calculate the mode, Hessian at the mode, and lower Cholesky
+\begin{align*}
+\hat{\btheta} &= \argmax_{\btheta} {\tilde p_\texttt{LA}(\btheta, \y)}, \\
+\mathbf{H} &= - \frac{\partial^2}{\partial \btheta \partial \btheta^\top} \log \tilde p_\texttt{LA}(\btheta, \y) \rvert_{\btheta = \hat \btheta} \\
+\mathbf{H}^{-1} &= \mathbf{L} \mathbf{L}^\top,
+\end{align*}
+of the Laplace approximation
+$$
+\tilde p_\texttt{LA}(\btheta, \y) = \frac{p(\y, \x, \btheta)}{\tilde p_\texttt{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat \x(\btheta)}
+$$
+where $\tilde p_\texttt{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \x(\btheta), \mathbf{H}(\btheta)^{-1})$ is a Gaussian approximation to $p(\x \, | \, \btheta, \y)$ with mode and precision matrix given by
+\begin{align*}
+\hat \x(\btheta) &= \argmax_\x \log p(\y, \x, \btheta), \\
+\mathbf{H}(\btheta) &= - \frac{\partial^2}{\partial x \partial x^\top} \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}.
+\end{align*}
+2. Generate a set of nodes $\bu \in \mathcal{Q}(m, k)$ and weights $\omega: \bu \to \mathbb{R}$ from a Gauss-Hermite quadrature rule with $k$ nodes per dimension, which are then adapted based on the mode and lower Choleksy via $\btheta(\bu) = \hat{\btheta} + \mathbf{L} \bu$.
+If possible $k \geq 3$ is preferred, though the number of grid points scales exponentially with choice of $k$.
+Then, use this quadrature rule to calculate the normalising constant $\tilde p_{\texttt{AQ}}(\y)$ as follows
+\begin{equation}
+\tilde p_{\texttt{AQ}}(\y) = \sum_{\bu \in \mathcal{Q}(m, k)} \tilde p_\texttt{LA}(\btheta(\bu), \y) \omega(\bu). \label{eq:evidence1}
+\end{equation}
+4. For $i \in [n]$ generate $l$ nodes $x_i(\bv)$ via a Gauss-Hermite quadrature rule $\bv \in \mathcal{Q}(1, l)$ adapted based on the mode $\hat \x(\btheta)_i$ and standard deviation $\sqrt{\text{diag}[\mathbf{H}(\btheta)^{-1}]_i}$ of the Gaussian marginal. A value of $l \geq 4$ is recommended to enable B-spline interpolation.
+Then, for $x_i \in \{ x_i(\bv) \}_{\bv \in \mathcal{Q}(1, l)}$  and $\btheta \in \{ \btheta(\bu) \}_{\bu \in \mathcal{Q}(m, k)}$ calculate the modes and Hessians
+\begin{align*}
+\hat \x_{-i}(x_i, \btheta) &= \argmax_{\x_{-i}} \log p(\y, x_i, \x_{-i}, \btheta), \\
+\mathbf{H}_{-i, -i}(x_i, \btheta) &= - \frac{\partial^2}{\partial \x_{-i} \partial \x_{-i}^\top} \log p(\y, x_i, \x_{-i}, \btheta) \rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)},
+\end{align*}
+where optimisation to obtain $\hat \x_{-i}(x_i, \btheta)$ is initialised at $\hat \x(\btheta)_{-i}$.
+6. For $x_i \in \{ x_i(\bv) \}_{\bv \in \mathcal{Q}(1, l)}$ calculate
+\begin{equation}
+\tilde p_\texttt{AQ}(x_i \, | \, \y) = \frac{\tilde p_\texttt{LA}(x_i, \y)}{\tilde p_{\texttt{AQ}}(\y)}. \label{eq:laplace-marginal}
+\end{equation}
+where
+$$
+\tilde p_\texttt{LA}(x_i, \y) = \sum_{\bu \in \mathcal{Q}(m, k)} \tilde p_\texttt{LA}(x_i, \btheta(\bu), \y) \omega(\bu).
+$$
+and
+$$
+\tilde p_\texttt{LA}(x_i, \btheta, \y) = \frac{p(x_i, \x_{-i}, \btheta, \y)}{\tilde p_\texttt{G}(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)}.
+$$
+Although Equation \ref{eq:laplace-marginal} can be calculated using the estimate of the evidence in Equation \ref{eq:evidence1} it is more numerically accurate to use the estimate
+$$
+\tilde p_{\texttt{AQ}}(\y) = \sum_{\bv \in \mathcal{Q}(1, l)} \tilde p_\texttt{LA}(x_i(\bv), \y) \omega(\bv)
+$$
+
+7. Given $\{x_i(\bv), \tilde p_\texttt{AQ}(x_i(\bv) \, | \, \y)\}_{\bv \in \mathcal{Q}(1, l)}$ create a spline interpolant to each posterior marginal on the log-scale. Samples, and thereby relevant posterior marginal summaries, may be obtained using inverse transform sampling.
+
+```{r algorithm-flowchart, fig.cap="Flowchart describing the algorithm we propose (work in progress)."}
+knitr::include_graphics("depends/algorithm-flowchart.pdf")
+```
 
 \newpage
 
