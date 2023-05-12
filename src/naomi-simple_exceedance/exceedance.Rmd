@@ -58,20 +58,126 @@ mf_out_fine <- mf_out %>%
 tmbstan_second90 <- apply(tmbstan$mcmc$sample$alpha_t1_out[mf_out_fine$id, ], 1, function(x) sum(x > 0.81) / length(x))
 tmb_second90 <- apply(tmb$fit$sample$alpha_t1_out[mf_out_fine$id, ], 1, function(x) sum(x > 0.81) / length(x))
 aghq_second90 <- apply(aghq$quad$sample$alpha_t1_out[mf_out_fine$id, ], 1, function(x) sum(x > 0.81) / length(x))
+```
 
-plot(tmbstan_second90, tmb_second90)
-plot(tmbstan_second90, aghq_second90)
+Plot the results from the different inference methods:
 
+```{r}
+n <- length(tmbstan_second90)
+stopifnot(length(tmb_second90) == n)
+stopifnot(length(aghq_second90) == n)
+
+df_second90 <- data.frame(
+  prob = c(tmbstan_second90, tmb_second90, aghq_second90),
+  method = c(rep("tmbstan", times = n), rep("TMB", times = n), rep("aghq", times = n)),
+  index = c(1:n, 1:n, 1:n)
+)
+
+df_wide_second90 <- pivot_wider(df_second90, names_from = method, values_from = prob)
+
+plot1 <- ggplot(df_wide_second90, aes(x = tmbstan, y = TMB)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
+  labs(title = "Probability of 81% ART coverage in strata") +
+  theme_minimal()
+
+plot2 <- ggplot(df_wide_second90, aes(x = tmbstan, y = aghq)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
+  theme_minimal()
+
+plot1 + plot2
+```
+
+Appears that: 1) systematic overestimation of probability by both approximate inference methods 2) `aghq` does better at not underestimating near zero.
+
+What is the correlation?
+
+```{r}
 cor(tmbstan_second90, tmb_second90)
 cor(tmbstan_second90, aghq_second90)
+```
 
-mse_tmb_second90 <- mean((tmbstan_second90 - tmb_second90)^2)
-mse_aghq_second90 <- mean((tmbstan_second90 - aghq_second90)^2)
-round(100 * (mse_aghq_second90 - mse_tmb_second90) / mse_tmb_second90)
+And what about the mean square error and root mean square error?
 
-rmse_tmb_second90 <- sqrt(mse_tmb_second90)
-rmse_aghq_second90 <- sqrt(mse_aghq_second90)
-round(100 * (rmse_aghq_second90 - rmse_tmb_second90) / rmse_tmb_second90)
+```{r}
+(mse_tmb_second90 <- mean((tmbstan_second90 - tmb_second90)^2))
+(mse_aghq_second90 <- mean((tmbstan_second90 - aghq_second90)^2))
+
+(rmse_tmb_second90 <- sqrt(mse_tmb_second90))
+(rmse_aghq_second90 <- sqrt(mse_aghq_second90))
+
+mse_change <- round(100 * (mse_aghq_second90 - mse_tmb_second90) / mse_tmb_second90)
+rmse_change <- round(100 * (rmse_aghq_second90 - rmse_tmb_second90) / rmse_tmb_second90)
+```
+There is a change of `r mse_change`% in the MSE moving from `TMB` to `aghq`, and a change of `r rmse_change`% in the RMSE.
+
+Which strata have exceedance probabilities which are particularly poorly estimated?
+First for `TMB`:
+
+```{r}
+tmb_fails_second90 <- df_wide_second90 %>%
+  mutate(diff = tmbstan - TMB) %>%
+  filter(diff > 0.1) %>%
+  pull(index)
+```
+And for `aghq`:
+
+```{r}
+aghq_fails_second90 <- df_wide_second90 %>%
+  mutate(diff = tmbstan - aghq) %>%
+  filter(diff > 0.1) %>%
+  pull(index)
+```
+
+There are `r sum(!(tmb_fails_second90 %in% aghq_fails_second90))` uniquely badly estimated by `TMB`, `r sum(!(aghq_fails_second90 %in% tmb_fails_second90))` uniquely badly estimated by `aghq`, and `r sum(tmb_fails_second90 %in% aghq_fails_second90)` badly estimated by both.
+Which strata do these correspond to?
+
+```{r}
+unique(mf_out_fine[tmb_fails_second90, ]$area_id)
+unique(mf_out_fine[tmb_fails_second90, ]$sex)
+unique(mf_out_fine[tmb_fails_second90, ]$age_group)
+
+unique(mf_out_fine[aghq_fails_second90, ]$area_id)
+unique(mf_out_fine[aghq_fails_second90, ]$sex)
+unique(mf_out_fine[aghq_fails_second90, ]$age_group)
+```
+Add colour by sex to the above plots:
+
+```{r}
+df_wide_second90 <- df_wide_second90 %>%
+  left_join(
+    mf_out_fine %>%
+      tibble::rowid_to_column("index"),
+    by = "index"
+  )
+
+plot1 <- ggplot(df_wide_second90, aes(x = tmbstan, y = TMB, col = sex)) +
+  geom_point(alpha = 0.3) +
+  scale_color_manual(values = c("#E69F00", "#F0E442")) +
+  geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
+  labs(title = "Probability of at least 81% ART coverage in strata", col = "Sex") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+plot2 <- ggplot(df_wide_second90, aes(x = tmbstan, y = aghq, col = sex)) +
+  geom_point(alpha = 0.3) +
+  scale_color_manual(values = c("#E69F00", "#F0E442")) +
+  geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
+  guides(col = "none") +
+  theme_minimal()
+
+plot1 + plot2
+```
+Check the RMSE stratified by sex:
+
+```{r}
+df_wide_second90 %>%
+  group_by(sex) %>%
+  summarise(
+    "RMSE TMB (percent)" = 100 * sqrt(mean((tmbstan - TMB)^2)),
+    "RMSE aghq (percent)" = 100 * sqrt(mean((tmbstan - aghq)^2))
+  )
 ```
 
 # High incidence strata
@@ -88,8 +194,30 @@ tmbstan_1inc <- apply(tmbstan$mcmc$sample$lambda_t1_out[mf_out_fine$id, ], 1, fu
 tmb_1inc <- apply(tmb$fit$sample$lambda_t1_out[mf_out_fine$id, ], 1, function(x) sum(x > 0.01) / length(x))
 aghq_1inc <- apply(aghq$quad$sample$lambda_t1_out[mf_out_fine$id, ], 1, function(x) sum(x > 0.01) / length(x))
 
-plot(tmbstan_1inc, tmb_1inc)
-plot(tmbstan_1inc, aghq_1inc)
+n <- length(tmbstan_1inc)
+stopifnot(length(tmb_1inc) == n)
+stopifnot(length(aghq_1inc) == n)
+
+df_1inc <- data.frame(
+  prob = c(tmbstan_1inc, tmb_1inc, aghq_1inc),
+  method = c(rep("tmbstan", times = n), rep("TMB", times = n), rep("aghq", times = n)),
+  index = c(1:n, 1:n, 1:n)
+)
+
+df_wide_1inc <- pivot_wider(df_1inc, names_from = method, values_from = prob)
+
+plot1 <- ggplot(df_wide_1inc, aes(x = tmbstan, y = TMB)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
+  labs(title = "Probability of at least 1% incidence in strata") +
+  theme_minimal()
+
+plot2 <- ggplot(df_wide_1inc, aes(x = tmbstan, y = aghq)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
+  theme_minimal()
+
+plot1 + plot2
 
 cor(tmbstan_1inc, tmb_1inc)
 cor(tmbstan_1inc, aghq_1inc)
