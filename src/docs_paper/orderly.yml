@@ -48,3 +48,8 @@ depends:
       id: latest
       use:
         depends/simplified-naomi.pdf: simplified-naomi.pdf
+  - naomi-simple_exceedance:
+      id: latest
+      use:
+        depends/second90.pdf: second90.pdf
+        depends/1inc.pdf: 1inc.pdf

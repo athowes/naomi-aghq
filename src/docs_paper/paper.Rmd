@@ -406,17 +406,15 @@ We performed posterior predictive checks to assess the coverage of our estimates
 
 ## Inference comparison
 
-We used three methods to assess the accuracy of posterior distributions produced by each inferential method as compared with those from NUTS: (1) Kolmogorov-Smirnov tests, (2) maximum mean discrepancy, and (3) Pareto-smoothed importance sampling.
-Our primary applied interest is in comparing the accuracy of model outputs, rather than the internal hyperparameters or latent field parameters.
-That said, obtaining accurate inferences for these internal parameters is also relevant.
+We used three statistical approaches to assess the accuracy of posterior distributions produced by TMB and PCA-AGHQ as compared with those from NUTS (1) Kolmogorov-Smirnov tests, (2) Pareto-smoothed importance sampling, and (3) maximum mean discrepancy.
 
 ### Kolmogorov-Smirnov tests
 
-Let $\{\theta_i\}_{i = 1}^n$ be posterior marginal samples from some quantity with empirical cumulative distribution (ECDF) function $F(\vartheta) = \frac{1}{n} \sum_{i = 1}^n \mathbb{I}_{\theta_i \leq \vartheta}$.
+Let $\{\phi_i\}_{i = 1}^n$ be posterior marginal samples from some quantity with empirical cumulative distribution (ECDF) function $F(\varphi) = \frac{1}{n} \sum_{i = 1}^n \mathbb{I}_{\phi_i \leq \varphi}$.
 The two-sample Kolmogorov-Smirnov (KS) test statistic [@smirnov1948table] is given by the maximum absolute difference between two ECDFs.
 For each method we compare the KS statistics
 \begin{equation*}
-D_\bullet = \sup_\vartheta | F_\texttt{NUTS}(\vartheta) - F_\bullet(\vartheta)|.
+D_\bullet = \sup_\vartheta | F_\text{NUTS}(\vartheta) - F_\bullet(\vartheta)|.
 \end{equation*}
 See a summary of the results in Table and Figure \ref{fig:ks}, and full results available in the appendix.
 
@@ -430,6 +428,17 @@ ks_summary <- readRDS("depends/ks_summary_out.rds")
 # gt::gt(ks_summary) %>% gt::as_latex()
 ```
 
+### Pareto-smoothed importance sampling
+
+We are interested in assessing the accuracy of joint distributions as well as marginal distributions.
+Let $\{\bphi_i\}_{i = 1}^n$ be posterior joint samples.
+Pareto smoothed importance sampling (PSIS) [@vehtari2015pareto, @yao2018yes].
+See a summary of the results in Table and Figure \ref{fig:psis}, and full results available in the appendix.
+
+```{r psis, fig.cap="Results of Pareto-smoothed importance sampling analysis."}
+qplot(1:10, 1:10) + theme_minimal()
+```
+
 ### Maximum mean discrepancy
 
 To write.
@@ -439,31 +448,45 @@ See a summary of the results in Table and Figure \ref{fig:mmd}, and full results
 qplot(1:10, 1:10) + theme_minimal()
 ```
 
-### Pareto-smoothed importance sampling
+## Case study on exceedance probabilites
 
-To write.
-See a summary of the results in Table and Figure \ref{fig:psis}, and full results available in the appendix.
+### Meeting the second 90
 
-```{r psis, fig.cap="Results of Pareto-smoothed importance sampling analysis."}
-qplot(1:10, 1:10) + theme_minimal()
+The Joint United Nations Programme on HIV/AIDS (UNAIDS) has developed ambitious fast-track targets for scaling up ART treatment with the goal to "end the AIDS epidemic by 2030".
+The 90-90-90 by 2020 fast-track target is that 90% of PLHIV know their status, 90% of those are on antiretroviral therapy (ART) and 90% of those have suppressed viral load.
+Naomi can be used to assess the probability that the second 90 target has been met, thereby helping to find treatment gaps, by evaluating $\mathbb{P}(\alpha_i > 0.81)$ for each strata $i$.
+See a summary of the results in Figure \ref{fig:second90}.
+
+```{r second90, fig.cap="Results of second 90 case-study."}
+knitr::include_graphics("depends/second90.png")
+```
+
+### Finding strata with high incidence strata
+
+Some HIV interventions are cost-effective only within high HIV incidence settings, typically defined as above 1% incidence per year.
+Naomi can be used to assess the probability of there being high incidence within a strata by evaluating $\mathbb{P}(\lambda_i > 0.01)$.
+See a summary of the results in Figure \ref{fig:1inc}.
+
+```{r 1inc, fig.cap="Results of high incidence case-study."}
+knitr::include_graphics("depends/1inc.png")
 ```
 
 # Discussion\label{sec:conclusions}
 
 We developed an approximate Bayesian inference algorithm motivated by a challenging problem in small-area estimation of HIV in low resource settings.
-For the simplified Naomi model in Malawi (Section \ref{sec:results}) our method is demonstrated to be more accurate than the EB Gaussian approximation currently in use, and substantially faster than NUTS.
-We anticipate that our method could be added to the Naomi web interface as an alternative to `TMB`.
+For the simplified Naomi model in Malawi (Section \ref{sec:results}) our method is demonstrated to be more accurate than TMB, and substantially faster than NUTS.
+We anticipate that our method could be added to the Naomi web interface as an alternative to TMB.
 Analysts might quickly iterate over model options using the faster, less accurate inference approach, switching to the slower, more accurate approach once they are happy with the results.
 
 We provide a flexible implementation of the algorithm, building on the `TMB` and `aghq` \textsc{R} packages.
 In doing so, we hope our work enables use of deterministic inference algorithms for ELGMs in applied settings, as well as further methodological exploration of their accuracy and limitations.
-Among the ELGMs structures of particular interest in spatial epidemiology, many of which are included in the structure of Naomi, are: aggregated Gaussian process models [@nandi2020disaggregation], evidence synthesis models [@amoah2020geostatistical].
+Among the ELGM-type structures of particular interest in spatial epidemiology, many of which feature in Naomi, are: aggregated Gaussian process models [@nandi2020disaggregation], evidence synthesis models [@amoah2020geostatistical].
 Although our method is designed for ELGMs, it is possible to use it outside this class, as it is compatible with any model with a `TMB` \textsc{C++} template.
 
 In our case study we demonstrated a Bayesian workflow for deterministic inference methods.
 We retained the ability to draw samples from the posterior distributions of interest, facilitating use of posterior predictive checks (Section \ref{sec:model-assessment}).
 
-Future work could look to implement our algorithm (Section \ref{sec:algorithm}) within probabilistic programming languages, facilitating access by a broader user-base.
+Future work could look to implement our algorithm within probabilistic programming languages, facilitating access by a broader user-base.
 This might be possible in Stan by use of the `bridgestan` package [@bridgestan] together with the adjoint-differentiated Laplace approximation of @margossian2020hamiltonian.
 <!-- Note: can fit hyperparameters with Laplace on latent field using HMC via tmbstan::tmbstan(laplace = TRUE) -->
 <!-- i.e. what Charles Margossian has implemented for Stan is done similarly by default in TMB -->
