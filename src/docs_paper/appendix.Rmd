@@ -71,12 +71,12 @@ First, we specify the first order auto-regressive model by $u \sim \text{AR}1(\s
 u_1 &\sim \left( 0, \frac{1}{1 - \rho^2} \right), \\
 u_i &= \rho u_{i - 1} + \epsilon_i, \quad i = 2, \ldots, \dim(u)
 \end{align*}
-where $\epsilon_i \sim \mathcal{N}(0, 1)$ is Gaussian white noise, $\sigma > 0$ is the marginal standard deviation, and $|\rho| < 1$ is the lag-one correlation parameter.
+where $\epsilon_i \sim \mathcal{N}(0, 1)$ are independent and identically distributed (IID) Gaussian random variables, $\sigma > 0$ is the marginal standard deviation, and $|\rho| < 1$ is the (lag-one) correlation parameter.
 Second, we use $u \sim \text{ICAR}(\sigma)$ to refer to the Besag intrinsic conditional auto-regressive model (ICAR) [@besag1991bayesian] with full conditionals
 $$
 u_i \, | \, u_{-i} \sim \mathcal{N} \left(\frac{\sum_{j: j \sim i} u_j}{n_{\delta i}}, \frac{\sigma^2}{n_{\delta i}}\right),
 $$
-where $u_{-i}$ is $u$ with the $i$th element removed i.e. $(u_1, \ldots, u_{i - 1}, u_{i + 1}, \ldots, u_{\dim(u)})$, $j \sim i$ if the units are defined as adjacent, $n_{\delta i} = |\{j:j \sim i\}|$ is the total number of adjacent units, and $\sigma > 0$ is the marginal standard deviation.
+where $u_{-i}$ is $u$ with the $i$th element removed i.e. $(u_1, \ldots, u_{i - 1}, u_{i + 1}, \ldots, u_{\dim(u)})$, $j \sim i$ if the units $i$ and $j$ are defined as adjacent, $n_{\delta i} = |\{j:j \sim i\}|$ is the total number of adjacent units, and $\sigma > 0$ is the marginal standard deviation.
 We follow recommendations of @freni2018note on scaling of precision matrices, disconnected adjacency graph components, and islands.
 Third, for the reparameterised Besag-York-Mollie model (BYM2) [@simpson2017penalising], we write $u \sim \text{BYM}2(\sigma, \phi)$, where $u$ is comprised of a spatially structured ICAR component $v$ with proportion $\phi \in (0, 1)$ and spatially unstructured IID component $w$ with proportion $1 - \phi$, both scaled to have generalised variance equal to one, and $\sigma > 0$ is the marginal standard deviation such that
 $$
@@ -85,8 +85,8 @@ $$
 
 ### Complex survey design
 
-We assume the household survey was run according to a complex survey design where each individual $j \in U$ has non-zero probability $\pi_j \in (0, 1)$ of appearing in the sample $S \subseteq U$. Suppose we observe an outcome $\theta_j \in \{0, 1\}$ for $j \in S$.
-Let $w_j = 1 / \pi_j \times 1 / \omega_j$ be design weights, where $\omega_j$ is a non-response factor, then the weighted mean
+We assume the household survey was run according to a complex survey design where each individual $j$ in the population $U$ has non-zero probability $\pi_j \in (0, 1)$ of appearing in the sample $S \subseteq U$. Suppose we observe an outcome $\theta_j \in \{0, 1\}$ for $j \in S$.
+Let $w_j = 1 / \pi_j \times 1 / \omega_j$ be design weights, where $\omega_j$ is a non-response factor, then a survey weighted mean is given by
 $$
 \hat \theta = \frac{\sum_{j \in S} w_j \theta_j}{\sum_{j \in S} w_j}.
 $$
