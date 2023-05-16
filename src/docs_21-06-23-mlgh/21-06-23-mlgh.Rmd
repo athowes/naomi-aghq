@@ -15,6 +15,8 @@ bibliography: citations.bib
 institute: Imperial College London
 ---
 
+<!-- https://github.com/athowes/elgm-inf/blob/fd4b0bb6b9ba93ac277de7aad47a94581e8fc900/src/docs_18-04-23-explainer/18-04-23-explainer.Rmd -->
+
 # The Naomi model
 
 :::::::::::::: {.columns}
@@ -43,6 +45,153 @@ knitr::include_graphics("naomi_hex.png")
 ```{r, echo=FALSE, fig.cap="Example of the user interface from \\texttt{https://naomi.unaids.org/}", out.width = '70%'}
 knitr::include_graphics("naomi_user.png")
 ```
+
+# Latent Gaussian models
+
+* In an LGM, the conditional mean depends on exactly one structured additive predictor
+\begin{align*}
+y_i &\sim p(y_i \, | \, \eta_i, \theta_1), \quad i \in [n]\\
+\mu_i &= \mathbb{E}(y_i \, | \, \eta_i) = g(\eta_i), \\
+\eta_i &= \beta_0 + \sum_{l = 1}^{p} \beta_j z_{ji} + \sum_{k = 1}^{r} f_k(u_{ki}),
+\end{align*}
+where $\beta_0$, $\{\beta_j\}$ and $\{f_k(\cdot)\}$ have Gaussian priors (and can be collected into the latent field $x$)
+
+# Extended latent Gaussian models
+
+* ELGM remove this requirement such that
+$$
+\mu_i = g_i(\eta_{\mathcal{J}_i})
+$$
+where $g_i: \mathbb{R}^{|\mathcal{J}_i|} \to \mathbb{R}$ and $\mathcal{J}_i$ is some set of indices
+* Let $\dim(\eta) = N_n$ with $\mathcal{J}_i \subseteq \{1, \ldots, N_n\}$
+  * $N_n < n$: more data points than structured additive predictors
+  * $N_n = n$: as many data points as structured additive predictors (LGM case)
+  * $N_n > n$: fewer data points than structured additive predictors
+* The $g_i$ allow for a higher degree of non-linearity in the model
+
+# Why is Naomi an ELGM?
+
+| | Things that make Naomi an ELGM |
+|-|---------------|
+|1.| Incidence depends on adult prevalence and coverage |
+|2.| Incidence linked non-linearly to recent infection |
+|3.| ANC offset from household survey |
+|4.| ART coverage and recent infection are products |
+|5.| Aggregation of finer processes |
+|6.| ART attendance uses a multinomial |
+|7.| Multiple link functions |
+
+# 1. Incidence depends on adult prevalence and coverage
+
+* Linear predictor for incidence contains aggregated prevalence and coverage
+$$
+\log(\lambda_{x, s, a}) = \beta_0^\lambda + \beta_S^{\lambda, s = \text{M}} + \log(\rho_{x}^{\text{15-49}}) + \log(1 - \omega \cdot \alpha_{x}^{\text{15-49}}) + u_x^\lambda + \eta_{R_x, s, a}^\lambda.
+$$
+* Here $\log(\rho_{x}^{\text{15-49}})$ and $\log(1 - \omega \cdot \alpha_{x}^{\text{15-49}})$ are not going to be Gaussian
+
+# 2. Incidence and prevalence linked to recent infection
+
+$$
+\kappa_{x, s, a} = 1 - \exp \left(- \lambda_{x, s, a} \cdot \frac{1 - \rho_{x, s, a}}{\rho_{x, s, a}} \cdot (\Omega_T - \beta_T ) - \beta_T \right)
+$$
+
+* Here $\Omega_T$ and $\beta_T$ are Gaussian and have strong priors depending on the particular survey
+
+# 3. ANC offset from household survey
+
+* Linear predictors for ANC indicators contain nested in them the linear predictors for household survey indicators
+\begin{align*}
+\text{logit}(\rho_{x, a}^{\text{ANC}}) &= \text{logit}(\rho_{x, F, a}) + \beta^{\rho^{\text{ANC}}} + u_x^{\rho^{\text{ANC}}} + \eta_{R_x, a}^{\rho^{\text{ANC}}}, \\
+\text{logit}(\alpha_{x, a}^{\text{ANC}}) &= \text{logit}(\alpha_{x, F, a}) + \beta^{\alpha^{\text{ANC}}} + u_x^{\alpha^{\text{ANC}}} + \eta_{R_x, a}^{\alpha^{\text{ANC}}}. 
+\end{align*}
+* Here $\text{logit}(\rho_{x, F, a})$ and $\text{logit}(\alpha_{x, F, a})$ *are* Gaussian, but we have dependency of $\mu_i$ on two $\eta_i$
+
+# 3. ANC offset from household survey
+
+* Note that `R-INLA` does have the `copy` feature $\eta^\star = A \eta$ where $A$ is $n \times n$^[I've also seen it claimed that it could be $m \times n$ where $m \neq n$, so I'm unsure which is right]
+$$
+\begin{pmatrix}
+\eta_1^\star \\
+\eta_2^\star
+\end{pmatrix}
+=
+\begin{pmatrix}
+1 & 1 \\
+0 & 1
+\end{pmatrix}
+\begin{pmatrix}
+\eta_1 \\
+\eta_2
+\end{pmatrix}
+=
+\begin{pmatrix}
+\eta_1 + \eta_2 \\
+\eta_2
+\end{pmatrix}
+$$
+* By having effects only apply to a subset of indices (`idx = c(NA, 1)` say) perhaps it can work
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+
+Warning!
+
+\begin{enumerate}
+    \item Is an LGM $\nRightarrow$ can be fit with \texttt{R-INLA}
+    \item Can be fit with \texttt{R-INLA} $\nRightarrow$ is an LGM
+\end{enumerate}
+
+\end{tcolorbox}
+\end{center}
+
+# 4. ART coverage and recent infection are products
+
+* In the household survey, say, individuals who are taking ART or have been recently infected must be HIV positive
+\begin{align*}
+y^{\hat \alpha}_{x, s, a} &\sim \text{xBin}(m_{x, s, a}, \rho_{x, s, a} \cdot \alpha_{x, s, a}), \\
+y^{\hat \kappa}_{x, s, a} &\sim \text{xBin}(m_{x, s, a}, \rho_{x, s, a} \cdot \kappa_{x, s, a}).
+\end{align*}
+* $\text{logit}(\rho_{x, s, a})$ and $\text{logit}(\alpha_{x, s, a})$ are Gaussian, but we're taking a product here
+* $\kappa_{x, s, a}$ is more complicated: a function of incidence, prevalence, mean duration of recent infection and false recent ratio
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+Warning! These equations as writen do not appear in Naomi: instead there are aggregated versions, more about this soon.
+\end{tcolorbox}
+\end{center}
+
+# 5. Aggregation of finer processes
+
+* There are many instances of models being placed on aggregate quantities
+\begin{align*}
+y^{\hat \theta}_{\mathcal{I}} &\sim \text{xBin}(m^{\hat \theta}_{\mathcal{I}}, \theta_{\mathcal{I}}), \\
+\rho_{\mathcal{I}} &= \frac{\sum_{i \in \mathcal{I}} N_i \rho_i}{\sum_{i \in \mathcal{I}} N_i}.
+\end{align*}
+* Here we have $|\mathcal{I}|$ linear predictors being informed by one observation
+* Known as disaggregation regression
+
+# 6. ART attendance uses the multinomial
+
+# 7. Multiple link functions
+
+* The Naomi model uses both $\text{logit}$ and $\log$ (inverse) link functions (not even considering the constructed quasi-link functions)
+* For LGMs there is only one $g$, whereas ELGMs allow $g_i$
+* In `R-INLA` it is possible for `y` to be a matrix where each column contains observations with shared likelihood family (and hyperparameters) and `family = c("family1", "family2", ...)`
+
+# Statistical software
+
+|           | Interface `y ~ 1 + x`  | General |
+|-----------|------------|---------|
+| Example   | `brms`     | Stan    |
+| Users     | Scientists | Statisticians |
+| Benefits  | Ease of use, sensible defaults, trust | Flexibility, development |
+| Drawbacks | Being fenced in | Barrier to entry, failing silently |
+
+\begin{center}
+\begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
+\texttt{athowes/multi-agyw} case-study: attempting to define $\text{AR}(1) \times \text{Besag} \times \text{IID}$ random effects in \texttt{R-INLA}
+\end{tcolorbox}
+\end{center}
 
 # Thanks for listening!
 
