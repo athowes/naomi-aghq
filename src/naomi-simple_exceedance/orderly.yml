@@ -8,6 +8,11 @@ artefacts:
       description: Notebook comparing inferences
       filenames:
         - exceedance.html
+  - data:
+      description: Plots
+      filenames:
+        - second90.pdf
+        - 1inc.pdf
 
 resources:
   - exceedance.Rmd
