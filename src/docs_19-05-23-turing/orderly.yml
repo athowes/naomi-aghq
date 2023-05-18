@@ -8,10 +8,11 @@ artefacts:
 
 resources:
   - 19-05-23-turing.Rmd
-  - naomi_hex.png
   - mrc-gida-icl-mlgh.png
+  - naomi_user.png
   - preamble.tex
   - citations.bib
+  - fast-track.png
 
 packages:
   - dplyr
@@ -33,3 +34,7 @@ depends:
       id: latest
       use:
         depends/naomi_results.png: fig3.png
+  - naomi-simple_exceedance:
+      id: latest
+      use:
+        depends/second90.pdf: second90.pdf
