@@ -8,6 +8,10 @@ artefacts:
       description: Notebook assessing the fit of the model to data
       filenames:
         - model-checks.html
+  - data:
+      description: Posterior predictive check of coverage
+      filenames:
+        - coverage.pdf
 
 resources:
   - model-checks.Rmd
@@ -29,11 +33,3 @@ depends:
       id: latest(parameter:tmb == TRUE)
       use:
         depends/tmb.rds: out.rds
-  - naomi-simple_fit:
-      id: latest(parameter:aghq == TRUE)
-      use:
-        depends/aghq.rds: out.rds
-  - naomi-simple_fit:
-      id: latest(parameter:tmbstan == TRUE)
-      use:
-        depends/tmbstan.rds: out.rds

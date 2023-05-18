@@ -19,14 +19,13 @@ abstract: |
 ```{r}
 tmb <- readRDS("depends/tmb.rds")
 
-outputs <- tmb$outputs
-
-indicators <- naomi::add_output_labels(outputs) %>%
-  left_join(outputs$meta_area %>% select(area_level, area_id, center_x, center_y)) %>%
+indicators <- naomi::add_output_labels(tmb$outputs) %>%
+  left_join(tmb$outputs$meta_area %>% select(area_level, area_id, center_x, center_y)) %>%
   sf::st_as_sf()
 
 indicators %>%
   filter(
+    sex %in% c("male", "female"),
     age_group == "Y015_049",
     indicator == "prevalence",
     area_level == 4
@@ -37,37 +36,120 @@ indicators %>%
   naomi::th_map() +
   facet_wrap(~sex)
 
-indicators %>%
+indicators_fine <- indicators %>%
   filter(
-    age_group == "Y015_049",
-    indicator == "prevalence",
-    area_level == 4
-  ) %>%
-  names()
+    indicator %in% c("incidence", "prevalence", "art_coverage"),
+    area_id %in% paste0("MWI_4_", 1:32, "_demo"),
+    sex %in% c("male", "female"),
+    age_group %in%
+      c(
+        "Y000_004", "Y005_009", "Y010_014", "Y015_019", "Y020_024", "Y025_029",
+        "Y025_034", "Y030_034", "Y035_039", "Y040_044", "Y045_049", "Y050_054",
+        "Y055_059", "Y060_064", "Y065_069", "Y070_074", "Y075_079", "Y080_999"
+      )
+  )
+```
+
+```{r}
+mf_out <- tmb$naomi_data$mf_out
+
+mf_out_fine <- mf_out %>%
+  tibble::rownames_to_column("id") %>%
+  mutate(id = as.numeric(id)) %>%
+  filter(
+    area_id %in% paste0("MWI_4_", 1:32, "_demo"),
+    sex %in% c("male", "female"),
+    age_group %in%
+      c(
+        "Y000_004", "Y005_009", "Y010_014", "Y015_019", "Y020_024", "Y025_029",
+        "Y025_034", "Y030_034", "Y035_039", "Y040_044", "Y045_049", "Y050_054",
+        "Y055_059", "Y060_064", "Y065_069", "Y070_074", "Y075_079", "Y080_999"
+      )
+  )
+
+nrow(indicators_fine) / nrow(mf_out_fine)
+```
+
+```{r}
+get_prob_quantile <- function(indicator) {
+  samples <- tmb$fit$sample[[indicator]][mf_out_fine$id, ]
+  S <- ncol(samples)
+  prob_quantile <- apply(samples, MARGIN = 1, function(x) {
+    estimate <- x[1] # This is wrong! I am just using the first sample as a placeholder
+    sample_row <- x[1:S]
+    if(all(is.na(sample_row))) return(NA)
+    else ecdf(sample_row)(estimate)
+  })
+  data.frame(indicator = indicator, prob_quantile = prob_quantile)
+}
+
+df <- lapply(list("rho_t1_out", "lambda_t1_out", "alpha_t1_out"), get_prob_quantile) %>%
+  bind_rows()
+
+bins <- 20
+alpha <- 0.05
+
+ci <- qbinom(
+  p = c(alpha / 2, 0.5, (1 - alpha / 2)),
+  size = S,
+  prob = 1 / bins
+)
+
+polygon_data <- data.frame(
+  x = c(-0.05, 0, 1, 0, -0.05, 1.05, 1, 1.05, -0.05),
+  y = c(ci[1], ci[2], ci[2], ci[2], ci[3], ci[3], ci[2], ci[1], ci[1]) / S
+)
+
+fct_reorg <- function(fac, ...) {
+  fct_recode(fct_relevel(fac, ...), ...)
+}
+
+histograms <- df %>%
+  mutate(indicator = fct_reorg(indicator, "HIV Prevalence" = "rho_t1_out", "HIV Incidence" = "lambda_t1_out", "ART Coverage" = "alpha_t1_out")) %>%
+  ggplot(aes(x = prob_quantile)) +
+  facet_grid(~indicator, drop = TRUE, scales = "free", labeller = labeller(indicator = label_wrap_gen(20))) +
+  geom_histogram(aes(y = (..count..) / tapply(..count..,..PANEL..,sum)[..PANEL..]),
+                 breaks = seq(0, 1, length.out = bins + 1), fill = "#009E73", col = "black", alpha = 0.9) +
+  geom_polygon(data = polygon_data, aes(x = x, y = y), fill = "grey75", color = "grey50", alpha = 0.6) +
+  labs(x = "", y = "") +
+  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), labels = c(0, 0.25, 0.5, 0.75, 1)) +
+  theme_minimal()
+
+lims <- multi.utils::get_lims(n = S, alpha, K = 100)
+
+ecdf_diff <- df %>%
+  split(.$indicator) %>%
+  lapply(function(y) {
+    empirical_coverage <- purrr::map_dbl(seq(0, 1, by = 0.01), ~ empirical_coverage(y$prob_quantile, .x))
+    data.frame(nominal_coverage = seq(0, 1, by = 0.01), empirical_coverage = empirical_coverage) %>%
+      mutate(
+        ecdf_diff = empirical_coverage - nominal_coverage,
+        ecdf_diff_lower = lims$lower / S - nominal_coverage,
+        ecdf_diff_upper = lims$upper / S - nominal_coverage,
+      )
+  }) %>%
+  purrr::map_df(~as.data.frame(.x), .id = "indicator") %>%
+  mutate(indicator = fct_reorg(indicator, "HIV Prevalence" = "rho_t1_out", "HIV Incidence" = "lambda_t1_out", "ART Coverage" = "alpha_t1_out")) %>%
+  ggplot(aes(x = nominal_coverage, y = ecdf_diff)) +
+  facet_grid(~indicator, drop = TRUE, scales = "free", labeller = labeller(indicator = label_wrap_gen(20))) +
+  geom_line(col = "#009E73") +
+  geom_step(aes(x = nominal_coverage, y = ecdf_diff_upper), alpha = 0.7, col = "grey50") +
+  geom_step(aes(x = nominal_coverage, y = ecdf_diff_lower), alpha = 0.7, col = "grey50") +
+  geom_abline(intercept = 0, slope = 0, linetype = "dashed", col = "grey75") +
+  labs(x = "", y = "ECDF difference") +
+  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), labels = c(0, 0.25, 0.5, 0.75, 1)) +
+  theme_minimal()
+
+pdf("coverage.pdf", h = 4, w = 6.25)
+
+histograms / ecdf_diff
+
+dev.off()
+
+histograms / ecdf_diff
 ```
 
 Next steps here are:
 
-* Add column to `indicators` with the "raw" value of the indicator
-* Add column to `indicators` with the quantile of the raw value within samples from the posterior
-* Start outputting `tmb$outputs` for the other inference methods
-* Use existing or own functions to produce coverage histograms and ECDF difference plots
-
-Discussion talking to Rachel:
-
-* Can use samples from `tmb$fit$sample`
-* Issue about one survey or two. Inclusion of two for the Malawi demo is more of a special case
-
-Have the following samples from `rho_t1_out`:
-
-```{r}
-str(tmb$fit$sample$rho_t1_out)
-```
-
-Want to somehow line these up with the data from `tmb$outputs$inputs_outputs` or `tmb$outputs$indicators`.
-Should be looking for some kind of `mf_out` object:
-
-```{r}
-str(tmb$outputs$fit)
-```
-
+* Add column to `indicators` with the "raw" value of the indicator and replace the placeholder `estimate <- sample[1]`
+* Should probably put the value of `prob_quantile` into the `indicators` dataframe as well
