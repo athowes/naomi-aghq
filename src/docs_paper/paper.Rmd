@@ -365,7 +365,7 @@ The four approaches were:
 1. TMB: EB combined with a Gaussian approximation via `TMB`,
 2. PCA-AGQH: the PCA AGHQ grid combined with a Gaussian approximation via `aghq`,
 3. NUTS: the Hamiltonian Monte Carlo (HMC) algorithm No-U-Turn Sampling (NUTS) using Stan [@carpenter2017stan] via the `tmbstan` package [@monnahan2018no].
-The dimension of the latent field is $N = 491$ and the dimension of the hyperparameters is $m = 24$.
+The dimension of the latent field is $N = 467$ and the dimension of the hyperparameters is $m = 24$.
 Settings used for each inferential method are provided in Table \ref{tab:inference-methods}.
 For the deterministic methods, following inference we simulated hyperparameter and latent field samples.
 For all methods, we simulated age-sex-district specific HIV prevalence, ART coverage and HIV incidence from the latent field and hyperparameter posteriors.
