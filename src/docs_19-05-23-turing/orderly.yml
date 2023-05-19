@@ -23,6 +23,7 @@ packages:
   - bsae
   - knitr
   - kableExtra
+  - patchwork
 
 depends:
   - dev_scale-grid:

@@ -252,7 +252,7 @@ knitr::include_graphics("depends/reduced-rank-plot.png")
 
 #
 
-```{r, echo=FALSE, fig.cap="Reduced RMSE by 10%, but still a work in progress! Also using Kolmogorov-Smirnov tests, Pareto-smoothed importance sampling, maximum mean discrepancy...", out.width = '80%'}
+```{r, echo=FALSE, fig.cap="Reduced RMSE by 10 percent, but still a work in progress! Also seeing small improvements using Kolmogorov-Smirnov tests, Pareto-smoothed importance sampling, maximum mean discrepancy.", out.width = '80%'}
 knitr::include_graphics("depends/second90.pdf")
 ```
 
