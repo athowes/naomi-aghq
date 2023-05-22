@@ -237,7 +237,7 @@ y_i &\sim p(y_i \, | \, \bmeta_{\mathcal{J}_i}, \btheta_1), \quad i \in [n] \\
 \eta_j &= \beta_0 + \sum_{l = 1}^{p} \beta_j z_{ji} + \sum_{k = 1}^{r} f_k(u_{ki}), \quad j \in [N_n].
 \end{align*}
 
-## Naomi as an ELGM
+## Naomi framed as an ELGM
 
 Naomi has a lot in common with many LGMS: it is a spatio-temporal model with a large latent field, governed by a smaller number of hyperparameters.
 However, Naomi is not an LGM, and instead falls into the ELGM class, for the following reasons:
@@ -357,24 +357,28 @@ plot4 <- add_points(plot0, gg4) +
 (plot1 + plot2) / (plot3 + plot4)
 ```
 
+## TMB
+
+## PCA-AGHQ
+
 # Application to data from Malawi\label{sec:results}
 
 We fit the simplified Naomi model (Section \ref{sec:naomi}) to data from Malawi using three inferential approaches.
 For each approach, the `TMB` C++ user-template (available in the appendix) used to specify the log-posterior was the same.
 The four approaches were:
 1. TMB: EB combined with a Gaussian approximation via `TMB`,
-2. PCA-AGQH: the PCA AGHQ grid combined with a Gaussian approximation via `aghq`,
+2. PCA-AGQH: the PCA-AGHQ grid combined with a Gaussian approximation via `aghq`,
 3. NUTS: the Hamiltonian Monte Carlo (HMC) algorithm No-U-Turn Sampling (NUTS) using Stan [@carpenter2017stan] via the `tmbstan` package [@monnahan2018no].
 The dimension of the latent field is $N = 467$ and the dimension of the hyperparameters is $m = 24$.
 Settings used for each inferential method are provided in Table \ref{tab:inference-methods}.
 For the deterministic methods, following inference we simulated hyperparameter and latent field samples.
 For all methods, we simulated age-sex-district specific HIV prevalence, ART coverage and HIV incidence from the latent field and hyperparameter posteriors.
 <!-- Note: eventually this figure should be generated using the algorithm proposed in the paper -->
-Example model outputs from `TMB` are illustrated in Figure \ref{fig:naomi-results}.
+Example model outputs from TMB are illustrated in Figure \ref{fig:naomi-results}.
 The \textsc{R} [@r] code used to produce all results we describe below is available at `github.com/athowes/elgm-inf`.
 We used `orderly` [@orderly] for reproducible research, `ggplot2` for data visualisation [@wickham2016ggplot2] and `rticles` [@allaire2022rticles] for reporting via `rmarkdown` [@allaire2022rmarkdown].
 
-```{r naomi-results, fig.cap="District-level model outputs for adults aged 15-49. Inference conducted with \\texttt{TMB}."}
+```{r naomi-results, fig.cap="District-level model outputs for adults aged 15-49. Inference conducted with TMB."}
 knitr::include_graphics("depends/naomi_results.png")
 ```
 
@@ -396,15 +400,15 @@ NUTS & \texttt{tmbstan} & $4$ chains of $20000$ iterations with the first $10000
 
 ## NUTS convergence
 
-We assessed the quality of our NUTS results using the potential scale reduction factor $\hat R$, bulk and tail effective sample sizes, autocorrelation decay plots, univariate traceplots, pairs density plots, and NUTS specific divergent transition and energy assessments.
+We assessed the quality of our NUTS results to be satisfactory using the potential scale reduction factor $\hat R$ [@gelman1992inference; @vehtari2021rank], bulk and tail effective sample sizes, autocorrelation decay plots, univariate traceplots, pairs density plots, and NUTS specific divergent transition and energy assessments [@betancourt2017conceptual].
 Full details are provided in the appendix.
-We  treat these results from NUTS as a gold-standard to which other inferential methods are compared.
+We thus treat the results from NUTS as a gold-standard to which other inferential methods are compared.
 
 ## Model assessment \label{sec:model-assessment}
 
 We performed posterior predictive checks to assess the coverage of our estimates via the uniformity of the data within each posterior marginal distribution.
 
-## Inference comparison
+## Inference comparison \label{sec:inf-comparison}
 
 We used three statistical approaches to assess the accuracy of posterior distributions produced by TMB and PCA-AGHQ as compared with those from NUTS (1) Kolmogorov-Smirnov tests, (2) Pareto-smoothed importance sampling, and (3) maximum mean discrepancy.
 
@@ -430,9 +434,18 @@ ks_summary <- readRDS("depends/ks_summary_out.rds")
 
 ### Pareto-smoothed importance sampling
 
-We are interested in assessing the accuracy of joint distributions as well as marginal distributions.
-Let $\{\bphi_i\}_{i = 1}^n$ be posterior joint samples.
-Pareto smoothed importance sampling (PSIS) [@vehtari2015pareto, @yao2018yes].
+As marginal distributions, we are interested in assessing the accuracy of joint distributions.
+Let $\{\bphi_i\}_{i = 1}^n$ be samples from a joint posterior.
+Pareto-smoothed importance sampling (PSIS) [@vehtari2015pareto, @yao2018yes] is a method for stabilising the ratios $r_s = p(\theta_s, y) / q(\theta)$ used in importance sampling.
+Let
+$$
+p(y \, | \, \mu, \sigma, k) =
+\begin{cases}
+\frac{1}{\sigma} \left( 1 + k \left( \frac{y - \mu}{\sigma} \right) \right)^{- \frac{1}{k} - 1}, \quad k \neq 0 \\
+\frac{1}{\sigma} \exp \left( \frac{y - \mu}{\sigma} \right), \quad k = 0
+\end{cases}
+$$
+be the generalised Pareto distribution with shape parameter $k$ and location-scale parameter $(\mu, \tau)$.
 See a summary of the results in Table and Figure \ref{fig:psis}, and full results available in the appendix.
 
 ```{r psis, fig.cap="Results of Pareto-smoothed importance sampling analysis."}
@@ -441,31 +454,43 @@ qplot(1:10, 1:10) + theme_minimal()
 
 ### Maximum mean discrepancy
 
-To write.
+Another way to compare joint distributions is via the maximum mean discrepancy [MMD; @gretton2006kernel].
+Let $\Phi = \{\bphi_i\}_{i = 1}^n$ and $\Psi = \{\bpsi_i\}_{i = 1}^n$ be two sets of samples from a joint posterior obtained using different inference methods.
+The MMD can be empirically estimated by
+$$
+\text{MMD}(\Phi, \Psi) = \sqrt{\frac{1}{n^2} \sum_{i, j = 1}^n k(\bphi_i, \bphi_j) - \frac{2}{n^2} \sum_{i, j = 1}^n k(\bphi_i, \bpsi_j) + \frac{1}{n^2} \sum_{i, j = 1}^n k(\bpsi_i, \bpsi_j)}.
+$$
 See a summary of the results in Table and Figure \ref{fig:mmd}, and full results available in the appendix.
 
 ```{r mmd, fig.cap="Results of maximum mean discrepancy analysis."}
 qplot(1:10, 1:10) + theme_minimal()
 ```
 
-## Case study on exceedance probabilites
+## Case study on exceedance probabilites \label{sec:exceedance}
 
 ### Meeting the second 90
 
-The Joint United Nations Programme on HIV/AIDS (UNAIDS) has developed ambitious fast-track targets for scaling up ART treatment with the goal to "end the AIDS epidemic by 2030".
-The 90-90-90 by 2020 fast-track target is that 90% of PLHIV know their status, 90% of those are on antiretroviral therapy (ART) and 90% of those have suppressed viral load.
-Naomi can be used to assess the probability that the second 90 target has been met, thereby helping to find treatment gaps, by evaluating $\mathbb{P}(\alpha_i > 0.81)$ for each strata $i$.
-See a summary of the results in Figure \ref{fig:second90}.
+The Joint United Nations Programme on HIV/AIDS has developed ambitious fast-track targets for scaling up ART treatment with the goal of "ending the AIDS epidemic by 2030".
+Specifically, the "90-90-90 by 2020" fast-track target is that:
+
+* 90% of PLHIV know their status,
+* 90% of those are on antiretroviral therapy (ART), and
+* 90% of those have suppressed viral load.
+
+Naomi can be used to identify treatment gaps by calculating the probability that the second 90 target has been met $\mathbb{P}(\alpha_i > 0.81)$ for each strata $i$.
+We found that both TMB and PCA-AGHQ underestimate the probability that the second 90 target has been met in women (Figure \ref{fig:second90}).
+This difficulty may be related to interactions between the household survey and ANC components of the model.
 
 ```{r second90, fig.cap="Results of second 90 case-study."}
 knitr::include_graphics("depends/second90.png")
 ```
 
-### Finding strata with high incidence strata
+### Finding strata with high incidence
 
-Some HIV interventions are cost-effective only within high HIV incidence settings, typically defined as above 1% incidence per year.
-Naomi can be used to assess the probability of there being high incidence within a strata by evaluating $\mathbb{P}(\lambda_i > 0.01)$.
-See a summary of the results in Figure \ref{fig:1inc}.
+Some HIV interventions are cost-effective only within high HIV incidence settings, typically defined as greater than 1% incidence per year.
+Naomi can be used to assess the probability of a strata having high incidence by evaluating $\mathbb{P}(\lambda_i > 0.01)$.
+We found that both TMB and PCA-AGHQ overestimate these exceedance probabilities (Figure \ref{fig:1inc}).
+We do not yet have a working hypothesis as to why this is.
 
 ```{r 1inc, fig.cap="Results of high incidence case-study."}
 knitr::include_graphics("depends/1inc.png")
@@ -473,18 +498,19 @@ knitr::include_graphics("depends/1inc.png")
 
 # Discussion\label{sec:conclusions}
 
-We developed an approximate Bayesian inference algorithm motivated by a challenging problem in small-area estimation of HIV in low resource settings.
+We developed an approximate Bayesian inference algorithm motivated by a challenging problem in small-area estimation of HIV.
 For the simplified Naomi model in Malawi (Section \ref{sec:results}) our method is demonstrated to be more accurate than TMB, and substantially faster than NUTS.
 We anticipate that our method could be added to the Naomi web interface as an alternative to TMB.
-Analysts might quickly iterate over model options using the faster, less accurate inference approach, switching to the slower, more accurate approach once they are happy with the results.
+This would enable analysts to quickly iterate over model options using a faster, less accurate inference approach, before switching to a slower, more accurate approach once they are happy with the results.
 
 We provide a flexible implementation of the algorithm, building on the `TMB` and `aghq` \textsc{R} packages.
 In doing so, we hope our work enables use of deterministic inference algorithms for ELGMs in applied settings, as well as further methodological exploration of their accuracy and limitations.
 Among the ELGM-type structures of particular interest in spatial epidemiology, many of which feature in Naomi, are: aggregated Gaussian process models [@nandi2020disaggregation], evidence synthesis models [@amoah2020geostatistical].
 Although our method is designed for ELGMs, it is possible to use it outside this class, as it is compatible with any model with a `TMB` \textsc{C++} template.
 
-In our case study we demonstrated a Bayesian workflow for deterministic inference methods.
-We retained the ability to draw samples from the posterior distributions of interest, facilitating use of posterior predictive checks (Section \ref{sec:model-assessment}).
+We demonstrated a Bayesian workflow for deterministic inference methods.
+We retained the ability to draw samples from the posterior distributions of interest, facilitating use of posterior predictive checks (Section \ref{sec:model-assessment}) and methods for inference comparison such as Pareto-smoothed importance sampling (Section \ref{sec:inf-comparison}).
+The exceedance probabilities case-study (Section \ref{sec:exceedance}) demonstrates the importance of accurate posterior inferences for realistic use-cases of the Naomi model.  
 
 Future work could look to implement our algorithm within probabilistic programming languages, facilitating access by a broader user-base.
 This might be possible in Stan by use of the `bridgestan` package [@bridgestan] together with the adjoint-differentiated Laplace approximation of @margossian2020hamiltonian.
