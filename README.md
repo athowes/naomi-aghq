@@ -13,12 +13,12 @@ By extending the [`aghq`](https://github.com/awstringer1/aghq) package ([Stringe
 
 The directories of this repository are:
 
-| Directory   | Contains |
-|-------------|--------------|
-| `docs`      | Hosted files at [https://athowes.github.io/elgm-inf/](https://athowes.github.io/elgm-inf/) |
-| `make`      | Scripts used to run the reports. `_make.R` runs everything in order. |
-| `src`       | All `orderly` reports. |
-| `utils`     | Helper scripts for common development tasks. |
+| Directory | Contains |
+|-----------|----------|
+| `docs`    | Hosted files at [https://athowes.github.io/elgm-inf/](https://athowes.github.io/elgm-inf/) |
+| `make`    | Scripts used to run the reports. `_make.R` runs everything in order |
+| `src`     | All `orderly` reports |
+| `utils`   | Helper scripts for common development tasks |
 
 ## `orderly`
 
@@ -87,3 +87,56 @@ other attached packages:
  [1] patchwork_1.1.2 stringr_1.5.0   purrr_1.0.1     readr_2.1.3     tidyr_1.2.1     tibble_3.2.1    tidyverse_1.3.1 forcats_0.5.2   ggplot2_3.4.0  
 [10] dplyr_1.0.10    rmarkdown_2.18 
 ```
+
+## Reports
+
+The reports within `src` are as follows:
+
+| Report | Description |
+|--------|-------------|
+| `check_hyper-marginals` | Visualise hyperparameter posteriors fitted with NUTS for simplified Naomi, as well as positions of PCA-AGHQ nodes |
+| `check_sd-estimation` | Analysing odd behaviour for simplified Naomi whereby joint Gaussian approximation better estimates the standard deviation than conditionals |
+| `check_tmb-aghq-k1` | Assessment that TMB and `aghq` run with `k = 1` produce essentially the same inferences for simplified Naomi, in contrast to inferences from `aghq` with any grid |
+| `check_tmb-output` | Checking the the TMB output for simplified Naomi looks Gaussian, as it should be |
+| `compartmental` | Placeholder for trying these approaches on a compartmental model |
+| `dev_hyper-sampling` | Method development for sampling from the hyperparameters within TMB or AGHQ |
+| `dev_scale-grid` | Method development for hyperparameter grids over many dimensional spaces |
+| `dev_sinla` | Method development for Laplace and reduced cost Laplace marginals |
+| `docs_01-04-20-mini` | Presentation for StatML CDT |
+| `docs_01-07-21-stats-epi-group` | Presentation for Flaxman, Bhatt groups |
+| `docs_15-11-22-seminar` | Presentation for Waterloo SAS |
+| `docs_18-04-23-lab-group` | Presentation for HIV Inference Group |
+| `docs_19-05-23-turing` | Presentation for Alan Turing Institute |
+| `docs_21-06-23-mlgh` | Presentation for Machine Learning and Global Health Network |
+| `docs_bayescomp-poster`| Poster for BayesComp 2023 |
+| `docs_bioinference-poster`| Poster for BioInference 2023 |
+| `docs_model-structure` | Analysis of inputs to simplified Naomi outputs |
+| `docs_paper` | Paper and appendix |
+| `epil` | Analysis of epilepsy example |
+| `example_inla-grid` | Demonstration of grid construction method used in `R-INLA` |
+| `example_inla-replication` | Step-by-step version of INLA method in R and `TMB` |
+| `example_naomi` | Follow the `naomi` package vignette |
+| `explore_aghq` | Walkthrough various `aghq` package functions |
+| `explore_posterior-comparison` | Explore methods for comparing the accuracy of computed posterior distributions |
+| `explore_posterior-comparison` | Explore methods for comparing the accuracy of computed posterior distributions |
+| `explore_posterior-comparison` | Explore methods for comparing the accuracy of computed posterior distributions |
+| `naomi-simple_contraction` | Comparison of prior and posterior standard deviations across inference methods |
+| `naomi-simple_exceedance` | Case-study on computation of exceedance probabilities for second 90 target and high incidence |
+| `naomi-simple_fit` | Fit the simplified Naomi model using a range of inference methods |
+| `naomi-simple_increase-s-k` | Is the log normalising constant better estimated as $s$ and $k$ are increased in PCA-AGHQ? |
+| `naomi-simple_ks` | Comparison of inference methods using Kolmogorov-Smirnov tests on marginals |
+| `naomi-simple_mcmc` | Diagnostics for MCMC convergence |
+| `naomi-simple_mmd` | Comparison of inference methods using Kolmogorov-Smirnov tests on marginals |
+| `naomi-simple_model-checks` | Comparison of inference methods using Kolmogorov-Smirnov tests on marginals |
+| `naomi-simple_psis` | Comparison of inference methods using Pareto-smoothed importance sampling on joint distributions |
+| `naomi` | Early work -- later simplified and branched into multiple reports |
+| `plot-tikz_algorithm-flowchart` | TikZ diagram of proposed algorithm |
+| `plot-tikz_simplified-naomi` | TikZ diagram of the simplified Naomi directed acyclic graph |
+| `prev-anc-art_model0` | Fit prevalence, ANC, ART model version 0 |
+| `prev-anc-art_model1` | Fit prevalence, ANC, ART model version 1 |
+| `prev-anc-art_model2` | Fit prevalence, ANC, ART model version 2 |
+| `prev-anc-art_model3` | Fit prevalence, ANC, ART model version 3 |
+| `prev-anc-art_model4` | Fit prevalence, ANC, ART model version 4 |
+| `prev-anc-art_results` | Analyse results of prevalence, ANC, ART model |
+| `prev-anc-art_sim` | Simulate prevalence, ANC, ART data |
+| `random-mixture` | Placeholder for trying these approaches on a random mixture model |
