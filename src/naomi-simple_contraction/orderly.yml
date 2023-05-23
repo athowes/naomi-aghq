@@ -4,7 +4,8 @@ artefacts:
   - data:
       description: Plots
       filenames:
-        - posterior-shrinkage.pdf
+        - posterior-contraction.pdf
+        - sd-comparison.pdf
 
 resources:
   - naomi_simple_prior.cpp
@@ -21,6 +22,7 @@ packages:
   - rstan
   - bayesplot
   - sf
+  - patchwork
 
 depends:
   - naomi-simple_fit:

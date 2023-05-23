@@ -87,6 +87,7 @@ run_commit_push("naomi-simple_exceedance")
 run_commit_push("naomi-simple_psis")
 run_commit_push("naomi-simple_mmd")
 run_commit_push("naomi-simple_model-checks")
+run_commit_push("naomi-simple_contraction")
 
 #' Checks
 run_commit_push("check_hyper-marginals")

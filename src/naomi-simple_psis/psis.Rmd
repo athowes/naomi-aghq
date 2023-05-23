@@ -164,7 +164,7 @@ end <- Sys.time()
 #' Takes around 2 minutes
 end - start
 
-aghq_q_ll <- apply(mvn_ll, 1, FUN = function(row) matrixStats::logSumExp(log(aghq_weights) + row))
+aghq_q_ll <- apply(mvn_ll, 1, FUN = function(row) matrixStats::logSumExp(log(aghq_lambda) + row))
 plot(aghq_q_ll)
 ```
 
@@ -175,6 +175,6 @@ The importance ratios are $\log(p(\theta, y)) - \log(q(\theta))$:
 r <- - aghq_ll - aghq_q_ll
 plot(r)
 
-aghq_psis <- loo::psis(log_ratios = lw, r_eff = 1)
+aghq_psis <- loo::psis(log_ratios = r, r_eff = 1)
 aghq_psis$diagnostics
 ```

@@ -153,19 +153,19 @@ where the mean duration of recent infection $\Omega_T$ and the proportion of lon
 
 These processes are informed by household survey data.
 For $\theta \in \{\rho, \alpha, \kappa\}$ let
-$$
+\begin{equation*}
 \hat \theta_\mathcal{I} = \frac{\sum_j w_j \cdot\theta_j}{\sum_j w_j}
-$$
+\end{equation*}
 be weighted, aggregate survey observations, where $j$ indexes individuals across all strata $i \in \mathcal{I}$ and $w_j$ are design weights.
 The observed number of outcomes are $y^{\hat \theta}_{\mathcal{I}} = m^{\hat \theta}_{\mathcal{I}} \cdot \hat \theta_{\mathcal{I}}$ where
-$$
+\begin{equation*}
 m^{\hat \theta}_\mathcal{I} = \frac{\left(\sum_j w_j\right)^2}{\sum_j w_j^2},
-$$
+\end{equation*}
 is the Kish effective sample size [@kish1965survey].
 We use a binomial working likelihood
-$$
+\begin{equation*}
 y^{\hat \theta}_{\mathcal{I}} \sim \text{xBin}(m^{\hat \theta}_{\mathcal{I}}, \theta_{\mathcal{I}})
-$$
+\end{equation*}
 to model these aggregate observations, where $\theta_{\mathcal{I}}$ are the following weighted aggregates
 \begin{equation*}
 \rho_{\mathcal{I}} = \frac{\sum_{i \in \mathcal{I}} N_i \rho_i}{\sum_{i \in \mathcal{I}} N_i}, \quad
@@ -272,21 +272,20 @@ Let $\tilde p_\texttt{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \
 \mathbf{H}(\btheta) &= - \frac{\partial^2}{\partial x \partial x^\top} \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}.
 \end{align*}
 Then the Laplace approximation to $p(\btheta, \y)$ is given by
-$$
+\begin{equation*}
 \tilde p_\texttt{LA}(\btheta, \y) = \frac{p(\y, \x, \btheta)}{\tilde p_\texttt{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat \x(\btheta)}
-$$
+\end{equation*}
 
 ## AGHQ
 
 A quadrature rule can be used to approximate the integral of a function $f: \mathcal{Z} \to \mathbb{R}$ by the following weighted sum
-$$
+\begin{equation*}
 \int_{\z \in \mathcal{Z}} f(\z) \text{d}\z \approx \sum_{\z \in \mathcal{Q}} f(\z) w(\z),
-$$
+\end{equation*}
 where $\z \in \mathcal{Q} \subset \mathcal{Z}$ are a set of nodes and $\omega: \mathcal{Q} \to \mathbb{R}$ is a weighting function.
 In Gauss-Hermite quadrature [@davis1975methods] the nodes are selected as zeros of the Hermite polynomials, with weights chosen so as to interpolate functions of the form $f(\z) = \tilde f(\z) \exp(-\z^2)$.
 In adaptive Gauss-Hermite quadrature [@naylor1982applications; @tierney1986accurate] the nodes and weights are shifted and rotated to suit the particular integrand, based on the mode, curvature at the mode, and a matrix decomposition of the inverse curvature.
 Two possibilities for this matrix decomposition are the Cholesky decomposition and the spectral decomposition [@jackel2005note].
-
 
 ```{r aghq, fig.cap="The Gauss-Hermite quadrature nodes $\\z \\in \\mathcal{Q}(2, 3)$ for this two dimensional integral with three nodes per dimension (a) are adapted based on the mean (b) and covariance matrix of the target via $f(\\z) = \\hat f + \\mathbf{L} \\z$, where..."}
 mu <- c(1, 1.5)
@@ -406,7 +405,21 @@ We thus treat the results from NUTS as a gold-standard to which other inferentia
 
 ## Model assessment \label{sec:model-assessment}
 
-We performed posterior predictive checks to assess the coverage of our estimates via the uniformity of the data within each posterior marginal distribution.
+### Posterior contraction
+
+To assess the informativeness of the data on each model parameter $\phi$ we compared (Figure \ref{fig:contraction}) the prior variance $\sigma_\text{prior}^2(\phi)$ to the posterior variance $\sigma_\text{posterior}^2(\phi)$ via the posterior contraction [@schad2021toward].
+\begin{equation*}
+c(\phi) = 1 - \frac{\sigma_\text{posterior}^2(\phi)}{\sigma_\text{prior}^2(\phi)}.
+\end{equation*}
+
+```{r contraction, fig.cap="Posterior contraction."}
+knitr::include_graphics("depends/posterior-contraction.png")
+```
+
+### Coverage
+
+We assessed the coverage of our estimates via the uniformity of the data within each posterior marginal distribution.
+Let $\{\phi_i\}_{i = 1}^n$ be posterior marginal samples.
 
 ## Inference comparison \label{sec:inf-comparison}
 
@@ -414,11 +427,10 @@ We used three statistical approaches to assess the accuracy of posterior distrib
 
 ### Kolmogorov-Smirnov tests
 
-Let $\{\phi_i\}_{i = 1}^n$ be posterior marginal samples from some quantity with empirical cumulative distribution (ECDF) function $F(\varphi) = \frac{1}{n} \sum_{i = 1}^n \mathbb{I}_{\phi_i \leq \varphi}$.
-The two-sample Kolmogorov-Smirnov (KS) test statistic [@smirnov1948table] is given by the maximum absolute difference between two ECDFs.
+The two-sample Kolmogorov-Smirnov (KS) test statistic [@smirnov1948table] is given by the maximum absolute difference between two empirical cumulative distribution (ECDF) functions $F(\varphi) = \frac{1}{n} \sum_{i = 1}^n \mathbb{I}_{\phi_i \leq \varphi}$.
 For each method we compare the KS statistics
 \begin{equation*}
-D_\bullet = \sup_\vartheta | F_\text{NUTS}(\vartheta) - F_\bullet(\vartheta)|.
+D_\bullet = \sup_\varphi | F_\text{NUTS}(\varphi) - F_\bullet(\varphi)|.
 \end{equation*}
 See a summary of the results in Table and Figure \ref{fig:ks}, and full results available in the appendix.
 
@@ -438,13 +450,13 @@ As marginal distributions, we are interested in assessing the accuracy of joint 
 Let $\{\bphi_i\}_{i = 1}^n$ be samples from a joint posterior.
 Pareto-smoothed importance sampling (PSIS) [@vehtari2015pareto, @yao2018yes] is a method for stabilising the ratios $r_s = p(\theta_s, y) / q(\theta)$ used in importance sampling.
 Let
-$$
+\begin{equation*}
 p(y \, | \, \mu, \sigma, k) =
 \begin{cases}
 \frac{1}{\sigma} \left( 1 + k \left( \frac{y - \mu}{\sigma} \right) \right)^{- \frac{1}{k} - 1}, \quad k \neq 0 \\
 \frac{1}{\sigma} \exp \left( \frac{y - \mu}{\sigma} \right), \quad k = 0
 \end{cases}
-$$
+\end{equation*}
 be the generalised Pareto distribution with shape parameter $k$ and location-scale parameter $(\mu, \tau)$.
 See a summary of the results in Table and Figure \ref{fig:psis}, and full results available in the appendix.
 
@@ -457,9 +469,9 @@ qplot(1:10, 1:10) + theme_minimal()
 Another way to compare joint distributions is via the maximum mean discrepancy [MMD; @gretton2006kernel].
 Let $\Phi = \{\bphi_i\}_{i = 1}^n$ and $\Psi = \{\bpsi_i\}_{i = 1}^n$ be two sets of samples from a joint posterior obtained using different inference methods.
 The MMD can be empirically estimated by
-$$
+\begin{equation*}
 \text{MMD}(\Phi, \Psi) = \sqrt{\frac{1}{n^2} \sum_{i, j = 1}^n k(\bphi_i, \bphi_j) - \frac{2}{n^2} \sum_{i, j = 1}^n k(\bphi_i, \bpsi_j) + \frac{1}{n^2} \sum_{i, j = 1}^n k(\bpsi_i, \bpsi_j)}.
-$$
+\end{equation*}
 See a summary of the results in Table and Figure \ref{fig:mmd}, and full results available in the appendix.
 
 ```{r mmd, fig.cap="Results of maximum mean discrepancy analysis."}
