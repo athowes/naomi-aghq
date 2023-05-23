@@ -10,33 +10,20 @@ output:
     df_print: paged
     code_folding: show
     theme: lumen
+bibliography: citations.bib
 abstract: |
   **Background**
   
   **Task** 
-editor_options: 
-  markdown: 
-    wrap: sentence
 ---
 
+We reanalyse the "estimating the mass of the Milky Way" example from @bilodeau2021stochastic.
+
+Originally Alex used the `ipoptr` package.
+However, it is now not possible, or at least very difficult, to install it (as of 01/04/2023).
+We will here use the `nloptr` package instead.
+
 ```{r}
-library(tidyverse)
-library(patchwork)
-library(TMB)
-library(tmbstan)
-
-#' Originally Alex used the ipoptr package for this, but it's not possible, or at
-#' least very difficult, to install it anymore (as of 01/04/2023)
-# install.packages("ipoptr")
-# library(ipoptr)
-
-#' We will here use the nloptr package instead
-library(nloptr)
-
-library(aghq)
-library(Matrix)
-library(gt)
-
 data(gcdatalist, package = "aghq")
 precompile()
 
@@ -45,14 +32,19 @@ set.seed(4365789)
 globalpath <- normalizePath(tempdir(), winslash = "/")
 plotpath <- normalizePath(file.path(globalpath, "astro"), winslash = "/", mustWork = FALSE)
 if (!dir.exists(plotpath)) dir.create(plotpath)
+```
 
-#' TMB
-#' Get the template from the aghq package, the compile and load it
+Get the TMB template from the `aghq` package, the compile and load it:
+
+```{r}
 file.copy(normalizePath(system.file("extsrc/01_astro.cpp", package = "aghq"), winslash = "/"), globalpath)
 compile(normalizePath(file.path(globalpath, "01_astro.cpp"), winslash = "/"))
 dyn.load(normalizePath(dynlib(file.path(globalpath, "01_astro")), winslash = "/"))
+```
 
-#' Parameter transformations
+Parameter transformations:
+
+```{r}
 parambounds <- list(
   Psi0 = c(1, 200),
   gamma = c(0.3, 0.7),
@@ -95,13 +87,20 @@ get_beta <- function(theta) {
 get_theta4 <- function(beta) {
   log(-log((beta - parambounds$beta[1]) / (parambounds$beta[2] - parambounds$beta[1])))
 }
+```
 
-#' Optimisation using IPOPT replaced by optimisation using nloptr
+# Optimisation
 
+Optimisation using IPOPT replaced by optimisation using `nloptr`:
+
+```{r}
 nloptr_objective <- function(theta) ff$fn(theta)
 nloptr_objective_gradient <- function(theta) ff$gr(theta)
+```
 
-# Box constraints, to improve stability of optimization
+We use box constraints, to improve stability of optimization:
+
+```{r}
 lowerbounds <- c(
   get_theta1(parambounds$Psi0[2] - 0.001),
   get_theta2(parambounds$gamma[2] - 0.001),
@@ -115,8 +114,11 @@ upperbounds <- c(
   get_theta3(parambounds$alpha[2] - 0.01),
   get_theta4(parambounds$beta[1] + 0.01)
 )
+```
 
-# Start optimisation at the midpoint
+Start optimisation at the midpoint:
+
+```{r}
 thetastart <- (upperbounds + lowerbounds) / 2
 thetastart_list <- list(theta1 = thetastart[1], theta2 = thetastart[2], theta3 = thetastart[3], theta4 = thetastart[4])
 
@@ -131,8 +133,11 @@ data.frame(
     coord_flip() +
     labs(x = "", y = "") +
     theme_minimal()
+```
 
-# Nonlinear constraints, specified as a function
+Nonlinear constraints, specified as a function:
+
+```{r}
 nloptr_nonlinear_constraints <- function(theta) -1 * Es$fn(theta)
 
 nloptr_nonlinear_constraints_jacobian <- function(theta) {
@@ -142,8 +147,11 @@ nloptr_nonlinear_constraints_jacobian <- function(theta) {
 
 nonlinear_lowerbound <- rep(0, nrow(gcdata) + 2)
 nonlinear_upperbound <- rep(Inf, nrow(gcdata) + 2)
+```
 
-#' Objective function and its derivatives
+Objective function and its derivatives:
+
+```{r}
 ff <- MakeADFun(
   data = gcdatalist,
   parameters = thetastart_list,
@@ -151,8 +159,11 @@ ff <- MakeADFun(
   ADreport = FALSE,
   silent = TRUE
 )
+```
 
-#' Nonlinear constraints and their Jacobian
+Nonlinear constraints and their Jacobian:
+
+```{r}
 Es <- MakeADFun(
   data = gcdatalist,
   parameters = thetastart_list,
@@ -160,9 +171,12 @@ Es <- MakeADFun(
   ADreport = TRUE,
   silent = TRUE
 )
+```
 
-#' Check starting value satisfies constraints
-#' Note that constraints in nloptr are of the form g(x) <= 0
+Check starting value satisfies constraints.
+Note that constraints in `nloptr` are of the form $g(x) \leq 0$.
+
+```{r}
 stopifnot(all(nloptr_nonlinear_constraints(thetastart) <= 0))
 
 tm <- Sys.time()
@@ -182,15 +196,22 @@ tmp <- capture.output(
 
 optruntime <- difftime(Sys.time(), tm, units = "secs")
 cat("Run time for mass model optimisation:", optruntime, "seconds.\n")
+```
 
-#' Check that the optimisation results look right (based on Figure 2 from Bilodeau, Stringer, Tang)
+Check that the optimisation results look right (based on Figure 2 of @bilodeau2021stochastic).
+
+```{r}
 get_Psi0(nloptr_result$solution[1])
 get_gamma(nloptr_result$solution[2])
 get_alpha(nloptr_result$solution[3])
 get_beta(nloptr_result$solution[4])
+```
 
-#' AGHQ
-#' Create the optimization template
+# AGHQ
+
+Create the template for AGHQ:
+
+```{r}
 ffa <- list(
   fn = function(x) -1 * ff$fn(x),
   gr = function(x) -1 * ff$gr(x),
@@ -220,8 +241,29 @@ cat("Run time for mass model quadrature:", quadruntime ,"seconds.\n")
 
 #' Total runtime for AGHQ
 optruntime + quadruntime
+```
 
-#' Fit with PCA-AGHQ
+# EB
+
+```{r}
+tm <- Sys.time()
+
+k_eb <- 1
+astroebquad <- aghq::aghq(ff, k = k_eb, thetastart, optresults = useropt, control = cntrl)
+
+#' Correct the marginals except for beta, which gave NA due to the constraints
+for (j in 1:3) astroebquad$marginals[[j]] <- marginal_posterior(astroebquad, j, method = "correct")
+quadebruntime <- difftime(Sys.time(), tm, units = "secs")
+
+cat("Run time for mass model quadrature:", quadebruntime ,"seconds.\n")
+
+#' Total runtime for EB
+optruntime + quadebruntime
+```
+
+# PCA-AGHQ 
+
+```{r}
 C <- Matrix::forceSymmetric(solve(useropt$hessian))
 eigenC <- eigen(C)
 lambda <- eigenC$values
@@ -257,10 +299,13 @@ pcaquadruntime <- difftime(Sys.time(), tm, units = "secs")
 
 cat("Run time for mass model quadrature:", pcaquadruntime ,"seconds.\n")
 
-#' Total runtime for AGHQ
+#' Total runtime for PCA-AGHQ
 optruntime + pcaquadruntime
+```
 
-#' Fit with MCMC
+# NUTS
+
+```{r}
 stanmod <- tmbstan(
   ff,
   chains = 4,
@@ -280,7 +325,13 @@ standata$Psi0 <- get_Psi0(standata[ ,1])
 standata$gamma <- get_gamma(standata[ ,2])
 standata$alpha <- get_alpha(standata[ ,3])
 standata$beta <- get_beta(standata[ ,4])
+```
 
+# Comparison
+
+## Plots
+
+```{r}
 #' Manual plots
 parambounds <- list(
   Psi0 = c(1, 200),
@@ -307,6 +358,11 @@ gammapdf <- compute_pdf_and_cdf(astroquad$marginals[[2]], translist2)
 alphapdf <- compute_pdf_and_cdf(astroquad$marginals[[3]], translist3, interpolation = "polynomial")
 betapdf <- compute_pdf_and_cdf(astroquad$marginals[[4]], translist4)
 
+Psi0ebpdf <- compute_pdf_and_cdf(astroebquad$marginals[[1]], translist1)
+gammaebpdf <- compute_pdf_and_cdf(astroebquad$marginals[[2]], translist2)
+alphaebpdf <- compute_pdf_and_cdf(astroebquad$marginals[[3]], translist3, interpolation = "polynomial")
+betaebpdf <- compute_pdf_and_cdf(astroebquad$marginals[[4]], translist4)
+
 Psi0pcapdf <- compute_pdf_and_cdf(astropcaquad$marginals[[1]], translist1)
 gammapcapdf <- compute_pdf_and_cdf(astropcaquad$marginals[[2]], translist2)
 alphapcapdf <- compute_pdf_and_cdf(astropcaquad$marginals[[3]], translist3, interpolation = "polynomial")
@@ -326,19 +382,18 @@ Psi0_postplot <- Psi0pdf %>%
     colour = "white",
     fill = "grey"
   ) +
-  geom_line(linewidth = 1) +
+  geom_line() +
   geom_line(
     data = Psi0pcapdf,
+    inherit.aes = FALSE,
     mapping = aes(x = transparam, y = pdf_transparam),
-    linewidth = 1,
     colour = "blue",
   ) +
   stat_function(fun = Psi0prior, linetype = "dashed") +
   labs(title = "", x = "", y = "Density") +
   scale_x_continuous(breaks = seq(10, 60, by = 5)) +
   coord_cartesian(xlim = c(24, 43)) +
-  theme_classic() +
-  theme(text = element_text(size = 28))
+  theme_minimal()
 
 gamma_postplot <- gammapdf %>%
   ggplot(aes(x = transparam, y = pdf_transparam)) +
@@ -349,19 +404,17 @@ gamma_postplot <- gammapdf %>%
     colour = "white",
     fill = "grey"
   ) +
-  geom_line(linewidth = 1) +
+  geom_line() +
   geom_line(
     data = gammapcapdf,
     mapping = aes(x = transparam, y = pdf_transparam),
-    linewidth = 1,
     colour = "blue",
   ) +
   stat_function(fun = gammaprior, linetype = "dashed") +
   labs(title = "", x = "", y = "Density") +
   scale_x_continuous(breaks = seq(0, 0.44, by = 0.02)) +
   coord_cartesian(xlim = c(0.3, 0.4)) +
-  theme_classic() +
-  theme(text = element_text(size = 28))
+  theme_minimal()
 
 alpha_postplot <- alphapdf %>%
   ggplot(aes(x = transparam, y = pdf_transparam)) +
@@ -372,19 +425,17 @@ alpha_postplot <- alphapdf %>%
     colour = "white",
     fill = "grey"
   ) +
-  geom_line(linewidth = 1) +
+  geom_line() +
   geom_line(
     data = alphapcapdf,
     mapping = aes(x = transparam, y = pdf_transparam),
-    linewidth = 1,
     colour = "blue",
   ) +
   stat_function(fun = alphaprior, linetype = "dashed") +
   labs(title = "",x = "",y = "Density") +
   scale_x_continuous(breaks = seq(3, 4, by = 0.02)) +
   coord_cartesian(xlim = c(3, 3.05)) +
-  theme_classic() +
-  theme(text = element_text(size = 28))
+  theme_minimal()
 
 beta_postplot <- betapdf %>%
   ggplot(aes(x = transparam, y = pdf_transparam)) +
@@ -395,23 +446,24 @@ beta_postplot <- betapdf %>%
     colour = "white",
     fill = "grey"
   ) +
-  geom_line(linewidth = 1) +
+  geom_line() +
   geom_line(
     data = betapcapdf,
     mapping = aes(x = transparam, y = pdf_transparam),
-    linewidth = 1,
     colour = "blue",
   ) +
-  stat_function(fun = betaprior,linetype = "dashed") +
+  stat_function(fun = betaprior, linetype = "dashed") +
   labs(title = "",x = "",y = "Density") +
   scale_x_continuous(breaks = seq(-0.5, 1, by = 0.1)) +
   coord_cartesian(xlim = c(-0.3, 0.4)) +
-  theme_classic() +
-  theme(text = element_text(size = 28))
+  theme_minimal()
 
 {Psi0_postplot + gamma_postplot} / {alpha_postplot + beta_postplot}
+```
 
-#' KS tests
+## KS tests
+
+```{r}
 kstable <- function(quad) {
   aghqpostsamps_spline <- sample_marginal(astroquad, nrow(standata), interpolation = "spline")
   aghqpostsamps_poly <- sample_marginal(astroquad, nrow(standata), interpolation = "polynomial")
@@ -432,18 +484,30 @@ kstable_astroquad <- kstable(astroquad) %>%
   pivot_longer(cols = everything()) %>%
   mutate(method = "AGHQ", k = k_dense, s = NA, total_points = k^4)
 
+kstable_astroebquad <- kstable(astroebquad) %>%
+  pivot_longer(cols = everything()) %>%
+  mutate(method = "EB", k = k_eb, s = NA, total_points = k_eb)
+
 kstable_astropcaquad <- kstable(astroquad) %>%
   pivot_longer(cols = everything()) %>%
   mutate(method = "AGHQ-PCA", k = k_pca, s = s, total_points = k^s)
 
-bind_rows(kstable_astroquad, kstable_astropcaquad) %>%
+bind_rows(kstable_astroquad, kstable_astroebquad, kstable_astropcaquad) %>%
   gt::gt()
 
-bind_rows(kstable_astroquad, kstable_astropcaquad) %>%
+bind_rows(kstable_astroquad, kstable_astroebquad, kstable_astropcaquad) %>%
   ggplot(aes(x = name, y = value, col = method)) +
-    geom_point() +
+    geom_jitter(height = 0, width = 0.05) +
     scale_y_continuous(limits = c(0, 0.05)) +
     scale_colour_manual(values = multi.utils::cbpalette()) +
     labs(x = "Parameter", y = "KS(method, NUTS)", col = "Method") +
     theme_minimal()
 ```
+
+# Original computing environment {-}
+
+```{r}
+sessionInfo()
+```
+
+# Bibliography {-}

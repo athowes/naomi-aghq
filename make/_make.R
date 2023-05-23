@@ -8,6 +8,7 @@ run_commit_push("prev-anc-art_model4")
 run_commit_push("prev-anc-art_results")
 
 run_commit_push("epil")
+run_commit_push("astro")
 run_commit_push("example_inla-replication")
 run_commit_push("example_inla-grid")
 run_commit_push("explore_aghq")

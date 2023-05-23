@@ -1,0 +1,32 @@
+script: script.R
+
+sources:
+  - functions.R
+
+resources:
+  - astro.Rmd
+  - citations.bib
+
+artefacts:
+  - data:
+      description: Application to astronomy example
+      filenames:
+        - astro.html
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - TMB
+  - tmbstan
+  - rstan
+  - aghq
+  - sf
+  - naomi
+  - patchwork
+  - nloptr

@@ -5,7 +5,6 @@ sources:
 
 resources:
   - scale-grid.Rmd
-  - astro.Rmd
   - naomi_simple.cpp
   - naomi_simple_x_index.cpp
 
@@ -14,10 +13,6 @@ artefacts:
       description: Grid scale-up development notebook
       filenames:
         - scale-grid.html
-  - data:
-      description: Application to astronomy example
-      filenames:
-        - astro.html
   - data:
       description: Plots
       filenames:
