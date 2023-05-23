@@ -15,7 +15,7 @@ author:
   - name: "Seth R. Flaxman"
     affil: 4
   - name: "Jeffrey W. Eaton"
-    affil: 2
+    affil: 5, 2
 affiliation:
   - num: 1
     address: Department of Mathematics, Imperial College London
@@ -25,7 +25,9 @@ affiliation:
     address: Department of Statistics and Actuarial Science, University of Waterloo
   - num: 4
     address: Department of Computer Science, University of Oxford
-logoleft_name: "mrc-gida-icl-uw-uo.png"
+  - num: 5
+    address: Center for Communicable Disease Dynamics, Department of Epidemiology, Harvard T.H. Chan School of Public Health
+logoleft_name: "bioinference-joined.png"
 # Style & formatting
 column_numbers: 3
 title_textsize: "75px"
@@ -78,9 +80,9 @@ code{
 
 ## Summary
 
-* Approximate Bayesian inference method using Laplace approximations and adaptive Gauss-Hermite quadrature 
+* Approximate Bayesian inference method using Laplace approximation, adaptive Gauss-Hermite quadrature and principal component analysis
 * Motivated by an evidence synthesis model for small-area estimation of HIV indicators in sub-Saharan Africa
-* Looking to implement as a part of the `aghq` package [@stringer2021implementing], allowing flexible use of the method for any model with a `TMB` C++ user template
+* Implemented as a part of the `aghq` package [@stringer2021implementing], allowing flexible use of the method for any model with a `TMB` C++ user template
 
 ## The Naomi HIV model
 
@@ -89,7 +91,7 @@ code{
   * Small-area estimation methods to overcome small district-level sample sizes
 * Yearly estimation process: model run interactively by country teams using a web-app `naomi.unaids.org`
   * Figure \@ref(fig:fig1) illustrates the seven stages of using the app
-* Inference conducted in minutes using empirical Bayes (EB) and a Gaussian approximation via Template Model Builder `TMB` [@kristensen2016tmb]
+* Inference conducted in minutes using empirical Bayes and a Gaussian approximation via Template Model Builder `TMB` [@kristensen2016tmb]
 * It would take days to get accurate answers with MCMC via `tmbstan` [@monnahan2018no], and this is not practical in this setting
 * Motivates looking for a fast, approximate approach, that takes uncertainty in hyperparameters into account
 
@@ -109,11 +111,13 @@ $$\\[0.1in]$$
 * Extended latent Gaussian models (ELGM) remove this requirement such that $\mu_i = g(\eta_{\mathcal{J_i}})$ where $g_i: \mathbb{R}^{|\mathcal{J_i}|} \to \mathbb{R}$ and $\mathcal{J_i}$ is some set of indices
   * Allows a higher degree of non-linearity in the model
 * Naomi is an ELGM, not an LGM, because it includes complex dependency structures:
-  1. ANC indicators offset from household survey
-  2. Incidence depends on prevalence and ART coverage
-  3. Observed data are aggregated finer processes
-  4. Allow attendance of ART clinics outside home district
-  5. ART attendance probability as product of prevalence and coverage 
+  1. Incidence depends on prevalence and ART coverage
+  2. Incidence ane prevalence linked to recent infection
+  3. ANC offset from household survey
+  4. ART coverage and recent infection are products
+  5. Observed data are aggregated finer processes
+  6. ART attendance uses the multinomial
+  7. Multiple link functions
 * We extend work of @stringer2022fast in this setting to the challenging Naomi ELGM
 * Though we focus on Naomi here, the HIV Inference Group (`hiv-inference.org`) works on many other complex models, challenging for existing Bayesian inference methods, which require flexible modelling tools
 
@@ -129,38 +133,10 @@ where $\tilde p_\texttt{G}(x \, | \, \theta, y) = \mathcal{N}(x \, | \, \hat x(\
 $$
 \int_\Theta p(\theta) \text{d} \theta \approx \lvert L \rvert \sum_{z \in \mathcal{Q}(m, k)} p(\hat \theta + Lz) \omega(z)
 $$
-where the Gauss-Hermite quadrature rule $z \in \mathcal{Q}(\dim(\theta), k)$ with $k$ points per dimension is adapted based upon
-  * The mode $\hat \theta = \texttt{argmax}_{\theta \in \Theta} p(\theta)$
-  * The lower Cholesky $LL^\top = - \partial_\theta^2 \log p(\theta) \rvert_{\theta = \hat \theta}$
-* Algorithm (called `adam` for now) summarized by Figure \@ref(fig:fig2)
-  * Where possible, previously calculated quantities and quadrature rules are reused
-
-```{tikz, fig2, echo=FALSE, fig.align='center', fig.cap = "Flowchart describing the algorithm", fig.ext = 'png', cache=TRUE}
-\usetikzlibrary{arrows}
-\begin{tikzpicture}[node distance=2.5cm, auto,>=latex', thick, scale = 1]
-\node (1) {$p(\theta, x, y)$};
-\node (2) [below of=1] {$\tilde p_\texttt{LA}(x_i, \theta, y)$};
-\node (3) [below of=2] {$\tilde p_\texttt{LA}(x_i, y)$};
-\node (4) [below of=3] {$\tilde p_\texttt{AQ}(x_i \, | \, y)$};
-\node (5) [below of=4] {Output};
-
-\node (6) [right of=1, xshift=1cm] {$\tilde p_\text{LA}(\theta, y)$};
-\node (7) [below of=6] {$\tilde p_\texttt{AQ}(y)$};
-\node (8) [below of=7] {$\tilde p_\texttt{AQ}(\theta \, | \, y)$};
-\node (9) [below of=8] {$\tilde p_\texttt{AQ}(\theta_j \, | \, y)$};
-\node (10) [below of=9] {Output};
-
-\draw[->] (1) to node {Laplace} (2);
-\draw[->] (2) to node {AGHQ} (3);
-\draw[->] (3) to node {Normalise} (4);
-\draw[->] (4) to node {Spline} (5);
-\draw[->] (1) to node {Laplace} (6);
-\draw[->] (6) to node {AGHQ} (7);
-\draw[->] (7) to node {Normalise} (8);
-\draw[->] (8) to node {Marginalise} (9);
-\draw[->] (9) to node {Spline} (10);
-\end{tikzpicture}
-```
+where the Gauss-Hermite quadrature rule $z \in \mathcal{Q}(m, k)$ with $m = \dim(\theta)$ and $k$ points per dimension is adapted based upon
+  * The mode $\hat \theta = \text{argmax}_{\theta \in \Theta} p(\theta)$
+  * A matrix decomposition $LL^\top = - \partial_\theta^2 \log p(\theta) \rvert_{\theta = \hat \theta}$
+* Keep first $s < m$ **principal components** to get size $k^s$ grid
 
 $$\\[0.1in]$$
 
@@ -175,29 +151,17 @@ knitr::include_graphics("fig3.png")
 ```
 
 * Relatively small country but still a large model: latent field $\text{dim}(x) = 491$, hyperparameters $\text{dim}(\theta) = 24$
-* Fit four inference methods (using one [!] C++ template):
-  * `TMB` (`r round(time_taken$TMB, 0)` mins)
-  * `aghq` (`r round(time_taken$aghq, 0)` mins): $k = 1$
-  * `adam` (`r round(time_taken$adam, 0)` min): $k = 1$
-  * `tmbstan` (`r round(time_taken$tmbstan, 1)` days): 4 chains of 100,000 thinned by 40 (required for good diagnostics)
+* Fit three inference methods (using one C++ template):
+  * TMB (`r round(time_taken$TMB, 0)` mins)
+  * PCA-AGHQ (`r round(time_taken$aghq, 0)` mins): $k = 3, s = 8$
+  * NUTS (`r round(time_taken$tmbstan, 1)` days): 4 chains of 100,000 thinned by 40 (required for good diagnostics)
 * Figure \@ref(fig:fig3) illustrates example model outputs: HIV prevalence, ART coverage, HIV incidence, and number of new infections, at the district level
-
-```{r fig4, echo=FALSE, fig.align='center', out.width='100%', fig.cap='Inference reults and ECDF comparison for one $x_i$.'}
-knitr::include_graphics("fig4.png")
-```
-
-* Compare hyperparameter, latent field, and output posterior marginals based on maximum ECDF difference (Kolmogorov-Smirnov test) 
-* Figure \@ref(fig:fig4) illustrates this approach for one node in the model with $\text{KS}(\texttt{TMB}) = 0.09$ and $\text{KS}(\texttt{adam}) = 0.02$
+* Compare hyperparameter, latent field, and output posteriors based on Kolmogorov-Smirnov tests, Pareto-smoothed importance sampling, and maximum mean discrepancy
 
 ## Future directions
 
-* Scaling up the hyperparameter grid beyond EB $k = 1$
-  * Any dense grid would be impractical ($k^{24}$ nodes)
-  * Alternatives: sparse grids, dense grids on a subspace
-* Add Laplace matrix algebra approximations [@wood2020simplified] to speed up latent field marginal calculations
-* More comprehensive inference comparison
-  * Maximum mean discrepancy
-  * Pareto-smoothed importance sampling
+* Laplace marginals with matrix algebra approximations [@wood2020simplified] to speed up latent field marginal calculations
+* Further methods for allocation of effort to important dimensions
 
 **Interested?** Working notebooks and R code available from `github.com/athowes/elgm-inf`. Or get in touch:
 
