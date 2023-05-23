@@ -118,8 +118,8 @@ The reports within `src` are as follows:
 | `example_naomi` | Follow the `naomi` package vignette |
 | `explore_aghq` | Walkthrough various `aghq` package functions |
 | `explore_posterior-comparison` | Explore methods for comparing the accuracy of computed posterior distributions |
-| `explore_posterior-comparison` | Explore methods for comparing the accuracy of computed posterior distributions |
-| `explore_posterior-comparison` | Explore methods for comparing the accuracy of computed posterior distributions |
+| `multi-risk_model0` | Fit multinomial risk group model version 0 |
+| `multi-risk_sim` | Simulate multinomial risk group data |
 | `naomi-simple_contraction` | Comparison of prior and posterior standard deviations across inference methods |
 | `naomi-simple_exceedance` | Case-study on computation of exceedance probabilities for second 90 target and high incidence |
 | `naomi-simple_fit` | Fit the simplified Naomi model using a range of inference methods |
