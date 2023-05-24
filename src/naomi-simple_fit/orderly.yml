@@ -82,10 +82,10 @@ packages:
 
 # These have been used for debugging
 # depends:
-#   - naomi-simple_compare:
+#   - naomi-simple_ks:
 #       id: latest
 #       use:
-#         depends/beta_rho.rds: beta_rho.rds
+#         depends/beta_alpha.rds: beta_alpha.rds
 #   - naomi-simple_fit:
 #       id: latest(parameter:aghq == TRUE && parameter:k == 1)
 #       use:

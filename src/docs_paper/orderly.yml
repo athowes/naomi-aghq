@@ -32,10 +32,10 @@ packages:
   - patchwork
 
 depends:
-  - naomi-simple_compare:
+  - naomi-simple_ks:
       id: latest
       use:
-        depends/ks_summary_out.rds: ks_summary_out.rds
+        depends/ks_summary.rds: ks_summary.rds
   - docs_bayescomp-poster:
       id: latest
       use:

@@ -31,7 +31,7 @@ depends:
       id: latest(parameter:tmb == TRUE)
       use:
         depends/tmb.rds: out.rds
-  - naomi-simple_compare:
+  - naomi-simple_ks:
       id: latest
       use:
         depends/beta_anc_rho.rds: beta_anc_rho.rds

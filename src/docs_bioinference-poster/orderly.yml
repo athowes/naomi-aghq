@@ -30,7 +30,7 @@ depends:
       id: latest(parameter:tmb == TRUE)
       use:
         depends/tmb.rds: out.rds
-  - naomi-simple_compare:
+  - naomi-simple_ks:
       id: latest
       use:
         depends/time_taken.csv: time_taken.csv
