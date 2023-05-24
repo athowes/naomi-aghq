@@ -497,32 +497,32 @@ We compare the KS statistics
 D_\text{TMB} &= \sup_\varphi | F_\text{NUTS}(\varphi) - F_\text{TMB}(\varphi)|, \\
 D_\text{PCA-AGHQ} &= \sup_\varphi | F_\text{NUTS}(\varphi) - F_\text{PCA-AGHQ}(\varphi)|.
 \end{align*}
-See a summary of the results in Table and Figure \ref{fig:ks}, and full results available in the appendix.
+See a summary of the results in Table.
 
 ```{r ks, fig.cap="Results of Kolmogorov-Smironv tests analysis."}
-qplot(1:3, 1:3) + theme_minimal()
-```
+ks_summary <- readRDS("depends/ks_summary.rds")
 
-```{r}
-ks_summary <- readRDS("depends/ks_summary_out.rds")
-
-# gt::gt(ks_summary) %>% gt::as_latex()
+ks_summary %>%
+  filter(Type == "Latent field") %>%
+  group_by(Parameter) %>%
+  summarise(
+    `D(TMB)` = round(mean(`KS(TMB, tmbstan)`), 3),
+    `D(PCA-AGHQ)` = round(mean(`KS(aghq, tmbstan)`), 3)
+  ) %>%
+  gt::gt(rowname_col = "Parameter") %>%
+  gt::summary_rows(
+   columns = everything(),
+   fns = list(Average = ~ mean(.x)),
+   formatter = gt::fmt_number,
+   decimals = 3
+  )
 ```
 
 ### Pareto-smoothed importance sampling
 
 As well as marginal distributions, we are interested in assessing the accuracy of joint distributions.
 Let $\{\bphi_i\}_{i = 1}^n$ be generic samples from a joint posterior.
-Pareto-smoothed importance sampling (PSIS) [@vehtari2015pareto, @yao2018yes] is a method for stabilising the ratios $r_s = p(\theta_s, y) / q(\theta)$ used in importance sampling.
-Let
-\begin{equation*}
-p(y \, | \, \mu, \sigma, k) =
-\begin{cases}
-\frac{1}{\sigma} \left( 1 + k \left( \frac{y - \mu}{\sigma} \right) \right)^{- \frac{1}{k} - 1}, \quad k \neq 0 \\
-\frac{1}{\sigma} \exp \left( \frac{y - \mu}{\sigma} \right), \quad k = 0
-\end{cases}
-\end{equation*}
-be the generalised Pareto distribution with shape parameter $k$ and location-scale parameter $(\mu, \tau)$.
+Pareto-smoothed importance sampling (PSIS) [@vehtari2015pareto, @yao2018yes] is a method for stabilising the ratios used in importance sampling.
 See a summary of the results in Table and Figure \ref{fig:psis}.
 
 ```{r psis, fig.cap="Results of Pareto-smoothed importance sampling analysis."}
