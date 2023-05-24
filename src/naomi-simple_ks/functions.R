@@ -291,9 +291,8 @@ ks_plot_many <- function(ks_summary, method1, method2) {
   densityplot + ridgeplot
 }
 
-ks_table <- function(ks_summary, type) {
+ks_table <- function(ks_summary) {
   ks_summary %>%
-    filter(Type == type) %>%
     gt::gt() %>%
     gt::fmt_number(
       columns = starts_with("KS"),

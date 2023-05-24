@@ -335,15 +335,18 @@ ks_df_out <- function(par) {
       mutate(index = as.numeric(index))
   )
 }
-
-
-
 ```
 
 ### `beta`
 
 ```{r}
 ks_helper("beta", starts_with = TRUE)
+
+#' Save off KS results for one parameter as example
+saveRDS(
+  to_ks_df(par = "beta_alpha", starts_with = TRUE),
+  file = "beta_alpha.rds"
+)
 ```
 
 ### `logit`
@@ -471,23 +474,23 @@ ks_df_out(par = "alpha_t1_out") %>%
 ### `lambda_t1_out`
 
 ```{r}
-ks_df_out(par = "rho_t1_out") %>%
+ks_df_out(par = "lambda_t1_out") %>%
   filter(!age_group %in% c("Y005_009", "Y010_014", "Y080_999")) %>%
   ks_plot(par = "lambda_t1_out", alpha = 0.2)
 ```
 
-Filter out the age group 5-9, 10-14 and 80+ here becausethere are new new infections in those age groups, and the posterior samples from each method are exactly the same: in particular draws of identically zero.
+Filter out the age group 5-9, 10-14 and 80+ here because there are new new infections in those age groups, and the posterior samples from each method are exactly the same: in particular draws of identically zero.
 
 ```{r}
-ks_lambda_t1_out %>%
-  filter(ks == 0) %>%
-  group_by(method) %>%
-  summarise(n = n())
-
-ks_lambda_t1_out %>%
-  filter(ks == 0) %>%
-  pull(age_group) %>%
-  unique()
+# ks_lambda_t1_out %>%
+#   filter(ks == 0) %>%
+#   group_by(method) %>%
+#   summarise(n = n())
+# 
+# ks_lambda_t1_out %>%
+#   filter(ks == 0) %>%
+#   pull(age_group) %>%
+#   unique()
 ```
 
 ## Summary {.tabset .tabset-fade}
@@ -524,7 +527,7 @@ dict <- data.frame(
 ks_summary <- ks_summary %>%
   left_join(dict, by = "Parameter")
 
-saveRDS(ks_summary_out, "ks_summary_out.rds")
+saveRDS(ks_summary, "ks_summary.rds")
 
 ks_summary %>%
   filter(Type != "Hyper") %>%
@@ -532,27 +535,43 @@ ks_summary %>%
 ```
 
 ```{r}
-(ks_summary_out <- ks_summary %>%
+ks_summary %>%
   group_by(Type) %>%
   summarise(
     TMB = mean(`KS(TMB, tmbstan)`),
     aghq = mean(`KS(aghq, tmbstan)`),
     adam = mean(`KS(adam, tmbstan)`)
-  )) %>%
+  ) %>%
   gt::gt()
 ```
 
 ### Latent field
 
 ```{r}
-ks_table(ks_summary, type = "Latent field")
+ks_summary %>%
+  filter(Type == "Latent field") %>%
+  group_by(Parameter) %>%
+  summarise(
+    `KS(TMB, tmbstan)` = mean(`KS(TMB, tmbstan)`),
+    `KS(aghq, tmbstan)` = mean(`KS(aghq, tmbstan)`),
+    `KS(adam, tmbstan)` = mean(`KS(adam, tmbstan)`)
+  ) %>%
+  ks_table()
 ```
 
 
 ### Hyperparameters
 
 ```{r}
-ks_table(ks_summary, type = "Latent field")
+# ks_summary %>%
+#   filter(Type == "Hyper") %>%
+#   group_by(Parameter) %>%
+#   summarise(
+#     `KS(TMB, tmbstan)` = mean(`KS(TMB, tmbstan)`),
+#     `KS(aghq, tmbstan)` = mean(`KS(aghq, tmbstan)`),
+#     `KS(adam, tmbstan)` = mean(`KS(adam, tmbstan)`)
+#   ) %>%
+#   ks_table()
 ```
 
 ### Outputs

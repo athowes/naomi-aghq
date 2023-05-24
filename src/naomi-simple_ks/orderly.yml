@@ -13,17 +13,13 @@ artefacts:
       filenames:
         - time_taken.csv
   - data:
-      description: Comparison dataframe for the `beta_rho` parameter
+      description: Comparison dataframe for the `beta_alpha` parameter
       filenames:
-        - beta_rho.rds
-  - data:
-      description: Comparison dataframe for the `beta_anc_rho` parameter
-      filenames:
-        - beta_anc_rho.rds
+        - beta_alpha.rds
   - data:
       description: KS test summary output
       filenames:
-        - ks_summary_out.rds
+        - ks_summary.rds
 
 resources:
   - ks.Rmd
