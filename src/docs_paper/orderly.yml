@@ -36,6 +36,7 @@ depends:
       id: latest
       use:
         depends/ks_summary.rds: ks_summary.rds
+        depends/beta_alpha.rds: beta_alpha.rds
   - docs_bayescomp-poster:
       id: latest
       use:

@@ -158,7 +158,7 @@ We will produce plots about the a small subset of parameters for the time being.
 There is no particular reason to choose this subset rather than other, it's quite arbitrary.
 
 ```{r}
-pars_eval <- pars %in% c("beta_rho", "beta_alpha", "beta_anc_rho", "u_rho_x")
+pars_eval <- pars %in% c("beta_rho", "u_rho_x")
 names(pars_eval) <- pars
 ```
 
@@ -175,14 +175,7 @@ histogram_and_ecdf_helper("beta_rho")
 ## `beta_alpha`
 
 ```{r eval = pars_eval[["beta_alpha"]]}
-beta_alpha <- histogram_and_ecdf("beta_alpha", return_df = TRUE)
-beta_alpha$plot
-
-#' Save off KS results as example
-saveRDS(
-  beta_alpha$df_compare,
-  file = "beta_alpha.rds"
-)
+histogram_and_ecdf_helper("beta_alpha")
 ```
 
 ## `beta_lambda`
@@ -194,14 +187,7 @@ histogram_and_ecdf_helper("beta_lambda")
 ## `beta_anc_rho`
 
 ```{r eval = pars_eval[["beta_anc_rho"]]}
-beta_anc_rho <- histogram_and_ecdf("beta_anc_rho", i = 1, return_df = TRUE)
-beta_anc_rho$plot
-
-#' Save off KS results as example
-saveRDS(
-  beta_anc_rho$df_compare,
-  file = "beta_anc_rho.rds"
-)
+histogram_and_ecdf_helper("beta_anc_rho")
 ```
 
 ## `beta_anc_alpha`
