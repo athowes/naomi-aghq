@@ -13,9 +13,10 @@ artefacts:
       filenames:
         - time_taken.csv
   - data:
-      description: Comparison dataframe for the `beta_alpha` parameter
+      description: Comparison dataframe for the `beta_alpha` and `beta_anc_rho` parameters
       filenames:
         - beta_alpha.rds
+        - beta_anc_rho.rds
   - data:
       description: KS test summary output
       filenames:
