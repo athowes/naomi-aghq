@@ -24,6 +24,7 @@ convert_pdf_png <- function(name) {
 convert_pdf_png("second90")
 convert_pdf_png("1inc")
 convert_pdf_png("posterior-contraction")
+convert_pdf_png("nodes-samples-comparison")
 
 #' For appendix.Rmd
 

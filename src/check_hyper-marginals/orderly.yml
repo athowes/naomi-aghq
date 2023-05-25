@@ -6,6 +6,7 @@ artefacts:
       filenames:
         - hist.pdf
         - pairs.pdf
+        - nodes-samples-comparison-multi-page.pdf
         - nodes-samples-comparison.pdf
 
 packages:
@@ -21,6 +22,7 @@ packages:
   - bayesplot
   - patchwork
   - gt
+  - excursions
 
 depends:
   - naomi-simple_fit:

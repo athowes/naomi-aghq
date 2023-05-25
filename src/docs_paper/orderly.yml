@@ -58,3 +58,7 @@ depends:
       id: latest
       use:
         depends/posterior-contraction.pdf: posterior-contraction.pdf
+  - check_hyper-marginals:
+      id: latest
+      use:
+        depends/nodes-samples-comparison.pdf: nodes-samples-comparison.pdf

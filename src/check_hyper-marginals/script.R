@@ -51,8 +51,36 @@ nodes_samples_comparison <- function(par) {
   plot_nodes / plot_samples
 }
 
-pdf("nodes-samples-comparison.pdf", h = 7, w = 6.25)
+pdf("nodes-samples-comparison-multi-page.pdf", h = 7, w = 6.25)
 
 lapply(1:length(hyper), function(i) nodes_samples_comparison(hyper[i]))
+
+dev.off()
+
+#' Create a version with the plots overlaid for manuscript
+tmbstan_samples <- lapply(
+  1:length(hyper),
+  function(i) data.frame("x" = as.numeric(unlist(tmbstan$mcmc$sample[hyper[i]])), par = paste0(hyper[i]))
+) %>%
+  bind_rows()
+
+aghq_nodes <- aghq$quad$modesandhessians[hyper] %>%
+  pivot_longer(cols = everything(), names_to = "par", values_to = "node")
+
+pdf("nodes-samples-comparison.pdf", h = 8, w = 6.25)
+
+ggplot(tmbstan_samples, aes(x = x)) +
+  geom_histogram(fill = "lightgrey", col = "darkgrey", alpha = 0.5) +
+  geom_rug(data = aghq_nodes, aes(x = node), col = "#009E73", length = unit(0.1, "npc"), alpha = 0.5) +
+  scale_y_continuous(expand = c(0.2, 0.2)) +
+  facet_wrap(~par, scales = "free", ncol = 4) +
+  labs(x = "", y = "") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
 
 dev.off()
