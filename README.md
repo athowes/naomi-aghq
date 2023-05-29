@@ -1,5 +1,7 @@
 # elgm-inf
 
+Code for the manuscript Howes *et al.* "Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model" (in preparation).
+
 [Naomi](https://github.com/mrc-ide/naomi) ([Eaton et al, 2021](https://onlinelibrary.wiley.com/doi/10.1002/jia2.25788)) is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa.
 Multiple outcomes of interest, including HIV prevalence, HIV incidence and treatment coverage are jointly modelled using both household survey data and routinely reported health system data.
 The model is provided as a [tool](https://naomi.unaids.org/) for countries to input their data to and generate estimates using an empirical Bayes Gaussian approximation via the [`TMB`](https://kaskr.github.io/adcomp/_book/Introduction.html) R package.
