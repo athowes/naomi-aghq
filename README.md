@@ -23,6 +23,7 @@ The directories of this repository are:
 |-----------|----------|
 | `docs`    | Hosted files at [https://athowes.github.io/elgm-inf/](https://athowes.github.io/elgm-inf/) |
 | `make`    | Scripts used to run the reports. `_make.R` runs everything in order |
+| `misc`    | Ideas for further work and other documents that don't need to be in `src` |
 | `src`     | All `orderly` reports |
 | `utils`   | Helper scripts for common development tasks |
 
@@ -104,7 +105,6 @@ The reports within `src` are as follows:
 | `check_sd-estimation` | Analysing odd behaviour for simplified Naomi whereby joint Gaussian approximation better estimates the standard deviation than conditionals |
 | `check_tmb-aghq-k1` | Assessment that TMB and `aghq` run with `k = 1` produce essentially the same inferences for simplified Naomi, in contrast to inferences from `aghq` with any grid |
 | `check_tmb-output` | Checking the the TMB output for simplified Naomi looks Gaussian, as it should be |
-| `compartmental` | Placeholder for trying these approaches on a compartmental model |
 | `dev_hyper-sampling` | Method development for sampling from the hyperparameters within TMB or AGHQ |
 | `dev_scale-grid` | Method development for hyperparameter grids over many dimensional spaces |
 | `dev_sinla` | Method development for Laplace and reduced cost Laplace marginals |
@@ -124,8 +124,6 @@ The reports within `src` are as follows:
 | `example_naomi` | Follow the `naomi` package vignette |
 | `explore_aghq` | Walkthrough various `aghq` package functions |
 | `explore_posterior-comparison` | Explore methods for comparing the accuracy of computed posterior distributions |
-| `multi-risk_model0` | Fit multinomial risk group model version 0 |
-| `multi-risk_sim` | Simulate multinomial risk group data |
 | `naomi-simple_contraction` | Comparison of prior and posterior standard deviations across inference methods |
 | `naomi-simple_exceedance` | Case-study on computation of exceedance probabilities for second 90 target and high incidence |
 | `naomi-simple_fit` | Fit the simplified Naomi model using a range of inference methods |
@@ -145,4 +143,3 @@ The reports within `src` are as follows:
 | `prev-anc-art_model4` | Fit prevalence, ANC, ART model version 4 |
 | `prev-anc-art_results` | Analyse results of prevalence, ANC, ART model |
 | `prev-anc-art_sim` | Simulate prevalence, ANC, ART data |
-| `random-mixture` | Placeholder for trying these approaches on a random mixture model |
