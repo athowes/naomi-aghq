@@ -133,7 +133,6 @@ The reports within `src` are as follows:
 | `naomi-simple_mmd` | Comparison of inference methods using Kolmogorov-Smirnov tests on marginals |
 | `naomi-simple_model-checks` | Comparison of inference methods using Kolmogorov-Smirnov tests on marginals |
 | `naomi-simple_psis` | Comparison of inference methods using Pareto-smoothed importance sampling on joint distributions |
-| `naomi` | Early work -- later simplified and branched into multiple reports |
 | `plot-tikz_algorithm-flowchart` | TikZ diagram of proposed algorithm |
 | `plot-tikz_simplified-naomi` | TikZ diagram of the simplified Naomi directed acyclic graph |
 | `prev-anc-art_model0` | Fit prevalence, ANC, ART model version 0 |
