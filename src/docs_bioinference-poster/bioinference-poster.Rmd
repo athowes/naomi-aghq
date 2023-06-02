@@ -80,7 +80,7 @@ code{
 
 ## Summary
 
-* Approximate Bayesian inference method using Laplace approximation, adaptive Gauss-Hermite quadrature and principal component analysis
+* Develop an approximate Bayesian inference method using Laplace approximation, adaptive Gauss-Hermite quadrature and principal component analysis
 * Motivated by an evidence synthesis model for small-area estimation of HIV indicators in sub-Saharan Africa
 * Implemented as a part of the `aghq` package [@stringer2021implementing], allowing flexible use of the method for any model with a `TMB` C++ user template
 
@@ -93,7 +93,7 @@ code{
   * Figure \@ref(fig:fig1) illustrates the seven stages of using the app
 * Inference conducted in minutes using empirical Bayes and a Gaussian approximation via Template Model Builder `TMB` [@kristensen2016tmb]
 * It would take days to get accurate answers with MCMC via `tmbstan` [@monnahan2018no], and this is not practical in this setting
-* Motivates looking for a fast, approximate approach, that takes uncertainty in hyperparameters into account
+* Motivates our work, looking for a fast, approximate approach, that properly takes uncertainty in hyperparameters into account
 
 $$\\[0.1in]$$
 
@@ -107,7 +107,6 @@ $$\\[0.1in]$$
 
 * Latent Gaussian models (LGMs) [@rue2009approximate] are three stage hierarchical models with observations $y$, Gaussian latent field $x$ and hyperparameters $\theta$
 * In an LGM the conditional mean depends on exactly one structured additive predictor $\mu_i = g(\eta_i)$ with $g: \mathbb{R} \to \mathbb{R}$
-  * The `R-INLA` implementation of integrated nested Laplace approximations applies only to LGMs, because ELGM precision matrices are not as sparse
 * Extended latent Gaussian models (ELGM) remove this requirement such that $\mu_i = g(\eta_{\mathcal{J_i}})$ where $g_i: \mathbb{R}^{|\mathcal{J_i}|} \to \mathbb{R}$ and $\mathcal{J_i}$ is some set of indices
   * Allows a higher degree of non-linearity in the model
 * Naomi is an ELGM, not an LGM, because it includes complex dependency structures:
@@ -119,7 +118,7 @@ $$\\[0.1in]$$
   6. ART attendance uses the multinomial
   7. Multiple link functions
 * We extend work of @stringer2022fast in this setting to the challenging Naomi ELGM
-* Though we focus on Naomi here, the HIV Inference Group (`hiv-inference.org`) works on many other complex models, challenging for existing Bayesian inference methods, which require flexible modelling tools
+* Though we focus on Naomi, the HIV Inference Group (`hiv-inference.org`) works on many other complex models, challenging for existing Bayesian inference methods, which require flexible modelling tools
 
 ## Inference procedure
 
@@ -133,12 +132,83 @@ where $\tilde p_\texttt{G}(x \, | \, \theta, y) = \mathcal{N}(x \, | \, \hat x(\
 $$
 \int_\Theta p(\theta) \text{d} \theta \approx \lvert L \rvert \sum_{z \in \mathcal{Q}(m, k)} p(\hat \theta + Lz) \omega(z)
 $$
-where the Gauss-Hermite quadrature rule $z \in \mathcal{Q}(m, k)$ with $m = \dim(\theta)$ and $k$ points per dimension is adapted based upon
+where the Gauss-Hermite quadrature rule $\{z \in \mathcal{Q}(m, k), \omega\}$ with $m = \dim(\theta)$ and $k$ points per dimension is adapted based upon
   * The mode $\hat \theta = \text{argmax}_{\theta \in \Theta} p(\theta)$
   * A matrix decomposition $LL^\top = - \partial_\theta^2 \log p(\theta) \rvert_{\theta = \hat \theta}$
-* Keep first $s < m$ **principal components** to get size $k^s$ grid
+* Use the spectral decomposition $L = E\Lambda^{1/2}$ and keep only the first $s < m$ **principal components**
 
 $$\\[0.1in]$$
+
+```{r aghq, echo=FALSE, fig.cap='Demonstration of PCA-AGHQ.'}
+mu <- c(1, 1.5)
+cov <- matrix(c(2, 1, 1, 1), ncol = 2)
+
+obj <- function(theta) {
+  mvtnorm::dmvnorm(theta, mean = mu, sigma = cov)
+}
+
+grid <- expand.grid(
+  theta1 = seq(-2, 5, length.out = 700),
+  theta2 = seq(-2, 5, length.out = 700)
+)
+
+ground_truth <- cbind(grid, pdf = obj(grid))
+
+plot0 <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
+  geom_contour(col = "lightgrey") +
+  coord_fixed(xlim = c(-2, 4.5), ylim = c(-2, 4.5), ratio = 1) +
+  labs(x = "", y = "") +
+  theme_minimal() +
+  guides(size = FALSE) +
+  theme(
+    axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+    axis.text.y = element_blank(), axis.ticks.y = element_blank()
+  )
+
+gg <- mvQuad::createNIGrid(2, "GHe", 3)
+
+add_points <- function(plot0, gg) {
+  plot0 +
+    geom_point(
+      data = mvQuad::getNodes(gg) %>%
+              as.data.frame() %>%
+              mutate(weights = mvQuad::getWeights(gg)),
+      aes(x = V1, y = V2, size = weights),
+      alpha = 0.8,
+      col = "#009E73",
+      inherit.aes = FALSE
+    ) +
+    scale_size_continuous(range = c(1, 2))
+}
+
+plot1 <- add_points(plot0, gg) +
+  labs(size = "")
+
+#' Adapt by the mean
+gg2 <- gg
+mvQuad::rescale(gg2, m = mu, C = diag(c(1, 1)), dec.type = 2)
+
+plot2 <- add_points(plot0, gg2) +
+  labs(size = "")
+
+#' Adapt by the spectral
+gg3 <- gg
+mvQuad::rescale(gg3, m = mu, C = cov, dec.type = 1)
+
+plot3 <- add_points(plot0, gg3) +
+  labs(size = "")
+
+#' PCA-AGHQ
+gg4 <- mvQuad::createNIGrid(2, "GHe", level = c(3, 1))
+mvQuad::rescale(gg4, m = mu, C = cov, dec.type = 1)
+
+plot4 <- add_points(plot0, gg4) +
+  labs(size = "")
+
+(plot1 + plot2) / (plot3 + plot4)
+```
+
+
 
 ## Application to Malawi data
 
@@ -150,10 +220,10 @@ time_taken <- readr::read_csv("depends/time_taken.csv")
 knitr::include_graphics("fig3.png")
 ```
 
-* Relatively small country but still a large model: latent field $\text{dim}(x) = 491$, hyperparameters $\text{dim}(\theta) = 24$
+* Small country but still has latent field $\text{dim}(x) = 491$ and hyperparameters $\text{dim}(\theta) = 24$
 * Fit three inference methods (using one C++ template):
-  * TMB (`r round(time_taken$TMB, 0)` mins)
-  * PCA-AGHQ (`r round(time_taken$aghq, 0)` mins): $k = 3, s = 8$
+  * TMB (`r round(time_taken$TMB, 0)` secs)
+  * PCA-AGHQ (`r round(time_taken$aghq, 0)` hour): $k = 3, s = 8$
   * NUTS (`r round(time_taken$tmbstan, 1)` days): 4 chains of 100,000 thinned by 40 (required for good diagnostics)
 * Figure \@ref(fig:fig3) illustrates example model outputs: HIV prevalence, ART coverage, HIV incidence, and number of new infections, at the district level
 * Compare hyperparameter, latent field, and output posteriors based on Kolmogorov-Smirnov tests, Pareto-smoothed importance sampling, and maximum mean discrepancy
