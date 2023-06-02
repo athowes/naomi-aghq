@@ -27,6 +27,9 @@ convert_pdf_png("posterior-contraction")
 convert_pdf_png("nodes-samples-comparison")
 
 #' For appendix.Rmd
+convert_pdf_png("rhat")
+convert_pdf_png("ratio")
+convert_pdf_png("ess")
 
 #' Render documents
 rmarkdown::render("paper.Rmd")
