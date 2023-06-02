@@ -11,6 +11,10 @@ By extending the [`aghq`](https://github.com/awstringer1/aghq) package ([Stringe
 
 ![Example district-level Naomi model outputs for adults aged 15-49.](naomi_results.png)
 
+## C++ template for the log-posterior
+
+The `TMB` template for the simplified Naomi model is available [here](https://github.com/athowes/elgm-inf/blob/master/src/naomi-simple_fit/naomi_simple.cpp).
+
 ## File structure
 
 The directories of this repository are:

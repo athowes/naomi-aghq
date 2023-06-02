@@ -62,3 +62,10 @@ depends:
       id: latest
       use:
         depends/nodes-samples-comparison.pdf: nodes-samples-comparison.pdf
+  - naomi-simple_mcmc:
+      id: latest
+      use:
+        depends/rhat.pdf: rhat.pdf
+        depends/ratio.pdf: ratio.pdf
+        depends/ess.pdf: ess.pdf
+        depends/nuts-params.rds: nuts-params.rds

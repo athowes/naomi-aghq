@@ -5,6 +5,13 @@ artefacts:
       description: Notebook assessing if the MCMC converged
       filenames:
         - mcmc-convergence.html
+  - data:
+      description: Outputs to go into the appendix of the manuscript
+      filenames:
+        - rhat.pdf
+        - ratio.pdf
+        - ess.pdf
+        - nuts-params.rds
 
 resources:
   - mcmc-convergence.Rmd

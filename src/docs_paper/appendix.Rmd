@@ -43,7 +43,7 @@ knitr::opts_chunk$set(
 
 \newpage
 
-# Simplified Naomi model description \label{sec:math}
+# Simplified Naomi \label{sec:math}
 
 In this section we describe the simplified Naomi model [@eaton2021naomi] considered in the main text in more complete detail.
 
@@ -332,9 +332,11 @@ In particular:
 knitr::include_graphics("depends/simplified-naomi.pdf")
 ```
 
-\newpage
+## Implementation
 
-# \textsc{C++} `TMB` user template
+The C++ `TMB` code for the negative log-posterior of the simplified Naomi model is available from the GitHub repository `athowes/elgm-inf`.
+For ease of understanding, Table \ref{tab:tmb-lookup} provides correspondence between the mathematical notation used in Section \ref{sec:math} and the variable names used in the `TMB` code, for all hyperparameters and latent field parameters.
+For further reference on the `TMB` software see @tmbdocumentation.
 
 <!-- Use table(names(tmb$fit$par.full)) to check the below table -->
 
@@ -404,64 +406,78 @@ Variable name & Notation & Type & Size & Domain & $\rho$ input? & $\alpha$ input
 <!-- Hyperparameter size -->
 <!-- 24 -->
 
-This section contains C++ `TMB` code for the negative log-posterior of the simplified Naomi model
-For ease of understanding, Table \ref{tab:tmb-lookup} provides correspondence between the mathematical notation used in Section \ref{sec:math} and the variable names used in the `TMB` code, for all hyperparameters and latent field parameters.
-For further reference on the `TMB` software see `https://kaskr.github.io/adcomp/_book`, or on the method see @kristensen2016tmb.
+<!-- \newpage -->
 
-\newpage
-
-```{cpp, echo=TRUE, eval=FALSE, output.var="ex", code=readLines("naomi_simple.cpp")}
-```
+<!-- ```{cpp, echo=TRUE, eval=FALSE, output.var="ex", code=readLines("naomi_simple.cpp")} -->
+<!-- ``` -->
 
 \newpage
 
 # MCMC convergence and suitability
 
-We assessed MCMC convergence and suitability using a range of graphical and numerical tests. These included the potential scale reduction factor $\hat R$, bulk and tail effective sample size (ESS), autocorrelation decay plots, univariate traceplots, pairs density plots, and NUTS specific divergent transition and energy assessments.
+We assessed MCMC convergence and suitability using a range of graphical and numerical tests.
+All potential scale reduction factor $\hat R$ statistics [@vehtari2021rank] were below 1.05 and therefore acceptable (Figure \ref{fig:rhat}).
+However, even thinning by a factor of 20, samples were not obtained very efficiently, resulting in the majority of effective sample size (ESS) ratios being below 0.5, with some as low as 0.1 (Figure \ref{fig:ratio}).
+As a result, the number of obtained ESS varied substantially by parameter (Figure \ref{fig:ess}).
+There were no divergent transitions.
+Could add energy plot from @betancourt2017conceptual here.
 
-For the time being, this analysis is available from `athowes.github.io/elgm-inf/mcmc-convergence`.
-Once the MCMC results are finalised, the analysis will be moved to this appendix and expanded upon.
-The following draft text and references may be useful in that expanded write-up.
+```{r}
+np <- readRDS("depends/nuts-params.rds")
 
-- Improved $\hat R$ statistic from @vehtari2021rank. Recommended only to use the sample if the value is less than 1.05.
-- ESS and autocorrelation related to efficiency
-- Traceplots helpful for diagnosis of problems
-- Pairs density plots helpful for understanding relationships between parameters, including possible identifiability issues
-- Energy plot from @betancourt2017conceptual
+n_divergent <- np %>%
+  filter(Parameter == "divergent__") %>%
+  summarise(n_divergent = sum(Value)) %>%
+  pull(n_divergent)
+
+stopifnot(n_divergent == 0)
+```
+
+```{r rhat, fig.cap="The potential scale reduction factor compared between- and within- estimates of univariate parameters. It is recommended against to use the results if the value is less than 1.05."}
+knitr::include_graphics("depends/rhat.png")
+```
+
+```{r ratio, fig.cap="The ESS ratio measures how efficient sampling is."}
+knitr::include_graphics("depends/ratio.png")
+```
+
+```{r ess, fig.cap="The effective number of samples varied substantially."}
+knitr::include_graphics("depends/ess.png")
+```
 
 \newpage
 
 # Laplace marginals algorithm
 
-1. Calculate the mode, Hessian at the mode, and lower Cholesky
+In earlier work, we used a full Laplace approximation to the latent field marginals.
+The algorithm for obtaining this approximation is detailed here.
+
+1. Calculate the mode, Hessian at the mode, lower Cholesky, and Laplace approximation
 \begin{align*}
 \hat{\btheta} &= \argmax_{\btheta} {\tilde p_\texttt{LA}(\btheta, \y)}, \\
 \hat{\mathbf{H}} &= - \frac{\partial^2}{\partial \btheta \partial \btheta^\top} \log \tilde p_\texttt{LA}(\btheta, \y) \rvert_{\btheta = \hat \btheta} \\
-\hat{\mathbf{H}}^{-1} &= \hat{\mathbf{L}} \hat{\mathbf{L}}^\top,
+\hat{\mathbf{H}}^{-1} &= \hat{\mathbf{L}} \hat{\mathbf{L}}^\top, \\
+\tilde p_\texttt{LA}(\btheta, \y) &= \frac{p(\y, \x, \btheta)}{\tilde p_\texttt{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat \x(\btheta)}
 \end{align*}
-of the Laplace approximation
-$$
-\tilde p_\texttt{LA}(\btheta, \y) = \frac{p(\y, \x, \btheta)}{\tilde p_\texttt{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat \x(\btheta)}
-$$
-where $\tilde p_\texttt{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \x(\btheta), \mathbf{H}(\btheta)^{-1})$ is a Gaussian approximation to $p(\x \, | \, \btheta, \y)$ with mode and precision matrix given by
+where $\tilde p_\texttt{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \x(\btheta), \hat{\mathbf{H}}(\btheta)^{-1})$ is a Gaussian approximation to $p(\x \, | \, \btheta, \y)$ with mode and precision matrix given by
 \begin{align*}
 \hat \x(\btheta) &= \argmax_\x \log p(\y, \x, \btheta), \\
 \hat{\mathbf{H}}(\btheta) &= - \frac{\partial^2}{\partial \x \partial \x^\top} \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}.
 \end{align*}
 2. Generate a set of nodes $\bu \in \mathcal{Q}(m, k)$ and weights $\omega: \bu \to \mathbb{R}$ from a Gauss-Hermite quadrature rule with $k$ nodes per dimension, which are then adapted based on the mode and lower Choleksy via $\btheta(\bu) = \hat{\btheta} + \mathbf{L} \bu$.
-If possible $k \geq 3$ is preferred, though the number of grid points scales exponentially with choice of $k$.
 Then, use this quadrature rule to calculate the normalising constant $\tilde p_{\texttt{AQ}}(\y)$ as follows
 \begin{equation}
 \tilde p_{\texttt{AQ}}(\y) = \sum_{\bu \in \mathcal{Q}(m, k)} \tilde p_\texttt{LA}(\btheta(\bu), \y) \omega(\bu). \label{eq:evidence1}
 \end{equation}
-4. For $i \in [n]$ generate $l$ nodes $x_i(\bv)$ via a Gauss-Hermite quadrature rule $\bv \in \mathcal{Q}(1, l)$ adapted based on the mode $\hat \x(\btheta)_i$ and standard deviation $\sqrt{\text{diag}[\hat{\mathbf{H}}(\btheta)^{-1}]_i}$ of the Gaussian marginal. A value of $l \geq 4$ is recommended to enable B-spline interpolation.
+3. For $i \in [n]$ generate $l$ nodes $x_i(\bv)$ via a Gauss-Hermite quadrature rule $\bv \in \mathcal{Q}(1, l)$ adapted based on the mode $\hat \x(\btheta)_i$ and standard deviation $\sqrt{\text{diag}[\hat{\mathbf{H}}(\btheta)^{-1}]_i}$ of the Gaussian marginal.
+$l \geq 4$ is recommended to enable B-spline interpolation.
 Then, for $x_i \in \{ x_i(\bv) \}_{\bv \in \mathcal{Q}(1, l)}$  and $\btheta \in \{ \btheta(\bu) \}_{\bu \in \mathcal{Q}(m, k)}$ calculate the modes and Hessians
 \begin{align*}
 \hat \x_{-i}(x_i, \btheta) &= \argmax_{\x_{-i}} \log p(\y, x_i, \x_{-i}, \btheta), \\
 \hat{\mathbf{H}}_{-i, -i}(x_i, \btheta) &= - \frac{\partial^2}{\partial \x_{-i} \partial \x_{-i}^\top} \log p(\y, x_i, \x_{-i}, \btheta) \rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)},
 \end{align*}
 where optimisation to obtain $\hat \x_{-i}(x_i, \btheta)$ is initialised at $\hat \x(\btheta)_{-i}$.
-6. For $x_i \in \{ x_i(\bv) \}_{\bv \in \mathcal{Q}(1, l)}$ calculate
+4. For $x_i \in \{ x_i(\bv) \}_{\bv \in \mathcal{Q}(1, l)}$ calculate
 \begin{equation}
 \tilde p_\texttt{AQ}(x_i \, | \, \y) = \frac{\tilde p_\texttt{LA}(x_i, \y)}{\tilde p_{\texttt{AQ}}(\y)}. \label{eq:laplace-marginal}
 \end{equation}
@@ -478,11 +494,11 @@ $$
 \tilde p_{\texttt{AQ}}(\y) = \sum_{\bv \in \mathcal{Q}(1, l)} \tilde p_\texttt{LA}(x_i(\bv), \y) \omega(\bv)
 $$
 
-7. Given $\{x_i(\bv), \tilde p_\texttt{AQ}(x_i(\bv) \, | \, \y)\}_{\bv \in \mathcal{Q}(1, l)}$ create a spline interpolant to each posterior marginal on the log-scale. Samples, and thereby relevant posterior marginal summaries, may be obtained using inverse transform sampling.
+5. Given $\{x_i(\bv), \tilde p_\texttt{AQ}(x_i(\bv) \, | \, \y)\}_{\bv \in \mathcal{Q}(1, l)}$ create a spline interpolant to each posterior marginal on the log-scale. Samples, and thereby relevant posterior marginal summaries, may be obtained using inverse transform sampling.
 
-```{r algorithm-flowchart, fig.cap="Flowchart describing the algorithm we propose (work in progress)."}
-knitr::include_graphics("depends/algorithm-flowchart.pdf")
-```
+<!-- ```{r algorithm-flowchart, fig.cap="Flowchart describing the algorithm we propose (work in progress)."} -->
+<!-- knitr::include_graphics("depends/algorithm-flowchart.pdf") -->
+<!-- ``` -->
 
 \newpage
 

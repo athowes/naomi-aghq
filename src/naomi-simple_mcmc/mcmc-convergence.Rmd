@@ -27,6 +27,8 @@ mcmc <- out$mcmc$stanfit
 This MCMC took `r round(out$time, 3)` days to run
 
 ```{r}
+cbpalette <- c("#56B4E9", "#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
+
 bayesplot::color_scheme_set("viridisA")
 ggplot2::theme_set(theme_minimal())
 ```
@@ -37,9 +39,31 @@ We are looking for values of $\hat R$ less than 1.1 here.
 
 ```{r}
 rhats <- bayesplot::rhat(mcmc)
-bayesplot::mcmc_rhat(rhats)
+
+rhat_plot <- mcmc_rhat_data(rhats) %>%
+  ggplot(mapping = aes_(x = ~value, y = ~parameter, col = ~description)) +
+  geom_segment(mapping = aes_(yend = ~parameter, xend = ifelse(min(data$value) < 1, 1, -Inf)), na.rm = TRUE, alpha = 0.7) +
+  scale_color_manual(values = "#E69F00") +
+  geom_vline(xintercept = 1.05, linetype = "dashed", col = "grey40") +
+  labs(x = "Potential scale reduction factor", y = "NUTS parameter", col = "") +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.grid.major = element_blank()
+  )
+
+rhat_plot
+
+pdf("rhat.pdf", h = 3, w = 6.25)
+
+rhat_plot
+
+dev.off()
+
 (big_rhats <- rhats[rhats > 1.1])
 length(big_rhats) / length(rhats)
+
 ```
 
 # ESS ratio
@@ -48,7 +72,31 @@ Reasonable to be worried about values less than 0.1 here.
 
 ```{r}
 ratios <- bayesplot::neff_ratio(mcmc)
-bayesplot::mcmc_neff(ratios)
+
+breaks <- c(0, 0.1, 0.25, 0.5, 0.75, 1)
+
+ratio_plot <- mcmc_neff_data(ratios) %>%
+  ggplot(mapping = aes_(x = ~value, y = ~parameter, color = ~description)) +
+  geom_segment(aes_(yend = ~parameter, xend = -Inf), na.rm = TRUE, alpha = 0.7) +
+  scale_color_manual(values = c("#56B4E9", "#009E73", "#E69F00")) +
+  geom_vline(xintercept = 0.1, linetype = "dashed", col = "grey40") +
+  geom_vline(xintercept = 0.5, linetype = "dashed", col = "grey40") +
+  geom_vline(xintercept = 1, linetype = "dashed", col = "grey40") +
+  labs(x = "ESS ratio", y = "NUTS parameter", col = "") +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.grid.major = element_blank()
+  )
+
+ratio_plot
+
+pdf("ratio.pdf", h = 3, w = 6.25)
+
+ratio_plot
+
+dev.off()
 ```
 
 # ESS
@@ -59,11 +107,19 @@ What are the total effective sample sizes?
 #' I think that this $summary should be all of the chains grouped together
 mcmc_summary <- summary(mcmc)$summary
 
-data.frame(mcmc_summary) %>%
+ess_plot <- data.frame(mcmc_summary) %>%
   tibble::rownames_to_column("param") %>%
   ggplot(aes(x = n_eff)) +
     geom_histogram(alpha = 0.8) +
     labs(x = "ESS", y = "Count")
+
+ess_plot
+
+pdf("ess.pdf", h = 3, w = 6.25)
+
+ess_plot
+
+dev.off()
 ```
 
 # Autocorrelation
@@ -157,6 +213,8 @@ neighbours_pairs_plot("log_or_gamma", 26)
 
 ```{r}
 np <- bayesplot::nuts_params(mcmc)
+
+saveRDS(np, "nuts-params.rds")
 ```
 
 Are there any divergent transitions?
