@@ -9,6 +9,7 @@ artefacts:
   - data:
       description: Figures
       filenames:
+        - fig2.png
         - fig3.png
 
 resources:
@@ -33,4 +34,9 @@ depends:
   - naomi-simple_ks:
       id: latest
       use:
+        depends/ks_summary.rds: ks_summary.rds
         depends/time_taken.csv: time_taken.csv
+  - naomi-simple_exceedance:
+      id: latest
+      use:
+        depends/second90.csv: second90.csv

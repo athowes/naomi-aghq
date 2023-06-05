@@ -27,7 +27,7 @@ fig2base <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
   theme(
     axis.text.x = element_blank(), axis.ticks.x = element_blank(),
     axis.text.y = element_blank(), axis.ticks.y = element_blank(),
-    plot.margin = grid::unit(c(0,0,0,0), "mm")
+    plot.margin = grid::unit(c(0, 0, 0, 0), "mm")
   )
 
 gg <- mvQuad::createNIGrid(2, "GHe", 3)
@@ -43,7 +43,7 @@ add_points <- function(fig2base, gg) {
       col = "#009E73",
       inherit.aes = FALSE
     ) +
-    scale_size_continuous(range = c(1, 2))
+    scale_size_continuous(range = c(2, 4))
 }
 
 fig2a <- add_points(fig2base, gg) +
@@ -79,6 +79,7 @@ ggsave(
 )
 
 #' Figure 3
+
 tmb <- readRDS("depends/tmb.rds")
 outputs <- tmb$outputs
 
@@ -212,5 +213,26 @@ ggsave(
   plot = fig3a + fig3b + fig3c,
   width = 6,
   height = 6,
+  units = "in"
+)
+
+#' Figure 4
+
+second90 <- read_csv("depends/second90.csv")
+
+fig4 <- ggplot(second90, aes(x = tmbstan, y = TMB, col = sex)) +
+  geom_point(alpha = 0.6) +
+  scale_color_manual(values = c("#56B4E9","#009E73")) +
+  geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
+  labs(col = "Sex") +
+  labs(x = "NUTS", y = "TMB") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+ggsave(
+  "fig4.png",
+  plot = fig4,
+  width = 5,
+  height = 5,
   units = "in"
 )

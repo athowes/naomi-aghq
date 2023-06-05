@@ -152,6 +152,8 @@ df_wide_second90 <- df_wide_second90 %>%
     by = "index"
   )
 
+write_csv(df_wide_second90, "second90.csv")
+
 plot1 <- ggplot(df_wide_second90, aes(x = tmbstan, y = TMB, col = sex)) +
   geom_point(alpha = 0.3) +
   scale_color_manual(values = c("#56B4E9","#009E73")) +
@@ -213,6 +215,15 @@ df_1inc <- data.frame(
 )
 
 df_wide_1inc <- pivot_wider(df_1inc, names_from = method, values_from = prob)
+
+df_wide_1inc <- df_wide_1inc %>%
+  left_join(
+    mf_out_fine %>%
+      tibble::rowid_to_column("index"),
+    by = "index"
+  )
+
+write_csv(df_wide_1inc, "1inc.csv")
 
 plot1 <- ggplot(df_wide_1inc, aes(x = tmbstan, y = TMB)) +
   geom_point(alpha = 0.3) +
