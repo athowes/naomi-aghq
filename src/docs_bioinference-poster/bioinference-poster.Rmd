@@ -115,6 +115,8 @@ knitr::include_graphics("fig1.png")
 * We extend work of @stringer2022fast in this setting to the challenging Naomi ELGM
 * Though we focus on Naomi, the HIV Inference Group (`hiv-inference.org`) works on many other complex models, challenging for existing Bayesian inference methods, which require flexible modelling tools
 
+$$\\[0.1in]$$
+
 ## 3. Inference procedure
 
 * **Laplace approximation** Integrate out latent field using a Gaussian approximation to the denominator
@@ -190,7 +192,7 @@ second90_reduction <- second90 %>%
 * Naomi can be used to assess probabilities targets have been met e.g. 90% of those who know their HIV status are on ART ("second 90"). Both TMB and PCA-AGHQ have biased inferences (Figure \@ref(fig:fig4))
   * Reduced RMSE for estimating second 90 exceedance probabilities by `r abs(second90_reduction)`%
 
-```{r fig4, echo=FALSE, fig.align='center', fig.cap='TMB is biased at estimating second 90 exceedance probabilities for women.'}
+```{r fig4, echo=FALSE, fig.align='center', fig.cap='Both approximate methods are meaningfully incorrect for policy.'}
 knitr::include_graphics("fig4.png")
 ```
 
@@ -202,15 +204,12 @@ knitr::include_graphics("fig4.png")
 
 **Funding** AH was supported by the EPSRC and Bill & Melinda Gates Foundation. This research was supported by the MRC Centre for Global Infectious Disease Analysis.
 
-* `r fontawesome::fa("home", fill = "black")` `athowes.github.io`
-* `r fontawesome::fa("envelope", fill = "black")` `ath19@ic.ac.uk`
-* `r fontawesome::fa("twitter", fill = "black")` `@adamhowes`
+**Contact** `r fontawesome::fa("home", fill = "black")` `athowes.github.io`; `r fontawesome::fa("envelope", fill = "black")` `ath19@ic.ac.uk`
 
 ## References
 
 <font size="5"> <div id="refs" class="references"></div> </font>
 
 <!-- To-do: -->
-<!-- * Add sex legend to Fig 4 -->
 <!-- * Get "3. Inference procedure" to be on next page -->
 <!-- * Try to reduce whitespace around Fig 3 -->

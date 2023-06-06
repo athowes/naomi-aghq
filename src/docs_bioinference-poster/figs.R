@@ -212,18 +212,21 @@ ggsave(
   "fig3.png",
   plot = fig3a + fig3b + fig3c,
   width = 6,
-  height = 6,
+  height = 5,
   units = "in"
 )
 
 #' Figure 4
 
-second90 <- read_csv("depends/second90.csv")
+second90 <- readr::read_csv("depends/second90.csv")
 
-fig4 <- ggplot(second90, aes(x = tmbstan, y = TMB, col = sex)) +
+fig4 <- second90 %>%
+  mutate(sex = dplyr::recode_factor(sex, "female" = "Female", "male" = "Male")) %>%
+  ggplot(aes(x = tmbstan, y = TMB, col = sex)) +
   geom_point(alpha = 0.6) +
-  scale_color_manual(values = c("#56B4E9","#009E73")) +
-  geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
+  scale_color_manual(values = c("#D55E00", "#009E73")) +
+  geom_abline(slope = 1, intercept = 0, col = "grey30", linetype = "dashed") +
+  annotate(geom = "text", x = 0.75, y = 0.225, label = "Exceedance probabilities for \n women are overestimated \n by approximate methods", color = "#D55E00") +
   labs(col = "Sex") +
   labs(x = "NUTS", y = "TMB") +
   theme_minimal() +
