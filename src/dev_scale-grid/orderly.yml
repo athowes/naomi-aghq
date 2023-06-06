@@ -6,7 +6,6 @@ sources:
 resources:
   - scale-grid.Rmd
   - naomi_simple.cpp
-  - naomi_simple_x_index.cpp
 
 artefacts:
   - data:
