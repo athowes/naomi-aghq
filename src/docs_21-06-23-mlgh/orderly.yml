@@ -12,6 +12,7 @@ resources:
   - naomi_user.png
   - preamble.tex
   - citations.bib
+  - uw.png
 
 packages:
   - dplyr
@@ -24,7 +25,11 @@ packages:
   - kableExtra
 
 depends:
-  example_inla-grid:
-    id: latest
-    use:
-      depends/inla-grid.pdf: inla-grid.pdf
+  - example_inla-grid:
+      id: latest
+      use:
+        depends/inla-grid.pdf: inla-grid.pdf
+  - docs_bayescomp-poster:
+      id: latest
+      use:
+        depends/naomi_results.png: fig3.png
