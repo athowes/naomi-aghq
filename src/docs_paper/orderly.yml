@@ -69,3 +69,9 @@ depends:
         depends/ratio.pdf: ratio.pdf
         depends/ess.pdf: ess.pdf
         depends/nuts-params.rds: nuts-params.rds
+  - dev_scale-grid:
+      id: latest
+      use:
+        depends/marginal-sd.png: marginal-sd.png
+        depends/reduced-rank-plot.png: reduced-rank-plot.png
+        depends/tv-plot.png: tv-plot.png
