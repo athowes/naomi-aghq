@@ -50,20 +50,30 @@ We can calculate their posterior standard deviations using the delta method via 
 ```{r}
 testrun <- parallel::mcparallel({TMB::sdreport(obj = fit$obj, par.fixed = fit$par, getJointPrecision = TRUE)})
 sd_out <- parallel::mccollect(testrun, wait = TRUE, timeout = 0, intermediate = FALSE)
+sd_out <- sd_out[[1]]
 ```
 
 The marginal standard deviations for each of the hyperparameters are:
 
 ```{r sd, class.source = 'fold-hide', fig.cap="Marginal standard deviations."}
+cbpalette <- c("#56B4E9","#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
+
 sd <- sqrt(diag(sd_out$cov.fixed))
 
-data.frame(par = names(sd), sd = unname(sd)) %>%
-  ggplot(aes(x = reorder(par, sd), y = sd)) +
-    geom_point(alpha = 0.6) +
+(marginal_sd_plot <- data.frame(par = names(sd), sd = unname(sd)) %>%
+  mutate(
+    start = str_extract(par, "^[^_]+"),
+    scale = fct_recode(start, "Log" = "log", "Logit" = "logit", "Other" = "OmegaT")
+  ) %>%
+  ggplot(aes(x = reorder(par, sd), y = sd, col = scale)) +
+    geom_point(size = 2) +
     coord_flip() +
+    scale_color_manual(values = c("#56B4E9","#009E73", "#E69F00")) +
     lims(y = c(0, 2)) +
     theme_minimal() +
-    labs(x = "", y = "SD from TMB")
+    labs(x = "", y = "Marginal standard deviation", col = "Scale"))
+
+ggsave("marginal-sd.png", plot = marginal_sd_plot, height = 3.5, w = 6.25)
 ```
 
 Or, more generally, the covariance matrix is:
@@ -283,7 +293,7 @@ tv_df <- data.frame(
   labs(x = "PCA dimensions included", y = "Total variation explained") +
   theme_minimal())
 
-ggsave("tv-plot.png", plot = tv_plot, h = 4, w = 6.25)
+ggsave("tv-plot.png", plot = tv_plot, h = 3, w = 6.25)
 ```
 
 Based on Figure \@ref(fig:scree) with 5 dimensions included, we can explain `r round(100 * filter(tv_df, n == 5) %>% pull(tv), 1)`% of the total variation.
@@ -340,7 +350,7 @@ C_s_plot <- reshape2::melt(as.matrix(C_s)) %>%
 
 (reduced_rank_plot <- {C_plot + theme(legend.position = "none") + labs(subtitle = "Full rank")} + {C_s_plot + labs(subtitle = "Reduced rank")})
 
-ggsave("reduced-rank-plot.png", reduced_rank_plot, h = 4, w = 6.25)
+ggsave("reduced-rank-plot.png", reduced_rank_plot, h = 3.5, w = 6.25)
 ```
 
 Create a function to do the PCA rescaling, which also adapts according to the mean and reweights the nodes:

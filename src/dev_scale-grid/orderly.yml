@@ -16,6 +16,7 @@ artefacts:
   - data:
       description: Plots
       filenames:
+        - marginal-sd.png
         - tv-plot.png
         - reduced-rank-plot.png
 
