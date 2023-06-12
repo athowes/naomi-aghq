@@ -6,6 +6,7 @@ sources:
 resources:
   - scale-grid.Rmd
   - naomi_simple.cpp
+  - tmb.rds
 
 artefacts:
   - data:
@@ -35,8 +36,8 @@ packages:
   - naomi
   - patchwork
 
-depends:
-  - naomi-simple_fit:
-      id: latest(parameter:tmb == TRUE)
-      use:
-        depends/tmb.rds: out.rds
+# depends:
+#   - naomi-simple_fit:
+#       id: latest(parameter:tmb == TRUE)
+#       use:
+#         depends/tmb.rds: out.rds

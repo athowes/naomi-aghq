@@ -26,10 +26,11 @@ This is quick to do and allows us to get a model we can play with to figure out 
 In particular we obtain the mode and Hessian at the mode of the Laplace approximation to the hyperparameter marginal posterior.
 
 ```{r, class.source = 'fold-hide'}
-compile("naomi_simple.cpp")
-dyn.load(dynlib("naomi_simple"))
+TMB::compile("naomi_simple.cpp")
+dyn.load(TMB::dynlib("naomi_simple"))
 
-tmb <- readRDS("depends/tmb.rds")
+# tmb <- readRDS("depends/tmb.rds")
+tmb <- readRDS("tmb.rds")
 fit <- tmb$fit
 ```
 
@@ -47,7 +48,8 @@ Including `r data.frame(hypers) %>% filter(str_detect(hypers, "^logit_")) %>% nr
 We can calculate their posterior standard deviations using the delta method via `TMB::sdreport` as follows:
 
 ```{r}
-sd_out <- sdreport(obj = fit$obj, par.fixed = fit$par, getJointPrecision = TRUE)
+testrun <- parallel::mcparallel({TMB::sdreport(obj = fit$obj, par.fixed = fit$par, getJointPrecision = TRUE)})
+sd_out <- parallel::mccollect(testrun, wait = TRUE, timeout = 0, intermediate = FALSE)
 ```
 
 The marginal standard deviations for each of the hyperparameters are:

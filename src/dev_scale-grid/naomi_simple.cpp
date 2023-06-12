@@ -1,7 +1,6 @@
 // #define TMB_LIB_INIT R_init_naomi_simple
 #include <TMB.hpp>
 
-
 /** Log posterior density of BYM2 with INLA conditional parameterisation
  *
  * Calculate the joint LPDF of parameter vector (x, u) where
@@ -141,7 +140,6 @@ Type objective_function<Type>::operator() ()
   DATA_SPARSE_MATRIX(Xart_idx);
   DATA_SPARSE_MATRIX(Xart_gamma);
 
-
   // Incidence model
   DATA_SCALAR(omega);
   DATA_SCALAR(OmegaT0);
@@ -190,7 +188,7 @@ Type objective_function<Type>::operator() ()
 
   PARAMETER(logit_phi_rho_x);
   Type phi_rho_x(invlogit(logit_phi_rho_x));
-  val -= log(phi_rho_x) +  log(1 - phi_rho_x);  // change of variables: logit_phi_x ->v phi_x
+  val -= log(phi_rho_x) +  log(1 - phi_rho_x);  // change of variables
   val -= dbeta(phi_rho_x, Type(0.5), Type(0.5), true);
 
   PARAMETER(log_sigma_rho_x);
@@ -199,7 +197,7 @@ Type objective_function<Type>::operator() ()
 
   PARAMETER(logit_phi_rho_xs);
   Type phi_rho_xs(invlogit(logit_phi_rho_xs));
-  val -= log(phi_rho_xs) +  log(1 - phi_rho_xs);  // change of variables: logit_phi_xs -> phi_xs
+  val -= log(phi_rho_xs) +  log(1 - phi_rho_xs);  // change of variables
   val -= dbeta(phi_rho_xs, Type(0.5), Type(0.5), true);
 
   PARAMETER(log_sigma_rho_xs);
@@ -207,7 +205,7 @@ Type objective_function<Type>::operator() ()
   val -= dnorm(sigma_rho_xs, Type(0.0), Type(2.5), true) + log_sigma_rho_xs;
 
   PARAMETER(logit_phi_rho_a);
-  val -= dnorm(logit_phi_rho_a, Type(0.0), Type(2.582), true);  // INLA default
+  val -= dnorm(logit_phi_rho_a, Type(0.0), Type(2.582), true);  // R-INLA default
   Type phi_rho_a(2.0 * invlogit(logit_phi_rho_a) - 1.0);
 
   PARAMETER(log_sigma_rho_a);
@@ -215,7 +213,7 @@ Type objective_function<Type>::operator() ()
   val -= dnorm(sigma_rho_a, Type(0.0), Type(2.5), true) + log_sigma_rho_a;
 
   PARAMETER(logit_phi_rho_as);
-  val -= dnorm(logit_phi_rho_as, Type(0.0), Type(2.582), true);  // INLA default
+  val -= dnorm(logit_phi_rho_as, Type(0.0), Type(2.582), true);  // R-INLA default
   Type phi_rho_as(2.0 * invlogit(logit_phi_rho_as) - 1.0);
 
   PARAMETER(log_sigma_rho_as);
@@ -230,14 +228,16 @@ Type objective_function<Type>::operator() ()
 
   PARAMETER_VECTOR(u_rho_x);
   PARAMETER_VECTOR(us_rho_x);
-  val -= dnorm(sum(us_rho_x), Type(0.0), Type(0.001) * us_rho_x.size(), true); // soft sum-to-zero constraint
+  // soft sum-to-zero constraint
+  val -= dnorm(sum(us_rho_x), Type(0.0), Type(0.001) * us_rho_x.size(), true);
   val -= bym2_conditional_lpdf(u_rho_x, us_rho_x, sigma_rho_x, phi_rho_x, Q_x);
 
 
   PARAMETER_VECTOR(u_rho_xs);
   PARAMETER_VECTOR(us_rho_xs);
   if (u_rho_xs.size()) {
-    val -= dnorm(sum(us_rho_xs), Type(0.0), Type(0.001) * us_rho_xs.size(), true); // soft sum-to-zero constraint
+    // soft sum-to-zero constraint
+    val -= dnorm(sum(us_rho_xs), Type(0.0), Type(0.001) * us_rho_xs.size(), true);
     val -= bym2_conditional_lpdf(u_rho_xs, us_rho_xs, sigma_rho_xs, phi_rho_xs, Q_x);
   }
 
@@ -251,18 +251,18 @@ Type objective_function<Type>::operator() ()
 
   PARAMETER_VECTOR(u_rho_xa);
   if (u_rho_xa.size() > 0) {
-    val -= dnorm(sum(u_rho_xa), Type(0.0), sigma_rho_xa * Type(0.001) * u_rho_xa.size(), true); // soft sum-to-zero constraint
+    // soft sum-to-zero constraint
+    val -= dnorm(sum(u_rho_xa), Type(0.0), sigma_rho_xa * Type(0.001) * u_rho_xa.size(), true);
 
     val -= -(Q_x.rows() - Q_x_rankdef) * log_sigma_rho_xa -
       0.5 / (sigma_rho_xa * sigma_rho_xa) * (u_rho_xa * (Q_x * u_rho_xa)).sum();
   }
 
-
   // * ART coverage model *
 
   PARAMETER(logit_phi_alpha_x);
   Type phi_alpha_x(invlogit(logit_phi_alpha_x));
-  val -= log(phi_alpha_x) +  log(1 - phi_alpha_x);  // change of variables: logit_phi_x -> phi_x
+  val -= log(phi_alpha_x) +  log(1 - phi_alpha_x);  // change of variables
   val -= dbeta(phi_alpha_x, Type(0.5), Type(0.5), true);
 
   PARAMETER(log_sigma_alpha_x);
@@ -271,7 +271,7 @@ Type objective_function<Type>::operator() ()
 
   PARAMETER(logit_phi_alpha_xs);
   Type phi_alpha_xs(invlogit(logit_phi_alpha_xs));
-  val -= log(phi_alpha_xs) +  log(1 - phi_alpha_xs);  // change of variables: logit_phi_xs -> phi_xs
+  val -= log(phi_alpha_xs) +  log(1 - phi_alpha_xs);  // change of variables
   val -= dbeta(phi_alpha_xs, Type(0.5), Type(0.5), true);
 
   PARAMETER(log_sigma_alpha_xs);
@@ -279,7 +279,7 @@ Type objective_function<Type>::operator() ()
   val -= dnorm(sigma_alpha_xs, Type(0.0), Type(2.5), true) + log_sigma_alpha_xs;
 
   PARAMETER(logit_phi_alpha_a);
-  val -= dnorm(logit_phi_alpha_a, Type(0.0), Type(2.582), true);  // INLA default
+  val -= dnorm(logit_phi_alpha_a, Type(0.0), Type(2.582), true);  // R-INLA default
   Type phi_alpha_a(2.0 * invlogit(logit_phi_alpha_a) - 1.0);
 
   PARAMETER(log_sigma_alpha_a);
@@ -287,7 +287,7 @@ Type objective_function<Type>::operator() ()
   val -= dnorm(sigma_alpha_a, Type(0.0), Type(2.5), true) + log_sigma_alpha_a;
 
   PARAMETER(logit_phi_alpha_as);
-  val -= dnorm(logit_phi_alpha_as, Type(0.0), Type(2.582), true);  // INLA default
+  val -= dnorm(logit_phi_alpha_as, Type(0.0), Type(2.582), true);  // R-INLA default
   Type phi_alpha_as(2.0 * invlogit(logit_phi_alpha_as) - 1.0);
 
   PARAMETER(log_sigma_alpha_as);
@@ -300,13 +300,15 @@ Type objective_function<Type>::operator() ()
 
   PARAMETER_VECTOR(u_alpha_x);
   PARAMETER_VECTOR(us_alpha_x);
-  val -= dnorm(sum(us_alpha_x), Type(0.0), Type(0.001) * us_alpha_x.size(), true); // soft sum-to-zero constraint
+  // soft sum-to-zero constraint
+  val -= dnorm(sum(us_alpha_x), Type(0.0), Type(0.001) * us_alpha_x.size(), true);
   val -= bym2_conditional_lpdf(u_alpha_x, us_alpha_x, sigma_alpha_x, phi_alpha_x, Q_x);
 
   PARAMETER_VECTOR(u_alpha_xs);
   PARAMETER_VECTOR(us_alpha_xs);
   if (u_alpha_xs.size()) {
-    val -= dnorm(sum(us_alpha_xs), Type(0.0), Type(0.001) * us_alpha_xs.size(), true); // soft sum-to-zero constraint
+    // soft sum-to-zero constraint
+    val -= dnorm(sum(us_alpha_xs), Type(0.0), Type(0.001) * us_alpha_xs.size(), true);
     val -= bym2_conditional_lpdf(u_alpha_xs, us_alpha_xs, sigma_alpha_xs, phi_alpha_xs, Q_x);
   }
 
@@ -320,7 +322,6 @@ Type objective_function<Type>::operator() ()
 
   PARAMETER_VECTOR(u_alpha_xa);
   val -= dnorm(u_alpha_xa, 0.0, sigma_alpha_xa, true).sum();
-
 
   // * HIV incidence model *
 
@@ -338,7 +339,6 @@ Type objective_function<Type>::operator() ()
 
   PARAMETER_VECTOR(ui_lambda_x);
   val -= sum(dnorm(ui_lambda_x, 0.0, sigma_lambda_x, true));
-
 
   // * ANC testing model *
 
@@ -366,7 +366,6 @@ Type objective_function<Type>::operator() ()
 
   PARAMETER_VECTOR(log_or_gamma);
   val -= dnorm(log_or_gamma, 0.0, sigma_or_gamma, true).sum();
-
 
   // *** Process model ***
 
@@ -396,7 +395,6 @@ Type objective_function<Type>::operator() ()
     Z_alpha_a * u_alpha_a +
     Z_alpha_as * u_alpha_as +
     Z_alpha_xa * u_alpha_xa);
-
 
   vector<Type> rho_t1(invlogit(mu_rho));
   vector<Type> alpha_t1(invlogit(mu_alpha));
@@ -439,7 +437,6 @@ Type objective_function<Type>::operator() ()
   vector<Type> pR(1.0 - exp(-(pR_lambda_obs_t1 * (1.0 - pR_rho_obs_t1) / pR_rho_obs_t1 *
     (OmegaT - betaT * ritaT) + betaT)));
   val -= dbinom(x_recent, n_recent, pR, true).sum();
-
 
   // ANC prevalence and ART coverage model
   // Note: currently this operates on the entire population vector, producing
@@ -567,17 +564,15 @@ Type objective_function<Type>::operator() ()
   }
 
   if(report_likelihood){
-
     REPORT(hhs_prev_ll);
     REPORT(hhs_artcov_ll);
     REPORT(artnum_t1_ll);
     REPORT(anc_rho_obs_t1_ll);
-
   }
 
-  // Adam addition to include reporting of all latent field and hyper-parameter elements
+  // Reporting of all latent field and hyper-parameter elements
 
-  // Hyper-parameter
+  // Hyper-parameters
   REPORT(logit_phi_rho_x)
   REPORT(log_sigma_rho_x)
   REPORT(logit_phi_rho_xs)
