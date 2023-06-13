@@ -67,11 +67,8 @@ output:
 <!-- Remaining things to add, and or desiderata: -->
 
 <!-- * [ ] Tying together Naomi model within LGM / ELGM mathematical notation -->
-<!-- * [ ] Create DAG representing Naomi model. This would likely go into the appenxix, so use that notation -->
-<!-- * [ ] Rewrite section on why Naomi is an ELGM, drawing from slides -->
-<!-- * [ ] Write section on Laplace approximation -->
-<!-- * [ ] Write section on AGHQ, tying together connection to Laplace for k = 1 -->
-<!-- * [ ] Move algorithm to algorithm environment -->
+<!-- * [ ] Create DAG representing Naomi model. This would likely go into the appendix, so use that notation -->
+<!-- * [ ] Tie together connection to Laplace for AGHQ k = 1 -->
 
 <!-- Seth notes that Naomi is a spatial evidence synthesis model used to produce district- level HIV epidemic indicators in sub-Saharan Africa is not the right topic sentence for the abstract -->
 <!-- Better to lead with something about the inference method? -->
@@ -97,34 +94,48 @@ knitr::opts_chunk$set(
 
 # Introduction
 
-To mount an effective public health response to the HIV epidemic, it is crucial to have accurate, timely estimates of HIV indicators at the geographic level at which health systems are planned and delivered.
-However, producing these estimates is challenging, in large part due to limitations of the available data sources.
-Nationally-representative household surveys provide the most statistically reliable data, but due to their high cost, in most countries they are conducted only every five years or so, with limited sample size at the district level.
-Other data sources, such as routine health surveillance of antenatal care (ANC) clinics, are available closer to real-time but based on limited or non-representative samples of the population.
-To address these challenges, the Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV indicators at a district-level.
-Modelling multiple data sources jointly has many benefits, including mitigating the limitations of any single source, increasing statistical power, and prompting investigation into any conflicts of information between sources.
-Software (\url{https://naomi.unaids.org}) has been developed for Naomi, allowing countries to input their data and interactively generate estimates in a yearly process supported by UNAIDS.
-Creation of estimates by country teams, rather than external agencies, is a noteworthy feature of the HIV response.
-Drawing on expertise closest to the data being modelled improves the accuracy of the process, as well as strengthening trust and ownership of the resulting estimates.
+Accurate estimates of HIV indicators are crucial for mounting an effective public health response to the HIV epidemic.
+These estimates should be timely, and at a geographic level at which health systems are planned and delivered.
+Producing granular estimates is challenging, in large part due to limitations of the available data sources.
+Nationally-representative household surveys provide the most statistically reliable data, but are only conducted every five years or so in most countries, with limited sample size at the district level, due to their high costs to run.
+Other data sources, such as routine health surveillance of antenatal care (ANC) clinics, are available in closer to real-time, but based on limited or non-representative samples of the population.
+To address these challenges, the Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV indicators at a district-level, by age and sex.
+Modelling multiple data sources jointly mitigates the limitations of any single source, increases statistical power, and can prompts investigation into any conflicts of information.
 
-The complexity of Naomi, in combination with practical requirements, present a difficult Bayesian inference problem.
-First, due to dependence of observations on multiple structured additive predictors, Naomi falls into the class of extended latent Gaussian models [ELGMs; @stringer2022fast].
-Further, as well as hundreds of latent field parameters, Naomi has >20 hyperparameters: substantially more than the small number typically required for use of integrated nested Laplace approximations [@rue2009approximate].
-Second, any inferential strategy must be fast enough for interactive review and iteration of modelling results, as well as easy to run in production across a range of countries.
-In this setting, Markov chain Monte Carlo (MCMC) approaches are prohibitively slow due to the scale of the model and challenging features of its posterior geometry [@neal2003slice].
+Software (\url{https://naomi.unaids.org}) has been developed for Naomi, allowing countries to input their data and interactively generate estimates during workshops as a part of a yearly process supported by UNAIDS.
+Creation of estimates by country teams, rather than external agencies or researchers, is an important and distinctive feature of the HIV response.
+Drawing on expertise closest to the data being modelled improves the accuracy of the process, as well as strengthening trust in the resulting estimates, creating a virtuous cycle of data quality, use and ownership.
 
-Inference is currently conducted using an empirical Bayes (EB) approach, with a Gaussian approximation to the latent field, via the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
-Owing to its speed and flexibility, `TMB` is gaining popularity more broadly in spatial statistics [@osgood2022statistical].
+Naomi is a complex model, and as such presents a challenging Bayesian inference problem.
+As well as hundreds of latent field parameters, Naomi has >20 hyperparameters: substantially more than the small number typically required for use of integrated nested Laplace approximations [INLA; @rue2009approximate].
+Moreover, observations depend on multiple structured additive predictors, such that Naomi falls into the class of extended latent Gaussian models [ELGMs; @stringer2022fast].
+As such, the model is not easily specified by any software which requires a formula interface.
+
+To allow for interactive review and iteration of model results, the inference procedure should be fast for workshop participants to fit the model on a laptop.
+Due to the scale of the model and features of its posterior geometry [@neal2003slice], Markov chain Monte Carlo (MCMC) approaches are therefore prohibitively slow.
+Furthermore, it is preferable that use of the inference method across countries to be automatic, and not require substantial statistical expertise, as would be the case for monitoring MCMC convergence and suitability.
+
+To meet these requirements, inference is currently conducted using an empirical Bayes (EB) approach, with a Gaussian approximation to the latent field, via the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
+Owing to its speed and flexibility, `TMB` is gaining popularity more broadly, particularly in spatial statistics [@osgood2022statistical].
 Inference in `TMB` is based on optimisation of a \textsf{C++} template function, with the option available to use a Laplace approximation to integrate out any subset of the parameters.
-In the Naomi model, this subset is the high-dimensional latent field, leaving the smaller number of hyperparameters.
-`TMB` uses automatic differentiation [@baydin2017automatic] to calculate the derivatives required for numerical optimisation routines and the Laplace approximation, Taking tnspiration from the AD Model Builder package [@fournier2012ad].
-Although the approach of `TMB` is fast, within the empirical Bayes framework hyperparameter uncertainty is not properly accounted for in the latent field posterior.
-This consideration motivates us to look for an approach closer to full Bayesian inference, which is also flexible enough to be compatible with the model, as well as fast enough to be run in production by country teams.
+For the Naomi model, this subset is the high-dimensional latent field, leaving a smaller number of hyperparameters.
+`TMB` uses automatic differentiation [@baydin2017automatic] to calculate the derivatives required for numerical optimisation routines and the Laplace approximation, Taking inspiration from the AD Model Builder package [@fournier2012ad].
 
+Although the approach of `TMB` is fast, within the empirical Bayes framework hyperparameter uncertainty is not properly accounted for in the latent field posterior.
+This consideration motivated us to look for an approach closer to full Bayesian inference, which is also flexible enough to be compatible with the model, as well as fast enough to be run in production by country teams.
 To obtain fast, accurate Bayesian inferences for the Naomi model we developed an inference method which extends adaptive Gauss-Hermite quadrature to handle many hyperparameters.
-We used principal components analysis to create a quadrature grid which is computationally feasible.
+We used principal components analysis to create a computationally feasible quadrature grid.
 Our method is implemented as an extension of the `aghq` \textsf{R} package [@stringer2021implementing].
 As `aghq` is designed to naturally interface with `TMB`, use is simple when provided a \textsf{C++} user template for the log-posterior.
+
+Other work aiming to extend the scope of the INLA method includes the `inlabru` \textsc{R} package [@bachl2019inlabru], INLA within MCMC [@gomez2018markov], and importance sampling with INLA [@berild2022importance], all of which leverage the `R-INLA` \textsc{R} package [@martins2013bayesian].
+`inlabru` approximates non-linear predictors using linearisation, which involves making iterative calls to `R-INLA`.
+<!-- See https://inlabru-org.github.io/inlabru/articles/method.html -->
+<!-- Want to say in particular what the class of models that `inlabru` allows you to fit are -->
+<!-- Don't know the answer to this yet, but asking Janine Illian I'm told you don't have to call R-INLA that many times -->
+<!-- I think it'd obviously depend on the exact details of the problem at hand -->
+INLA within MCMC and importance sampling with INLA are suitable for models which are LGMs conditional on some subset of the parameters being fixed.
+<!-- It would or would not be possible to fit the Naomi model in these frameworks. -->
 
 The remainder of this paper is organised as follows.
 Section \ref{sec:naomi} outlines the version of the Naomi model that we consider in this paper, and  Section \ref{sec:elgm} describes how it falls within the ELGM framework.
@@ -135,7 +146,7 @@ Finally, in Section \ref{sec:conclusions} we discuss our conclusions, how we ant
 
 # Simplified Naomi model\label{sec:naomi}
 
-@eaton2021naomi specify a joint model linking three small-area estimation models, defined over three time points.
+@eaton2021naomi specify a joint model linking three small-area estimation models.
 We consider a simplified version defined only at the time of the most recent household survey with HIV testing, omitting nowcasting and temporal projection, as these time points involve limited inferences.
 An overview of the simplified model is given below, and a more complete mathematical description is provided in Appendix S1.
 
@@ -186,17 +197,14 @@ HIV prevalence $\rho^\text{ANC}_i$ and ART coverage $\alpha^\text{ANC}_i$ among 
 \text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho_i) + \eta^{\rho^\text{ANC}}_i, \\
 \text{logit}(\alpha^\text{ANC}_i) &= \text{logit}(\alpha_i) + \eta^{\alpha^\text{ANC}}_i.
 \end{align*}
-These processes are informed by likelihoods specified for aggregate ANC data from the year of the most recent survey.
-In particular
-
-1. $x^\text{ANC}_I$, the number of ANC clients with ascertained status,
-2. $y^\text{ANC}_I$, the number of those with positive status, and
-3. $z^\text{ANC}_I$, the number of those already on ART prior to their first ANC visit.
-
+These processes are informed by likelihoods specified for aggregate ANC data from the year of the most recent survey:
+$m^{\rho^\text{ANC}}_I$, the number of ANC clients with ascertained status,
+$y^{\rho^\text{ANC}}_I$, the number of those with positive status, and
+$y^{\alpha^\text{ANC}}_I$, the number of those already on ART prior to their first ANC visit.
 We use the binomial likelihoods
 \begin{align*}
-y^\text{ANC}_I &\sim \text{Bin}(x^\text{ANC}_I, \rho^\text{ANC}_{I}), \\
-z^\text{ANC}_I &\sim \text{Bin}(y^\text{ANC}_I, \alpha^\text{ANC}_{I}),
+y^{\rho^\text{ANC}}_I &\sim \text{Bin}(m^{\rho^\text{ANC}}_I, \rho^\text{ANC}_{I}), \\
+y^{\alpha^\text{ANC}}_I &\sim \text{Bin}(y^{\rho^\text{ANC}}_I, \alpha^\text{ANC}_{I}),
 \end{align*}
 where, again, we use weighted aggregates
 \begin{equation*}
@@ -208,18 +216,18 @@ with $\Psi_i$ the number of pregnant women, which we assume to be fixed.
 ## ART attendance component \label{sec:art}
 
 People living with HIV sometimes choose to access ART services outside of the district that they reside in.
-To account for this, we use multinomial logistic regression to model the probabilities of accessing services outside the home district.
-Let $\gamma_{x, x'}$ be the probability that a person on ART residing in district $x$ receives ART in district $x'$, and assume $\gamma_{x, x'} = 0$ unless $x = x'$ or the two districts are neighbouring, denoted by $x \sim x'$.
+To account for this, we use multinomial logistic regressions to model the probabilities of accessing services outside the home district.
+Briefly, let $\gamma_{x, x'}$ be the probability that a person on ART residing in district $x$ receives ART in district $x'$, and assume $\gamma_{x, x'} = 0$ unless $x = x'$ or the two districts are neighbouring, denoted by $x \sim x'$.
 The log-odds $\tilde \gamma_{x, x'} = \text{logit}(\gamma_{x, x'})$ are modelled using a structured additive predictor $\eta_x^{\tilde \gamma}$ which only depends on the home district $x$, such that travel to each neighbouring district, for all age-sex strata, is equally likely.
-We then model aggregate ART attendance data $\dot A_I$ using a Gaussian approximation to a sum of binomials.
+We then model aggregate ART attendance data $y^{\text{ART}}_I$ using a Gaussian approximation to a sum of binomials.
 This sum is both by over $i \in I$ and by number of ART clients travelling from district $x'$ to $x$.
 More details regarding this part of the model are provided in Appendix S1.
 
 ## Collected together
 
-Let $\mathbf{y} = (y^{\hat \theta}_I)$ for $\theta \in \{\rho, \alpha, \kappa\}$ and $I \in \mathcal{I}$ be the vector of observations.
-Attempt to write fully the Naomi model in a small number of collected together equations here.
-The ANC testing component and ART attendance component might be hard to do this for.
+Let $\mathbf{y} = (y^{\theta}_I)$ for $\theta \in \{\hat \rho, \hat \alpha, \hat \kappa, \rho^\text{ANC}, \alpha^\text{ANC}, \text{ART}\}$ and $I \in \mathcal{I}$ be a concatenated vector of observations.
+Here, we write the Naomi model fully in a small number of equations.
+The ANC testing component and ART attendance component may be challenging.
 
 # Extended Latent Gaussian models\label{sec:elgm}
 
@@ -295,9 +303,9 @@ Then the Laplace approximation to $p(\btheta, \y)$ is given by
 \begin{equation}
 \tilde p_\texttt{LA}(\btheta, \y) = \frac{p(\y, \x, \btheta)}{\tilde p_\texttt{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat \x(\btheta)}. \label{eq:la}
 \end{equation}
-Inference in TMB proceeds by optimising Equation \ref{eq:la} to obtain $\hat{\btheta}_\texttt{LA} = \argmax_{\btheta} \tilde p_\texttt{LA}(\btheta, \y)$.
-Latent field joint and marginal inferences are then direct from the Gaussian approximation $\tilde p_\texttt{G}(\x \, | \, \hat{\btheta}_\texttt{LA}, \y)$.
-Hyperparameter inferences are obtained according to method which should be specified here.
+Inference in TMB proceeds by optimising Equation \ref{eq:la} using a gradient-based routine to obtain $\hat{\btheta}_\texttt{LA} = \argmax_{\btheta} \tilde p_\texttt{LA}(\btheta, \y)$.
+Latent field joint and marginal inferences then follow directly from the Gaussian approximation $\tilde p_\texttt{G}(\x \, | \, \hat{\btheta}_\texttt{LA}, \y)$.
+Hyperparameter inferences are obtained according to some method which should be specified here.
 
 ## Gauss-Hermite quadrature
 
@@ -314,13 +322,13 @@ Multivariate GHQ rules are typically obtained using the product rule such that $
 ## Adaptive quadrature
 
 In adaptive Gauss-Hermite quadrature [AHGQ; @naylor1982applications; @tierney1986accurate] the nodes are shifted and rotated to suit the particular integrand.
-Repositioning the nodes is especially important in statistical quadrature problems, where the integral depends on data $\y$ such that regions of high density cannot reasonably be known in advance.
-To obtain an AGHQ estimate of Equation \ref{eq:quad}, let $\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA}) = - \partial^2 \log p_\texttt{LA}(\hat{\btheta}_\texttt{LA}, \y)$ be the curvature at the mode $\hat{\btheta}_\texttt{LA}$ and $[\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})]^{-1} = \hat{\mathbf{P}}_\texttt{LA} {\hat{\mathbf{P}}_\texttt{LA}}^\top$ a matrix decomposition of the inverse curvature, then
+Repositioning the nodes is especially important in statistical quadrature problems, where the integral depends on data $\y$ such that regions of high density are not known in advance.
+To obtain an AGHQ estimate of Equation \ref{eq:quad}, let $\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA}) = - \partial^2 \log p_\texttt{LA}(\hat{\btheta}_\texttt{LA}, \y)$ be the curvature at the mode $\hat{\btheta}_\texttt{LA}$ and $[\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})]^{-1} = \hat{\mathbf{P}}_\texttt{LA} {\hat{\mathbf{P}}_\texttt{LA}}^\top$ be a matrix decomposition of the inverse curvature, then
 \begin{equation}
 \tilde p_\texttt{AGHQ}(\y) = |\hat{\mathbf{P}}_\texttt{LA}|\sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\texttt{LA}(\hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}, \y) \omega(\z). \label{eq:aghq}
 \end{equation}
 That is, the unadapted nodes have been shifted by the mode and rotated by a decomposition of the inverse curvature such that $\z \mapsto \hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}$.
-Two options for the particular matrix decomposition are the Cholesky decomposition $\hat{\mathbf{P}}_\texttt{LA} = \hat{\mathbf{L}}_\texttt{LA}$ and the spectral decomposition $\hat{\mathbf{P}}_\texttt{LA} = \hat{\mathbf{E}}_\texttt{LA} \hat{\mathbf{\Lambda}}_\texttt{LA}^{1/2}$ [@jackel2005note].
+Two alternatives for the decomposition are the Cholesky decomposition $\hat{\mathbf{P}}_\texttt{LA} = \hat{\mathbf{L}}_\texttt{LA}$ and the spectral decomposition $\hat{\mathbf{P}}_\texttt{LA} = \hat{\mathbf{E}}_\texttt{LA} \hat{\mathbf{\Lambda}}_\texttt{LA}^{1/2}$ [@jackel2005note].
 Figure \ref{fig:aghq} demonstrates GHQ, as well as adaption for these two choices of matrix decomposition.
 Equation \ref{eq:aghq} may then be used to normalise the Laplace approximation
 \begin{equation*}
@@ -346,7 +354,7 @@ grid <- expand.grid(
   theta2 = seq(-2, 5, length.out = 700)
 )
 
-ground_truth <- cbind(grid, pdf = obj(grid))
+ground_truth <- cbind(grid, pdf = apply(grid, 1, obj))
 
 plot0 <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
   geom_contour(col = "lightgrey") +
