@@ -22,6 +22,7 @@ resources:
   - imsart.cls
   - imsart.sty
   - naomi_simple.cpp
+  - 2d.cpp
 
 packages:
   - rmarkdown

@@ -342,23 +342,36 @@ To obtain inferences for the latent field (Equation \ref{eq:inla1}) the adapted 
 Samples from this mixture of Gaussians may be obtained by drawing a node $\z$ with multinomial probabilities $\lambda(\z) = |\hat{\mathbf{P}}_\texttt{LA}| p_\texttt{LA}(\hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA} \, | \, \y) \omega(\z)$, then drawing from the Gaussian $\tilde p_\texttt{G}(\x \, | \, \hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}, \y)$.
 
 ```{r aghq, fig.cap="The Gauss-Hermite quadrature nodes $\\z \\in \\mathcal{Q}(2, 3)$ for this two dimensional integral with three nodes per dimension are adapted based on the mean and covariance matrix of the target via the Cholesky decomposition or spectral decompostion of the inverse curvature at the mode."}
-mu <- c(1, 1.5)
-cov <- matrix(c(2, 1, 1, 1), ncol = 2)
+TMB::compile("2d.cpp")
+dyn.load(TMB::dynlib("2d"))
 
-obj <- function(theta) {
-  mvtnorm::dmvnorm(theta, mean = mu, sigma = cov)
-}
+obj <- TMB::MakeADFun(data = list(), parameters = list(theta1 = 0, theta2 = 0), DLL = "2d")
 
 grid <- expand.grid(
-  theta1 = seq(-2, 5, length.out = 700),
-  theta2 = seq(-2, 5, length.out = 700)
+  theta1 = seq(-5, 5, length.out = 400),
+  theta2 = seq(-5, 5, length.out = 400)
 )
 
-ground_truth <- cbind(grid, pdf = apply(grid, 1, obj))
+ground_truth <- cbind(grid, pdf = apply(grid, 1, function(x) exp(-1 * obj$fn(x))))
+
+opt <- nlminb(
+  start = obj$par,
+  objective = obj$fn,
+  gradient = obj$gr,
+  control = list(iter.max = 1000, trace = 0)
+)
+
+sd_out <- TMB::sdreport(
+  obj,
+  par.fixed = opt$par,
+  getJointPrecision = TRUE
+)
+
+mu <- opt$par
+cov <- as.matrix(sd_out$cov.fixed)
 
 plot0 <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
   geom_contour(col = "lightgrey") +
-  coord_fixed(xlim = c(-2, 4.5), ylim = c(-2, 4.5), ratio = 1) +
   labs(x = "", y = "") +
   theme_minimal() +
   guides(size = FALSE) +
