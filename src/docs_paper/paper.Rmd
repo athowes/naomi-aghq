@@ -173,15 +173,17 @@ For $\theta \in \{\rho, \alpha, \kappa\}$ let
 \begin{equation*}
 \hat \theta_I = \frac{\sum_j w_j \cdot\theta_j}{\sum_j w_j}
 \end{equation*}
-be weighted, aggregate survey observations, where $j$ indexes individuals across all strata $i \in I$ and $w_j$ are design weights.
-The observed number of outcomes are $y^{\hat \theta}_{I} = m^{\hat \theta}_{I} \cdot \hat \theta_{I}$ where
+be weighted, aggregate survey observations, with individual responses $\theta_j \in \{0, 1\}$ and design weights $w_j$.
+The index $j$ is across all individuals in strata $i \in I$ within the relevant denominator i.e. for ART coverage, only those individuals who are HIV positive.
+<!-- Relevant means e.g. for alpha it's only the HIV positive individuals -->
+The observed number of outcomes are then $y^{\theta}_{I} = m^{\theta}_{I} \cdot \hat \theta_{I}$ where
 \begin{equation*}
-m^{\hat \theta}_I = \frac{\left(\sum_j w_j\right)^2}{\sum_j w_j^2},
+m^{\theta}_I = \frac{\left(\sum_j w_j\right)^2}{\sum_j w_j^2},
 \end{equation*}
 is the Kish effective sample size [@kish1965survey].
 We use a binomial working likelihood
 \begin{equation*}
-y^{\hat \theta}_{I} \sim \text{xBin}(m^{\hat \theta}_{I}, \theta_{I})
+y^{\theta}_{I} \sim \text{xBin}(m^{\theta}_{I}, \theta_{I})
 \end{equation*}
 to model these aggregate observations, where $\theta_{I}$ are the following weighted aggregates
 \begin{equation*}
@@ -197,16 +199,13 @@ HIV prevalence $\rho^\text{ANC}_i$ and ART coverage $\alpha^\text{ANC}_i$ among 
 \text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho_i) + \eta^{\rho^\text{ANC}}_i, \\
 \text{logit}(\alpha^\text{ANC}_i) &= \text{logit}(\alpha_i) + \eta^{\alpha^\text{ANC}}_i.
 \end{align*}
-These processes are informed by likelihoods specified for aggregate ANC data from the year of the most recent survey:
-$m^{\rho^\text{ANC}}_I$, the number of ANC clients with ascertained status,
-$y^{\rho^\text{ANC}}_I$, the number of those with positive status, and
-$y^{\alpha^\text{ANC}}_I$, the number of those already on ART prior to their first ANC visit.
-We use the binomial likelihoods
+These processes are informed by likelihoods specified for aggregate ANC data from the year of the most recent survey.
+Of the number of ANC clients with ascertained status $m^{\rho^\text{ANC}}_I$, we model the number of those with positive status $y^{\rho^\text{ANC}}_I$ and the number of those already on ART prior to their first ANC visit $y^{\alpha^\text{ANC}}_I$ using nested binomial likelihoods
 \begin{align*}
 y^{\rho^\text{ANC}}_I &\sim \text{Bin}(m^{\rho^\text{ANC}}_I, \rho^\text{ANC}_{I}), \\
 y^{\alpha^\text{ANC}}_I &\sim \text{Bin}(y^{\rho^\text{ANC}}_I, \alpha^\text{ANC}_{I}),
 \end{align*}
-where, again, we use weighted aggregates
+As above, we use weighted aggregates
 \begin{equation*}
 \rho^\text{ANC}_{I} = \frac{\sum_{i \in I} \Psi_i \rho_i^\text{ANC}}{\sum_{i \in I} \Psi_i}, \quad
 \alpha^\text{ANC}_{I} = \frac{\sum_{i \in I} \Psi_i \rho_i^\text{ANC} \alpha^\text{ANC}_i}{\sum_{i \in I} \Psi_i \rho_i^\text{ANC}},
@@ -219,15 +218,14 @@ People living with HIV sometimes choose to access ART services outside of the di
 To account for this, we use multinomial logistic regressions to model the probabilities of accessing services outside the home district.
 Briefly, let $\gamma_{x, x'}$ be the probability that a person on ART residing in district $x$ receives ART in district $x'$, and assume $\gamma_{x, x'} = 0$ unless $x = x'$ or the two districts are neighbouring, denoted by $x \sim x'$.
 The log-odds $\tilde \gamma_{x, x'} = \text{logit}(\gamma_{x, x'})$ are modelled using a structured additive predictor $\eta_x^{\tilde \gamma}$ which only depends on the home district $x$, such that travel to each neighbouring district, for all age-sex strata, is equally likely.
-We then model aggregate ART attendance data $y^{\text{ART}}_I$ using a Gaussian approximation to a sum of binomials.
-This sum is both by over $i \in I$ and by number of ART clients travelling from district $x'$ to $x$.
+We then model aggregate ART attendance data $y^{N^\text{ART}}_I$ using a Gaussian approximation to a sum of binomials.
+This sum is over both $i \in I$ and the number of ART clients travelling from district $x'$ to $x$.
 More details regarding this part of the model are provided in Appendix S1.
 
 ## Collected together
 
-Let $\mathbf{y} = (y^{\theta}_I)$ for $\theta \in \{\hat \rho, \hat \alpha, \hat \kappa, \rho^\text{ANC}, \alpha^\text{ANC}, \text{ART}\}$ and $I \in \mathcal{I}$ be a concatenated vector of observations.
-Here, we write the Naomi model fully in a small number of equations.
-The ANC testing component and ART attendance component may be challenging.
+Let $\mathbf{y} = (y^{\theta}_I)$ for $\theta \in \{\rho, \alpha, \kappa, \rho^\text{ANC}, \alpha^\text{ANC}, N^\text{ART}\}$ and $I \in \mathcal{I}$ be a concatenated vector of observations.
+Here, we could attempt to write the Naomi model fully in a small number of equations, but likely it'd be difficult.
 
 # Extended Latent Gaussian models\label{sec:elgm}
 
@@ -275,8 +273,8 @@ However, Naomi is not an LGM, and instead falls into the ELGM class, for the fol
 6. The ART attendance component uses a multinomial model with softmax link function which takes as input $|\{x': x' \sim x\}| + 1$ structured additive predictors.
 7. Multiple link functions are used throughout the model, such that there is no one inverse link function $g$. Instead, 
 
-If Naomi was written out in full mathematical detail, I might be able to make these reasons more concrete.
-It would also be good to specify how much of an impact each of these reasons is likely to have on the difficulty of inference.
+If Naomi was written out in full mathematical detail (in the section above), it would be easier to make these reasons more concrete.
+We should also specify how much of an impact each of these reasons is likely to have on the difficulty of inference.
 
 # Fast approximate inference method\label{sec:fastinferencemethods}
 
@@ -290,34 +288,38 @@ We consider approximations to the posterior marginals of each latent random vari
   p(x_i \, | \, \y) &\approx \tilde p(x_i \, | \, \y) = \int \tilde p(x_i \, | \, \btheta, \y) \tilde p(\btheta \, | \, \y) \text{d}\btheta, \quad i \in [N], \label{eq:inla1} \\
   p(\theta_j \, | \, \y) &\approx \tilde p(\theta_j \, | \, \y) = \int \tilde  p(\btheta \, | \, \y) \text{d}\btheta_{-j} \quad j \in [m]. \label{eq:inla2}
 \end{align}
-Given the negative unnormalised log posterior $- \log p(\y, \x, \btheta)$, we obtain the above posterior marginal approximations $\{ \tilde p(x_i \, | \, \y) \}_{i = 1}^n$ and $\{\tilde p(\theta_j \, | \, \y)\}_{j = 1}^m$ via nested applications of the Laplace approximation and AGHQ.
+Given the negative unnormalised log posterior $- \log p(\y, \x, \btheta)$, we obtain the above posterior marginal approximations $\{ \tilde p(x_i \, | \, \y) \}_{i = 1}^N$ and $\{\tilde p(\theta_j \, | \, \y)\}_{j = 1}^m$ via nested applications of the Laplace approximation and AGHQ.
 
 ## Laplace approximation
 
 Let $\tilde p_\texttt{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \x(\btheta), \hat{\Hb}(\btheta)^{-1})$ be a Gaussian approximation to $p(\x \, | \, \btheta, \y)$ with mode and precision matrix given by
-\begin{align*}
-\hat \x(\btheta) &= \argmax_\x \log p(\y, \x, \btheta), \\
-\hat {\Hb}(\btheta) &= - \frac{\partial^2}{\partial \x \partial \x^\top} \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}.
-\end{align*}
+\begin{align}
+\hat \x(\btheta) &= \argmax_\x \log p(\y, \x, \btheta), \label{eq:mode} \\
+\hat {\Hb}(\btheta) &= - \frac{\partial^2}{\partial \x \partial \x^\top} \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}. \label{eq:precision}
+\end{align}
 Then the Laplace approximation to $p(\btheta, \y)$ is given by
 \begin{equation}
-\tilde p_\texttt{LA}(\btheta, \y) = \frac{p(\y, \x, \btheta)}{\tilde p_\texttt{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat \x(\btheta)}. \label{eq:la}
+\tilde p_\texttt{LA}(\btheta, \y)
+= \frac{p(\y, \x, \btheta)}{\tilde p_\texttt{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat \x(\btheta)}
+= \sqrt{\frac{\det(\hat {\Hb}(\btheta))}{(2 \pi)^{N}}} p(\y, \hat \x(\btheta), \btheta). \label{eq:la}
 \end{equation}
 Inference in TMB proceeds by optimising Equation \ref{eq:la} using a gradient-based routine to obtain $\hat{\btheta}_\texttt{LA} = \argmax_{\btheta} \tilde p_\texttt{LA}(\btheta, \y)$.
+Each evaluation in the optimisation requires an inner optimisation to obtain $\hat \x(\btheta)$ via Equation \ref{eq:mode}.
 Latent field joint and marginal inferences then follow directly from the Gaussian approximation $\tilde p_\texttt{G}(\x \, | \, \hat{\btheta}_\texttt{LA}, \y)$.
-Hyperparameter inferences are obtained according to some method which should be specified here.
+Hyperparameter inferences are obtained according to some method which should be specified here as well.
 
 ## Gauss-Hermite quadrature
 
-Quadrature rules can be used to approximate the integral of $\tilde p_\texttt{LA}(\btheta, \y)$ via a weighted sum
+Quadrature rules can be used to approximate the integral of $\tilde p_\texttt{LA}(\btheta, \y)$ via the weighted sum
 \begin{equation}
 p(\y) \approx \int_{\btheta} \tilde p_\texttt{LA}(\btheta, \y) \text{d}\btheta \approx \sum_{\z \in \mathcal{Q}} p_\texttt{LA}(\z, \y) \omega(\z), \label{eq:quad}
 \end{equation}
 where $\z \in \mathcal{Q}$ are a set of nodes and $\omega: \mathcal{Q} \to \mathbb{R}$ is a weighting function.
-Gauss-Hermite quadrature [GHQ; @davis1975methods] is a quadrature rule where, in the univariate case, the nodes $\mathcal{Q}(1, k) = \{z: H_k(z) = (-1)^k \exp(z^2 / 2) \frac{\text{d}}{\text{d}z^k} \exp(-z^2 / 2) = 0\}$ are selected as zeros of the $k$th Hermite polynomial.
+Gauss-Hermite quadrature [GHQ; @davis1975methods] is one such quadrature rule, where in the univariate case the nodes $\mathcal{Q}(1, k) = \{z: H_k(z) = (-1)^k \exp(z^2 / 2) \frac{\text{d}}{\text{d}z^k} \exp(-z^2 / 2) = 0\}$ are selected as zeros of the $k$th Hermite polynomial.
 The corresponding weights $\omega: \mathcal{Q}(1, k) \to \mathbb{R}$ are given by $\omega(z) = k! / [H_{k + 1}(z)]^2 \phi(z)$, where $\phi(\cdot)$ is a standard univariate Gaussian density.
 GHQ is attractive because it is exact for functions which are a polynomial of total order no more than $2k - 1$ multiplied by a Gaussian density.
-Multivariate GHQ rules are typically obtained using the product rule such that $\z = (z_1, \ldots, z_m) \in \mathcal{Q}(m, k) = \mathcal{Q}(1, k)^m$ and $\omega(\z) = \prod_{j = 1}^m \omega(z_j)$.
+We typically expected posterior distributions to be relatively well described by this class of functions.
+Multivariate GHQ rules, required to integrate over $\btheta$, are typically obtained using the product rule such that $\z = (z_1, \ldots, z_m) \in \mathcal{Q}(m, k) = \mathcal{Q}(1, k)^m$ and $\omega(\z) = \prod_{j = 1}^m \omega(z_j)$.
 
 ## Adaptive quadrature
 
@@ -341,15 +343,15 @@ To obtain inferences for the latent field (Equation \ref{eq:inla1}) the adapted 
 \end{equation}
 Samples from this mixture of Gaussians may be obtained by drawing a node $\z$ with multinomial probabilities $\lambda(\z) = |\hat{\mathbf{P}}_\texttt{LA}| p_\texttt{LA}(\hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA} \, | \, \y) \omega(\z)$, then drawing from the Gaussian $\tilde p_\texttt{G}(\x \, | \, \hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}, \y)$.
 
-```{r aghq, fig.cap="The Gauss-Hermite quadrature nodes $\\z \\in \\mathcal{Q}(2, 3)$ for this two dimensional integral with three nodes per dimension are adapted based on the mean and covariance matrix of the target via the Cholesky decomposition or spectral decompostion of the inverse curvature at the mode."}
+```{r aghq, results='hide', fig.cap="The Gauss-Hermite quadrature nodes $\\z \\in \\mathcal{Q}(2, 3)$ for a two dimensional integral with three nodes per dimension. Adaption occurs based on the mean and covariance matrix of the target via the Cholesky decomposition or spectral decompostion of the inverse curvature at the mode. The integrand is $f(\\btheta) = \\text{sn}(0.3 \\theta_1, \\alpha = 2) \\cdot \\text{sn}(0.5 \\theta_1 - 0.3 \\theta_2, \\alpha = -2)$, where $\\text{sn}(\\cdot)$ is the standard skewnormal probability density function with shape parameter $\\alpha \\in \\mathbb{R}$."}
 TMB::compile("2d.cpp")
 dyn.load(TMB::dynlib("2d"))
 
 obj <- TMB::MakeADFun(data = list(), parameters = list(theta1 = 0, theta2 = 0), DLL = "2d")
 
 grid <- expand.grid(
-  theta1 = seq(-5, 5, length.out = 400),
-  theta2 = seq(-5, 5, length.out = 400)
+  theta1 = seq(-8, 8, length.out = 400),
+  theta2 = seq(-8, 8, length.out = 400)
 )
 
 ground_truth <- cbind(grid, pdf = apply(grid, 1, function(x) exp(-1 * obj$fn(x))))
@@ -368,10 +370,11 @@ sd_out <- TMB::sdreport(
 )
 
 mu <- opt$par
-cov <- as.matrix(sd_out$cov.fixed)
+cov <- sd_out$cov.fixed
 
 plot0 <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
   geom_contour(col = "lightgrey") +
+  coord_fixed(xlim = c(-8, 8), ylim = c(-8, 8), ratio = 1) +
   labs(x = "", y = "") +
   theme_minimal() +
   guides(size = FALSE) +
@@ -383,12 +386,17 @@ plot0 <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
 gg <- mvQuad::createNIGrid(2, "GHe", 3)
 
 add_points <- function(plot0, gg) {
+  
+  points <- mvQuad::getNodes(gg) %>%
+    as.data.frame() %>%
+    mutate(weights = mvQuad::getWeights(gg))
+  
+  colnames(points) <- c("theta1", "theta2", "weights")
+  
   plot0 +
     geom_point(
-      data = mvQuad::getNodes(gg) %>%
-              as.data.frame() %>%
-              mutate(weights = mvQuad::getWeights(gg)),
-      aes(x = V1, y = V2, size = weights),
+      data = points,
+      aes(x = theta1, y = theta2, size = weights),
       alpha = 0.8,
       col = "#009E73",
       inherit.aes = FALSE
@@ -401,7 +409,7 @@ plot1 <- add_points(plot0, gg) +
 
 #' Adapt by the mean
 gg2 <- gg
-mvQuad::rescale(gg2, m = mu, C = diag(c(1, 1)), dec.type = 2)
+mvQuad::rescale(gg2, m = mu, C = diag(c(1, 1)), dec.type = 1)
 
 plot2 <- add_points(plot0, gg2) +
   labs(size = "")
@@ -442,7 +450,7 @@ Taken together with use of the spectral decomposition, this choice of levels is 
 \tilde p_\texttt{PCA}(\y) = |\hat{\mathbf{E}}_{\texttt{LA}, s} \hat{\mathbf{\Lambda}}_{\texttt{LA}, s}^{1/2}|\sum_{\z \in \mathcal{Q}(m, s, k)} \tilde p_\texttt{LA}(\hat{\mathbf{E}}_{\texttt{LA}, s} \hat{\mathbf{\Lambda}}_{\texttt{LA}, s}^{1/2} \z + \hat{\btheta}_\texttt{LA}, \y) \omega(\z),
 \end{equation}
 where $\hat{\mathbf{E}}_{\texttt{LA}, s} = \cdots$ and $\hat{\mathbf{\Lambda}}_{\texttt{LA}, s} = \cdots$ are terms which should be described.
-The final panel of Figure \ref{fig:aghq} illustrates a case where $m = 2$ and $s = 1$ such that 
+The final panel of Figure \ref{fig:aghq} illustrates a case where $m = 2$ and $s = 1$. 
 We refer to use of this quadrature rule as PCA-AGHQ.
 
 ## Sparse rules
@@ -450,6 +458,11 @@ We refer to use of this quadrature rule as PCA-AGHQ.
 Though there are sparse rules which retain the attractive exactness properties of GHQ, using fewer than $k^m$ quadrature points, they use weighting functions which may be negative $\omega(\z) < 0$.
 This introduces a problem when trying to produce inferences about the latent field, as the resulting $\lambda(\z)$ may be negative.
 We are not aware of any suitable approaches to obtain multinomial samples in such cases.
+It is however, still possible to calculate the normalising constant using a sparse rule, which we do so in Appendix S3, finding it to be related to that from PCA-AGHQ as follows.
+
+## Laplace marginals
+
+See Appendix S4.
 
 # Application to data from Malawi\label{sec:results}
 
@@ -491,31 +504,46 @@ NUTS & \texttt{tmbstan} & $4$ chains of $20000$ iterations, with the first $1000
 ## NUTS convergence
 
 We obtained satisfactory NUTS results by gradually increasing the amount of computation until all diagnostics were acceptable.
-These include the potential scale reduction factors $\hat R$ [@gelman1992inference; @vehtari2021rank] for each parameter, bulk and tail effective sample sizes, autocorrelation decay plots, univariate traceplots, pairs density plots, and NUTS specific divergent transition and energy assessments [@betancourt2017conceptual].
+All potential scale reduction factors [@gelman1992inference; @vehtari2021rank] attained $\hat R < 1.05$.
 For full details see Appendix S2.
-We treat the NUTS results as a gold-standard.
+On this basis, though inaccuracies were still possible, we considered the NUTS results to be a gold-standard.
 
 ## PCA-AGHQ settings \label{sec:pca-settings}
 
-We used a Scree plot to select the number of principal components $s < m$ to keep.
-Figure showing Scree plot.
-Figure showing approximation to precision matrix.
+We used a Scree plot (Figure \ref{fig:scree}) based on the spectral decomposition of $\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})$ to select the number of principal components $s < m$ to keep.
+We choose $s = 8$, which was sufficient to explain close to 90% of total variation.
+Reconstruction of the Hessian using this reduced rank approximation is shown in Figure \ref{fig:reduced-rank}.
 
-Figure \ref{fig:node-positions} shows the positions of the generated PCA-AGHQ nodes overlaid onto the hyperparameter marginal posteriors obtained NUTS.
-For around 12 of the 24 hyperparameters, the marginal was well covered by the nodes.
-Although this is an improvement on the $s = 8$ that could be covered naively, there remain many hyperparameters uncovered.
-Furthermore, it is likely that the hyperparameters with skewed marginal posteriors are more important to cover well.
-We have not yet found a way to take this into account.
+```{r scree, fig.cap="Most variation could be explained by fewer than the full 24 dimensions."}
+knitr::include_graphics("depends/tv-plot.png")
+```
+
+```{r reduced-rank, fig.cap="The reduced rank approximation to the Hessian is visually similar."}
+knitr::include_graphics("depends/reduced-rank-plot.png")
+```
 
 ```{r node-positions, fig.cap="PCA-AGHQ node positions (green, rug plot) overlaid onto the hyperparameter marginal posteriors (grey, histogram) for each of the 24 hyperparameters."}
 knitr::include_graphics("depends/nodes-samples-comparison.png")
 ```
 
-Demonstrate that the 12 hyperparameters which are well covered are the ones that you would expect given their marginal standard deviations.
+```{r marginal-sd, fig.cap="Hyperparameters on the logit-scale had higher marginal standard deviations than those on the log-scale."}
+knitr::include_graphics("depends/marginal-sd.png")
+```
 
-One crude approach for assessing appropriateness of the grid is to look at the estimate of $\log p_\texttt{PCA}(\y)$ for a range of settings.
-Convergence in $\log p_\texttt{PCA}(\y)$ as $s$ and $k$ are increased may suggest sufficiency has been reached.
-Figure shows those values which were computable in a reasonable time.
+### Visual assessment
+ 
+Figure \ref{fig:node-positions} shows the positions of the generated PCA-AGHQ nodes overlaid onto the hyperparameter marginal posteriors obtained using NUTS.
+For approximately 12 of the 24 hyperparameters, the marginal was well covered by the nodes.
+Although this is an improvement in so far as $12 > s = 8$ there do remain many hyperparameters uncovered.
+Coverage was positively associated with marginal standard deviation (Figure \ref{fig:marginal-sd}), which varied particuarly according to the scale of the hyperparameter.
+All constrained hyperparameters $\theta$ were transformed to the real line, using either a log ($\theta > 0$) or logit ($\theta \in [0, 1]$) transformation.
+As a result, marginal standard deviations for log transformed hyperparameters were systematically smaller than those which were logit transformed.
+
+### Normalising constant assessment
+
+We assessed appropriateness of the grid by comparing the estimate of $\log p_\texttt{PCA}(\y)$ for a range of settings.
+Convergence in $\log p_\texttt{PCA}(\y)$ as $s$ and $k$ are increased may suggest a suitable grid has been reached.
+Appendix S3 shows those values which were we could compute in a reasonable time.
 
 ## Model assessment \label{sec:model-assessment}
 
@@ -645,10 +673,6 @@ ks_summary %>%
 As well as marginal distributions, we are interested in assessing the accuracy of joint distributions.
 Let $\{\bphi_i\}_{i = 1}^n$ be generic samples from a joint posterior.
 Pareto-smoothed importance sampling (PSIS) [@vehtari2015pareto, @yao2018yes] is a method for stabilising the ratios used in importance sampling.
-See a summary of the results in Table and Figure \ref{fig:psis}.
-
-```{r psis, fig.cap="Results of Pareto-smoothed importance sampling analysis."}
-```
 
 ### Maximum mean discrepancy
 
@@ -658,25 +682,16 @@ The MMD can be empirically estimated by
 \begin{equation*}
 \text{MMD}(\Phi, \Psi) = \sqrt{\frac{1}{n^2} \sum_{i, j = 1}^n k(\bphi_i, \bphi_j) - \frac{2}{n^2} \sum_{i, j = 1}^n k(\bphi_i, \bpsi_j) + \frac{1}{n^2} \sum_{i, j = 1}^n k(\bpsi_i, \bpsi_j)}.
 \end{equation*}
-See a summary of the results in Table and Figure \ref{fig:mmd}.
-
-```{r mmd, fig.cap="Results of maximum mean discrepancy analysis."}
-```
 
 ## Case study on exceedance probabilites \label{sec:exceedance}
 
 ### Meeting the second 90
 
-The Joint United Nations Programme on HIV/AIDS has developed ambitious fast-track targets for scaling up ART treatment with the goal of "ending the AIDS epidemic by 2030".
-Specifically, the "90-90-90 by 2020" fast-track target is that:
-
-* 90% of PLHIV know their status,
-* 90% of those are on antiretroviral therapy (ART), and
-* 90% of those have suppressed viral load.
-
+UNAIDS have developed ambitious fast-track targets for scaling up ART treatment with the goal of "ending the AIDS epidemic by 2030".
+Specifically, the "90-90-90" fast-track target requires that 90% of PLHIV know their status, 90% of those are on ART, and 90% of those have suppressed viral load.
 Naomi can be used to identify treatment gaps by calculating the probability that the second 90 target has been met $\mathbb{P}(\alpha_i > 0.81)$ for each strata $i$.
-We found that both TMB and PCA-AGHQ underestimate the probability that the second 90 target has been met in women (Figure \ref{fig:second90}).
-This difficulty may be related to interactions between the household survey and ANC components of the model.
+We found that both TMB and PCA-AGHQ underestimate these exceedance probabilities, specifically for women (Figure \ref{fig:second90}).
+We hypothesise that this discrepancy is related to interactions between the household survey and ANC components of the model creating a more challenging posterior geometry.
 
 ```{r second90, fig.cap="Results of second 90 case-study."}
 knitr::include_graphics("depends/second90.png")
@@ -687,7 +702,7 @@ knitr::include_graphics("depends/second90.png")
 Some HIV interventions are cost-effective only within high HIV incidence settings, typically defined as greater than 1% incidence per year.
 Naomi can be used to assess the probability of a strata having high incidence by evaluating $\mathbb{P}(\lambda_i > 0.01)$.
 We found that both TMB and PCA-AGHQ overestimate these exceedance probabilities (Figure \ref{fig:1inc}).
-We do not yet have a working hypothesis as to why this is.
+We are yet to formulate hypothesis as to why this is the case.
 
 ```{r 1inc, fig.cap="Results of high incidence case-study."}
 knitr::include_graphics("depends/1inc.png")
@@ -700,14 +715,18 @@ For the simplified Naomi model in Malawi (Section \ref{sec:results}) our method 
 We anticipate that our method could be added to the Naomi web interface as an alternative to TMB.
 This would enable analysts to quickly iterate over model options using a faster, less accurate inference approach, before switching to a slower, more accurate approach once they are happy with the results.
 
+The exceedance probabilities case-study (Section \ref{sec:exceedance}) demonstrates the importance of accurate posterior inferences for realistic use-cases of the Naomi model.  
+
 We provide a flexible implementation of the algorithm, building on the `TMB` and `aghq` \textsc{R} packages.
 In doing so, we hope our work enables use of deterministic inference algorithms for ELGMs in applied settings, as well as further methodological exploration of their accuracy and limitations.
-Among the ELGM-type structures of particular interest in spatial epidemiology, many of which feature in Naomi, are: aggregated Gaussian process models [@nandi2020disaggregation], evidence synthesis models [@amoah2020geostatistical].
+Among the ELGM-type structures of particular interest in spatial epidemiology and feature in Naomi, are aggregated Gaussian process models [@nandi2020disaggregation] and evidence synthesis models [@amoah2020geostatistical].
 Although our method is designed for ELGMs, it is possible to use it outside this class, as it is compatible with any model with a `TMB` \textsc{C++} template.
 
-We demonstrated a Bayesian workflow for deterministic inference methods.
-We retained the ability to draw samples from the posterior distributions of interest, facilitating use of posterior predictive checks (Section \ref{sec:model-assessment}) and methods for inference comparison such as Pareto-smoothed importance sampling (Section \ref{sec:inf-comparison}).
-The exceedance probabilities case-study (Section \ref{sec:exceedance}) demonstrates the importance of accurate posterior inferences for realistic use-cases of the Naomi model.  
+## Future work
+
+Hyperparameters with skewed marginal posteriors are more important to cover well using quadrature nodes.
+
+Parallel.
 
 Future work could look to implement our algorithm within probabilistic programming languages, facilitating access by a broader user-base.
 This might be possible in Stan by use of the `bridgestan` package [@bridgestan] together with the adjoint-differentiated Laplace approximation of @margossian2020hamiltonian.

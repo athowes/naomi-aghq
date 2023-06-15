@@ -447,6 +447,11 @@ knitr::include_graphics("depends/ess.png")
 
 \newpage
 
+
+# AGHQ and PCA-AGHQ
+
+\newpage
+
 # Laplace marginals algorithm
 
 In earlier work, we used a full Laplace approximation to the latent field marginals.
