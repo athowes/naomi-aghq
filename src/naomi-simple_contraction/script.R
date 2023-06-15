@@ -39,7 +39,7 @@ df_hyper <- data.frame(
 ) %>%
   tibble::rownames_to_column("par") %>%
   filter(par %in% names(tmb$fit$obj$par)) %>%
-  mutate(type = "Hyper")
+  mutate(type = "Hyperparameter")
 
 df_latent <- data.frame(
   posterior_contraction = posterior_contraction
@@ -49,22 +49,19 @@ df_latent <- data.frame(
   mutate(par_name = ifelse(str_detect(par, "\\["), str_extract(par, ".*(?=\\[)"), par)) %>%
   group_by(par_name) %>%
   summarise(posterior_contraction = mean(posterior_contraction)) %>%
-  mutate(type = "Latent (averaged)") %>%
+  mutate(type = "Latent field") %>%
   rename(par = par_name)
 
-pdf("posterior-contraction.pdf", h = 5, w = 8)
-
-bind_rows(df_hyper, df_latent) %>%
-  ggplot(aes(y = reorder(par, posterior_contraction), x = posterior_contraction)) +
-  facet_grid(cols = vars(type), scales = "free_x", ) +
-  geom_point(alpha = 0.5) +
+posterior_contraction_plot <- bind_rows(df_hyper, df_latent) %>%
+  ggplot(aes(x = reorder(par, posterior_contraction), y = posterior_contraction, col = type, shape = type)) +
+  geom_point() +
   coord_flip() +
-  labs(x = "Posterior contraction", y = "") +
-  scale_x_continuous(limits = c(-0.3, 1), breaks = c(-0.2, 0, 0.2, 0.4, 0.6, 0.8, 1)) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 55, vjust = 1, hjust = 1))
+  labs(x = "", y = "Posterior contraction", col = "Type", shape = "Type") +
+  scale_color_manual(values = c("#56B4E9", "#009E73")) +
+  scale_y_continuous(limits = c(-0.3, 1), breaks = c(-0.2, 0, 0.2, 0.4, 0.6, 0.8, 1)) +
+  theme_minimal()
 
-dev.off()
+ggsave("posterior-contraction.png", posterior_contraction_plot, h = 6.5, w = 6.25)
 
 #' Which have lower amounts of posterior contraction?
 names(subset(posterior_contraction, posterior_contraction < 0.5))
@@ -83,20 +80,20 @@ df_sd <- tmb_sd
 df_sd$aghq <- aghq_sd$aghq
 df_sd$tmbstan <- tmbstan_sd$tmbstan
 
-pdf("sd-comparison.pdf", h = 5, w = 6.25)
-
-plot_aghq_sd <- ggplot(df_sd, aes(x = tmbstan, y = aghq)) +
-  geom_point(alpha = 0.5) +
-  labs(x = "SD (tmbstan)", y = "SD (aghq)") +
+aghq_sd_plot <- ggplot(df_sd, aes(x = tmbstan, y = aghq)) +
+  geom_point(shape = 1, alpha = 0.6) +
+  coord_fixed(ratio = 1) +
+  lims(x = c(0, 2), y = c(0, 2)) +
+  labs(x = "SD (NUTS)", y = "SD (PCA-AGHQ)") +
   geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
   theme_minimal()
 
-plot_tmb_sd <- ggplot(df_sd, aes(x = tmbstan, y = TMB)) +
-  geom_point(alpha = 0.5) +
-  labs(x = "SD (tmbstan)", y = "SD (TMB)") +
+tmb_sd_plot <- ggplot(df_sd, aes(x = tmbstan, y = TMB)) +
+  geom_point(shape = 1, alpha = 0.6) +
+  coord_fixed(ratio = 1) +
+  lims(x = c(0, 2), y = c(0, 2)) +
+  labs(x = "SD (NUTS)", y = "SD (TMB)") +
   geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
   theme_minimal()
 
-plot_tmb_sd + plot_aghq_sd
-
-dev.off()
+ggsave("sd-comparison.png", aghq_sd_plot + tmb_sd_plot, h = 6.5, w = 6.25)

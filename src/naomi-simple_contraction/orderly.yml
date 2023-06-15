@@ -4,8 +4,8 @@ artefacts:
   - data:
       description: Plots
       filenames:
-        - posterior-contraction.pdf
-        - sd-comparison.pdf
+        - posterior-contraction.png
+        - sd-comparison.png
 
 resources:
   - naomi_simple_prior.cpp
