@@ -44,7 +44,7 @@ orderly::orderly_commit(id) #' [x]
 #' Scaling up the grid
 run_commit_push("dev_scale-grid")
 
-#' With PCA AGHQ experiments
+#' With PCA-AGHQ experiments
 run_pca_aghq <- function(k, s, sample = FALSE) {
   id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = k, s = s, grid_type = "pca", sample = sample))
   orderly::orderly_commit(id)

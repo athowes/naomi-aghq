@@ -76,14 +76,17 @@ df_second90 <- data.frame(
 df_wide_second90 <- pivot_wider(df_second90, names_from = method, values_from = prob)
 
 plot1 <- ggplot(df_wide_second90, aes(x = tmbstan, y = TMB)) +
-  geom_point(alpha = 0.3) +
-  geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
-  labs(title = "Probability of 81% ART coverage in strata") +
+  geom_point(shape = 1, alpha = 0.6, col = "#999999") +
+  coord_fixed(ratio = 1) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  labs(x = "NUTS", y = "TMB") +
   theme_minimal()
 
 plot2 <- ggplot(df_wide_second90, aes(x = tmbstan, y = aghq)) +
-  geom_point(alpha = 0.3) +
-  geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
+  geom_point(shape = 1, alpha = 0.6, col = "#999999") +
+  coord_fixed(ratio = 1) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  labs(x = "NUTS", y = "PCA-AGHQ") +
   theme_minimal()
 
 plot1 + plot2
@@ -152,30 +155,26 @@ df_wide_second90 <- df_wide_second90 %>%
     by = "index"
   )
 
-write_csv(df_wide_second90, "second90.csv")
-
 plot1 <- ggplot(df_wide_second90, aes(x = tmbstan, y = TMB, col = sex)) +
-  geom_point(alpha = 0.3) +
-  scale_color_manual(values = c("#56B4E9","#009E73")) +
-  geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
-  labs(subtitle = "Probability of greater than 81% ART coverage in strata", col = "Sex") +
+  geom_point(shape = 1, alpha = 0.6) +
+  coord_fixed(ratio = 1) +
+  scale_color_manual(values = c("#E69F00", "#999999")) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  labs(col = "Sex") +
   guides(col = "none") +
   labs(x = "NUTS", y = "TMB") +
   theme_minimal()
 
 plot2 <- ggplot(df_wide_second90, aes(x = tmbstan, y = aghq, col = sex)) +
-  geom_point(alpha = 0.3) +
-  scale_colour_manual(values = c("#56B4E9","#009E73"), labels = c("Female", "Male")) +
-  geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
+  geom_point(shape = 1, alpha = 0.6) +
+  coord_fixed(ratio = 1) +
+  scale_colour_manual(values = c("#E69F00", "#999999"), labels = c("Female", "Male")) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
   guides(colour = guide_legend(override.aes = list(alpha = 1))) +
   labs(x = "NUTS", y = "PCA-AGHQ", col = "Sex") +
   theme_minimal()
 
-pdf("second90.pdf", h = 4, w = 6.25)
-
-plot1 + plot2
-
-dev.off()
+ggsave("second90.png", plot1 + plot2, h = 4, w = 6.25)
 
 plot1 + plot2
 ```
@@ -223,24 +222,21 @@ df_wide_1inc <- df_wide_1inc %>%
     by = "index"
   )
 
-write_csv(df_wide_1inc, "1inc.csv")
-
 plot1 <- ggplot(df_wide_1inc, aes(x = tmbstan, y = TMB)) +
-  geom_point(alpha = 0.3) +
-  geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
-  labs(subtitle = "Probability of at least 1% incidence in strata") +
+  geom_point(shape = 1, alpha = 0.6, col = "#999999") +
+  coord_fixed(ratio = 1) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  labs(x = "NUTS", y = "TMB") +
   theme_minimal()
 
 plot2 <- ggplot(df_wide_1inc, aes(x = tmbstan, y = aghq)) +
-  geom_point(alpha = 0.3) +
-  geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
+  geom_point(shape = 1, alpha = 0.6, col = "#999999") +
+  coord_fixed(ratio = 1) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  labs(x = "NUTS", y = "PCA-AGHQ") +
   theme_minimal()
 
-pdf("1inc.pdf", h = 4, w = 6.25)
-
-plot1 + plot2
-
-dev.off()
+ggsave("1inc.png", plot1 + plot2, h = 4, w = 6.25)
 
 plot1 + plot2
 
@@ -263,6 +259,48 @@ What summaries of unmet treatment need might be important to calculate?
 
 ```{r}
 #' To-do!
+```
+
+# Plot for manuscript
+
+Combine the above plots into one nice one.
+ABF (always be facetting):
+
+```{r}
+df_wide <- bind_rows(
+  df_wide_second90 %>%
+    mutate(type = "Second 90"),
+  df_wide_1inc %>%
+    mutate(type = "High incidence")
+)
+
+write_csv(df_wide, "exceedance.csv")
+
+fct_reorg <- function(fac, ...) {
+  fct_recode(fct_relevel(fac, ...), ...)
+}
+
+exceedance_manuscript_plot <- df_wide %>%
+  pivot_longer(cols = c("TMB", "aghq"), names_to = "method", values_to = "estimate") %>%
+  mutate(
+    method = fct_reorg(method, "TMB" = "TMB", "PCA-AGHQ" = "aghq"),
+    type = fct_relevel(type, "Second 90", "High incidence")
+  ) %>%
+  ggplot(aes(x = tmbstan, y = estimate, col = sex)) +
+    geom_point(shape = 1, alpha = 0.6) +
+    coord_fixed(ratio = 1) +
+    scale_colour_manual(values = c("#56B4E9", "#999999"), labels = c("Female", "Male")) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+    facet_grid(type ~ method) +
+    labs(x = "", y = "", col = "Sex") +
+    theme_minimal() +
+    theme(
+      legend.position = "bottom"
+    )
+
+exceedance_manuscript_plot
+
+ggsave("exceedance.png", exceedance_manuscript_plot, h = 6.5, w = 6.25, bg = "white")
 ```
 
 # Excursion and contour uncertainty regions

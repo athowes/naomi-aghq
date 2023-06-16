@@ -11,13 +11,13 @@ artefacts:
   - data:
       description: Plots
       filenames:
-        - second90.pdf
-        - 1inc.pdf
+        - second90.png
+        - 1inc.png
+        - exceedance.png
   - data:
       description: Data to make plots or other further analysis
       filenames:
-        - second90.csv
-        - 1inc.csv
+        - exceedance.csv
 
 resources:
   - exceedance.Rmd
