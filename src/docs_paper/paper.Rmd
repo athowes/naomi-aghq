@@ -140,7 +140,7 @@ INLA within MCMC and importance sampling with INLA are suitable for models which
 The remainder of this paper is organised as follows.
 Section \ref{sec:naomi} outlines the version of the Naomi model that we consider in this paper, and  Section \ref{sec:elgm} describes how it falls within the ELGM framework.
 Section \ref{sec:fastinferencemethods} outlines our approach to fast, accurate Bayesian inference for ELGMs using simplified INLA and AGHQ.
-As a case-study, we compare the accuracy of our inference method to `TMB` and `tmbstan` for the simplified Naomi model fit to data from Malawi, in Section \ref{sec:naomi}.
+As a case study, we compare the accuracy of our inference method to `TMB` and `tmbstan` for the simplified Naomi model fit to data from Malawi, in Section \ref{sec:naomi}.
 We also demonstrate a Bayesian workflow, illustrating the applicability of these tools in a deterministic inference setting.
 Finally, in Section \ref{sec:conclusions} we discuss our conclusions, how we anticipate our method might be useful for other models, and directions for future research.
 
@@ -504,38 +504,25 @@ NUTS & \texttt{tmbstan} & $4$ chains of $20000$ iterations, with the first $1000
 ## NUTS convergence
 
 We obtained satisfactory NUTS results by gradually increasing the amount of computation until all diagnostics were acceptable.
-All potential scale reduction factors [@gelman1992inference; @vehtari2021rank] attained $\hat R < 1.05$.
+This requried chains of length 20,000, thinned by a factor of 20 for ease-of-storage.
+All potential scale reduction factors [@gelman1992inference; @vehtari2021rank] were $\hat R < 1.05$.
 For full details see Appendix S2.
-On this basis, though inaccuracies were still possible, we considered the NUTS results to be a gold-standard.
+Though inaccuracies remain possible, we considered the NUTS results to be a gold-standard.
 
 ## PCA-AGHQ settings \label{sec:pca-settings}
 
-We used a Scree plot (Figure \ref{fig:scree}) based on the spectral decomposition of $\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})$ to select the number of principal components $s < m$ to keep.
-We choose $s = 8$, which was sufficient to explain close to 90% of total variation.
-Reconstruction of the Hessian using this reduced rank approximation is shown in Figure \ref{fig:reduced-rank}.
-
-```{r scree, fig.cap="Most variation could be explained by fewer than the full 24 dimensions."}
-knitr::include_graphics("depends/tv-plot.png")
-```
-
-```{r reduced-rank, fig.cap="The reduced rank approximation to the Hessian is visually similar."}
-knitr::include_graphics("depends/reduced-rank-plot.png")
-```
+We used a Scree plot (Figure S$X$) based on the spectral decomposition of $\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})$ to select the number of principal components $s = 8 < m = 24$ to keep, sufficient to explain close to 90% of total variation.
+This resulted in a close reconstruction of the Hessian using the reduced rank approximation (Figure S$X$).
 
 ```{r node-positions, fig.cap="PCA-AGHQ node positions (green, rug plot) overlaid onto the hyperparameter marginal posteriors (grey, histogram) for each of the 24 hyperparameters."}
 knitr::include_graphics("depends/nodes-samples-comparison.png")
 ```
 
-```{r marginal-sd, fig.cap="Hyperparameters on the logit-scale had higher marginal standard deviations than those on the log-scale."}
-knitr::include_graphics("depends/marginal-sd.png")
-```
-
 ### Visual assessment
  
-Figure \ref{fig:node-positions} shows the positions of the generated PCA-AGHQ nodes overlaid onto the hyperparameter marginal posteriors obtained using NUTS.
-For approximately 12 of the 24 hyperparameters, the marginal was well covered by the nodes.
-Although this is an improvement in so far as $12 > s = 8$ there do remain many hyperparameters uncovered.
-Coverage was positively associated with marginal standard deviation (Figure \ref{fig:marginal-sd}), which varied particuarly according to the scale of the hyperparameter.
+Overlaying the generated PCA-AGHQ nodes overlaid onto the hyperparameter marginal posteriors obtained using NUTS, we found that approximately 12 of the 24 hyperparameters had well covered marginals (Figure \ref{fig:node-positions}).
+Though $12 > s = 8$ there remain many hyperparameters poorly covered.
+Coverage was associated with marginal standard deviation (Figure S$X$), which varied particularly according to the hyperparameter scale.
 All constrained hyperparameters $\theta$ were transformed to the real line, using either a log ($\theta > 0$) or logit ($\theta \in [0, 1]$) transformation.
 As a result, marginal standard deviations for log transformed hyperparameters were systematically smaller than those which were logit transformed.
 
@@ -543,18 +530,16 @@ As a result, marginal standard deviations for log transformed hyperparameters we
 
 We assessed appropriateness of the grid by comparing the estimate of $\log p_\texttt{PCA}(\y)$ for a range of settings.
 Convergence in $\log p_\texttt{PCA}(\y)$ as $s$ and $k$ are increased may suggest a suitable grid has been reached.
-Appendix S3 shows those values which were we could compute in a reasonable time.
+Appendix S3 shows those values which we could compute in a reasonable time (less than 24 hours using a high performance computing cluster).
 
 ## Model assessment \label{sec:model-assessment}
 
 ### Posterior contraction
 
 Let $\phi$ be a generic model parameter.
-To assess the informativeness of the data we compared (Figure \ref{fig:contraction}) the prior variance $\sigma_\text{prior}^2(\phi)$ to the posterior variance $\sigma_\text{posterior}^2(\phi)$ via the posterior contraction [@schad2021toward]
-\begin{equation*}
-c(\phi) = 1 - \frac{\sigma_\text{posterior}^2(\phi)}{\sigma_\text{prior}^2(\phi)}.
-\end{equation*}
-For the parameters of length greater than one, we averaged the posterior contraction.
+To assess the informativeness of the data we compared the prior variance $\sigma_\text{prior}^2(\phi)$ to the posterior variance $\sigma_\text{posterior}^2(\phi)$ via the posterior contraction $c(\phi) = 1 - (\sigma_\text{posterior}^2(\phi) / \sigma_\text{prior}^2(\phi))$ [@schad2021toward].
+We found that (Figure \ref{fig:contraction})) something something.
+For greater interpretability, facet parameters in this plot according to model component.
 
 ```{r contraction, fig.cap="Posterior contraction."}
 knitr::include_graphics("depends/posterior-contraction.png")
@@ -572,14 +557,10 @@ We used three statistical approaches to assess the accuracy of posterior distrib
 ### Kolmogorov-Smirnov tests
 
 The two-sample Kolmogorov-Smirnov (KS) test statistic [@smirnov1948table] is the maximum absolute difference between two empirical cumulative distribution (ECDF) functions $F(\varphi) = \frac{1}{n} \sum_{i = 1}^n \mathbb{I}_{\phi_i \leq \varphi}$.
-We compare the KS statistics
-\begin{align*}
-D_\text{TMB} &= \sup_\varphi | F_\text{NUTS}(\varphi) - F_\text{TMB}(\varphi)|, \\
-D_\text{PCA-AGHQ} &= \sup_\varphi | F_\text{NUTS}(\varphi) - F_\text{PCA-AGHQ}(\varphi)|.
-\end{align*}
+We compare the KS statistics $D_\text{TMB} = \sup_\varphi | F_\text{NUTS}(\varphi) - F_\text{TMB}(\varphi)|$ and $D_\text{PCA-AGHQ} = \sup_\varphi | F_\text{NUTS}(\varphi) - F_\text{PCA-AGHQ}(\varphi)|$.
 See an illustration of the KS test in Figure \ref{fig:ks} and a summary of the results in Table.
 
-```{r ks, fig.height = 3, fig.cap="Example KS test for one parameter."}
+```{r ks, fig.height = 4, fig.cap="Example KS test for one parameter."}
 df_compare <- readRDS("depends/beta_alpha.rds") %>%
   filter(method != "adam")
 
@@ -649,63 +630,43 @@ ecdf_diff <- ggplot(ecdf_df, aes(x = x, y = ecdf_diff, col = method)) +
 histogram + ecdf_diff
 ```
 
-```{r}
-ks_summary <- readRDS("depends/ks_summary.rds")
-
-ks_summary %>%
-  filter(Type == "Latent field") %>%
-  group_by(Parameter) %>%
-  summarise(
-    `D(TMB)` = round(mean(`KS(TMB, tmbstan)`), 3),
-    `D(PCA-AGHQ)` = round(mean(`KS(aghq, tmbstan)`), 3)
-  ) %>%
-  gt::gt(rowname_col = "Parameter") %>%
-  gt::summary_rows(
-   columns = everything(),
-   fns = list(Average = ~ mean(.x)),
-   formatter = gt::fmt_number,
-   decimals = 3
-  )
-```
-
 ### Pareto-smoothed importance sampling
 
-As well as marginal distributions, we are interested in assessing the accuracy of joint distributions.
-Let $\{\bphi_i\}_{i = 1}^n$ be generic samples from a joint posterior.
-Pareto-smoothed importance sampling (PSIS) [@vehtari2015pareto, @yao2018yes] is a method for stabilising the ratios used in importance sampling.
+Alongside marginal distributions, we are interested in assessing the accuracy of joint distributions.
+Let $\{\bphi_i\}_{i = 1}^n$ be joint posterior samples.
+Pareto-smoothed importance sampling [PSIS; @vehtari2015pareto, @yao2018yes] is a method for stabilising the ratios used in importance sampling.
+Results for the PSIS analysis are pending.
 
 ### Maximum mean discrepancy
 
-Another way to compare joint distributions is via the maximum mean discrepancy [MMD; @gretton2006kernel].
-Let $\Phi = \{\bphi_i\}_{i = 1}^n$ and $\Psi = \{\bpsi_i\}_{i = 1}^n$ be two sets of samples from a joint posterior obtained using different inference methods.
+Joint distributions can also be compared via the maximum mean discrepancy [MMD; @gretton2006kernel].
+Let $\Phi = \{\bphi_i\}_{i = 1}^n$ and $\Psi = \{\bpsi_i\}_{i = 1}^n$ be two sets of joint posterior samples obtained from different inference methods, and $k$ be a kernel.
 The MMD can be empirically estimated by
 \begin{equation*}
 \text{MMD}(\Phi, \Psi) = \sqrt{\frac{1}{n^2} \sum_{i, j = 1}^n k(\bphi_i, \bphi_j) - \frac{2}{n^2} \sum_{i, j = 1}^n k(\bphi_i, \bpsi_j) + \frac{1}{n^2} \sum_{i, j = 1}^n k(\bpsi_i, \bpsi_j)}.
 \end{equation*}
+We set $k(\bphi_i, \bphi_j) = \exp(-\sigma \lVert \bphi_i - \bphi_j \rVert^2)$ with $\sigma$ estimated from data using the `kernlab` \textsc{R} package [@karatzoglou2019package].
+We the MMD from PCA-AGHQ (0.071) was 11% smaller than that of TMB (0.080) as compared with NUTS.
 
 ## Case study on exceedance probabilites \label{sec:exceedance}
 
 ### Meeting the second 90
 
-UNAIDS have developed ambitious fast-track targets for scaling up ART treatment with the goal of "ending the AIDS epidemic by 2030".
-Specifically, the "90-90-90" fast-track target requires that 90% of PLHIV know their status, 90% of those are on ART, and 90% of those have suppressed viral load.
-Naomi can be used to identify treatment gaps by calculating the probability that the second 90 target has been met $\mathbb{P}(\alpha_i > 0.81)$ for each strata $i$.
-We found that both TMB and PCA-AGHQ underestimate these exceedance probabilities, specifically for women (Figure \ref{fig:second90}).
-We hypothesise that this discrepancy is related to interactions between the household survey and ANC components of the model creating a more challenging posterior geometry.
-
-```{r second90, fig.cap="Results of second 90 case-study."}
-knitr::include_graphics("depends/second90.png")
-```
+Ambitious fast-track targets for scaling up ART treatment have been developed by UNAIDS, with the goal of "ending the AIDS epidemic by 2030".
+Specifically, meeting the "90-90-90" fast-track target requires that 90% of people living with HIV know their status, 90% of those are on ART, and 90% of those have suppressed viral load.
+Naomi can be used to identify treatment gaps by calculating the probability that the second 90 target has been met $\mathbb{P}(\alpha_i > 0.9^2 = 0.81)$ for each strata $i$.
+We found that for women both TMB and PCA-AGHQ underestimate these exceedance probabilities (Figure \ref{fig:exceedance}, first row).
+We hypothesise that the sex related discrepancy occurs due to interactions between the household survey and ANC components of the model creating a more challenging posterior geometry.
 
 ### Finding strata with high incidence
 
 Some HIV interventions are cost-effective only within high HIV incidence settings, typically defined as greater than 1% incidence per year.
 Naomi can be used to assess the probability of a strata having high incidence by evaluating $\mathbb{P}(\lambda_i > 0.01)$.
-We found that both TMB and PCA-AGHQ overestimate these exceedance probabilities (Figure \ref{fig:1inc}).
-We are yet to formulate hypothesis as to why this is the case.
+We found that both TMB and PCA-AGHQ overestimate these exceedance probabilities (Figure \ref{fig:exceedance}, second row).
+This is surprising, in that we expect inferences from NUTS to be more heavy-tailed than those from TMB or PCA-AGHQ.
 
-```{r 1inc, fig.cap="Results of high incidence case-study."}
-knitr::include_graphics("depends/1inc.png")
+```{r exceedance, fig.cap="Both TMB and PCA-AGHQ are meaningfully inaccurate as compared with NUTS for estimating exceedance probabilities. For the second 90 target (top row) the inaccuracy varies substantially by sex."}
+knitr::include_graphics("depends/exceedance.png")
 ```
 
 # Discussion\label{sec:conclusions}
@@ -715,24 +676,34 @@ For the simplified Naomi model in Malawi (Section \ref{sec:results}) our method 
 We anticipate that our method could be added to the Naomi web interface as an alternative to TMB.
 This would enable analysts to quickly iterate over model options using a faster, less accurate inference approach, before switching to a slower, more accurate approach once they are happy with the results.
 
-The exceedance probabilities case-study (Section \ref{sec:exceedance}) demonstrates the importance of accurate posterior inferences for realistic use-cases of the Naomi model.  
+In the exceedance probabilities case study (Section \ref{sec:exceedance}) we found that posterior inferences from the approximate methods were systematically inaccurate, and have the potential to meaningfully mislead policy.
 
-We provide a flexible implementation of the algorithm, building on the `TMB` and `aghq` \textsc{R} packages.
-In doing so, we hope our work enables use of deterministic inference algorithms for ELGMs in applied settings, as well as further methodological exploration of their accuracy and limitations.
-Among the ELGM-type structures of particular interest in spatial epidemiology and feature in Naomi, are aggregated Gaussian process models [@nandi2020disaggregation] and evidence synthesis models [@amoah2020geostatistical].
-Although our method is designed for ELGMs, it is possible to use it outside this class, as it is compatible with any model with a `TMB` \textsc{C++} template.
+PCA-AGHQ was flexibly implemented, building on the `TMB` and `aghq` \textsc{R} packages.
+We hope that our work further encourages use of deterministic inference algorithms for ELGMs in applied settings, as well as methodological exploration of their accuracy and limitations.
+Among the ELGM-type structures of particular interest in spatial epidemiology are aggregated Gaussian process models [@nandi2020disaggregation] and evidence synthesis models [@amoah2020geostatistical].
 
-## Future work
+## Future directions
 
-Hyperparameters with skewed marginal posteriors are more important to cover well using quadrature nodes.
+Part of our motivation for developing PCA-AGHQ was to place more quadrature nodes, and as a result computation, in those dimensions which are more important, in some sense.
+While PCA is a sensible approach, there are avenues where it overlooks potential benefits, or does not behave as one might hope.
+First, we identified a challenge using PCA when the dimensions have different scales, here specifically log and logit.
+Second, the amount of variation explained for the Hessian matrix is not directly what we care about, rather the effect of the different dimensions on the outputs of interest.
+Instead, using measures of importance from sensitivity analysis, such as Shapley values [@shapley1953value] may be preferable.
+Third, it is more important to allocate quadrature nodes to those marginals which are non-Gaussian.
+This is because the Laplace approximation is exact when the integrand is Gaussian, so a single quadrature node is sufficiently.
+The difficulty is of course knowing in advance which marginals will be non-Gaussian.
+A potential approach could be based measuring fit using PSIS, or similar algorithms, with samples from a cheap approximation, like TMB.
+This particular approach would not work however, as PSIS operates on joint distributions rather than marginals [@yao2018yes].
 
-Parallel.
-
-Future work could look to implement our algorithm within probabilistic programming languages, facilitating access by a broader user-base.
-This might be possible in Stan by use of the `bridgestan` package [@bridgestan] together with the adjoint-differentiated Laplace approximation of @margossian2020hamiltonian.
+Other MCMC algorithms, such as blocked Gibbs sampling [@geman1984stochastic] or slice sampling [@neal2003slice], may be better suited than NUTS to sampling from Naomi.
+These algorithms are available, and customisable, including e.g. choice of block structure within the `NIMBLE` probabilistic programming language [@de2017programming].
+The recently released version 1.0.0 of `NIMBLE` also includes functionality for automatic differentiation, Laplace approximation and HMC, built using `CppAD` as with `TMB`.
+As such, it would be possible to implement AGHQ within `NIMBLE`, would facilitating access by a broader user-base.
+Similarly, AGHQ could be implemented in Stan by use of the `bridgestan` package [@bridgestan] together with the adjoint-differentiated Laplace approximation of @margossian2020hamiltonian.
 <!-- Note: can fit hyperparameters with Laplace on latent field using HMC via tmbstan::tmbstan(laplace = TRUE) -->
 <!-- i.e. what Charles Margossian has implemented for Stan is done similarly by default in TMB -->
-As well, statistical theory for the algorithm could be established by extension of Theorem 1 in @stringer2022fast.
+
+Statistical theory for PCA-AGHQ could be established by extension of Theorem 1 in @stringer2022fast.
 
 # Acknowledgements {-}
 

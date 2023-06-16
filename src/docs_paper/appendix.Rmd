@@ -4,7 +4,7 @@ author:
   - Adam Howes^[Department of Mathematics, Imperial College London]
   - Alex Stringer^[Department of Statistics and Actuarial Science, University of Waterloo]
   - Seth R. Flaxman^[Department of Computer Science, Oxford University]
-  - Jeffrey W. Eaton^[Department of Infectious Disease Epidemiology, Imperial College London]
+  - Jeffrey W. Eaton^[Harvard T.H. Chan School of Public Health, Harvard University]
 output:
   pdf_document:
     toc: yes
@@ -43,7 +43,7 @@ knitr::opts_chunk$set(
 
 \newpage
 
-# Simplified Naomi \label{sec:math}
+# Simplified Naomi model description \label{sec:math}
 
 In this section we describe the simplified Naomi model [@eaton2021naomi] considered in the main text in more complete detail.
 
@@ -447,8 +447,44 @@ knitr::include_graphics("depends/ess.png")
 
 \newpage
 
-
 # AGHQ and PCA-AGHQ
+
+```{r marginal-sd, fig.cap="Hyperparameters on the logit-scale had systematically higher marginal standard deviations than those on the log-scale. This is because variation on the real scale is compressed by the inverse logit and expanded by the inverse log (exponential)."}
+knitr::include_graphics("depends/marginal-sd.png")
+```
+
+```{r scree, fig.cap="Most variation could be explained by fewer than the full 24 dimensions."}
+knitr::include_graphics("depends/tv-plot.png")
+```
+
+```{r reduced-rank, fig.cap="The reduced rank (8) matrix approximation to the Hessian is visually similar to the full rank (24) matrix."}
+knitr::include_graphics("depends/reduced-rank-plot.png")
+```
+
+\newpage
+
+# Further inference comparison results
+
+## KS tests
+
+```{r}
+ks_summary <- readRDS("depends/ks_summary.rds")
+
+ks_summary %>%
+  filter(Type == "Latent field") %>%
+  group_by(Parameter) %>%
+  summarise(
+    `D(TMB)` = round(mean(`KS(TMB, tmbstan)`), 3),
+    `D(PCA-AGHQ)` = round(mean(`KS(aghq, tmbstan)`), 3)
+  ) %>%
+  gt::gt(rowname_col = "Parameter") %>%
+  gt::summary_rows(
+   columns = everything(),
+   fns = list(Average = ~ mean(.x)),
+   formatter = gt::fmt_number,
+   decimals = 3
+  )
+```
 
 \newpage
 

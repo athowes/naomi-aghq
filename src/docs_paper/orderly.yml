@@ -53,12 +53,12 @@ depends:
   - naomi-simple_exceedance:
       id: latest
       use:
-        depends/second90.pdf: second90.pdf
-        depends/1inc.pdf: 1inc.pdf
+        depends/exceedance.png: exceedance.png
+        depends/exceedance.csv: exceedance.csv
   - naomi-simple_contraction:
       id: latest
       use:
-        depends/posterior-contraction.pdf: posterior-contraction.pdf
+        depends/posterior-contraction.pdf: posterior-contraction.png
   - check_hyper-marginals:
       id: latest
       use:
