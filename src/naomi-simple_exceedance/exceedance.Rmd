@@ -292,7 +292,7 @@ exceedance_manuscript_plot <- df_wide %>%
     scale_colour_manual(values = c("#56B4E9", "#999999"), labels = c("Female", "Male")) +
     geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
     facet_grid(type ~ method) +
-    labs(x = "", y = "", col = "Sex") +
+    labs(x = "NUTS", y = "", col = "Sex") +
     theme_minimal() +
     theme(
       legend.position = "bottom"
