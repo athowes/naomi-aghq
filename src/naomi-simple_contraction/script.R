@@ -67,33 +67,63 @@ ggsave("posterior-contraction.png", posterior_contraction_plot, h = 6.5, w = 6.2
 names(subset(posterior_contraction, posterior_contraction < 0.5))
 
 #' How does the size of standard deviations compare in TMB to AGHQ?
-tmb_sd <- lapply(tmb$fit$sample[df_latent$par], function(row) data.frame("TMB" = matrixStats::rowSds(row))) %>%
-  dplyr::bind_rows(.id = "par")
+df_tmb <- lapply(tmb$fit$sample[df_latent$par], function(row) {
+  data.frame("sd" = matrixStats::rowSds(row), "mean" = rowMeans(row)) %>%
+    tibble::rowid_to_column("id")
+  }) %>%
+  dplyr::bind_rows(.id = "par") %>%
+  mutate(method = "TMB")
 
-aghq_sd <- lapply(aghq$quad$sample[df_latent$par], function(row) data.frame("aghq" = matrixStats::rowSds(row))) %>%
-  dplyr::bind_rows(.id = "par")
+df_aghq <- lapply(aghq$quad$sample[df_latent$par], function(row) {
+  data.frame("sd" = matrixStats::rowSds(row), "mean" = rowMeans(row)) %>%
+    tibble::rowid_to_column("id")
+  }) %>%
+  dplyr::bind_rows(.id = "par") %>%
+  mutate(method = "PCA-AGHQ")
 
-tmbstan_sd <- lapply(tmbstan$mcmc$sample[df_latent$par], function(row) data.frame("tmbstan" = matrixStats::rowSds(row))) %>%
-  dplyr::bind_rows(.id = "par")
+df_tmbstan <- lapply(tmbstan$mcmc$sample[df_latent$par], function(row) {
+  data.frame("sd" = matrixStats::rowSds(row), "mean" = rowMeans(row)) %>%
+    tibble::rowid_to_column("id")
+  }) %>%
+  dplyr::bind_rows(.id = "par") %>%
+  mutate(method = "NUTS")
 
-df_sd <- tmb_sd
-df_sd$aghq <- aghq_sd$aghq
-df_sd$tmbstan <- tmbstan_sd$tmbstan
+df <- bind_rows(df_tmb, df_aghq, df_tmbstan)
 
-aghq_sd_plot <- ggplot(df_sd, aes(x = tmbstan, y = aghq)) +
-  geom_point(shape = 1, alpha = 0.6) +
+df_plot <- df %>%
+  pivot_longer(cols = c("sd", "mean"), names_to = "indicator", values_to = "estimate") %>%
+  pivot_wider(values_from = "estimate", names_from = "method") %>%
+  pivot_longer(cols = c("TMB", "PCA-AGHQ"), names_to = "method", values_to = "approximate") %>%
+  rename("truth" = "NUTS") %>%
+  mutate(
+    indicator = fct_recode(indicator, "Mean" = "mean", "SD" = "sd"),
+    method = fct_relevel(method, "TMB", "PCA-AGHQ")
+  )
+
+df_metrics <- df_plot %>%
+  group_by(method, indicator) %>%
+  summarise(
+    rmse = sqrt(mean((truth - approximate)^2)),
+    mae = mean(abs(truth - approximate))
+  ) %>%
+  mutate(
+    label = ifelse(
+      method == "PCA-AGHQ",
+      paste0("RMSE: ", round(rmse, 2), "\nMAE: ", round(mae, 2)),
+      paste0("RMSE: ", round(rmse, 2), "\nMAE: ", round(mae, 2))
+    )
+  )
+
+mean_sd_plot <- ggplot(df_plot, aes(x = truth, y = approximate)) +
+  geom_point(shape = 1, alpha = 0.4) +
+  facet_grid(indicator ~ method) +
   coord_fixed(ratio = 1) +
-  lims(x = c(0, 2), y = c(0, 2)) +
-  labs(x = "SD (NUTS)", y = "SD (PCA-AGHQ)") +
-  geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  labs(x = "NUTS", y = "") +
   theme_minimal()
 
-tmb_sd_plot <- ggplot(df_sd, aes(x = tmbstan, y = TMB)) +
-  geom_point(shape = 1, alpha = 0.6) +
-  coord_fixed(ratio = 1) +
-  lims(x = c(0, 2), y = c(0, 2)) +
-  labs(x = "SD (NUTS)", y = "SD (TMB)") +
-  geom_abline(slope = 1, intercept = 0, col = "#CC79A7", linetype = "dashed") +
-  theme_minimal()
+mean_sd_plot <- mean_sd_plot +
+  geom_text(data = df_metrics, aes(x = -Inf, y = Inf, label = label),
+            size = 3, hjust = 0, vjust = 1.5)
 
-ggsave("sd-comparison.png", aghq_sd_plot + tmb_sd_plot, h = 6.5, w = 6.25)
+ggsave("mean-sd-comparison.png", mean_sd_plot, h = 6.25, w = 6.25, bg = "white")
