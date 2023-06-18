@@ -96,7 +96,7 @@ df_plot <- df %>%
   pivot_longer(cols = c("TMB", "PCA-AGHQ"), names_to = "method", values_to = "approximate") %>%
   rename("truth" = "NUTS") %>%
   mutate(
-    indicator = fct_recode(indicator, "Mean" = "mean", "SD" = "sd"),
+    indicator = fct_recode(indicator, "Posterior mean estimate" = "mean", "Posterior SD estimate" = "sd"),
     method = fct_relevel(method, "TMB", "PCA-AGHQ")
   )
 
@@ -105,11 +105,21 @@ df_metrics <- df_plot %>%
   summarise(
     rmse = sqrt(mean((truth - approximate)^2)),
     mae = mean(abs(truth - approximate))
-  ) %>%
+  )
+
+df_metric_pct <- df_metrics %>%
+  ungroup() %>%
+  group_by(indicator) %>%
+  summarise(
+    rmse_diff = 100 * diff(rmse) / max(rmse),
+    mae_diff = 100 * diff(mae) / max(mae)
+  )
+
+df_metrics <- df_metrics %>%
   mutate(
     label = ifelse(
       method == "PCA-AGHQ",
-      paste0("RMSE: ", round(rmse, 2), "\nMAE: ", round(mae, 2)),
+      paste0("RMSE: ", round(rmse, 2), " (", round(df_metric_pct$rmse_diff), "%)", "\nMAE: ", round(mae, 2), " (", round(df_metric_pct$mae_diff), "%)"),
       paste0("RMSE: ", round(rmse, 2), "\nMAE: ", round(mae, 2))
     )
   )
