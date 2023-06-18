@@ -726,6 +726,10 @@ The difficulty is of course knowing in advance which marginals will be non-Gauss
 A potential approach could be based measuring fit using PSIS, or similar algorithms, with samples from a cheap approximation, like TMB.
 This particular approach would not work however, as PSIS operates on joint distributions rather than marginals [@yao2018yes].
 
+Integration of a moderate number of hyperparameters posed a particular challenge, and led to the use of quadrature grids with large number of nodes.
+However, computation at each node is independent, such that the run-time of the algorithm could potentially be significantly improved by parallel computing.
+Further computational speed-ups might be obtained using graphics processing units (GPUs) speciallised for the relevant matrix operations.
+
 Other MCMC algorithms, such as blocked Gibbs sampling [@geman1984stochastic] or slice sampling [@neal2003slice], may be better suited than NUTS to sampling from Naomi.
 These algorithms are available, and customisable, including e.g. choice of block structure within the `NIMBLE` probabilistic programming language [@de2017programming].
 The recently released version 1.0.0 of `NIMBLE` also includes functionality for automatic differentiation, Laplace approximation and HMC, built using `CppAD` as with `TMB`.
