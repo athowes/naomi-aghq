@@ -20,7 +20,7 @@ author:
     sepNext: ","
   - name: Jeffrey W.
     surname: Eaton
-    email: jeffrey.eaton@imperial.ac.uk
+    email: jeaton@hsph.harvard.edu
     label: e4
     addressLabel: D,E
 affiliation:
@@ -33,11 +33,12 @@ affiliation:
   - label: C
     name: Department of Computer Science, University of Oxford
     authorsLabels: e3
-  - label: E
-    name: MRC Centre for Global Infectious Disease Analysis, School of Public Health, Imperial College London
-    authorsLabels: e4
   - label: D
     name: Center for Communicable Disease Dynamics, Harvard T.H. Chan School of Public Health, Harvard University
+    authorsLabels: e4
+  - label: E
+    name: MRC Centre for Global Infectious Disease Analysis, School of Public Health, Imperial College London
+
 abstract: |
   | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of policy interest, including HIV prevalence, HIV incidence, and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. The model is provided as a tool for countries to input their data to and generate estimates during a yearly process supported by UNAIDS. Currently, inference is conducted using empirical Bayes and a Gaussian approximation via the \texttt{TMB} \textsc{R} package. We propose a new inference method which extends adaptive Gauss-Hermite quadrature to deal with >20 hyperparameters, enabling fast and accurate inference for Naomi and other extended latent Gaussian models. Using data from Malawi, our method provides more accurate inferences than \texttt{TMB}, and is substantially faster to run to Hamiltonian Monte Carlo with the No-U-Turn sampler. By extending the \texttt{aghq} \textsc{R} package we facilitate easy, flexible use of our method when provided a \texttt{TMB} \textsf{C++} template for the model's log-posterior.
 keyword-subclass: | 
@@ -47,8 +48,11 @@ keyword-subclass: |
  \kwd[; secondary ]{00X00}
  \end{keyword}
 keywords: 
+  - Bayesian statistics
   - spatial statistics
+  - evidence synthesis
   - small-area estimation
+  - approximate inference
   - INLA
   - AGHQ
   - HIV epidemiology
@@ -503,9 +507,9 @@ NUTS & \texttt{tmbstan} & $4$ chains of $20000$ iterations, with the first $1000
 
 ## NUTS convergence
 
-We obtained satisfactory NUTS results by gradually increasing the amount of computation until all diagnostics were acceptable.
-This requried chains of length 20,000, thinned by a factor of 20 for ease-of-storage.
-All potential scale reduction factors [@gelman1992inference; @vehtari2021rank] were $\hat R < 1.05$.
+To obtain satisfactory NUTS results we increased the Markov chain lengths until all diagnostics were acceptable.
+The results were chains of length 20,000, thinned by a factor of 20 for ease-of-storage.
+All potential scale reduction factors [@gelman1992inference; @vehtari2021rank] were then $\hat R < 1.05$.
 For full details see Appendix S2.
 Though inaccuracies remain possible, we considered the NUTS results to be a gold-standard.
 
@@ -552,12 +556,41 @@ Let $\{\phi_i\}_{i = 1}^n$ be posterior marginal samples.
 
 ## Inference comparison \label{sec:inf-comparison}
 
-We used three statistical approaches to assess the accuracy of posterior distributions produced by TMB and PCA-AGHQ as compared with those from NUTS: (1) Kolmogorov-Smirnov tests, (2) Pareto-smoothed importance sampling, and (3) maximum mean discrepancy.
+To compare the accuracy of posterior distributions produced by TMB and PCA-AGHQ as compared with those from NUTS we assessed (1) marginal point estimates, (2) marginal Kolmogorov-Smirnov and Anderson-Darling tests using the empirical cumulative distribution function (ECDF), (3) joint Pareto-smoothed importance sampling results, and (4) joint maximum mean discrepancy results. 
 
-### Kolmogorov-Smirnov tests
+### Point estimates
 
-The two-sample Kolmogorov-Smirnov (KS) test statistic [@smirnov1948table] is the maximum absolute difference between two empirical cumulative distribution (ECDF) functions $F(\varphi) = \frac{1}{n} \sum_{i = 1}^n \mathbb{I}_{\phi_i \leq \varphi}$.
-We compare the KS statistics $D_\text{TMB} = \sup_\varphi | F_\text{NUTS}(\varphi) - F_\text{TMB}(\varphi)|$ and $D_\text{PCA-AGHQ} = \sup_\varphi | F_\text{NUTS}(\varphi) - F_\text{PCA-AGHQ}(\varphi)|$.
+```{r}
+df_point <- read_csv("depends/mean-sd.csv")
+
+df_point_pct <- df_point %>%
+  ungroup() %>%
+  group_by(indicator) %>%
+  summarise(
+    rmse_diff = 100 * diff(rmse) / max(rmse),
+    mae_diff = 100 * diff(mae) / max(mae)
+  )
+
+rmse_ahgq_mean <- filter(df_point, method == "PCA-AGHQ", indicator == "Posterior mean estimate") %>% pull(rmse) %>% round(2)
+rmse_tmb_mean <- filter(df_point, method == "TMB", indicator == "Posterior mean estimate") %>% pull(rmse) %>% round(2)
+rmse_diff_mean <- filter(df_point_pct, indicator == "Posterior mean estimate") %>% pull(rmse_diff) %>% round(0)
+
+rmse_ahgq_sd <- filter(df_point, method == "PCA-AGHQ", indicator == "Posterior SD estimate") %>% pull(rmse) %>% round(2)
+rmse_tmb_sd <- filter(df_point, method == "TMB", indicator == "Posterior SD estimate") %>% pull(rmse) %>% round(2)
+rmse_diff_sd <- filter(df_point_pct, indicator == "Posterior SD estimate") %>% pull(rmse_diff) %>% round(0)
+```
+
+The root mean square error (RMSE) between posterior mean estimates from PCA-AGHQ and NUTS (`r rmse_ahgq_mean`) was `r abs(rmse_diff_mean)`% lower than that between TMB and NUTS (`r rmse_tmb_mean`).
+For the posterior standard deviation estimates, there was a substantial `r abs(rmse_diff_sd)`% reduction in RMSE: from `r abs(rmse_tmb_sd)` (TMB) to `r abs(rmse_ahgq_sd)` (PCA-AGHQ).
+These results, alongside those for the mean absolute error (MAE), are presented in Figure \ref{fig:mean-sd}.
+
+```{r mean-sd, fig.cap="TMT."}
+knitr::include_graphics("depends/mean-sd-comparison.png")
+```
+
+### Distribution tests
+
+The two-sample Kolmogorov-Smirnov (KS) test statistic [@smirnov1948table] is the maximum absolute difference between two ECDFs $F(\varphi) = \frac{1}{n} \sum_{i = 1}^n \mathbb{I}_{\phi_i \leq \varphi}$.
 See an illustration of the KS test in Figure \ref{fig:ks} and a summary of the results in Table.
 
 ```{r ks, fig.height = 4, fig.cap="Example KS test for one parameter."}
@@ -632,16 +665,14 @@ histogram + ecdf_diff
 
 ### Pareto-smoothed importance sampling
 
-Alongside marginal distributions, we are interested in assessing the accuracy of joint distributions.
 Let $\{\bphi_i\}_{i = 1}^n$ be joint posterior samples.
 Pareto-smoothed importance sampling [PSIS; @vehtari2015pareto, @yao2018yes] is a method for stabilising the ratios used in importance sampling.
 Results for the PSIS analysis are pending.
 
 ### Maximum mean discrepancy
 
-Joint distributions can also be compared via the maximum mean discrepancy [MMD; @gretton2006kernel].
-Let $\Phi = \{\bphi_i\}_{i = 1}^n$ and $\Psi = \{\bpsi_i\}_{i = 1}^n$ be two sets of joint posterior samples obtained from different inference methods, and $k$ be a kernel.
-The MMD can be empirically estimated by
+Let $\Phi = \{\bphi_i\}_{i = 1}^n$ and $\Psi = \{\bpsi_i\}_{i = 1}^n$ be two sets of joint posterior samples, and $k$ be a kernel.
+The maximum mean discrepancy [MMD; @gretton2006kernel] can be empirically estimated by
 \begin{equation*}
 \text{MMD}(\Phi, \Psi) = \sqrt{\frac{1}{n^2} \sum_{i, j = 1}^n k(\bphi_i, \bphi_j) - \frac{2}{n^2} \sum_{i, j = 1}^n k(\bphi_i, \bpsi_j) + \frac{1}{n^2} \sum_{i, j = 1}^n k(\bpsi_i, \bpsi_j)}.
 \end{equation*}

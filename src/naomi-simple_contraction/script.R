@@ -124,6 +124,8 @@ df_metrics <- df_metrics %>%
     )
   )
 
+write_csv(df_metrics, "mean-sd.csv")
+
 mean_sd_plot <- ggplot(df_plot, aes(x = truth, y = approximate)) +
   geom_point(shape = 1, alpha = 0.4) +
   facet_grid(indicator ~ method) +

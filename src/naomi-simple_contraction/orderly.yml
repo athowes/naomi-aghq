@@ -2,10 +2,12 @@ script: script.R
 
 artefacts:
   - data:
-      description: Plots
+      description: Plots and saved output
       filenames:
         - posterior-contraction.png
-        - sd-comparison.png
+        - mean-sd-comparison.png
+        - mean-sd.csv
+
 
 resources:
   - naomi_simple_prior.cpp
