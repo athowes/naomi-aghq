@@ -58,7 +58,9 @@ depends:
   - naomi-simple_contraction:
       id: latest
       use:
-        depends/posterior-contraction.pdf: posterior-contraction.png
+        depends/posterior-contraction.png: posterior-contraction.png
+        depends/mean-sd-comparison.png: mean-sd-comparison.png
+        depends/mean-sd.csv: mean-sd.csv
   - check_hyper-marginals:
       id: latest
       use:

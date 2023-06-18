@@ -107,7 +107,7 @@ df_metrics <- df_plot %>%
     mae = mean(abs(truth - approximate))
   )
 
-df_metric_pct <- df_metrics %>%
+df_metrics_pct <- df_metrics %>%
   ungroup() %>%
   group_by(indicator) %>%
   summarise(
@@ -119,7 +119,7 @@ df_metrics <- df_metrics %>%
   mutate(
     label = ifelse(
       method == "PCA-AGHQ",
-      paste0("RMSE: ", round(rmse, 2), " (", round(df_metric_pct$rmse_diff), "%)", "\nMAE: ", round(mae, 2), " (", round(df_metric_pct$mae_diff), "%)"),
+      paste0("RMSE: ", round(rmse, 2), " (", round(df_metrics_pct$rmse_diff), "%)", "\nMAE: ", round(mae, 2), " (", round(df_metrics_pct$mae_diff), "%)"),
       paste0("RMSE: ", round(rmse, 2), "\nMAE: ", round(mae, 2))
     )
   )

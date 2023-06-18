@@ -269,36 +269,77 @@ ABF (always be facetting):
 ```{r}
 df_wide <- bind_rows(
   df_wide_second90 %>%
-    mutate(type = "Second 90"),
+    mutate(indicator = "Second 90"),
   df_wide_1inc %>%
-    mutate(type = "High incidence")
+    mutate(indicator = "High incidence")
 )
-
-write_csv(df_wide, "exceedance.csv")
 
 fct_reorg <- function(fac, ...) {
   fct_recode(fct_relevel(fac, ...), ...)
 }
 
+df_metrics <- df_wide %>%
+  select(TMB, aghq, truth = tmbstan, indicator) %>%
+  pivot_longer(
+    cols = c("TMB", "aghq"),
+    names_to = "method",
+    values_to = "approximate"
+  ) %>%
+  group_by(indicator, method) %>%
+  summarise(
+    rmse = sqrt(mean((truth - approximate)^2)),
+    mae = mean(abs(truth - approximate))
+  ) %>%
+  mutate(method = fct_reorg(method, "TMB" = "TMB", "PCA-AGHQ" = "aghq"))
+  
+df_metrics_pct <- df_metrics %>%
+  ungroup() %>%
+  group_by(indicator) %>%
+  summarise(
+    rmse_diff = 100 * (min(rmse) - max(rmse)) / max(rmse),
+    mae_diff = 100 * (min(mae) - max(mae)) / max(mae)
+  )  
+
+df_metrics <- df_metrics %>%
+  left_join(
+    mutate(df_metrics_pct, method = "PCA-AGHQ"),
+    by = c("indicator", "method")
+  ) %>%
+  mutate(
+    label = ifelse(
+      method == "PCA-AGHQ",
+      paste0("RMSE: ", signif(rmse, 2), " (", signif(rmse_diff, 2), "%)", "\nMAE: ", signif(mae, 2), " (", signif(mae_diff, 2), "%)"),
+      paste0("RMSE: ", signif(rmse, 2), "\nMAE: ", signif(mae, 2))
+    )
+  ) %>%
+  ungroup()
+
+write_csv(df_metrics, "exceedance.csv")
+
 exceedance_manuscript_plot <- df_wide %>%
   pivot_longer(cols = c("TMB", "aghq"), names_to = "method", values_to = "estimate") %>%
   mutate(
     method = fct_reorg(method, "TMB" = "TMB", "PCA-AGHQ" = "aghq"),
-    type = fct_relevel(type, "Second 90", "High incidence")
+    indicator = fct_relevel(indicator, "Second 90", "High incidence")
   ) %>%
-  ggplot(aes(x = tmbstan, y = estimate, col = sex)) +
-    geom_point(shape = 1, alpha = 0.6) +
+  ggplot(aes(x = tmbstan, y = estimate)) +
+    geom_point(aes(col = sex), shape = 1, alpha = 0.6) +
     coord_fixed(ratio = 1) +
     scale_colour_manual(values = c("#56B4E9", "#999999"), labels = c("Female", "Male")) +
     geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-    facet_grid(type ~ method) +
+    facet_grid(indicator ~ method) +
     labs(x = "NUTS", y = "", col = "Sex") +
     theme_minimal() +
     theme(
       legend.position = "bottom"
     )
 
-exceedance_manuscript_plot
+exceedance_manuscript_plot <- exceedance_manuscript_plot +
+  geom_text(
+    data = df_metrics %>% mutate(method = fct_relevel(method, "TMB", "PCA-AGHQ")),
+    aes(x = -Inf, y = Inf, label = label),
+    size = 3, hjust = 0, vjust = 1.5
+  )
 
 ggsave("exceedance.png", exceedance_manuscript_plot, h = 6.5, w = 6.25, bg = "white")
 ```
