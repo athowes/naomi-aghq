@@ -1,5 +1,5 @@
 ---
-title: Appendix to "Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model"
+title: Appendix to "Fast approximate Bayesian inference of HIV indicators using the Naomi small-area estimation model"
 author:
   - Adam Howes^[Department of Mathematics, Imperial College London]
   - Alex Stringer^[Department of Statistics and Actuarial Science, University of Waterloo]
@@ -32,20 +32,18 @@ knitr::opts_chunk$set(
 
 \newpage
 
-```{=tex}
 \setcounter{table}{0}  
 \renewcommand{\thetable}{S\arabic{table}} 
 \setcounter{figure}{0} 
 \renewcommand{\thefigure}{S\arabic{figure}}
 \setcounter{section}{0} 
 \renewcommand{\thesection}{S\arabic{section}}
-```
 
 \newpage
 
 # Simplified Naomi model description \label{sec:math}
 
-In this section we describe the simplified Naomi model [@eaton2021naomi] considered in the main text in more complete detail.
+Here, we describe the simplified Naomi model [@eaton2021naomi] in more detail.
 
 ## Background
 
@@ -57,13 +55,12 @@ Let $s \in \{\text{F}, \text{M}\}$ be sex, and $a \in \{\text{0-5}, \text{5-10},
 As short-hand, we write $a = l$ to refer to the age group with lower bound $l$, e.g. $a = 20$ for $a = \text{20-25}$.
 We index the known quantity population size $N_{x, s, a}$ by district, sex and age-band, as well as the following unknown quantities: HIV prevalence $\rho_{x, s, a} \in [0, 1]$, ART coverage $\alpha_{x, s, a} \in [0, 1]$, annual HIV incidence rate $\lambda_{x, s, a} > 0$, and proportion of HIV positive persons recently infected $\kappa_{x, s, a} \in [0, 1]$.
 Sometimes data are observed at an aggregate level, rather than the more granular modelled level.
-In this instance, we use $\{\cdot\}$ to generically refer to a aggregate set over which an observation is made, e.g. $\{a\} = \{\text{15-19}, \ldots, \text{45-49}\}$ for the adult age range 15-49.
-We let $\sum_{\{x\}}$ be used as shorthand for $\sum_{x \in \{x\}}$, and likewise for $s$ and $a$.
-In the main text we use a more concise, but less descriptive, approach.
+We then use $\{\cdot\}$ to generically refer to a aggregate set over which an observation is made, e.g. $\{a\} = \{\text{15-19}, \ldots, \text{45-49}\}$ for the adult age range 15-49.
+Let $\sum_{\{x\}}$ be shorthand for $\sum_{x \in \{x\}}$, analogously for $s$ and $a$.
 
 ### Structured random effects
 
-We use use structured random effects to enable partial pooling of information across units assessed as being similar, such as those belonging to neighbouring districts or adjacent age-bands.
+We use structured random effects to enable partial pooling of information across units assessed as being similar, such as those belonging to neighbouring districts or adjacent age-bands.
 Let $u$ be a generic random effect, with length $\dim(u)$.
 Three types of structured random effects are used in the model.
 First, we specify the first order auto-regressive model by $u \sim \text{AR}1(\sigma, \phi)$ such that
@@ -86,20 +83,18 @@ $$
 ### Complex survey design
 
 We assume the household survey was run according to a complex survey design where each individual $j$ in the population $U$ has non-zero probability $\pi_j \in (0, 1)$ of appearing in the sample $S \subseteq U$. Suppose we observe an outcome $\theta_j \in \{0, 1\}$ for $j \in S$.
-Let $w_j = 1 / \pi_j \times 1 / \omega_j$ be design weights, where $\omega_j$ is a non-response factor, then a survey weighted mean is given by
+Let $w_j = 1 / \pi_j \times 1 / \omega_j$ be design weights, where $\omega_j$ is a non-response factor, then a survey weighted mean, calculated using the `survey` \textsc{R} package [@lumley2004analysis], is given by
 $$
 \hat \theta = \frac{\sum_{j \in S} w_j \theta_j}{\sum_{j \in S} w_j}.
 $$
 We account for survey weighting in the variance via the Kish effective sample size [@kish1965survey]
 $$
-m^{\hat \theta} = \frac{\left(\sum_{j \in S} w_j\right)^2}{\sum_{j \in S} w_j^2}.
+m^{\theta} = \frac{\left(\sum_{j \in S} w_j\right)^2}{\sum_{j \in S} w_j^2}.
 $$
-The observed number of indicator cases is then $y^{\hat \theta} = m^{\hat \theta} \cdot \hat \theta$.
-To make these computations we use the `survey` \textsc{R} package [@lumley2004analysis].
+The observed number of indicator cases is then $y^{\theta} = m^{\theta} \cdot \hat \theta$.
 
 ## Process specification
 
-```{=tex}
 \begin{table}[h]
 \centering
 \begin{tabularx}{\textwidth}{llXX}
@@ -114,10 +109,9 @@ To make these computations we use the `survey` \textsc{R} package [@lumley2004an
 & Total & $51 + 14n$ & 24 \\ 
 \bottomrule
 \end{tabularx}
-\label{tab:latent-hyper-size}
 \caption{The numer of latent field parameters and hyperparameters in each model section.}
+\label{tab:latent-hyper-size}
 \end{table}
-```
 
 We now describe the hyperparameter and latent field process specification for the model.
 Whereas in the main text process and likelihood specifications are written together, here we consider the likelihood equations separately in Section \ref{sec:likelihood} to follow.
@@ -129,15 +123,32 @@ In the case of Malawi then $n = 32$ such that the total number of latent field p
 ### HIV prevalence \label{sec:hiv-prev}
 
 We model HIV prevalence $\rho_{x, s, a} \in [0, 1]$ on the logit scale using the linear predictor
-$$
-\text{logit}(\rho_{x, s, a}) = \beta^\rho_0 + \beta_{S}^{\rho, s = \text{M}} + u^\rho_a + u_a^{\rho, s = \text{M}} + u^\rho_x + u_x^{\rho, s = \text{M}} + u_x^{\rho, a < 15} + \eta^\rho_{R_x, s, a}. 
-$$
-The term $\beta^\rho_0 \sim \mathcal{N}(0, 5)$ is an intercept, and $\beta_{s}^{\rho, s = \text{M}} \sim \mathcal{N}(0, 5)$ is the difference in logit prevalence for men compared to women.
-The terms $u^\rho_a \sim \text{AR}1(\sigma_A^\rho, \phi_A^\rho)$ are age random effects for women, and $u_a^{\rho, s = \text{M}} \sim \text{AR}1(\sigma_{AS}^\rho, \phi_{AS}^\rho)$ are age random effects for the difference in logit prevalence for men compared to women age $a$.
-The terms $u^\rho_x \sim \text{BYM}2(\sigma_X^\rho, \phi_X^\rho)$ are spatial random effects for women, and $u_x^{\rho, s = \text{M}} \sim \text{BYM}2(\sigma_{XS}^\rho, \phi_{XS}^\rho)$ are spatial random effects for the difference in logit prevalence for men compared to women in district $x$.
-The terms $u_x^{\rho, a < 15} \sim \text{ICAR}(\sigma_{XA}^\rho)$ are spatial random effects for the ratio of paediatric prevalence to adult women prevalence.
-Finally, $\eta^\rho_{R_x, s, a}$ are fixed offsets specifying assumed odds ratios for prevalence outside the age ranges for which data are available.
-The two BYM2 random effects are comprised of the following unit scaled spatially structured $\{v_x^{\rho}, v_x^{\rho, s = \text{M}}\}$ and spatially unstructured $\{w_x^{\rho}, w_x^{\rho, s = \text{M}}\}$ components
+\begin{equation}
+\text{logit}(\rho_{x, s, a}) = \beta^\rho_0 + \beta_{S}^{\rho, s = \text{M}} + u^\rho_a + u_a^{\rho, s = \text{M}} + u^\rho_x + u_x^{\rho, s = \text{M}} + u_x^{\rho, a < 15} + \eta^\rho_{R_x, s, a}. \label{eq:prev}
+\end{equation}
+Table \ref{tab:prev} provides a description of the terms included in Equation \ref{eq:prev}.
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+Term & Distribution & Description \\ 
+\midrule
+$\beta^\rho_0$ & $\mathcal{N}(0, 5)$ & Intercept \\
+$\beta_{s}^{\rho, s = \text{M}}$ & $\mathcal{N}(0, 5)$ & The difference in logit prevalence for men compared to women \\
+$u^\rho_a$ & $\text{AR}1(\sigma_A^\rho, \phi_A^\rho)$ & Age random effects for women \\
+$u_a^{\rho, s = \text{M}}$ & $\text{AR}1(\sigma_{AS}^\rho, \phi_{AS}^\rho)$ & Age random effects for the difference in logit prevalence for men compared to women age $a$ \\
+$u^\rho_x$ & $\text{BYM}2(\sigma_X^\rho, \phi_X^\rho)$ & Spatial random effects for women \\
+$u_x^{\rho, s = \text{M}}$ & $\text{BYM}2(\sigma_{XS}^\rho, \phi_{XS}^\rho)$ & Spatial random effects for the difference in logit prevalence for men compared to women in district $x$  \\
+$u_x^{\rho, a < 15}$ & $\text{ICAR}(\sigma_{XA}^\rho)$ & Spatial random effects for the ratio of paediatric prevalence to adult women prevalence \\
+$\eta^\rho_{R_x, s, a}$ & $-$ & Fixed offsets specifying assumed odds ratios for prevalence outside the age ranges for which data are available \\
+\bottomrule
+\end{tabularx}
+\caption{Terms included in the linear predictor for HIV prevalence (Equation \ref{eq:prev}).}
+\label{tab:prev}
+\end{table}
+
+The two BYM2 random effects $u^\rho_x$ and $u_x^{\rho, s = \text{M}}$ are comprised of the following unit scaled spatially structured $\{v_x^{\rho}, v_x^{\rho, s = \text{M}}\}$ and spatially unstructured $\{w_x^{\rho}, w_x^{\rho, s = \text{M}}\}$ components, respectively
 \begin{align*}
 u_x^{\rho} &= \sigma_{X}^\rho \left( \sqrt\phi_{X}^\rho \cdot v_x^{\rho} + \sqrt{1 - \phi_{X}^\rho} \cdot w_x^{\rho} \right), \\
 u_x^{\rho, s = \text{M}} &= \sigma_{XS}^\rho \left( \sqrt\phi_{XS}^\rho \cdot v_x^{\rho, s = \text{M}} + \sqrt{1 - \phi_{XS}^\rho} \cdot w_x^{\rho, s = \text{M}} \right).
@@ -176,22 +187,31 @@ with terms and priors analogous to the HIV prevalence process model in Section \
 ### HIV incidence rate \label{sec:hiv-inc}
 
 We model HIV incidence rate $\lambda_{x, s, a} > 0$ on the log scale using the linear predictor
-$$
-\log(\lambda_{x, s, a}) = \beta_0^\lambda + \beta_S^{\lambda, s = \text{M}} + \log(\rho_{x}^{\text{15-49}}) + \log(1 - \omega \cdot \alpha_{x}^{\text{15-49}}) + u_x^\lambda + \eta_{R_x, s, a}^\lambda, \label{eq:hiv-inc}
-$$
-where $\beta^\lambda_0 \sim \mathcal{N}(0, 5)$ is an intercept term proportional to the average HIV transmission rate for untreated HIV positive adults and $\beta_S^{\lambda, s = \text{M}} \sim \mathcal{N}(0, 5)$ is the log incidence rate ratio for men compared to women.
-The term
-$$
-\rho_{x}^{\text{15-49}} = \frac{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{45} N_{x, s, a} \cdot \rho_{x, s, a}}{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{45} N_{x, s, a}}
-$$
-is the HIV prevalence among adults 15-49 calculated by aggregating age-specific HIV prevalences, and
-$$
-\alpha_{x}^{\text{15-49}} = \frac{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{45} N_{x, s, a} \cdot \rho_{x, s, a} \cdot \alpha_{x, s, a}}{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{45} N_{x, s, a} \cdot \rho_{x, s, a}}
-$$
-is the ART coverage among adults 15-49 calculated by aggregating age-specific ART coverages.
-The term $\omega$ is the average reduction in HIV transmission rate per 1% increase in population ART coverage and is fixed at $\omega = 0.7$ based on inputs to the Estimation and Projection Package (EPP) model [@eaton2019estimation].
-The terms $u_x^\lambda \sim \mathcal{N}(0, \sigma^\lambda)$ with $\sigma^\lambda \sim \mathcal{N}^+(0, 1)$ are IID spatial random effects.
-Finally, $\eta^\lambda_{R_x, s, a}$ specify fixed log incidence rate ratios by sex and age group calculated from Spectrum model output^[Note that these outputs are the only source of age structure for this part of the model. Furthermore, Spectrum assumes that there are no new infections in children aged 5-9 or 10-14, or adults aged over 80. A consequence is that the posterior over new infections in these age groups is exactly zero, by definition. We remove these identically zero posteriors from any inference comparisons.]
+\begin{equation}
+\log(\lambda_{x, s, a}) = \beta_0^\lambda + \beta_S^{\lambda, s = \text{M}} + \log(\rho_{x}^{\text{15-49}}) + \log(1 - \omega \cdot \alpha_{x}^{\text{15-49}}) + u_x^\lambda + \eta_{R_x, s, a}^\lambda. \label{eq:inc}
+\end{equation}
+Table \ref{tab:inc} provides a description of the terms included in Equation \ref{eq:inc}.
+
+<!-- \citet{eaton2019estimation} -->
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+Term & Distribution & Description \\ 
+\midrule
+$\beta^\lambda_0$ & $\mathcal{N}(0, 5)$ & Intercept term proportional to the average HIV transmission rate for untreated HIV positive adults \\
+$\beta_S^{\lambda, s = \text{M}}$ & $\mathcal{N}(0, 5)$ & The log incidence rate ratio for men compared to women \\
+$\rho_{x}^{\text{15-49}} = \frac{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{45} N_{x, s, a} \cdot \rho_{x, s, a}}{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{45} N_{x, s, a}}$ & $-$ & The HIV prevalence among adults 15-49 calculated by aggregating age-specific HIV prevalences \\
+$\alpha_{x}^{\text{15-49}} = \frac{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{45} N_{x, s, a} \cdot \rho_{x, s, a} \cdot \alpha_{x, s, a}}{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{45} N_{x, s, a} \cdot \rho_{x, s, a}}$ & $-$ & The ART coverage among adults 15-49 calculated by aggregating age-specific ART coverages \\
+$\omega = 0.7$ & $-$ & Average reduction in HIV transmission rate per increase in population ART coverage fixed based on inputs to the Estimation and Projection Package (EPP) model \\
+$u_x^\lambda$ & $\mathcal{N}(0, \sigma^\lambda)$  & IID spatial random effects with $\sigma^\lambda \sim \mathcal{N}^+(0, 1)$ \\
+$\eta^\lambda_{R_x, s, a}$ & $-$ & Fixed log incidence rate ratios by sex and age group calculated from Spectrum model output \\
+\bottomrule
+\end{tabularx}
+\caption{Terms included in the linear predictor for HIV incidence (Equation \ref{eq:inc}). Note that the only source age structure for this part of the model are $\eta^\lambda_{R_x, s, a}$. As Spectrum assumes that there are no new infections in children aged 5-9 or 10-14, or adults aged over 80, the posterior over new infections in these age groups is exactly zero, by definition. We remove these identically zero posteriors from any later inference comparisons.}
+\label{tab:inc}
+\end{table}
 
 We model the proportion recently infected among HIV positive persons $\kappa_{x, s, a} \in [0, 1]$ as
 $$
@@ -217,7 +237,7 @@ where, for $\theta \in \{\rho, \alpha\}$, $\beta^{\theta^{\text{ANC}}} \sim \mat
 
 In the full Naomi model, for adult women 15-49 the number of ANC clients $\Psi_{x, a} > 0$ are modelled as
 $$
-\log (\Psi_{x, a}) = \log (N_{x, \text{F}, a}) + \psi_{R_x, a} + \beta^\psi + u_x^\psi
+\log (\Psi_{x, a}) = \log (N_{x, \text{F}, a}) + \psi_{R_x, a} + \beta^\psi + u_x^\psi,
 $$
 where $N_{x, \text{F}, a}$ are the female population sizes, $\psi_{R_x, a}$ are fixed age-sex fertility ratios in Spectrum region $R_x$, $\beta^\psi$ are log rate ratios for the number of ANC clients relative to the predicted fertility, and $u_x^\psi \sim \mathcal{N}(0, \sigma^\psi)$ are district random effects.
 Here we fix $\beta^\psi = u_x^\psi = 0$ such that $\Psi_{x, a}$ are simply constants.
@@ -257,17 +277,17 @@ $$
 
 ### Household survey data
 
-For HIV prevalence, ART coverage and recent HIV infections, denoted by $\theta \in \{\rho, \alpha, \kappa\}$, the most recent household survey furnishes weighted observations $\hat \theta_{\{x\}, \{s\}, \{a\}}$ with respective Kish effective sample sizes $m^{\hat \theta}_{\{x\}, \{s\}, \{a\}} \in \mathbb{R}$, and observed number of cases
+For HIV prevalence, ART coverage and recent HIV infections, denoted by $\theta \in \{\rho, \alpha, \kappa\}$, the most recent household survey furnishes weighted observations $\hat \theta_{\{x\}, \{s\}, \{a\}}$ with respective Kish effective sample sizes $m^{\theta}_{\{x\}, \{s\}, \{a\}} \in \mathbb{R}$, and observed number of cases
 $$
-y^{\hat \theta}_{\{x\}, \{s\}, \{a\}} = m^{\hat \theta}_{\{x\}, \{s\}, \{a\}} \cdot \hat \theta_{\{x\}, \{s\}, \{a\}} \in \mathbb{R}.
+y^{\theta}_{\{x\}, \{s\}, \{a\}} = m^{\theta}_{\{x\}, \{s\}, \{a\}} \cdot \hat \theta_{\{x\}, \{s\}, \{a\}} \in \mathbb{R}.
 $$
 To model these observations, we use following three binomial working likelihoods
 \begin{align*}
-y^{\hat \rho}_{\{x\}, \{s\}, \{a\}} &\sim \text{xBin}(m^{\hat \rho}_{\{x\}, \{s\}, \{a\}}, \rho_{\{x\}, \{s\}, \{a\}}), \quad
+y^{\rho}_{\{x\}, \{s\}, \{a\}} &\sim \text{xBin}(m^{\rho}_{\{x\}, \{s\}, \{a\}}, \rho_{\{x\}, \{s\}, \{a\}}), \quad
 \rho_{\{x\}, \{s\}, \{a\}} = \frac{\sum_{\{x\}} \sum_{\{s\}} \sum_{\{a\}} N_{x, s, a} \cdot \rho_{x, s, a}}{\sum_{\{x\}} \sum_{\{s\}} \sum_{\{a\}} N_{x, s, a}}, \\
-y^{\hat \alpha}_{\{x\}, \{s\}, \{a\}} &\sim \text{xBin}(m^{\hat \alpha}_{\{x\}, \{s\}, \{a\}}, \alpha_{\{x\}, \{s\}, \{a\}}), \quad
+y^{\alpha}_{\{x\}, \{s\}, \{a\}} &\sim \text{xBin}(m^{\alpha}_{\{x\}, \{s\}, \{a\}}, \alpha_{\{x\}, \{s\}, \{a\}}), \quad
 \alpha_{\{x\}, \{s\}, \{a\}} = \frac{\sum_{\{x\}} \sum_{\{s\}} \sum_{\{a\}} N_{x, s, a} \cdot \rho_{x, s, a} \cdot \alpha_{x, s, a}}{\sum_{\{x\}} \sum_{\{s\}} \sum_{\{a\}} N_{x, s, a} \cdot \rho_{x, s, a}}, \\
-y^{\hat \kappa}_{\{x\}, \{s\}, \{a\}} &\sim \text{xBin}(m^{\hat \kappa}_{\{x\}, \{s\}, \{a\}}, \kappa_{\{x\}, \{s\}, \{a\}}), \quad
+y^{\kappa}_{\{x\}, \{s\}, \{a\}} &\sim \text{xBin}(m^{\kappa}_{\{x\}, \{s\}, \{a\}}, \kappa_{\{x\}, \{s\}, \{a\}}), \quad
 \kappa_{\{x\}, \{s\}, \{a\}} = \frac{\sum_{\{x\}} \sum_{\{s\}} \sum_{\{a\}} N_{x, s, a} \cdot \rho_{x, s, a} \cdot \kappa_{x, s, a}}{\sum_{\{x\}} \sum_{\{s\}} \sum_{\{a\}} N_{x, s, a} \cdot \rho_{x, s, a}}.
 \end{align*}
 The generalised binomial $y \sim \text{xBin}(m, p)$ is defined for $y, m \in \mathbb{R}^+$ with $y \leq m$ such that
@@ -328,6 +348,8 @@ In particular:
 2. If no ART data, either survey or ART programme, are available but data on ART coverage among ANC clients are available, the level of ART coverage is not identifiable, but spatial variation is identifiable. In this instance, overall ART coverage is determined by the Spectrum offset, and only area random effects are estimated such that $\text{logit} \left(\alpha_{x, s, a} \right) = u_x^\alpha + \eta_{R_x, s, a}^\alpha$.
 3. If survey data on recent HIV infection are not included in the model, then $\beta_0^\lambda = \beta_S^{\lambda, s = \text{M}} = u_x^\lambda = 0$. The sex ratio for HIV incidence is determined by the sex incidence rate ratio from Spectrum in the same years and the incidence rate in all districts is modelled assuming the same average HIV transmission rate for untreated adults, but varies according to district estimates of HIV prevalence and ART coverage.
 
+<!-- Create DAG representing Naomi model. This would likely go into the appendix, so use that notation -->
+
 ```{r simplified-naomi, fig.cap="Directed acyclic graph describing the simplified Naomi model (work in progress)."}
 knitr::include_graphics("depends/simplified-naomi.pdf")
 ```
@@ -340,7 +362,6 @@ For further reference on the `TMB` software see @tmbdocumentation.
 
 <!-- Use table(names(tmb$fit$par.full)) to check the below table -->
 
-```{=tex}
 \begin{table}[p!]
 \centering
 \begin{tabularx}{\textwidth}{llllllll}
@@ -396,10 +417,9 @@ Variable name & Notation & Type & Size & Domain & $\rho$ input? & $\alpha$ input
 \texttt{log\_or\_gamma} & $u_x^{\tilde \gamma}$ & Latent & $n$ & $\mathbb{R}^{n}$ & & & \\
 \bottomrule
 \end{tabularx}
-\label{tab:tmb-lookup}
 \caption{Correspondence between mathematical notation and variable names used in our \texttt{TMB} code. The total number of hyperparameters is 24, and the total number of latent field parameters is $51 + 14n$, where $n$ is the number of districts. We use the notation \cmark \ to refer to direct dependence of the parameter on the variable, \xmark \ to refer to no dependence, and a blank entry to refer to dependence conditional on the data.}
+\label{tab:tmb-lookup}
 \end{table}
-```
 
 <!-- Latent field size -->
 <!-- 2 + 2 + 2 + 1 + 1+ 10 + 10 + 13 + 10 + 14n = 51 + 14n -->
@@ -433,39 +453,45 @@ n_divergent <- np %>%
 stopifnot(n_divergent == 0)
 ```
 
-```{r rhat, fig.cap="The potential scale reduction factor compared between- and within- estimates of univariate parameters. It is recommended against to use the results if the value is less than 1.05."}
+```{r rhat, fig.cap="The potential scale reduction factor compares between- and within- estimates of univariate parameters. It is recommended only to use NUTS results if the value is less than 1.05, which it is for all parameters."}
 knitr::include_graphics("depends/rhat.png")
 ```
 
-```{r ratio, fig.cap="The ESS ratio measures how efficient sampling is."}
+```{r ratio, fig.cap="The efficiently, as measured by the ESS ratio, of the NUTS sampler was poor."}
 knitr::include_graphics("depends/ratio.png")
 ```
 
-```{r ess, fig.cap="The effective number of samples varied substantially."}
+```{r ess, fig.cap="The effective number of samples we obtained varied substantially between parameters."}
 knitr::include_graphics("depends/ess.png")
 ```
 
 \newpage
 
-# AGHQ and PCA-AGHQ
+# AGHQ and PCA-AGHQ details
+
+## Additional figures
 
 ```{r marginal-sd, fig.cap="Hyperparameters on the logit-scale had systematically higher marginal standard deviations than those on the log-scale. This is because variation on the real scale is compressed by the inverse logit and expanded by the inverse log (exponential)."}
 knitr::include_graphics("depends/marginal-sd.png")
 ```
 
-```{r scree, fig.cap="Most variation could be explained by fewer than the full 24 dimensions."}
+```{r scree, fig.cap="Most variation could be explained by far fewer than the full 24 dimensions."}
 knitr::include_graphics("depends/tv-plot.png")
 ```
 
-```{r reduced-rank, fig.cap="The reduced rank (8) matrix approximation to the Hessian is visually similar to the full rank (24) matrix."}
+```{r reduced-rank, fig.cap="The reduced rank (8) matrix approximation to the Hessian is visually similar to the full rank matrix."}
 knitr::include_graphics("depends/reduced-rank-plot.png")
 ```
+
+## Estimated normalising constant comparison
 
 \newpage
 
 # Further inference comparison results
 
-## KS tests
+## Point estimates
+
+## Distribution tests
 
 ```{r}
 ks_summary <- readRDS("depends/ks_summary.rds")
@@ -486,41 +512,42 @@ ks_summary %>%
   )
 ```
 
+## Pareto-smoothed importance sampling
+
+## Maximum mean discrepancy
+
 \newpage
 
-# Laplace marginals algorithm
-
-In earlier work, we used a full Laplace approximation to the latent field marginals.
-The algorithm for obtaining this approximation is detailed here.
+# Algorithm using Laplace latent field marginals 
 
 1. Calculate the mode, Hessian at the mode, lower Cholesky, and Laplace approximation
 \begin{align*}
 \hat{\btheta} &= \argmax_{\btheta} {\tilde p_\texttt{LA}(\btheta, \y)}, \\
-\hat{\mathbf{H}} &= - \frac{\partial^2}{\partial \btheta \partial \btheta^\top} \log \tilde p_\texttt{LA}(\btheta, \y) \rvert_{\btheta = \hat \btheta} \\
+\hat{\mathbf{H}} &= - \frac{\partial^2}{\partial \btheta \partial \btheta^\top} \log \tilde p_\texttt{LA}(\btheta, \y) \rvert_{\btheta = \hat \btheta}, \\
 \hat{\mathbf{H}}^{-1} &= \hat{\mathbf{L}} \hat{\mathbf{L}}^\top, \\
-\tilde p_\texttt{LA}(\btheta, \y) &= \frac{p(\y, \x, \btheta)}{\tilde p_\texttt{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat \x(\btheta)}
+\tilde p_\texttt{LA}(\btheta, \y) &= \frac{p(\y, \x, \btheta)}{\tilde p_\texttt{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat \x(\btheta)},
 \end{align*}
 where $\tilde p_\texttt{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \x(\btheta), \hat{\mathbf{H}}(\btheta)^{-1})$ is a Gaussian approximation to $p(\x \, | \, \btheta, \y)$ with mode and precision matrix given by
 \begin{align*}
 \hat \x(\btheta) &= \argmax_\x \log p(\y, \x, \btheta), \\
 \hat{\mathbf{H}}(\btheta) &= - \frac{\partial^2}{\partial \x \partial \x^\top} \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}.
 \end{align*}
-2. Generate a set of nodes $\bu \in \mathcal{Q}(m, k)$ and weights $\omega: \bu \to \mathbb{R}$ from a Gauss-Hermite quadrature rule with $k$ nodes per dimension, which are then adapted based on the mode and lower Choleksy via $\btheta(\bu) = \hat{\btheta} + \mathbf{L} \bu$.
-Then, use this quadrature rule to calculate the normalising constant $\tilde p_{\texttt{AQ}}(\y)$ as follows
+2. Generate a set of nodes $\bu \in \mathcal{Q}(m, k)$ and weights $\omega: \bu \to \mathbb{R}$ from a Gauss-Hermite quadrature rule with $k$ nodes per dimension.
+Adapt these nodes based on the mode and lower Choleksy via $\btheta(\bu) = \hat{\btheta} + \mathbf{L} \bu$.
+Use this quadrature rule to calculate the normalising constant $\tilde p_{\texttt{AQ}}(\y)$ as follows
 \begin{equation}
 \tilde p_{\texttt{AQ}}(\y) = \sum_{\bu \in \mathcal{Q}(m, k)} \tilde p_\texttt{LA}(\btheta(\bu), \y) \omega(\bu). \label{eq:evidence1}
 \end{equation}
-3. For $i \in [n]$ generate $l$ nodes $x_i(\bv)$ via a Gauss-Hermite quadrature rule $\bv \in \mathcal{Q}(1, l)$ adapted based on the mode $\hat \x(\btheta)_i$ and standard deviation $\sqrt{\text{diag}[\hat{\mathbf{H}}(\btheta)^{-1}]_i}$ of the Gaussian marginal.
-$l \geq 4$ is recommended to enable B-spline interpolation.
-Then, for $x_i \in \{ x_i(\bv) \}_{\bv \in \mathcal{Q}(1, l)}$  and $\btheta \in \{ \btheta(\bu) \}_{\bu \in \mathcal{Q}(m, k)}$ calculate the modes and Hessians
+3. For $i \in [N]$ generate $l$ nodes $x_i(\bv)$ via a Gauss-Hermite quadrature rule $\bv \in \mathcal{Q}(1, l)$ adapted based on the mode $\hat \x(\btheta)_i$ and standard deviation $\sqrt{\text{diag}[\hat{\mathbf{H}}(\btheta)^{-1}]_i}$ of the Gaussian marginal.
+A value of $l \geq 4$ is recommended to enable B-spline interpolation.
+For $x_i \in \{ x_i(\bv) \}_{\bv \in \mathcal{Q}(1, l)}$  and $\btheta \in \{ \btheta(\bu) \}_{\bu \in \mathcal{Q}(m, k)}$ calculate the modes and Hessians
 \begin{align*}
 \hat \x_{-i}(x_i, \btheta) &= \argmax_{\x_{-i}} \log p(\y, x_i, \x_{-i}, \btheta), \\
 \hat{\mathbf{H}}_{-i, -i}(x_i, \btheta) &= - \frac{\partial^2}{\partial \x_{-i} \partial \x_{-i}^\top} \log p(\y, x_i, \x_{-i}, \btheta) \rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)},
 \end{align*}
-where optimisation to obtain $\hat \x_{-i}(x_i, \btheta)$ is initialised at $\hat \x(\btheta)_{-i}$.
+where optimisation to obtain $\hat \x_{-i}(x_i, \btheta)$ can be initialised at $\hat \x(\btheta)_{-i}$.
 4. For $x_i \in \{ x_i(\bv) \}_{\bv \in \mathcal{Q}(1, l)}$ calculate
 \begin{equation}
-\tilde p_\texttt{AQ}(x_i \, | \, \y) = \frac{\tilde p_\texttt{LA}(x_i, \y)}{\tilde p_{\texttt{AQ}}(\y)}. \label{eq:laplace-marginal}
 \end{equation}
 where
 $$
@@ -530,7 +557,7 @@ and
 $$
 \tilde p_\texttt{LA}(x_i, \btheta, \y) = \frac{p(x_i, \x_{-i}, \btheta, \y)}{\tilde p_\texttt{G}(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)}.
 $$
-Although Equation \ref{eq:laplace-marginal} can be calculated using the estimate of the evidence in Equation \ref{eq:evidence1} it is more numerically accurate to use the estimate
+Although Equation \ref{eq:laplace-marginal} can be calculated using the estimate of the evidence given in Equation \ref{eq:evidence1} it is more numerically accurate, and requires little extra computation, to use the estimate
 $$
 \tilde p_{\texttt{AQ}}(\y) = \sum_{\bv \in \mathcal{Q}(1, l)} \tilde p_\texttt{LA}(x_i(\bv), \y) \omega(\bv)
 $$

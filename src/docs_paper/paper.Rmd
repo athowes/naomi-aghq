@@ -68,12 +68,6 @@ output:
       in_header: preamble.tex
 ---
 
-<!-- Remaining things to add, and or desiderata: -->
-
-<!-- * [ ] Tying together Naomi model within LGM / ELGM mathematical notation -->
-<!-- * [ ] Create DAG representing Naomi model. This would likely go into the appendix, so use that notation -->
-<!-- * [ ] Tie together connection to Laplace for AGHQ k = 1 -->
-
 <!-- Seth notes that Naomi is a spatial evidence synthesis model used to produce district- level HIV epidemic indicators in sub-Saharan Africa is not the right topic sentence for the abstract -->
 <!-- Better to lead with something about the inference method? -->
 
@@ -179,7 +173,6 @@ For $\theta \in \{\rho, \alpha, \kappa\}$ let
 \end{equation*}
 be weighted, aggregate survey observations, with individual responses $\theta_j \in \{0, 1\}$ and design weights $w_j$.
 The index $j$ is across all individuals in strata $i \in I$ within the relevant denominator i.e. for ART coverage, only those individuals who are HIV positive.
-<!-- Relevant means e.g. for alpha it's only the HIV positive individuals -->
 The observed number of outcomes are then $y^{\theta}_{I} = m^{\theta}_{I} \cdot \hat \theta_{I}$ where
 \begin{equation*}
 m^{\theta}_I = \frac{\left(\sum_j w_j\right)^2}{\sum_j w_j^2},
@@ -223,7 +216,7 @@ To account for this, we use multinomial logistic regressions to model the probab
 Briefly, let $\gamma_{x, x'}$ be the probability that a person on ART residing in district $x$ receives ART in district $x'$, and assume $\gamma_{x, x'} = 0$ unless $x = x'$ or the two districts are neighbouring, denoted by $x \sim x'$.
 The log-odds $\tilde \gamma_{x, x'} = \text{logit}(\gamma_{x, x'})$ are modelled using a structured additive predictor $\eta_x^{\tilde \gamma}$ which only depends on the home district $x$, such that travel to each neighbouring district, for all age-sex strata, is equally likely.
 We then model aggregate ART attendance data $y^{N^\text{ART}}_I$ using a Gaussian approximation to a sum of binomials.
-This sum is over both $i \in I$ and the number of ART clients travelling from district $x'$ to $x$.
+This sum is over both strata $i \in I$ and the number of ART clients travelling from district $x'$ to $x$.
 More details regarding this part of the model are provided in Appendix S1.
 
 ## Collected together
@@ -279,6 +272,7 @@ However, Naomi is not an LGM, and instead falls into the ELGM class, for the fol
 
 If Naomi was written out in full mathematical detail (in the section above), it would be easier to make these reasons more concrete.
 We should also specify how much of an impact each of these reasons is likely to have on the difficulty of inference.
+Perhaps a table format could be good here.
 
 # Fast approximate inference method\label{sec:fastinferencemethods}
 
@@ -324,6 +318,8 @@ The corresponding weights $\omega: \mathcal{Q}(1, k) \to \mathbb{R}$ are given b
 GHQ is attractive because it is exact for functions which are a polynomial of total order no more than $2k - 1$ multiplied by a Gaussian density.
 We typically expected posterior distributions to be relatively well described by this class of functions.
 Multivariate GHQ rules, required to integrate over $\btheta$, are typically obtained using the product rule such that $\z = (z_1, \ldots, z_m) \in \mathcal{Q}(m, k) = \mathcal{Q}(1, k)^m$ and $\omega(\z) = \prod_{j = 1}^m \omega(z_j)$.
+
+<!-- Tie together connection to Laplace for AGHQ k = 1 -->
 
 ## Adaptive quadrature
 
@@ -439,7 +435,7 @@ mvQuad::rescale(gg5, m = mu, C = cov, dec.type = 1)
 plot5 <- add_points(plot0, gg5) +
   labs(size = "")
 
-(plot1 + plot2) / (plot3 + plot4 + plot5)
+(plot1 + plot2) / (plot4 + plot5)
 ```
 
 ## Principal components analysis
@@ -464,18 +460,14 @@ This introduces a problem when trying to produce inferences about the latent fie
 We are not aware of any suitable approaches to obtain multinomial samples in such cases.
 It is however, still possible to calculate the normalising constant using a sparse rule, which we do so in Appendix S3, finding it to be related to that from PCA-AGHQ as follows.
 
-## Laplace marginals
-
-See Appendix S4.
-
 # Application to data from Malawi\label{sec:results}
 
 We fit the simplified Naomi model (Section \ref{sec:naomi}) to data from Malawi using three inferential approaches.
-For each approach, the `TMB` C++ user-template used to specify the log-posterior was the same.
 The three approaches were:
 1. TMB,
 2. PCA-AGHQ, and
 3. NUTS: the Hamiltonian Monte Carlo (HMC) algorithm No-U-Turn Sampling (NUTS) using Stan [@carpenter2017stan] via the `tmbstan` package [@monnahan2018no].
+The `TMB` C++ user-template used to specify the log-posterior was the same for each.
 The dimension of the latent field was $N = 467$ and the dimension of the hyperparameters was $m = 24$.
 Settings used for each inferential method are provided in Table \ref{tab:inference-methods}, and, where relevant, discussed further below.
 For the deterministic methods, following inference we simulated hyperparameter and latent field samples.
@@ -520,11 +512,13 @@ This resulted in a close reconstruction of the Hessian using the reduced rank ap
 
 ```{r node-positions, fig.cap="PCA-AGHQ node positions (green, rug plot) overlaid onto the hyperparameter marginal posteriors (grey, histogram) for each of the 24 hyperparameters."}
 knitr::include_graphics("depends/nodes-samples-comparison.png")
+
+# This plot could be improved with a scale for "coverage"
 ```
 
-### Visual assessment
+### Visual inspection
  
-Overlaying the generated PCA-AGHQ nodes overlaid onto the hyperparameter marginal posteriors obtained using NUTS, we found that approximately 12 of the 24 hyperparameters had well covered marginals (Figure \ref{fig:node-positions}).
+Overlaying the generated PCA-AGHQ nodes onto the hyperparameter marginal posteriors obtained using NUTS, we found approximately 12 of the 24 hyperparameters had marginals which were well covered (Figure \ref{fig:node-positions}).
 Though $12 > s = 8$ there remain many hyperparameters poorly covered.
 Coverage was associated with marginal standard deviation (Figure S$X$), which varied particularly according to the hyperparameter scale.
 All constrained hyperparameters $\theta$ were transformed to the real line, using either a log ($\theta > 0$) or logit ($\theta \in [0, 1]$) transformation.
@@ -545,7 +539,7 @@ To assess the informativeness of the data we compared the prior variance $\sigma
 We found that (Figure \ref{fig:contraction})) something something.
 For greater interpretability, facet parameters in this plot according to model component.
 
-```{r contraction, fig.cap="Posterior contraction."}
+```{r contraction, fig.cap="A posterior contraction tending toward 1.0 corresponds to a posterior tending towards a Dirac delta function. A posterior contraction of 0.0 corresponds to no change in standard deviation between prior and posterior. A posterior contraction less than 0.0 corresponds to a wider posterior than prior."}
 knitr::include_graphics("depends/posterior-contraction.png")
 ```
 
@@ -702,43 +696,63 @@ knitr::include_graphics("depends/exceedance.png")
 
 # Discussion\label{sec:conclusions}
 
-We developed an approximate Bayesian inference algorithm motivated by a challenging problem in small-area estimation of HIV.
-For the simplified Naomi model in Malawi (Section \ref{sec:results}) our method is demonstrated to be more accurate than TMB, and substantially faster than NUTS.
-We anticipate that our method could be added to the Naomi web interface as an alternative to TMB.
-This would enable analysts to quickly iterate over model options using a faster, less accurate inference approach, before switching to a slower, more accurate approach once they are happy with the results.
+We developed an approximate Bayesian inference algorithm, combining AGHQ with PCA, motivated by a challenging problem in small-area estimation of HIV.
+For the simplified Naomi model in Malawi (Section \ref{sec:results}) we demonstrated the method to be more accurate, across a broad range of metrics, than TMB, and substantially faster than NUTS.
+PCA-AGHQ could be added to the Naomi web interface as an alternative to TMB, enabling analysts to quickly iterate over model options using a fast inference approach, before switching to a more accurate approach once they are happy with the results.
 
-In the exceedance probabilities case study (Section \ref{sec:exceedance}) we found that posterior inferences from the approximate methods were systematically inaccurate, and have the potential to meaningfully mislead policy.
+We found that posterior exceedance probabilities (Section \ref{sec:exceedance}) from the approximate methods to be systematically inaccurate, with the potential to meaningfully mislead policy.
 
-PCA-AGHQ was flexibly implemented, building on the `TMB` and `aghq` \textsc{R} packages.
+PCA-AGHQ was implemented using the `TMB` and `aghq` \textsc{R} packages.
+
 We hope that our work further encourages use of deterministic inference algorithms for ELGMs in applied settings, as well as methodological exploration of their accuracy and limitations.
 Among the ELGM-type structures of particular interest in spatial epidemiology are aggregated Gaussian process models [@nandi2020disaggregation] and evidence synthesis models [@amoah2020geostatistical].
 
 ## Future directions
 
-Part of our motivation for developing PCA-AGHQ was to place more quadrature nodes, and as a result computation, in those dimensions which are more important, in some sense.
-While PCA is a sensible approach, there are avenues where it overlooks potential benefits, or does not behave as one might hope.
-First, we identified a challenge using PCA when the dimensions have different scales, here specifically log and logit.
-Second, the amount of variation explained for the Hessian matrix is not directly what we care about, rather the effect of the different dimensions on the outputs of interest.
-Instead, using measures of importance from sensitivity analysis, such as Shapley values [@shapley1953value] may be preferable.
+### Improving the quadrature grid
+
+Part of our motivation for PCA-AGHQ was to place more quadrature nodes in those dimensions which are in-some-sense more important.
+While PCA is a sensible way to approach this goal, there are avenues where it overlooks potential benefits, or does not behave as one might hope.
+The first challenge we identified was using PCA when the dimensions have different scales. 
+Specifically, we found logit-scale hyperparamters to be systematically favoured over those on the log-scale.
+Second, the amount of variation explained for the Hessian matrix is not of directly interest, rather the effect of the different dimensions on the relevant outputs.
+Using measures of importance from sensitivity analysis, such as Shapley values [@shapley1953value] may be preferable.
 Third, it is more important to allocate quadrature nodes to those marginals which are non-Gaussian.
 This is because the Laplace approximation is exact when the integrand is Gaussian, so a single quadrature node is sufficiently.
-The difficulty is of course knowing in advance which marginals will be non-Gaussian.
-A potential approach could be based measuring fit using PSIS, or similar algorithms, with samples from a cheap approximation, like TMB.
-This particular approach would not work however, as PSIS operates on joint distributions rather than marginals [@yao2018yes].
+The difficulty is, of course, knowing in advance which marginals will be non-Gaussian.
+This could be done if there were a cheap way to obtain posterior means, which could then be compared to posterior modes obtained using optimisation.
+Another approach would be to measure the fit of marginal samples from a cheap approximation, like TMB.
+The main challenge is that the measurements have to for marginals, ruling out approaches like PSIS which operate on joint distributions [@yao2018yes].
 
-Integration of a moderate number of hyperparameters posed a particular challenge, and led to the use of quadrature grids with large number of nodes.
+### Computational speed-ups
+
+Integration over a moderate number of hyperparameters posed a challenge, and led us to use a quadrature grids with a large number of nodes.
 However, computation at each node is independent, such that the run-time of the algorithm could potentially be significantly improved by parallel computing.
 Further computational speed-ups might be obtained using graphics processing units (GPUs) speciallised for the relevant matrix operations.
 
-Other MCMC algorithms, such as blocked Gibbs sampling [@geman1984stochastic] or slice sampling [@neal2003slice], may be better suited than NUTS to sampling from Naomi.
-These algorithms are available, and customisable, including e.g. choice of block structure within the `NIMBLE` probabilistic programming language [@de2017programming].
-The recently released version 1.0.0 of `NIMBLE` also includes functionality for automatic differentiation, Laplace approximation and HMC, built using `CppAD` as with `TMB`.
-As such, it would be possible to implement AGHQ within `NIMBLE`, would facilitating access by a broader user-base.
-Similarly, AGHQ could be implemented in Stan by use of the `bridgestan` package [@bridgestan] together with the adjoint-differentiated Laplace approximation of @margossian2020hamiltonian.
-<!-- Note: can fit hyperparameters with Laplace on latent field using HMC via tmbstan::tmbstan(laplace = TRUE) -->
-<!-- i.e. what Charles Margossian has implemented for Stan is done similarly by default in TMB -->
+### Comparison to other MCMC algorithms
 
-Statistical theory for PCA-AGHQ could be established by extension of Theorem 1 in @stringer2022fast.
+Blocked Gibbs sampling [@geman1984stochastic] or slice sampling [@neal2003slice], may be better suited than NUTS to sampling from Naomi.
+These algorithms are available, and customisable, including e.g. choice of block structure within the `NIMBLE` probabilistic programming language [@de2017programming].
+
+### Implementation into probabilistic programming languages
+
+Though gaining in popularity, the user-base of `TMB` remains relatively small.
+Furthermore, for users unfamiliar with C++, it can be challenging to use.
+As such, it could be beneficial to implement AGHQ within other probabilistic programming languages.
+Implementation in `NIMBLE` could be relatively straightforward, as it (for version >1.0.0) includes functionality for automatic differentiation and Laplace approximation, built using `CppAD` like `TMB`.
+Similarly, implementation in Stan could be possible by use of the `bridgestan` package [@bridgestan] together with the adjoint-differentiated Laplace approximation of @margossian2020hamiltonian.
+<!-- Note: can fit hyperparameters with Laplace on latent field using HMC via tmbstan::tmbstan(laplace = TRUE) -->
+<!-- What Charles Margossian has implemented for Stan is done similarly by default in TMB -->
+
+### Statistical theory
+
+@stringer2022fast (Theorem 1) bound the total variation error of AGHQ, establishing convergence in probability of coverage probabilities under the approximate posterior to those under the true posterior.
+It's possible that similar theory could be established for PCA-AGHQ, or more generally AGHQ with varying numbers of nodes per dimension.
+
+### Laplace marginals
+
+See Appendix S4.
 
 # Acknowledgements {-}
 
