@@ -72,7 +72,7 @@ output:
 <!-- Better to lead with something about the inference method? -->
 
 ```{r echo = FALSE}
-colours <- c("#56B4E9", "#009E73", "#E69F00")
+cbpalette <- c("#56B4E9","#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
 
 options(scipen = 100)
 
@@ -85,6 +85,8 @@ knitr::opts_chunk$set(
   out.width = "95%",
   fig.align = 'center'
 )
+
+source("figures.R")
 ```
 
 <!-- Most published papers will not exceed 20 pages -->
@@ -344,98 +346,7 @@ To obtain inferences for the latent field (Equation \ref{eq:inla1}) the adapted 
 Samples from this mixture of Gaussians may be obtained by drawing a node $\z$ with multinomial probabilities $\lambda(\z) = |\hat{\mathbf{P}}_\texttt{LA}| p_\texttt{LA}(\hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA} \, | \, \y) \omega(\z)$, then drawing from the Gaussian $\tilde p_\texttt{G}(\x \, | \, \hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}, \y)$.
 
 ```{r aghq, results='hide', fig.cap="The Gauss-Hermite quadrature nodes $\\z \\in \\mathcal{Q}(2, 3)$ for a two dimensional integral with three nodes per dimension. Adaption occurs based on the mean and covariance matrix of the target via the Cholesky decomposition or spectral decompostion of the inverse curvature at the mode. The integrand is $f(\\btheta) = \\text{sn}(0.3 \\theta_1, \\alpha = 2) \\cdot \\text{sn}(0.5 \\theta_1 - 0.3 \\theta_2, \\alpha = -2)$, where $\\text{sn}(\\cdot)$ is the standard skewnormal probability density function with shape parameter $\\alpha \\in \\mathbb{R}$."}
-TMB::compile("2d.cpp")
-dyn.load(TMB::dynlib("2d"))
-
-obj <- TMB::MakeADFun(data = list(), parameters = list(theta1 = 0, theta2 = 0), DLL = "2d")
-
-grid <- expand.grid(
-  theta1 = seq(-8, 8, length.out = 400),
-  theta2 = seq(-8, 8, length.out = 400)
-)
-
-ground_truth <- cbind(grid, pdf = apply(grid, 1, function(x) exp(-1 * obj$fn(x))))
-
-opt <- nlminb(
-  start = obj$par,
-  objective = obj$fn,
-  gradient = obj$gr,
-  control = list(iter.max = 1000, trace = 0)
-)
-
-sd_out <- TMB::sdreport(
-  obj,
-  par.fixed = opt$par,
-  getJointPrecision = TRUE
-)
-
-mu <- opt$par
-cov <- sd_out$cov.fixed
-
-plot0 <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
-  geom_contour(col = "lightgrey") +
-  coord_fixed(xlim = c(-8, 8), ylim = c(-8, 8), ratio = 1) +
-  labs(x = "", y = "") +
-  theme_minimal() +
-  guides(size = FALSE) +
-  theme(
-    axis.text.x = element_blank(), axis.ticks.x = element_blank(),
-    axis.text.y = element_blank(), axis.ticks.y = element_blank()
-  )
-
-gg <- mvQuad::createNIGrid(2, "GHe", 3)
-
-add_points <- function(plot0, gg) {
-  
-  points <- mvQuad::getNodes(gg) %>%
-    as.data.frame() %>%
-    mutate(weights = mvQuad::getWeights(gg))
-  
-  colnames(points) <- c("theta1", "theta2", "weights")
-  
-  plot0 +
-    geom_point(
-      data = points,
-      aes(x = theta1, y = theta2, size = weights),
-      alpha = 0.8,
-      col = "#009E73",
-      inherit.aes = FALSE
-    ) +
-    scale_size_continuous(range = c(1, 2))
-}
-
-plot1 <- add_points(plot0, gg) +
-  labs(size = "")
-
-#' Adapt by the mean
-gg2 <- gg
-mvQuad::rescale(gg2, m = mu, C = diag(c(1, 1)), dec.type = 1)
-
-plot2 <- add_points(plot0, gg2) +
-  labs(size = "")
-
-#' Adapt by the lower Cholesky
-gg3 <- gg
-mvQuad::rescale(gg3, m = mu, C = cov, dec.type = 2)
-
-plot3 <- add_points(plot0, gg3) +
-  labs(size = "")
-
-#' Adapt by the spectral
-gg4 <- gg
-mvQuad::rescale(gg4, m = mu, C = cov, dec.type = 1)
-
-plot4 <- add_points(plot0, gg4) +
-  labs(size = "")
-
-#' PCA-AGHQ
-gg5 <- mvQuad::createNIGrid(2, "GHe", level = c(3, 1))
-mvQuad::rescale(gg5, m = mu, C = cov, dec.type = 1)
-
-plot5 <- add_points(plot0, gg5) +
-  labs(size = "")
-
-(plot1 + plot2) / (plot4 + plot5)
+figA
 ```
 
 ## Principal components analysis
@@ -565,13 +476,13 @@ df_point_pct <- df_point %>%
     mae_diff = 100 * diff(mae) / max(mae)
   )
 
-rmse_ahgq_mean <- filter(df_point, method == "PCA-AGHQ", indicator == "Posterior mean estimate") %>% pull(rmse) %>% round(2)
-rmse_tmb_mean <- filter(df_point, method == "TMB", indicator == "Posterior mean estimate") %>% pull(rmse) %>% round(2)
-rmse_diff_mean <- filter(df_point_pct, indicator == "Posterior mean estimate") %>% pull(rmse_diff) %>% round(0)
+rmse_ahgq_mean <- filter(df_point, method == "PCA-AGHQ", indicator == "Posterior mean estimate") %>% pull(rmse) %>% signif(2)
+rmse_tmb_mean <- filter(df_point, method == "TMB", indicator == "Posterior mean estimate") %>% pull(rmse) %>% signif(2)
+rmse_diff_mean <- filter(df_point_pct, indicator == "Posterior mean estimate") %>% pull(rmse_diff) %>% signif(2)
 
-rmse_ahgq_sd <- filter(df_point, method == "PCA-AGHQ", indicator == "Posterior SD estimate") %>% pull(rmse) %>% round(2)
-rmse_tmb_sd <- filter(df_point, method == "TMB", indicator == "Posterior SD estimate") %>% pull(rmse) %>% round(2)
-rmse_diff_sd <- filter(df_point_pct, indicator == "Posterior SD estimate") %>% pull(rmse_diff) %>% round(0)
+rmse_ahgq_sd <- filter(df_point, method == "PCA-AGHQ", indicator == "Posterior SD estimate") %>% pull(rmse) %>% signif(2)
+rmse_tmb_sd <- filter(df_point, method == "TMB", indicator == "Posterior SD estimate") %>% pull(rmse) %>% signif(2)
+rmse_diff_sd <- filter(df_point_pct, indicator == "Posterior SD estimate") %>% pull(rmse_diff) %>% signif(0)
 ```
 
 The root mean square error (RMSE) between posterior mean estimates from PCA-AGHQ and NUTS (`r rmse_ahgq_mean`) was `r abs(rmse_diff_mean)`% lower than that between TMB and NUTS (`r rmse_tmb_mean`).
@@ -588,73 +499,7 @@ The two-sample Kolmogorov-Smirnov (KS) test statistic [@smirnov1948table] is the
 See an illustration of the KS test in Figure \ref{fig:ks} and a summary of the results in Table.
 
 ```{r ks, fig.height = 4, fig.cap="Example KS test for one parameter."}
-df_compare <- readRDS("depends/beta_alpha.rds") %>%
-  filter(method != "adam")
-
-mean <- df_compare %>%
-  filter(method == "tmbstan") %>%
-  summarise(mean = mean(samples)) %>%
-  pull(mean) %>%
-  round(digits = 3)
-
-sd <- df_compare %>%
-  filter(method == "tmbstan") %>%
-  summarise(sd = sd(samples)) %>%
-  pull(sd) %>%
-  round(digits = 3)
-
-histogram <- df_compare %>%
-  mutate(method = fct_recode(method, "PCA-AGHQ" = "aghq", "NUTS"= "tmbstan")) %>%
-  ggplot(aes(x = samples, fill = method, col = method)) +
-  geom_histogram(aes(y = after_stat(density)), alpha = 0.5, position = "identity", bins = 30) +
-  theme_minimal() +
-  facet_grid(method~.) +
-  labs(x = "beta_alpha", y = "Density", fill = "Method") +
-  scale_color_manual(values = colours) +
-  scale_fill_manual(values = colours) +
-  theme(legend.position = "none")
-
-grid <- seq(from = min(df_compare$samples), to = max(df_compare$samples), length.out = 1000)
-
-tmb_ecdf <- stats::ecdf(filter(df_compare, method == "TMB") %>% pull(samples))
-tmb_ecdf_df <- data.frame(x = grid, ecdf = tmb_ecdf(grid), method = "TMB")
-
-aghq_ecdf <- stats::ecdf(filter(df_compare, method == "aghq") %>% pull(samples))
-aghq_ecdf_df <- data.frame(x = grid, ecdf = aghq_ecdf(grid), method = "aghq")
-
-tmbstan_ecdf <- stats::ecdf(filter(df_compare, method == "tmbstan") %>% pull(samples))
-tmbstan_ecdf_df <- data.frame(x = grid, ecdf = tmbstan_ecdf(grid), method = "tmbstan")
-
-# Add ECDF differences
-tmb_ecdf_df$ecdf_diff <- tmbstan_ecdf_df$ecdf - tmb_ecdf_df$ecdf
-aghq_ecdf_df$ecdf_diff <- tmbstan_ecdf_df$ecdf - aghq_ecdf_df$ecdf
-tmbstan_ecdf_df$ecdf_diff <- 0
-
-absmax <- function(x) x[which.max(abs(x))]
-
-ks_tmb <- absmax(tmb_ecdf_df$ecdf_diff)
-ks_aghq <- absmax(aghq_ecdf_df$ecdf_diff)
-
-ecdf_df <- bind_rows(tmb_ecdf_df, aghq_ecdf_df, tmbstan_ecdf_df)
-
-ecdf_df$method <- factor(ecdf_df$method, levels = c("TMB", "aghq", "tmbstan"))
-
-ks_labeller <- function(x) toString(round(abs(x), 2))
-
-ecdf_diff <- ggplot(ecdf_df, aes(x = x, y = ecdf_diff, col = method)) +
-  geom_line() +
-  geom_abline(intercept = ks_tmb, slope = 0, col = colours[1], linetype = "dashed", alpha = 0.8) +
-  annotate("text", x = 1.1 * max(ecdf_df$x), y = ks_tmb, label = ks_labeller(ks_tmb), col = colours[1], alpha = 0.8) +
-  geom_abline(intercept = ks_aghq, slope = 0, col = colours[2], linetype = "dashed", alpha = 0.8) +
-  annotate("text", x = 1.1 * max(ecdf_df$x), y = ks_aghq, label = ks_labeller(ks_aghq), col = colours[2], alpha = 0.8) +
-  scale_color_manual(values = colours) +
-  labs(x = "beta_alpha", y = "ECDF difference") +
-  guides(col = "none") +
-  coord_cartesian(xlim = c(min(ecdf_df$x), max(ecdf_df$x)), clip = "off") +
-  theme_minimal() +
-  theme(plot.margin = unit(c(1, 3, 1, 1), "lines"))
-
-histogram + ecdf_diff
+figB
 ```
 
 ### Pareto-smoothed importance sampling
@@ -675,22 +520,27 @@ We the MMD from PCA-AGHQ (0.071) was 11% smaller than that of TMB (0.080) as com
 
 ## Case study on exceedance probabilites \label{sec:exceedance}
 
+```{r}
+exceedance <- read_csv("depends/exceedance.csv")
+
+```
+
 ### Meeting the second 90
 
 Ambitious fast-track targets for scaling up ART treatment have been developed by UNAIDS, with the goal of "ending the AIDS epidemic by 2030".
-Specifically, meeting the "90-90-90" fast-track target requires that 90% of people living with HIV know their status, 90% of those are on ART, and 90% of those have suppressed viral load.
-Naomi can be used to identify treatment gaps by calculating the probability that the second 90 target has been met $\mathbb{P}(\alpha_i > 0.9^2 = 0.81)$ for each strata $i$.
+Meeting the "90-90-90" fast-track target requires that 90% of people living with HIV know their status, 90% of those are on ART, and 90% of those have suppressed viral load.
+Naomi can be used to identify treatment gaps by calculating the probability that the second 90 target has been met, that is $\mathbb{P}(\alpha_i > 0.9^2 = 0.81)$ for each strata $i$.
 We found that for women both TMB and PCA-AGHQ underestimate these exceedance probabilities (Figure \ref{fig:exceedance}, first row).
-We hypothesise that the sex related discrepancy occurs due to interactions between the household survey and ANC components of the model creating a more challenging posterior geometry.
+We hypothesise this discrepancy in accuracy by sex is related to interactions between the household survey and ANC components of the model creating a more challenging posterior geometry.
 
 ### Finding strata with high incidence
 
-Some HIV interventions are cost-effective only within high HIV incidence settings, typically defined as greater than 1% incidence per year.
+Some HIV interventions are cost-effective only within high HIV incidence settings, typically defined as higher than 1% incidence per year.
 Naomi can be used to assess the probability of a strata having high incidence by evaluating $\mathbb{P}(\lambda_i > 0.01)$.
 We found that both TMB and PCA-AGHQ overestimate these exceedance probabilities (Figure \ref{fig:exceedance}, second row).
 This is surprising, in that we expect inferences from NUTS to be more heavy-tailed than those from TMB or PCA-AGHQ.
 
-```{r exceedance, fig.cap="Both TMB and PCA-AGHQ are meaningfully inaccurate as compared with NUTS for estimating exceedance probabilities. For the second 90 target (top row) the inaccuracy varies substantially by sex."}
+```{r exceedance, fig.cap="Though PCA-AGHQ does perform slightly better, both approximate inference methods are meaningfully inaccurate as compared with NUTS for estimating exceedance probabilities. For the second 90 target the inaccuracy varies substantially by sex."}
 knitr::include_graphics("depends/exceedance.png")
 ```
 
