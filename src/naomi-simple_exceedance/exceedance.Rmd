@@ -336,7 +336,10 @@ exceedance_manuscript_plot <- df_wide %>%
 
 exceedance_manuscript_plot <- exceedance_manuscript_plot +
   geom_text(
-    data = df_metrics %>% mutate(method = fct_relevel(method, "TMB", "PCA-AGHQ")),
+    data = df_metrics %>% mutate(
+      method = fct_relevel(method, "TMB", "PCA-AGHQ"),
+      indicator = fct_relevel(indicator, "Second 90", "High incidence")    
+    ),
     aes(x = -Inf, y = Inf, label = label),
     size = 3, hjust = 0, vjust = 1.5
   )
