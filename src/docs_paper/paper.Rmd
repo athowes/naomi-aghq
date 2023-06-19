@@ -40,7 +40,7 @@ affiliation:
     name: MRC Centre for Global Infectious Disease Analysis, School of Public Health, Imperial College London
 
 abstract: |
-  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of policy interest, including HIV prevalence, HIV incidence, and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. The model is provided as a tool for countries to input their data to and generate estimates during a yearly process supported by UNAIDS. Currently, inference is conducted using empirical Bayes and a Gaussian approximation via the \texttt{TMB} \textsc{R} package. We propose a new inference method which extends adaptive Gauss-Hermite quadrature to deal with >20 hyperparameters, enabling fast and accurate inference for Naomi and other extended latent Gaussian models. Using data from Malawi, our method provides more accurate inferences than \texttt{TMB}, and is substantially faster to run to Hamiltonian Monte Carlo with the No-U-Turn sampler. By extending the \texttt{aghq} \textsc{R} package we facilitate easy, flexible use of our method when provided a \texttt{TMB} \textsf{C++} template for the model's log-posterior.
+  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of policy interest, including HIV prevalence, HIV incidence, and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. The model is provided as a tool for countries to input their data to and generate estimates during a yearly process supported by UNAIDS. Inference has previously been conducted using empirical Bayes and a Gaussian approximation via the \texttt{TMB} \textsc{R} package. We propose a new inference method which extends adaptive Gauss-Hermite quadrature to deal with >20 hyperparameters, enabling fast and accurate inference for Naomi and other extended latent Gaussian models. Using data from Malawi, our method improves the accuracy of inferences across a range of metrics, while being substantially faster to run than Hamiltonian Monte Carlo with the No-U-Turn sampler. By extending the \texttt{aghq} \textsc{R} package we facilitate easy, flexible use of our method when provided a \texttt{TMB} \textsf{C++} template for the model's log-posterior.
 keyword-subclass: | 
  \begin{keyword}[class=MSC2020] % It must be define for aap, aop, aos journals. For aoas, sts is not used
  \kwd[Primary ]{00X00}
@@ -71,7 +71,7 @@ output:
 <!-- Seth notes that Naomi is a spatial evidence synthesis model used to produce district- level HIV epidemic indicators in sub-Saharan Africa is not the right topic sentence for the abstract -->
 <!-- Better to lead with something about the inference method? -->
 
-```{r echo = FALSE}
+```{r results='hide', echo = FALSE}
 cbpalette <- c("#56B4E9","#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
 
 options(scipen = 100)
@@ -96,7 +96,7 @@ source("figures.R")
 
 Accurate estimates of HIV indicators are crucial for mounting an effective public health response to the HIV epidemic.
 These estimates should be timely, and at a geographic level at which health systems are planned and delivered.
-Producing granular estimates is challenging, in large part due to limitations of the available data sources.
+Producing granular estimates is challenging, in large part due to limitations of the data from available sources.
 Nationally-representative household surveys provide the most statistically reliable data, but are only conducted every five years or so in most countries, with limited sample size at the district level, due to their high costs to run.
 Other data sources, such as routine health surveillance of antenatal care (ANC) clinics, are available in closer to real-time, but based on limited or non-representative samples of the population.
 To address these challenges, the Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV indicators at a district-level, by age and sex.
@@ -345,7 +345,7 @@ To obtain inferences for the latent field (Equation \ref{eq:inla1}) the adapted 
 \end{equation}
 Samples from this mixture of Gaussians may be obtained by drawing a node $\z$ with multinomial probabilities $\lambda(\z) = |\hat{\mathbf{P}}_\texttt{LA}| p_\texttt{LA}(\hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA} \, | \, \y) \omega(\z)$, then drawing from the Gaussian $\tilde p_\texttt{G}(\x \, | \, \hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}, \y)$.
 
-```{r aghq, results='hide', fig.cap="The Gauss-Hermite quadrature nodes $\\z \\in \\mathcal{Q}(2, 3)$ for a two dimensional integral with three nodes per dimension. Adaption occurs based on the mean and covariance matrix of the target via the Cholesky decomposition or spectral decompostion of the inverse curvature at the mode. The integrand is $f(\\btheta) = \\text{sn}(0.3 \\theta_1, \\alpha = 2) \\cdot \\text{sn}(0.5 \\theta_1 - 0.3 \\theta_2, \\alpha = -2)$, where $\\text{sn}(\\cdot)$ is the standard skewnormal probability density function with shape parameter $\\alpha \\in \\mathbb{R}$."}
+```{r aghq, fig.cap="The Gauss-Hermite quadrature nodes $\\z \\in \\mathcal{Q}(2, 3)$ for a two dimensional integral with three nodes per dimension. Adaption occurs based on the mean and covariance matrix of the target via the Cholesky decomposition or spectral decompostion of the inverse curvature at the mode. The integrand is $f(\\btheta) = \\text{sn}(0.3 \\theta_1, \\alpha = 2) \\cdot \\text{sn}(0.5 \\theta_1 - 0.3 \\theta_2, \\alpha = -2)$, where $\\text{sn}(\\cdot)$ is the standard skewnormal probability density function with shape parameter $\\alpha \\in \\mathbb{R}$."}
 figA
 ```
 
@@ -516,13 +516,14 @@ The maximum mean discrepancy [MMD; @gretton2006kernel] can be empirically estima
 \text{MMD}(\Phi, \Psi) = \sqrt{\frac{1}{n^2} \sum_{i, j = 1}^n k(\bphi_i, \bphi_j) - \frac{2}{n^2} \sum_{i, j = 1}^n k(\bphi_i, \bpsi_j) + \frac{1}{n^2} \sum_{i, j = 1}^n k(\bpsi_i, \bpsi_j)}.
 \end{equation*}
 We set $k(\bphi_i, \bphi_j) = \exp(-\sigma \lVert \bphi_i - \bphi_j \rVert^2)$ with $\sigma$ estimated from data using the `kernlab` \textsc{R} package [@karatzoglou2019package].
-We the MMD from PCA-AGHQ (0.071) was 11% smaller than that of TMB (0.080) as compared with NUTS.
+As compared with NUTS, the MMD from PCA-AGHQ (0.071) was 11% smaller than that of TMB (0.080).
 
-## Case study on exceedance probabilites \label{sec:exceedance}
+<!-- This should be calculated inline! -->
+
+## Case study on exceedance probabilites\label{sec:exceedance}
 
 ```{r}
 exceedance <- read_csv("depends/exceedance.csv")
-
 ```
 
 ### Meeting the second 90
