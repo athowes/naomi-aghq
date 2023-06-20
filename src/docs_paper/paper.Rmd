@@ -71,7 +71,7 @@ output:
 <!-- Seth notes that Naomi is a spatial evidence synthesis model used to produce district- level HIV epidemic indicators in sub-Saharan Africa is not the right topic sentence for the abstract -->
 <!-- Better to lead with something about the inference method? -->
 
-```{r results='hide', echo = FALSE}
+```{r echo = FALSE}
 cbpalette <- c("#56B4E9","#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
 
 options(scipen = 100)
@@ -85,7 +85,9 @@ knitr::opts_chunk$set(
   out.width = "95%",
   fig.align = 'center'
 )
+```
 
+```{r results='hide'}
 source("figures.R")
 ```
 
@@ -490,7 +492,7 @@ For the posterior standard deviation estimates, there was a substantial `r abs(r
 These results, alongside those for the mean absolute error (MAE), are presented in Figure \ref{fig:mean-sd}.
 
 ```{r mean-sd, fig.cap="TMT."}
-knitr::include_graphics("depends/mean-sd-comparison.png")
+knitr::include_graphics("depends/mean-sd.png")
 ```
 
 ### Distribution tests

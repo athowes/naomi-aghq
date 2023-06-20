@@ -344,7 +344,57 @@ exceedance_manuscript_plot <- exceedance_manuscript_plot +
     size = 3, hjust = 0, vjust = 1.5
   )
 
-ggsave("exceedance.png", exceedance_manuscript_plot, h = 6.5, w = 6.25, bg = "white")
+ggsave("exceedance.png", exceedance_manuscript_plot, h = 6.5, w = 6.25)
+
+#' Separate versions are nice for presentations etc.
+
+exceedance_manuscript_plot_second90 <- df_wide %>%
+  filter(indicator == "Second 90") %>%
+  pivot_longer(cols = c("TMB", "aghq"), names_to = "method", values_to = "estimate") %>%
+  mutate(
+    method = fct_reorg(method, "TMB" = "TMB", "PCA-AGHQ" = "aghq")
+  ) %>%
+  ggplot(aes(x = tmbstan, y = estimate)) +
+    geom_point(aes(col = sex), shape = 1, alpha = 0.6) +
+    coord_fixed(ratio = 1) +
+    scale_colour_manual(values = c("#56B4E9", "#999999"), labels = c("Female", "Male")) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+    geom_text(
+    data = df_metrics %>%
+      filter(indicator == "Second 90") %>%
+      mutate(method = fct_relevel(method, "TMB", "PCA-AGHQ")),
+      aes(x = -Inf, y = Inf, label = label),
+      size = 3, hjust = 0, vjust = 1.5
+    ) +
+    facet_grid(indicator ~ method) +
+    labs(x = "NUTS", y = "", col = "Sex") +
+    theme_minimal()
+
+ggsave("exceedance-second90.png", exceedance_manuscript_plot_second90, h = 4, w = 6.25)
+
+exceedance_manuscript_plot_1inc <- df_wide %>%
+  filter(indicator == "High incidence") %>%
+  pivot_longer(cols = c("TMB", "aghq"), names_to = "method", values_to = "estimate") %>%
+  mutate(
+    method = fct_reorg(method, "TMB" = "TMB", "PCA-AGHQ" = "aghq")
+  ) %>%
+  ggplot(aes(x = tmbstan, y = estimate)) +
+    geom_point(aes(col = sex), shape = 1, alpha = 0.6) +
+    coord_fixed(ratio = 1) +
+    scale_colour_manual(values = c("#56B4E9", "#999999"), labels = c("Female", "Male")) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+    geom_text(
+    data = df_metrics %>%
+      filter(indicator == "High incidence") %>%
+      mutate(method = fct_relevel(method, "TMB", "PCA-AGHQ")),
+      aes(x = -Inf, y = Inf, label = label),
+      size = 3, hjust = 0, vjust = 1.5
+    ) +
+    facet_grid(indicator ~ method) +
+    labs(x = "NUTS", y = "", col = "Sex") +
+    theme_minimal()
+
+ggsave("exceedance-1inc.png", exceedance_manuscript_plot_1inc, h = 4, w = 6.25)
 ```
 
 # Excursion and contour uncertainty regions

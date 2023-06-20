@@ -5,8 +5,10 @@ artefacts:
       description: Plots and saved output
       filenames:
         - posterior-contraction.png
-        - mean-sd-comparison.png
+        - mean-sd.png
         - mean-sd.csv
+        - mean.png
+        - sd.png
 
 resources:
   - naomi_simple_prior.cpp

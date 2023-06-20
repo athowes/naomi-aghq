@@ -25,11 +25,23 @@ packages:
   - kableExtra
 
 depends:
-  - example_inla-grid:
-      id: latest
-      use:
-        depends/inla-grid.pdf: inla-grid.pdf
   - docs_bayescomp-poster:
       id: latest
       use:
         depends/naomi_results.png: fig3.png
+  - dev_scale-grid:
+      id: latest
+      use:
+        depends/marginal-sd.png: marginal-sd.png
+        depends/reduced-rank-plot.png: reduced-rank-plot.png
+        depends/tv-plot.png: tv-plot.png
+  - naomi-simple_exceedance:
+      id: latest
+      use:
+        depends/exceedance-second90.png: exceedance-second90.png
+        depends/exceedance-1inc.png: exceedance-1inc.png
+  - naomi-simple_contraction:
+      id: latest
+      use:
+        depends/mean.png: mean.png
+        depends/sd.png: sd.png

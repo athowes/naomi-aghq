@@ -26,17 +26,17 @@ institute: Imperial College London
 
 #
 
-```{r, echo=FALSE, fig.cap="Naomi is a district-level model of HIV indicators.", out.width = '90%'}
+```{r, echo=FALSE, fig.cap="Naomi is a district-level model of HIV indicators, like prevalence, treatment coverage, and incidence.", out.width = '90%'}
 knitr::include_graphics("depends/naomi_results.png")
 ```
 
 #
 
-```{r, echo=FALSE, fig.cap="Web interface promotes data ownership, data use, and data quality. From \\texttt{https://naomi.unaids.org/.}", out.width = '70%'}
+```{r, echo=FALSE, fig.cap="Estimate generation via a web interface promotes data ownership, data use, and data quality. From \\texttt{https://naomi.unaids.org/.}", out.width = '70%'}
 knitr::include_graphics("naomi_user.png")
 ```
 
-# Better estimates by triangulating information
+# Better estimates by integration information from many sources
 
 <!-- https://github.com/athowes/elgm-inf/blob/fd4b0bb6b9ba93ac277de7aad47a94581e8fc900/src/docs_18-04-23-explainer/18-04-23-explainer.Rmd -->
 
@@ -52,7 +52,21 @@ We want our inference procedure to be
 2. Accurate $\color{lolit}{\text{enough for precision public health}}$
 3. Flexible $\color{lolit}{\text{enough for compatibility with a complex model}}$
 
-# The model has a big Gaussian latent field
+# The model has a big, structured, Gaussian latent field $\x$
+
+* Fixed effects $\color{lolit}{\text{Gaussian}}$
+* Age structure $\color{lolit}{\text{AR1}}$
+* Spatial structure $\color{lolit}{\text{IID, ICAR, BYM2}}$
+
+Concatenate together as $\x$, length 467
+
+# Smaller, non-Gaussian, hyperparameters $\btheta$
+
+* Standard deviations $\color{lolit}{\text{Half-Gaussian}}$
+* BYM2 proportion parameters $\color{lolit}{\text{Beta}}$
+* AR1 autocorrelation parameters $\color{lolit}{\text{Uniform}}$
+
+Concatenate together as $\btheta$, length 24
 
 # Approximate the marginal posterior of $\x$ by a Gaussian
 
@@ -64,19 +78,130 @@ $$
 
 \lolit{
 
-If you input $\theta_1, \ldots, \theta_{24}$ then it'll return a 467 length mean vector $\x(\btheta)$ and $467 \times 467$ length covariance matrix $\hat{\mathbf{H}} (\btheta)$
+If you input 24 length $\btheta$ then it'll return a 467 length mean vector $\hat \x(\btheta)$ and $467 \times 467$ length covariance matrix $\hat{\mathbf{H}} (\btheta)$.
+Mean calculated using gradient based optimisation.
+Gradients, and Hessian, obtained using automatic differentiation.
 
 }
 
+# Use adaptive Gauss-Hermite quadrature to integrate over $\btheta$
+
+Quadrature method based on the theory of polynomial interpolation which:
+
+1. Works well when the integrand looks like a polynomial times a Gaussian
+2. Adapts to the particular integrand based on the mode and Hessian
+3. Is implemented by the `aghq` package [@stringer2021implementing]
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Unadapted Gauss-Hermite nodes in two dimensions with $k = 3$."}
+figA1
+```
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Add the mode $\\mathbf{z} + \\hat \\btheta$."}
+figA2
+```
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="You could rotate by the lower Cholesky $\\mathbf{Lz} + \\hat \\btheta$."}
+figA3
+```
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Or you could rotate using the eigendecomposition $\\mathbf{E} \\bm{\\Lambda}^{1/2} \\mathbf{z} + \\hat \\btheta$."}
+figA4
+```
+
+# 24 hyperparameters is too many for a dense grid
+
+$k = 3$ points in 24 dimensions is not feasible
+$$
+3 \times 3 \times \cdots \times 3 = 3^{24}
+$$
+So we need to find something smaller $\color{lolit}{\text{(that still does a good job!)}}$
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="An obvious thing to try is only keeping points from the largest eigenvectors: we call this PCA-AGHQ. Corresponds to variable choice of $k$ by dimension."}
+figA5
+```
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap=".", out.width = '90%'}
+knitr::include_graphics("depends/tv-plot.png")
+```
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap=".", out.width = '90%'}
+knitr::include_graphics("depends/reduced-rank-plot.png")
+```
+
+# Yes, but did it work?
+
+Run NUTS^[For 3 days!] as gold-standard, then compare to TMB to PCA-AGHQ using:
+
+1. Marginal distributions $\color{lolit}{\text{point estimates, ECDF e.g. KS or AD}}$  
+2. Joint distributions $\color{lolit}{\text{PSIS, MMD}}$ 
+3. Policy relevant outcomes $\color{lolit}{\text{second 90, high incidence}}$  
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="PCA-AGHQ modestly improves estimation of the posterior mean.", out.width = '80%'}
+knitr::include_graphics("depends/mean.png")
+```
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="PCA-AGHQ substantially improves estimation of the posterior standard deviation. TMB systematically underestimates, which you'd expect.", out.width = '80%'}
+knitr::include_graphics("depends/sd.png")
+```
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Strata probabilities of having greater than 81\\% ART coverage, and as such meeting the second 90 target. Both approximate methods are inaccurate for females.", out.width = '85%'}
+knitr::include_graphics("depends/exceedance-second90.png")
+```
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Strata probabilities of having greater than 1\\% HIV incidence, and as such being classified high incidence. Again, both approximate methods are inaccurate.", out.width = '85%'}
+knitr::include_graphics("depends/exceedance-1inc.png")
+```
+
+# Further improvements look possible
+
+1. Fix issues with scaling $\color{lolit}{\text{Logit scaled not uniformly more important than log scaled}}$  
+2. Take into account importance for outputs of interest $\color{lolit}{\text{Variance of inputs isn't really what we care about}}$  
+3. Take into account marginal skewness $\color{lolit}{\text{The more skewed, the more we should be placing lots of points}}$  
+
+#
+
+```{r, echo=FALSE, message=FALSE, fig.cap="On the real scale, $[0, 1]$ hyperparameters appear to have more marginal variance than $[0, \\infty)$ hyperparameters. This doesn't really make them more important though.", out.width = '80%'}
+knitr::include_graphics("depends/marginal-sd.png")
+```
+
 # Get in touch to chat about
 
-1. Further directions for this research $\color{lolit}{\text{including my suggestions for short masters or PhD projects}}$  
-2. Impactful academic or industry jobs using Bayesian statistics $\color{lolit}{\text{to begin around the end of this year when I graduate (I hope!)}}$  
+1. Further directions for this research $\color{lolit}{\text{e.g. suggestions for short masters or PhD projects}}$  
+2. Impactful academic or industry jobs using Bayesian statistics $\color{lolit}{\text{to begin around the end of this year when I graduate (hopefully!)}}$
+
+| Method      | Details          |
+| ----------- | ---------------- |
+| Zulip       | Adam Howes       |
+| Email       | `ath19@ic.ac.uk` |
+| Calendly    | `adamthowes`     |
 
 # For more information
 
 * Code and notebooks: `github.com/athowes/elgm-inf`
-* Working paper on the way^[For sufficiently vague definition of "on the way"]: Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model $\color{lolit}{\text{Adam Howes, Alex Stringer, Seth Flaxman, Jeff Eaton}}$  
+* Working paper on the way^[For sufficiently vague definition of "on the way"], Any early readers greatly appreciated!
+  * Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model $\color{lolit}{\text{Adam Howes, Alex Stringer, Seth Flaxman, Jeff Eaton}}$
 
 # 
 
@@ -216,13 +341,6 @@ knitr::include_graphics("uw.png")
 <!-- * For LGMs there is only one $g$, whereas ELGMs allow $g_i$ -->
 <!-- * In `R-INLA` it is possible for `y` to be a matrix where each column contains observations with shared likelihood family (and hyperparameters) and `family = c("family1", "family2", ...)` -->
 
-<!-- # Two deterministic methods -->
-
-<!-- * We use two deterministic^[In contrast to the most famous approximate Bayesian inference method, Markov chain Monte Carlo, which is fundamentally stochastic.] methods to approximate our integral -->
-
-<!-- 1. The Laplace approximation -->
-<!-- 2. Quadrature -->
-
 <!-- # The Laplace approximation -->
 
 <!-- Pretend $p(\vartheta \, | \, y)$ is Gaussian -->
@@ -312,21 +430,6 @@ knitr::include_graphics("uw.png")
 <!-- * If we don't want to pretend the whole posterior distribution is Gaussian, another option is to pretend \textcolor{hilit}{some of its marginals are} -->
 <!-- * This is how `TMB` works: it's up to the user to choose which parameters should be Gaussian using the `random` option -->
 
-<!-- # Which parameters should we treat as Gaussian? -->
-
-<!-- * In spatio-temporal statistics we have data indexed by space and time -->
-<!-- * We use random effects also indexed by space and time to model this data -->
-<!-- * Spatio-temporal fields can be big -->
-<!-- * Willing to make assumptions about how things vary over spacetime -->
-
-<!-- \begin{center} -->
-<!-- \begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}] -->
-
-<!-- $\implies$ treat the latent field parameters as Gaussian! That's the majority of the integral done. -->
-
-<!-- \end{tcolorbox} -->
-<!-- \end{center} -->
-
 <!-- # What about the hyperparameters? -->
 
 <!-- * `TMB` uses optimisation to find the hyperparameters which maximise the marginal Laplace approximation -->
@@ -339,149 +442,3 @@ knitr::include_graphics("uw.png")
 
 <!-- \end{tcolorbox} -->
 <!-- \end{center} -->
-
-<!-- # Quadrature -->
-
-<!-- * This brings us to our other method for solving integrals deterministically -->
-<!-- * Say we have a function, then quadrature has two ingredients -->
-
-<!-- 1. Nodes: points to evaluate the function at -->
-<!-- 2. Weights: importance of function evaluation at that point -->
-
-<!-- * You evaluate the function at the nodes, then do a weighted sum to calculate your integral -->
-
-<!-- # Trapezoid rule example -->
-
-<!-- * Let's compute $\int_0^\pi \sin(x) \text{d}x = 2$ using quadrature -->
-
-<!-- ```{r} -->
-<!-- trapezoid_rule <- function(x, spacing) { -->
-<!--   # Assumes nodes are evenly spaced -->
-<!--   w <- rep(spacing, length(x)) # Weights given by space between nodes -->
-<!--   w[1] <- w[1] / 2 # Apart from the first which is halved -->
-<!--   w[length(x)] <- w[length(x)] / 2 # And the last, also halved -->
-<!--   sum(w * x) # Compute the weighted sum -->
-<!-- } -->
-<!-- ``` -->
-
-<!-- # -->
-
-<!-- ```{r message=FALSE, echo=FALSE,  fig.cap="With 10 nodes it's 0.02 off."} -->
-<!-- finegrid <- seq(0, pi, length.out = 1000) -->
-
-<!-- plot <- data.frame(x = finegrid, y = sin(finegrid)) %>% -->
-<!--   ggplot(aes(x = x, y = y)) + -->
-<!--    geom_line(col = cbpalette[1]) + -->
-<!--    theme_minimal() + -->
-<!--    labs(x = "x", y = "sin(x)") -->
-
-<!-- trapezoid_plot <- function(N) { -->
-<!--   grid <- seq(0, pi, length.out = N) -->
-<!--   int <- trapezoid_rule(x = sin(grid), spacing = grid[2] - grid[1]) -->
-
-<!--   plot +  -->
-<!--     geom_bar( -->
-<!--       data = data.frame(x = grid, y = sin(grid)), -->
-<!--       aes(x = x, y = y), alpha = 0.7, stat = "identity", -->
-<!--       inherit.aes = FALSE, fill = cbpalette[2]) + -->
-<!--     theme_minimal() + -->
-<!--     labs( -->
-<!--       subtitle = paste0("Number of nodes: ", N, "\nTrapezoid rule estimate: ", round(int, 3), "\nTruth: 2"), -->
-<!--       x = "x", y = "sin(x)" -->
-<!--     ) -->
-<!-- } -->
-
-<!-- trapezoid_plot(N = 10) -->
-<!-- ``` -->
-
-<!-- # -->
-
-<!-- ```{r message=FALSE, echo=FALSE, fig.cap="With 30 nodes it's 0.002 off."} -->
-<!-- trapezoid_plot(N = 30) -->
-<!-- ``` -->
-
-<!-- # -->
-
-<!-- ```{r message=FALSE, echo=FALSE, fig.cap="With 100 nodes it's pretty much correct."} -->
-<!-- trapezoid_plot(N = 100) -->
-<!-- ``` -->
-
-<!-- # Adaptive Gauss-Hermite quadrature -->
-
-<!-- * \textcolor{hilit}{Gauss-Hermite quadrature} is a method for picking nodes and weights based on the theory of polynomial interpolation -->
-<!-- * It works especially well for statistical problems where the integrand looks like something multiplied by a Gaussian distribution -->
-<!-- * The \textcolor{hilit}{adaptive} part means the nodes and weights are changed depending on the integrand -- this makes sense, especially when the integrand is also a function of the data -->
-<!-- * Implemented by the `aghq` package [@stringer2021implementing] -->
-
-<!-- #  -->
-
-<!-- ```{r, echo=FALSE, message=FALSE, fig.cap="Unadapted points in two dimensions with $k = 3$."} -->
-<!-- mu <- c(1, 1.5) -->
-<!-- cov <- matrix(c(2, 1, 1, 1), ncol = 2) -->
-
-<!-- obj <- function(theta) { -->
-<!--   mvtnorm::dmvnorm(theta, mean = mu, sigma = cov) -->
-<!-- } -->
-
-<!-- grid <- expand.grid( -->
-<!--   theta1 = seq(-2, 5, length.out = 700), -->
-<!--   theta2 = seq(-2, 5, length.out = 700) -->
-<!-- ) -->
-
-<!-- ground_truth <- cbind(grid, pdf = obj(grid)) -->
-
-<!-- plot0 <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) + -->
-<!--   geom_contour(col = cbpalette[1]) + -->
-<!--   coord_fixed(xlim = c(-2, 4.5), ylim = c(-2, 4.5), ratio = 1) + -->
-<!--   labs(x = "", y = "") + -->
-<!--   theme_minimal() -->
-
-<!-- gg <- mvQuad::createNIGrid(2, "GHe", 3) -->
-
-<!-- add_points <- function(plot0, gg) { -->
-<!--   plot0 + -->
-<!--     geom_point( -->
-<!--       data = mvQuad::getNodes(gg) %>% -->
-<!--               as.data.frame() %>% -->
-<!--               mutate(weights = mvQuad::getWeights(gg)),  -->
-<!--       aes(x = V1, y = V2, size = weights), -->
-<!--       alpha = 0.8, -->
-<!--       col = cbpalette[2], -->
-<!--       inherit.aes = FALSE -->
-<!--     ) + -->
-<!--     scale_size_continuous(range = c(1, 2)) -->
-<!-- } -->
-
-<!-- add_points(plot0, gg) + -->
-<!--   labs(size = "Weight", caption = "") -->
-<!-- ``` -->
-
-<!-- # -->
-
-<!-- ```{r, echo=FALSE, message=FALSE, fig.cap="Add the mean $z + \\hat \\theta$."} -->
-<!-- gg2 <- gg -->
-<!-- mvQuad::rescale(gg2, m = mu, C = diag(c(1, 1)), dec.type = 2) -->
-
-<!-- add_points(plot0, gg2) + -->
-<!--   labs(size = "Weight", caption = "") -->
-<!-- ``` -->
-
-<!-- # -->
-
-<!-- ```{r, echo=FALSE, message=FALSE, fig.cap="First option: rotate by the lower Cholesky $Lz + \\hat \\theta$."} -->
-<!-- gg3 <- gg -->
-<!-- mvQuad::rescale(gg3, m = mu, C = cov, dec.type = 2) -->
-
-<!-- add_points(plot0, gg3) + -->
-<!--   labs(size = "Weight", caption = "") -->
-<!-- ``` -->
-
-<!-- # -->
-
-<!-- ```{r, echo=FALSE, message=FALSE, fig.cap="Second option: rotate using the eigendecomposition $E \\Lambda^{1/2} z + \\hat \\theta$."} -->
-<!-- gg3 <- gg -->
-<!-- mvQuad::rescale(gg3, m = mu, C = cov, dec.type = 1) -->
-
-<!-- add_points(plot0, gg3) + -->
-<!--   labs(size = "Weight", caption = "") -->
-<!-- ``` -->

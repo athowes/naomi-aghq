@@ -118,7 +118,8 @@ Whereas in the main text process and likelihood specifications are written toget
 Table \ref{tab:latent-hyper-size} gives the number of latent field parameters and hyperparameters in each component of the model.
 In the case of Malawi then $n = 32$ such that the total number of latent field parameters is $51 + 14 \cdot 32 = 499$ and the total number of hyperparameters is $24$.
 
-<!-- Had previously been getting a figure of 491 somewhere -- which is 51 + 14n + 24. Something going on there? -->
+<!-- 51 + 13n + 467 is the value I get from the code. 467 + 24 = 491 total -->
+<!-- Need to check the discrepency -->
 
 ### HIV prevalence \label{sec:hiv-prev}
 

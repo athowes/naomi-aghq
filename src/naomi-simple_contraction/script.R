@@ -131,11 +131,42 @@ mean_sd_plot <- ggplot(df_plot, aes(x = truth, y = approximate)) +
   facet_grid(indicator ~ method) +
   coord_fixed(ratio = 1) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  geom_text(data = df_metrics, aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5) +
   labs(x = "NUTS", y = "") +
   theme_minimal()
 
-mean_sd_plot <- mean_sd_plot +
-  geom_text(data = df_metrics, aes(x = -Inf, y = Inf, label = label),
-            size = 3, hjust = 0, vjust = 1.5)
+ggsave("mean-sd.png", mean_sd_plot, h = 6, w = 6.25)
 
-ggsave("mean-sd-comparison.png", mean_sd_plot, h = 6.25, w = 6.25, bg = "white")
+#' Split into two plots for presentations etc.
+
+mean_plot <- df_plot %>%
+  filter(indicator == "Posterior mean estimate") %>%
+  ggplot(aes(x = truth, y = approximate)) +
+  geom_point(shape = 1, alpha = 0.4) +
+  facet_grid(indicator ~ method) +
+  coord_fixed(ratio = 1) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  geom_text(
+    data = filter(df_metrics, indicator == "Posterior mean estimate"),
+    aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
+  ) +
+  labs(x = "NUTS", y = "") +
+  theme_minimal()
+
+ggsave("mean.png", mean_plot, h = 4, w = 6.25)
+
+sd_plot <- df_plot %>%
+  filter(indicator == "Posterior SD estimate") %>%
+  ggplot(aes(x = truth, y = approximate)) +
+  geom_point(shape = 1, alpha = 0.4) +
+  facet_grid(indicator ~ method) +
+  coord_fixed(ratio = 1) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  geom_text(
+    data = filter(df_metrics, indicator == "Posterior SD estimate"),
+    aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
+  ) +
+  labs(x = "NUTS", y = "") +
+  theme_minimal()
+
+ggsave("sd.png", sd_plot, h = 4, w = 6.25)
