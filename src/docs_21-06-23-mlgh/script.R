@@ -2,4 +2,5 @@
 # orderly::orderly_develop_start("docs_21-06-23-mlgh")
 # setwd("src/docs_21-06-23-mlgh")
 
+source("figures.R")
 rmarkdown::render("21-06-23-mlgh.Rmd")

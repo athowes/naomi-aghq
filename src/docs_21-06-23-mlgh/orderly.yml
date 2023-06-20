@@ -13,6 +13,8 @@ resources:
   - preamble.tex
   - citations.bib
   - uw.png
+  - figures.R
+  - 2d.cpp
 
 packages:
   - dplyr
