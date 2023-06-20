@@ -72,8 +72,6 @@ output:
 <!-- Better to lead with something about the inference method? -->
 
 ```{r echo = FALSE}
-cbpalette <- c("#56B4E9","#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
-
 options(scipen = 100)
 
 knitr::opts_chunk$set(

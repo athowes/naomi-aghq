@@ -1,3 +1,5 @@
+cols <- c("#56B4E9","#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
+
 #' Fig A
 
 TMB::compile("2d.cpp")
@@ -117,8 +119,8 @@ histogram <- df_compare %>%
   theme_minimal() +
   facet_grid(method~.) +
   labs(x = "beta_alpha", y = "Density", fill = "Method") +
-  scale_color_manual(values = cbpalette) +
-  scale_fill_manual(values = cbpalette) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
   theme(legend.position = "none")
 
 grid <- seq(from = min(df_compare$samples), to = max(df_compare$samples), length.out = 1000)
@@ -150,11 +152,11 @@ ks_labeller <- function(x) toString(signif(abs(x), 2))
 
 ecdf_diff <- ggplot(ecdf_df, aes(x = x, y = ecdf_diff, col = method)) +
   geom_line() +
-  geom_abline(intercept = ks_tmb, slope = 0, col = cbpalette[1], linetype = "dashed", alpha = 0.8) +
-  annotate("text", x = 1.1 * max(ecdf_df$x), y = ks_tmb, label = ks_labeller(ks_tmb), col = cbpalette[1], alpha = 0.8) +
-  geom_abline(intercept = ks_aghq, slope = 0, col = cbpalette[2], linetype = "dashed", alpha = 0.8) +
-  annotate("text", x = 1.1 * max(ecdf_df$x), y = ks_aghq, label = ks_labeller(ks_aghq), col = cbpalette[2], alpha = 0.8) +
-  scale_color_manual(values = cbpalette) +
+  geom_abline(intercept = ks_tmb, slope = 0, col = cols[1], linetype = "dashed", alpha = 0.8) +
+  annotate("text", x = 1.1 * max(ecdf_df$x), y = ks_tmb, label = ks_labeller(ks_tmb), col = cols[1], alpha = 0.8) +
+  geom_abline(intercept = ks_aghq, slope = 0, col = cols[2], linetype = "dashed", alpha = 0.8) +
+  annotate("text", x = 1.1 * max(ecdf_df$x), y = ks_aghq, label = ks_labeller(ks_aghq), col = cols[2], alpha = 0.8) +
+  scale_color_manual(values = cols) +
   labs(x = "beta_alpha", y = "ECDF difference") +
   guides(col = "none") +
   coord_cartesian(xlim = c(min(ecdf_df$x), max(ecdf_df$x)), clip = "off") +
