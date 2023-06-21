@@ -26,17 +26,17 @@ institute: Imperial College London
 
 #
 
-```{r, echo=FALSE, fig.cap="Naomi is a district-level model of HIV indicators, like prevalence, treatment coverage, and incidence.", out.width = '90%'}
+```{r, echo=FALSE, fig.cap="Naomi is a age-sex-district model of HIV indicators, like prevalence, treatment coverage, and incidence, for countries in sub-Saharan Africa.", out.width = '90%'}
 knitr::include_graphics("depends/naomi_results.png")
 ```
 
 #
 
-```{r, echo=FALSE, fig.cap="Estimate generation via a web interface promotes data ownership, data use, and data quality. From \\texttt{https://naomi.unaids.org/.}", out.width = '70%'}
+```{r, echo=FALSE, fig.cap="Estimates are generated yearly via a web interface. This promotes data ownership, data use, and data quality. From \\texttt{https://naomi.unaids.org/.}", out.width = '70%'}
 knitr::include_graphics("naomi_user.png")
 ```
 
-# Better estimates by integration information from many sources
+# Integration of information from many sources
 
 <!-- https://github.com/athowes/elgm-inf/blob/fd4b0bb6b9ba93ac277de7aad47a94581e8fc900/src/docs_18-04-23-explainer/18-04-23-explainer.Rmd -->
 
@@ -44,7 +44,7 @@ knitr::include_graphics("naomi_user.png")
 2. Antenatal care clinic data $\color{lolit}{\text{frequent, only for pregnant women}}$
 3. Treatment service provision data $\color{lolit}{\text{frequent, but hard to interpret}}$ 
 
-# Put together, it's a challenging Bayesian inference problem
+# A challenging Bayesian inference problem
 
 We want our inference procedure to be
 
@@ -77,12 +77,16 @@ $$
 $$
 
 \lolit{
-
 If you input 24 length $\btheta$ then it'll return a 467 length mean vector $\hat \x(\btheta)$ and $467 \times 467$ length covariance matrix $\hat{\mathbf{H}} (\btheta)$.
 Mean calculated using gradient based optimisation.
 Gradients, and Hessian, obtained using automatic differentiation.
-
 }
+
+Optimise the resulting Laplace approximation
+
+$$
+\hat{\btheta}_{\texttt{LA}} = \argmax_{\btheta} \tilde p_{\texttt{LA}}(\btheta, \y) = \argmax_{\btheta} \frac{p(\y, \x, \btheta)}{\tilde p_{\texttt{G}}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat{\x}(\btheta)}
+$$
 
 # Use adaptive Gauss-Hermite quadrature to integrate over $\btheta$
 
@@ -91,6 +95,15 @@ Quadrature method based on the theory of polynomial interpolation which:
 1. Works well when the integrand looks like a polynomial times a Gaussian
 2. Adapts to the particular integrand based on the mode and Hessian
 3. Is implemented by the `aghq` package [@stringer2021implementing]
+
+\lolit{
+
+$$
+p(\y) \approx \int_{\btheta} \tilde p_{\texttt{LA}}(\btheta, \y) \text{d}\btheta \approx \sum_{\z \in \mathcal{Q}} p_{\texttt{LA}}(\z, \y) \omega(\z)
+$$
+where $\z \in \mathcal{Q}$ are a set of nodes and $\omega: \mathcal{Q} \to \mathbb{R}$ is a weighting function.
+
+}
 
 #
 
@@ -132,13 +145,13 @@ figA5
 
 #
 
-```{r, echo=FALSE, message=FALSE, fig.cap=".", out.width = '90%'}
+```{r, echo=FALSE, message=FALSE, fig.cap="Including 8 dimensions you can explain close to 90\\% of the total variation.", out.width = '90%'}
 knitr::include_graphics("depends/tv-plot.png")
 ```
 
 #
 
-```{r, echo=FALSE, message=FALSE, fig.cap=".", out.width = '90%'}
+```{r, echo=FALSE, message=FALSE, fig.cap="If you reconstruct the Hessian with just those 8 dimensions, it looks pretty similar.", out.width = '90%'}
 knitr::include_graphics("depends/reduced-rank-plot.png")
 ```
 
@@ -188,8 +201,9 @@ knitr::include_graphics("depends/marginal-sd.png")
 
 # Get in touch to chat about
 
-1. Further directions for this research $\color{lolit}{\text{e.g. suggestions for short masters or PhD projects}}$  
-2. Impactful academic or industry jobs using Bayesian statistics $\color{lolit}{\text{to begin around the end of this year when I graduate (hopefully!)}}$
+1. You have suggestions to improve the work done so far!
+2. Further directions for this research $\color{lolit}{\text{e.g. suggestions for short masters or PhD projects}}$  
+3. Impactful academic or industry jobs using Bayesian statistics $\color{lolit}{\text{to begin around the end of this year when I graduate (hopefully!)}}$
 
 | Method      | Details          |
 | ----------- | ---------------- |
@@ -203,7 +217,13 @@ knitr::include_graphics("depends/marginal-sd.png")
 * Working paper on the way^[For sufficiently vague definition of "on the way"], Any early readers greatly appreciated!
   * Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model $\color{lolit}{\text{Adam Howes, Alex Stringer, Seth Flaxman, Jeff Eaton}}$
 
-# 
+#
+
+```{r, echo=FALSE, fig.cap="Custom version of Laplace marginals implemented using \\texttt{TMB}. Speed-up possible using Simon Wood's method? For the Epilepsy example from Rue (2009), see \\texttt{athowes/elgm-inf/src/epil}.", out.width = '60%'}
+knitr::include_graphics("laplace.png")
+```
+
+#
 
 ```{r, echo=FALSE, fig.cap="Much of this work done in Waterloo, Canada visiting Alex Stringer last fall! Would definitely recommend the SAS department.", out.width = '60%'}
 knitr::include_graphics("uw.png")

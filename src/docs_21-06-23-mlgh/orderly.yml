@@ -15,6 +15,7 @@ resources:
   - uw.png
   - figures.R
   - 2d.cpp
+  - laplace.png
 
 packages:
   - dplyr
