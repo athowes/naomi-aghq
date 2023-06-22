@@ -1,5 +1,5 @@
 ---
-title: Appendix to "Fast approximate Bayesian inference of HIV indicators using the Naomi small-area estimation model"
+title: Appendix to "Fast approximate Bayesian inference of HIV indicators using principal components analysis adaptive Gauss-Hermite quadrature"
 author:
   - Adam Howes^[Department of Mathematics, Imperial College London]
   - Alex Stringer^[Department of Statistics and Actuarial Science, University of Waterloo]

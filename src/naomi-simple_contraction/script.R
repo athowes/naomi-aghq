@@ -58,10 +58,18 @@ posterior_contraction_plot <- bind_rows(df_hyper, df_latent) %>%
   coord_flip() +
   labs(x = "", y = "Posterior contraction", col = "Type", shape = "Type") +
   scale_color_manual(values = c("#56B4E9", "#009E73")) +
-  scale_y_continuous(limits = c(-0.3, 1), breaks = c(-0.2, 0, 0.2, 0.4, 0.6, 0.8, 1)) +
+  scale_y_continuous(
+    limits = c(-1, 1),
+    breaks = c(-1.0, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1.0)
+  ) +
+  geom_hline(yintercept = 0, linetype = "dashed", size = 0.25) +
+  annotate("text", x = 36, y = -0.6, size = 3, label = "Prior tighter") +
+  annotate("text", x = 36, y = 0.4, size = 3, label = "Posterior tighter") +
+  annotate("segment", x = 35, xend = 35, y = 0, yend = -1.0, size = 0.25, arrow = arrow(length = unit(0.2, "cm"))) +
+  annotate("segment", x = 35, xend = 35, y = 0, yend = 1.0, size = 0.25, arrow = arrow(length = unit(0.2, "cm"))) +
   theme_minimal()
 
-ggsave("posterior-contraction.png", posterior_contraction_plot, h = 6.5, w = 6.25)
+ggsave("posterior-contraction.png", posterior_contraction_plot, h = 6.5, w = 6.25, bg = "white")
 
 #' Which have lower amounts of posterior contraction?
 names(subset(posterior_contraction, posterior_contraction < 0.5))
@@ -126,47 +134,68 @@ df_metrics <- df_metrics %>%
 
 write_csv(df_metrics, "mean-sd.csv")
 
-mean_sd_plot <- ggplot(df_plot, aes(x = truth, y = approximate)) +
+mean_sd_plot <- ggplot(df_plot, aes(x = truth, y = approximate - truth)) +
   geom_point(shape = 1, alpha = 0.4) +
   facet_grid(indicator ~ method) +
-  coord_fixed(ratio = 1) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  geom_abline(slope = 0, intercept = 0, linetype = "dashed") +
   geom_text(data = df_metrics, aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5) +
-  labs(x = "NUTS", y = "") +
+  labs(x = "NUTS", y = "Approximation - NUTS") +
   theme_minimal()
 
 ggsave("mean-sd.png", mean_sd_plot, h = 6, w = 6.25)
 
 #' Split into two plots for presentations etc.
 
+jitter_amount <- 0.02
+
 mean_plot <- df_plot %>%
   filter(indicator == "Posterior mean estimate") %>%
-  ggplot(aes(x = truth, y = approximate)) +
-  geom_point(shape = 1, alpha = 0.4) +
+  ggplot(aes(x = truth, y = approximate - truth)) +
+  geom_jitter(shape = 1, alpha = 0.4, width = jitter_amount, height = jitter_amount) +
+  lims(y = c(-0.4, 0.4)) +
   facet_grid(indicator ~ method) +
-  coord_fixed(ratio = 1) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  geom_abline(slope = 0, intercept = 0, linetype = "dashed", size = 0.25) +
   geom_text(
     data = filter(df_metrics, indicator == "Posterior mean estimate"),
     aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
   ) +
-  labs(x = "NUTS", y = "") +
+  labs(x = "NUTS", y = "Approximation - NUTS") +
   theme_minimal()
 
 ggsave("mean.png", mean_plot, h = 4, w = 6.25)
 
 sd_plot <- df_plot %>%
   filter(indicator == "Posterior SD estimate") %>%
-  ggplot(aes(x = truth, y = approximate)) +
-  geom_point(shape = 1, alpha = 0.4) +
+  ggplot(aes(x = truth, y = approximate - truth)) +
+  geom_jitter(shape = 1, alpha = 0.4, width = jitter_amount, height = jitter_amount) +
+  lims(y = c(-0.6, 0.6)) +
   facet_grid(indicator ~ method) +
-  coord_fixed(ratio = 1) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  geom_abline(slope = 0, intercept = 0, linetype = "dashed", size = 0.25) +
   geom_text(
     data = filter(df_metrics, indicator == "Posterior SD estimate"),
     aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
   ) +
-  labs(x = "NUTS", y = "") +
+  labs(x = "NUTS", y = "Approximation - NUTS") +
   theme_minimal()
 
 ggsave("sd.png", sd_plot, h = 4, w = 6.25)
+
+sd_plot_alt <- sd_plot +
+  theme(
+    strip.background = element_blank(),
+    strip.text.x = element_blank()
+  )
+
+y_axis <- ggplot(data.frame(l = mean_plot$labels$y, x = 1, y = 1)) +
+  geom_text(aes(x, y, label = l), angle = 90) +
+  theme_void() +
+  coord_cartesian(clip = "off")
+
+mean_plot_alt <- mean_plot
+mean_plot_alt$labels$x <- ""
+mean_plot_alt$labels$y <- sd_plot_alt$labels$y <- ""
+
+mean_sd_plot_alt <- y_axis + (mean_plot_alt / sd_plot_alt) +
+  plot_layout(widths = c(1, 30))
+
+ggsave("mean-sd-alt.png", mean_sd_plot_alt, h = 6, w = 6.25)

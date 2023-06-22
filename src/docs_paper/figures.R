@@ -93,7 +93,9 @@ mvQuad::rescale(gg5, m = mu, C = cov, dec.type = 1)
 figA5 <- add_points(figA0, gg5) +
   labs(size = "")
 
-figA <- (figA1 + figA2) / (figA3 + figA4 + figA5)
+figA <- (figA1 + figA2) / (figA3 + figA4 + figA5) +
+  plot_annotation(tag_levels = "A") &
+  theme(plot.tag.position  = c(0.15, 0.95))
 
 #' Fig B
 
