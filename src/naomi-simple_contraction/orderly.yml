@@ -6,6 +6,7 @@ artefacts:
       filenames:
         - posterior-contraction.png
         - mean-sd.png
+        - mean-sd-alt.png
         - mean-sd.csv
         - mean.png
         - sd.png
