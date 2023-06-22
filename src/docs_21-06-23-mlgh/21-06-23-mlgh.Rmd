@@ -17,7 +17,7 @@ institute: Imperial College London
 
 # Doing precision public health requires granular data
 
-<!-- https://github.com/athowes/elgm-inf/blob/fd4b0bb6b9ba93ac277de7aad47a94581e8fc900/src/docs_18-04-23-explainer/18-04-23-explainer.Rmd -->
+<!-- https://github.com/athowes/naomi-aghq/blob/fd4b0bb6b9ba93ac277de7aad47a94581e8fc900/src/docs_18-04-23-explainer/18-04-23-explainer.Rmd -->
 
 1. $\color{lolit}{\text{The}}$ right interventions
 2. $\color{lolit}{\text{in the}}$ right place
@@ -38,7 +38,7 @@ knitr::include_graphics("naomi_user.png")
 
 # Integration of information from many sources
 
-<!-- https://github.com/athowes/elgm-inf/blob/fd4b0bb6b9ba93ac277de7aad47a94581e8fc900/src/docs_18-04-23-explainer/18-04-23-explainer.Rmd -->
+<!-- https://github.com/athowes/naomi-aghq/blob/fd4b0bb6b9ba93ac277de7aad47a94581e8fc900/src/docs_18-04-23-explainer/18-04-23-explainer.Rmd -->
 
 1. Household surveys $\color{lolit}{\text{infreqent, but gold-standard}}$
 2. Antenatal care clinic data $\color{lolit}{\text{frequent, only for pregnant women}}$
@@ -213,13 +213,13 @@ knitr::include_graphics("depends/marginal-sd.png")
 
 # For more information
 
-* Code and notebooks: `github.com/athowes/elgm-inf`
+* Code and notebooks: `github.com/athowes/naomi-aghq`
 * Working paper on the way^[For sufficiently vague definition of "on the way"], Any early readers greatly appreciated!
   * Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model $\color{lolit}{\text{Adam Howes, Alex Stringer, Seth Flaxman, Jeff Eaton}}$
 
 #
 
-```{r, echo=FALSE, fig.cap="Custom version of Laplace marginals implemented using \\texttt{TMB}. Speed-up possible using Simon Wood's method? For the Epilepsy example from Rue (2009), see \\texttt{athowes/elgm-inf/src/epil}.", out.width = '60%'}
+```{r, echo=FALSE, fig.cap="Custom version of Laplace marginals implemented using \\texttt{TMB}. Speed-up possible using Simon Wood's method? For the Epilepsy example from Rue (2009), see \\texttt{athowes/naomi-aghq/src/epil}.", out.width = '60%'}
 knitr::include_graphics("laplace.png")
 ```
 

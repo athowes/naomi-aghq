@@ -1,4 +1,4 @@
-repo <- "elgm-inf"
+repo <- "naomi-aghq"
 report <- "naomi-simple_fit"
 path_bundles <- "bundles"
 

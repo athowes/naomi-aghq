@@ -104,7 +104,7 @@ In `R-INLA` a few choices are available as to how to do this, including the grid
 4. Test points at a certain step-size ($\delta_z$) against a condition whereby they must have sufficient posterior density (using a parameter $\delta_{\pi}$)
 
 Under this approach, all weights would be equal $\Delta_k = 1 / K$.
-For a more detailed run through of the grid integration method, see the [INLA two dimensional grid replication](https://athowes.github.io/elgm-inf/inla-grid.html) notebook.
+For a more detailed run through of the grid integration method, see the [INLA two dimensional grid replication](https://athowes.github.io/naomi-aghq/inla-grid.html) notebook.
 
 ### Adaptive Gauss-Hermite quadrature
 

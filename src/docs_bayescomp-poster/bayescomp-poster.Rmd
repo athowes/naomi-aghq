@@ -199,7 +199,7 @@ knitr::include_graphics("fig4.png")
   * Maximum mean discrepancy
   * Pareto-smoothed importance sampling
 
-**Interested?** Working notebooks and R code available from `github.com/athowes/elgm-inf`. Or get in touch:
+**Interested?** Working notebooks and R code available from `github.com/athowes/naomi-aghq`. Or get in touch:
 
 * `r fontawesome::fa("home", fill = "black")` `athowes.github.io`
 * `r fontawesome::fa("envelope", fill = "black")` `ath19@ic.ac.uk`

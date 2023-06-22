@@ -433,7 +433,7 @@ knitr::include_graphics("ks-density-plot.png")
 # Thanks for listening!
 
 * Working on a paper based on this work called "Fast approximate Bayesian inference for small-area estimation of HIV indicators using the Naomi model" joint with Alex Stringer (Waterloo), Seth Flaxman (Oxford), Jeff Eaton (Imperial)
-* Code and notebooks for this project are available at `athowes.github.io/elgm-inf`
+* Code and notebooks for this project are available at `athowes.github.io/naomi-aghq`
 
 \begin{center}
 \begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]

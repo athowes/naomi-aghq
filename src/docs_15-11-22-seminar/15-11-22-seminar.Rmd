@@ -314,7 +314,7 @@ Plan: see how long a naive version without these modifications takes, then use t
 
 \begin{center}
 \begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
-Notebook for this example at \texttt{athowes.github.io/elgm-inf/epil}
+Notebook for this example at \texttt{athowes.github.io/naomi-aghq/epil}
 \end{tcolorbox}
 \end{center}
 
@@ -384,7 +384,7 @@ knitr::include_graphics("depends/intercept-comparison.pdf")
 
 \begin{center}
 \begin{tcolorbox}[width=0.9\textwidth, colframe={title}, colback={white}, title={}]
-Notebook for this example at \texttt{athowes.github.io/elgm-inf/prev-anc-art}
+Notebook for this example at \texttt{athowes.github.io/naomi-aghq/prev-anc-art}
 \end{tcolorbox}
 \end{center}
 
@@ -420,7 +420,7 @@ knitr::include_graphics("depends/ks-example.pdf")
 # Thanks for listening!
 
 * Joint work with Alex Stringer (Waterloo) and my PhD supervisors Seth Flaxman (Oxford) and Jeff Eaton (Imperial)
-* The code for this project is at `github.com/athowes/elgm-inf`
+* The code for this project is at `github.com/athowes/naomi-aghq`
 * You can find me online at `athowes.github.io`
 
 # References {.allowframebreaks}

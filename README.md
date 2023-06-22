@@ -14,7 +14,7 @@ Our implementation uses the [`aghq`](https://github.com/awstringer1/aghq) packag
 
 ## C++ template for the log-posterior
 
-The `TMB` template for the simplified Naomi model is available [here](https://github.com/athowes/elgm-inf/blob/master/src/naomi-simple_fit/naomi_simple.cpp).
+The `TMB` template for the simplified Naomi model is available [here](https://github.com/athowes/naomi-aghq/blob/master/src/naomi-simple_fit/naomi_simple.cpp).
 
 ## File structure
 
@@ -22,7 +22,7 @@ The directories of this repository are:
 
 | Directory | Contains |
 |-----------|----------|
-| `docs`    | Hosted files at [https://athowes.github.io/elgm-inf/](https://athowes.github.io/elgm-inf/) |
+| `docs`    | Hosted files at [https://athowes.github.io/naomi-aghq/](https://athowes.github.io/naomi-aghq/) |
 | `make`    | Scripts used to run the reports. `_make.R` runs everything in order |
 | `misc`    | Ideas for further work and other documents that don't need to be in `src` |
 | `src`     | All `orderly` reports |

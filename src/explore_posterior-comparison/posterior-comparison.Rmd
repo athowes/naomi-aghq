@@ -34,7 +34,7 @@ A further challenge would be to assess agreement between joint distributions, ra
 
 # Data
 
-Throughout this notebook we will use exemplar data from the report [`dev_sinla`](https://github.com/athowes/elgm-inf/tree/master/src/dev_sinla).
+Throughout this notebook we will use exemplar data from the report [`dev_sinla`](https://github.com/athowes/naomi-aghq/tree/master/src/dev_sinla).
 
 ```{r}
 samples <- readRDS("depends/model1-samples-m250.rds")

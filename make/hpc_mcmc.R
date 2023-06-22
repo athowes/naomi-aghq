@@ -20,7 +20,7 @@ if(setting == 2) {
   nthin <- 40
 }
 
-repo <- "elgm-inf"
+repo <- "naomi-aghq"
 report <- "naomi-simple_fit"
 path_bundles <- "bundles"
 param <- list(tmbstan = TRUE, niter = niter, nthin = nthin)

@@ -16,7 +16,7 @@ abstract: |
   **Task** In preparation for implementing new methods into `aghq`, in this notebook we walkthrough various `aghq` functions. This will improve understanding of (1) the method, and (2) how to manipulate `TMB` objects in R.
 ---
 
-We use the epilepsy example, explained in more detail in the [`epil`](https://athowes.github.io/elgm-inf/epil.html) notebook, as example.
+We use the epilepsy example, explained in more detail in the [`epil`](https://athowes.github.io/naomi-aghq/epil.html) notebook, as example.
 Start by loading and preparing the data, as well as compling the `TMB` template:
 
 ```{r}

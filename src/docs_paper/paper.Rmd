@@ -396,7 +396,7 @@ For the deterministic methods, following inference we simulated hyperparameter a
 For all methods, we simulated age-sex-district specific HIV prevalence, ART coverage and HIV incidence from the latent field and hyperparameter posteriors.
 <!-- Note: eventually this figure should be generated using the algorithm proposed in the paper -->
 Example model outputs from TMB are illustrated in Figure \ref{fig:naomi-results}.
-The \textsc{R} [@r] code used to produce all results we describe below is available at `github.com/athowes/elgm-inf`.
+The \textsc{R} [@r] code used to produce all results we describe below is available at `github.com/athowes/naomi-aghq`.
 We used `orderly` [@orderly] for reproducible research, `ggplot2` for data visualisation [@wickham2016ggplot2] and `rticles` [@allaire2022rticles] for reporting via `rmarkdown` [@allaire2022rmarkdown].
 
 ```{r naomi-results, fig.cap="District-level model outputs for adults aged 15-49. Inference conducted with TMB."}

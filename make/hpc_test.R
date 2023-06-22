@@ -11,7 +11,7 @@
 #' 1. Pull bundle
 #' 2. Import into archive
 
-repo <- "elgm-inf"
+repo <- "naomi-aghq"
 report <- "prev-anc-art_sim"
 path_bundles <- "bundles"
 param <- NULL

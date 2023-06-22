@@ -357,7 +357,7 @@ knitr::include_graphics("depends/simplified-naomi.pdf")
 
 ## Implementation
 
-The C++ `TMB` code for the negative log-posterior of the simplified Naomi model is available from the GitHub repository `athowes/elgm-inf`.
+The C++ `TMB` code for the negative log-posterior of the simplified Naomi model is available from the GitHub repository `athowes/naomi-aghq`.
 For ease of understanding, Table \ref{tab:tmb-lookup} provides correspondence between the mathematical notation used in Section \ref{sec:math} and the variable names used in the `TMB` code, for all hyperparameters and latent field parameters.
 For further reference on the `TMB` software see @tmbdocumentation.
 

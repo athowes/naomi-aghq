@@ -73,13 +73,13 @@ As well as the standard `TMB` inference approach, this template allows the model
 
 | Model | Report | Components |
 |:------|:-------|:-----------|
-| 0 | [`prev-anc-art_model0`](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model0) | Prevalence (no random effects) |
-| 1 | [`prev-anc-art_model1`](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model1) | Prevalence |
-| 2 | [`prev-anc-art_model2`](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model2) | Prevalence, ANC |
-| 3 | [`prev-anc-art_model3`](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model3) | Prevalence, ART |
-| 4 | [`prev-anc-art_model4`](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_model4) | Prevalence, ANC, ART |
+| 0 | [`prev-anc-art_model0`](https://github.com/athowes/naomi-aghq/tree/master/src/prev-anc-art_model0) | Prevalence (no random effects) |
+| 1 | [`prev-anc-art_model1`](https://github.com/athowes/naomi-aghq/tree/master/src/prev-anc-art_model1) | Prevalence |
+| 2 | [`prev-anc-art_model2`](https://github.com/athowes/naomi-aghq/tree/master/src/prev-anc-art_model2) | Prevalence, ANC |
+| 3 | [`prev-anc-art_model3`](https://github.com/athowes/naomi-aghq/tree/master/src/prev-anc-art_model3) | Prevalence, ART |
+| 4 | [`prev-anc-art_model4`](https://github.com/athowes/naomi-aghq/tree/master/src/prev-anc-art_model4) | Prevalence, ANC, ART |
 
-We perform inference on simulated data from Model 4 generated ([`prev-anc-art_sim`](https://github.com/athowes/elgm-inf/tree/master/src/prev-anc-art_sim)) with the following parameter values:
+We perform inference on simulated data from Model 4 generated ([`prev-anc-art_sim`](https://github.com/athowes/naomi-aghq/tree/master/src/prev-anc-art_sim)) with the following parameter values:
 
 | Parameter | Value |
 |:----------|:------|
