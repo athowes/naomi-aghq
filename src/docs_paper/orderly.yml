@@ -60,7 +60,7 @@ depends:
       id: latest
       use:
         depends/posterior-contraction.png: posterior-contraction.png
-        depends/mean-sd.png: mean-sd-alt.png
+        depends/mean-sd-alt.png: mean-sd-alt.png
         depends/mean-sd.csv: mean-sd.csv
   - check_hyper-marginals:
       id: latest

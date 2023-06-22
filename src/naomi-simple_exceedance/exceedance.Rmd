@@ -322,29 +322,26 @@ exceedance_manuscript_plot <- df_wide %>%
     method = fct_reorg(method, "TMB" = "TMB", "PCA-AGHQ" = "aghq"),
     indicator = fct_relevel(indicator, "Second 90", "High incidence")
   ) %>%
-  ggplot(aes(x = tmbstan, y = estimate)) +
+  ggplot(aes(x = tmbstan, y = estimate - tmbstan)) +
     geom_point(aes(col = sex), shape = 1, alpha = 0.6) +
-    coord_fixed(ratio = 1) +
     scale_colour_manual(values = c("#56B4E9", "#999999"), labels = c("Female", "Male")) +
-    geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+    geom_abline(slope = 0, intercept = 0, linetype = "dashed", size = 0.25) +
     facet_grid(indicator ~ method) +
-    labs(x = "NUTS", y = "", col = "Sex") +
+    labs(x = "NUTS", y = "Approximate - NUTS", col = "Sex") +
+    geom_text(
+      data = df_metrics %>% mutate(
+        method = fct_relevel(method, "TMB", "PCA-AGHQ"),
+        indicator = fct_relevel(indicator, "Second 90", "High incidence")    
+      ),
+      aes(x = -Inf, y = Inf, label = label),
+      size = 3, hjust = 0, vjust = 1.5
+    ) +
     theme_minimal() +
     theme(
       legend.position = "bottom"
     )
 
-exceedance_manuscript_plot <- exceedance_manuscript_plot +
-  geom_text(
-    data = df_metrics %>% mutate(
-      method = fct_relevel(method, "TMB", "PCA-AGHQ"),
-      indicator = fct_relevel(indicator, "Second 90", "High incidence")    
-    ),
-    aes(x = -Inf, y = Inf, label = label),
-    size = 3, hjust = 0, vjust = 1.5
-  )
-
-ggsave("exceedance.png", exceedance_manuscript_plot, h = 6.5, w = 6.25)
+ggsave("exceedance.png", exceedance_manuscript_plot, h = 6.5, w = 6.25, bg = "white")
 
 #' Separate versions are nice for presentations etc.
 

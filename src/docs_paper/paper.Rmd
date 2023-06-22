@@ -109,7 +109,6 @@ Drawing on expertise closest to the data being modelled improves the accuracy of
 Naomi is a complex model, and as such presents a challenging Bayesian inference problem.
 As well as hundreds of latent field parameters, Naomi has >20 hyperparameters: substantially more than the small number that can typically be handled by integrated nested Laplace approximations [INLA; @rue2009approximate].
 Moreover, observations depend on multiple structured additive predictors, such that Naomi falls into the class of extended latent Gaussian models [ELGMs; @stringer2022fast].
-As such, the model is not easily specified by any software which requires a formula interface.
 
 To allow for interactive review and iteration of model results, the inference procedure should be fast and low memory usage enough for workshop participants to fit the model.
 Due to the scale of the model and features of its posterior geometry [@neal2003slice], Markov chain Monte Carlo (MCMC) approaches are prohibitively slow.
@@ -432,7 +431,7 @@ Though inaccuracies remain possible, we considered the NUTS results to be a gold
 We used a Scree plot (Figure S$X$) based on the spectral decomposition of $\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})$ to select the number of principal components $s = 8 < m = 24$ to keep, sufficient to explain close to 90% of total variation.
 With this choice of $s$, the reduced rank approximation to the Hessian is visually very similar (Figure S$X$).
 
-```{r node-positions, fig.cap="The 6561 PCA-AGHQ node positions (green, rug plot) projected onto the hyperparameter marginal posteriors (grey, histogram) for each of the 24 hyperparameters. Some hyperparameters, such as \\texttt{logit_phi_alpha_x}, are well covered, where as others, such as \\texttt{log_sigma_lambda_x}, are near only being covered by one unique node."}
+```{r node-positions, fig.cap="The 6561 PCA-AGHQ node positions (green, rug plot) projected onto the hyperparameter marginal posteriors (grey, histogram) for each of the 24 hyperparameters. Some hyperparameters, such as logit\\_phi\\_alpha\\_x, are well covered where as others, such as log\\_sigma\\_lambda\\_x, are near only being covered by one unique node."}
 knitr::include_graphics("depends/nodes-samples-comparison.png")
 
 # This plot could be improved with a scale for "coverage"
@@ -500,9 +499,7 @@ The root mean square error (RMSE) between posterior mean estimates from PCA-AGHQ
 For the posterior standard deviation estimates, there was a substantial `r abs(rmse_diff_sd)`% reduction in RMSE: from `r abs(rmse_tmb_sd)` (TMB) to `r abs(rmse_ahgq_sd)` (PCA-AGHQ).
 These results, alongside those for the mean absolute error (MAE), are presented in Figure \ref{fig:mean-sd}.
 
-(ref:mean-sd) Barplot displaying frequency of dependencies for all of the R packages in the CRAN repository to date `r Sys.Date()
-
-```{r mean-sd, fig.cap="."}
+```{r mean-sd, fig.cap="PCA-AGHQ modestly improves estimation of the posterior mean, and substantially improves estimation of the posterior standard deviation, as compared with TMB."}
 knitr::include_graphics("depends/mean-sd-alt.png")
 ```
 
