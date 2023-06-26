@@ -127,9 +127,8 @@ AGHQ is a quadrature method based on the theory of polynomial interpolation, whi
 @bilodeau2022stochastic prove stochastic convergence rates for Bayesian posterior quantities when the normalising constant is estimated using AGHQ.
 It is not computationally feasible to use AGHQ in high dimensions directly, as exponentially many nodes would be required.
 Instead, we use principal components analysis (PCA) of the Hessian at the mode to find a smaller number of dimensions which explain most of the variance.
-In our application, this results in a grid which has millions of times fewer nodes the corresponding dense grid.
-Our method is implemented as an extension of the `aghq` \textsf{R} package [@stringer2021implementing].
-As `aghq` is designed to naturally interface with `TMB`, use is simple when provided a \textsf{C++} user template for the log-posterior.
+For the Naomi model in Malawi, this results in a grid which has millions of times fewer nodes the corresponding dense grid.
+Our implementation of the method makes use of the existing Naomi `TMB` template, and is immediately compatible with any model with such a template.
 
 Other work aiming to extend the scope of the INLA method includes the `inlabru` \textsc{R} package [@bachl2019inlabru], INLA within MCMC [@gomez2018markov], and importance sampling with INLA [@berild2022importance], all of which leverage the `R-INLA` \textsc{R} package [@martins2013bayesian].
 `inlabru` approximates non-linear predictors using linearisation, which involves making iterative calls to `R-INLA`.
@@ -231,8 +230,9 @@ More details regarding this part of the model are provided in Appendix S1.
 
 ## Collected together
 
-Let $\mathbf{y} = (y^{\theta}_I)$ for $\theta \in \{\rho, \alpha, \kappa, \rho^\text{ANC}, \alpha^\text{ANC}, N^\text{ART}\}$ and $I \in \mathcal{I}$ be a concatenated vector of observations.
-Here, we could attempt to write the Naomi model fully in a small number of equations, but likely it'd be difficult.
+In all, we model the observations $\mathbf{y} = (y^{\theta}_I)$ for $\theta \in \{\rho, \alpha, \kappa, \rho^\text{ANC}, \alpha^\text{ANC}, N^\text{ART}\}$ and $I \in \mathcal{I}$.
+Let $\x$ be the latent field, comprised of all intercept effects, age random effects, and spatial random effects in the model.
+Let $\btheta$ be hyperparameters, comprised of all standard deviations, and BYM2 proportion parameters.
 
 # Extended Latent Gaussian models\label{sec:elgm}
 
@@ -240,7 +240,7 @@ We now describe the popular latent Gaussian class of models, and an extension wh
 
 ## Definitions
 
-Latent Gaussian models [LGMs; @rue2009approximate] are three-stage hierarchical models of the form
+Latent Gaussian models [LGMs; @rue2009approximate] are three-stage hierarchical models with likelihood
 \begin{align*}
 y_i &\sim p(y_i \, | \, \eta_i, \btheta_1), \quad i \in [n]\\
 \mu_i &= \mathbb{E}(y_i \, | \, \eta_i) = g(\eta_i), \\
@@ -264,8 +264,9 @@ Put together, ELGMs are then of the form
 \begin{align*}
 y_i &\sim p(y_i \, | \, \bmeta_{\mathcal{J}_i}, \btheta_1), \quad i \in [n] \\
 \mu_i &= \mathbb{E}(y_i \, | \, \bmeta_{\mathcal{J}_i}) = g_i(\bmeta_{\mathcal{J}_i}), \\
-\eta_j &= \beta_0 + \sum_{l = 1}^{p} \beta_j z_{ji} + \sum_{k = 1}^{r} f_k(u_{ki}), \quad j \in [N_n].
+\eta_j &= \beta_0 + \sum_{l = 1}^{p} \beta_j z_{ji} + \sum_{k = 1}^{r} f_k(u_{ki}), \quad j \in [N_n],
 \end{align*}
+with latent field and hyperparameter priors as in the LGM case.
 
 ## Naomi framed as an ELGM
 
@@ -384,13 +385,14 @@ It is however, still possible to calculate the normalising constant using a spar
 # Application to data from Malawi\label{sec:results}
 
 We fit the simplified Naomi model (Section \ref{sec:naomi}) to data from Malawi using three inferential approaches.
-The three approaches were:
+These were:
 1. TMB,
-2. PCA-AGHQ, and
+2. PCA-AGHQ, building upon the `aghq` package [@stringer2021implementing],
 3. NUTS: the Hamiltonian Monte Carlo (HMC) algorithm No-U-Turn Sampling (NUTS) using Stan [@carpenter2017stan] via the `tmbstan` package [@monnahan2018no].
-The `TMB` C++ user-template used to specify the log-posterior was the same for each.
-The dimension of the latent field was $N = 467$ and the dimension of the hyperparameters was $m = 24$.
+Our goal in this analysis was to determine the accuracy of the approximate methods TMB and PCA-AGHQ as compared with the gold-standard NUTS.
+The `TMB` C++ user-template used to specify the log-posterior was the same for each approach.
 Settings used for each inferential method are provided in Table \ref{tab:inference-methods}, and, where relevant, discussed further below.
+The dimension of the latent field was $N = 467$ and the dimension of the hyperparameters was $m = 24$.
 For the deterministic methods, following inference we simulated hyperparameter and latent field samples.
 For all methods, we simulated age-sex-district specific HIV prevalence, ART coverage and HIV incidence from the latent field and hyperparameter posteriors.
 <!-- Note: eventually this figure should be generated using the algorithm proposed in the paper -->
