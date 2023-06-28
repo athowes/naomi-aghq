@@ -8,7 +8,7 @@ The model is provided as a [tool](https://naomi.unaids.org/) for countries to in
 Currently, inference is conducted using empirical Bayes and a Gaussian approximation via the [`TMB`](https://kaskr.github.io/adcomp/_book/Introduction.html) R package.
 We propose a new inference method extending adaptive Gauss-Hermite quadrature to deal with >20 hyperparameters, enabling fast and accurate inference for Naomi and other [extended latent Gaussian](https://www.tandfonline.com/doi/full/10.1080/10618600.2022.2099403) models.
 Using data from Malawi, our method improves the accuracy of inferences across a range of metrics, while being substantially faster to run than Hamiltonian Monte Carlo with the No-U-Turn sampler.
-Our implementation uses the [`aghq`](https://github.com/awstringer1/aghq) package ([Stringer, 2021](https://arxiv.org/abs/2101.04468)) facilitating easy, flexible use of the method when provided a [`TMB`](https://kaskr.github.io/adcomp/_book/Introduction.html) C++ template for the model's log-posterior.
+Our implementation is based on the existing [`TMB`](https://kaskr.github.io/adcomp/_book/Introduction.html) \textsf{C++} template for the model's log-posterior, and is compatible with any model with such a template.
 
 ![Example district-level Naomi model outputs for adults aged 15-49.](naomi_results.png)
 
