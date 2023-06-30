@@ -12,14 +12,14 @@ output:
     theme: lumen
 bibliography: citations.bib
 abstract: |
-  **Background**  We have run the simplified Naomi model using a range of inference methods: `TMB`, `aghq`, `adam` and `tmbstan`.
+  **Background**  We have run the simplified Naomi model using a range of inference methods: `TMB`, `aghq`, and `tmbstan`.
   
   **Task** In this report, we compare the accuracy of the posterior distributions obtained from these inference methods using exceedance probabilities.
 ---
 
 # Background
 
-We compare the inference results from `TMB`, `aghq`, `adam`, and `tmbstan`.
+We compare the inference results from `TMB`, `aghq`, and `tmbstan`.
 Import these inference results as follows:
 
 ```{r}
@@ -404,3 +404,11 @@ Based on @bolin2015excursion.
 * Bolin and Lindgren use sequential importance sampling to estimate the joint probabilities
 * $x(s) > u$ is called a positive excursion set, and $x(s) < u$ is called a negative excursion set
 * The `excursions` package can calculate excursion sets, contour credible regions and level avoiding sets, excursion functions, contour maps and their quality measures, and simultaneous confidence bands
+
+# Original computing environment {-}
+
+```{r}
+sessionInfo()
+```
+
+# Bibliography {-}

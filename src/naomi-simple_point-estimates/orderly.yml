@@ -2,12 +2,20 @@ script: script.R
 
 artefacts:
   - data:
+      description: Notebook comparing inferences
+      filenames:
+        - point-estimates.html
+  - data:
       description: Plots and saved output
       filenames:
-        - posterior-contraction.png
+        - mean-sd.png
+        - mean-sd-alt.png
+        - mean-sd.csv
+        - mean.png
+        - sd.png
 
 resources:
-  - naomi_simple_prior.cpp
+  - point-estimates.Rmd
 
 packages:
   - dplyr

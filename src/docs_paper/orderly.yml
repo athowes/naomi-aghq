@@ -60,6 +60,9 @@ depends:
       id: latest
       use:
         depends/posterior-contraction.png: posterior-contraction.png
+  - naomi-simple_point-estimates:
+      id: latest
+      use:
         depends/mean-sd-alt.png: mean-sd-alt.png
         depends/mean-sd.csv: mean-sd.csv
   - check_hyper-marginals:
