@@ -379,12 +379,16 @@ We refer to use of this quadrature rule as PCA-AGHQ.
 
 # Application to data from Malawi\label{sec:results}
 
+```{r}
+time_taken <- read_csv("depends/time-taken.csv")
+```
+
 We fit the simplified Naomi model (Section \ref{sec:naomi}) to data from Malawi using three inferential approaches.
 These were:
 
-1. TMB,
-2. PCA-AGHQ, via extension of the `aghq` package [@stringer2021implementing],
-3. NUTS: the Hamiltonian Monte Carlo (HMC) algorithm No-U-Turn Sampling (NUTS) using Stan [@carpenter2017stan] via the `tmbstan` package [@monnahan2018no].
+1. TMB (`r signif(time_taken$TMB, 2)` seconds)
+2. PCA-AGHQ (`r signif(time_taken$aghq, 2)` hours), implemented via extension of the `aghq` package [@stringer2021implementing],
+3. NUTS (`r signif(time_taken$tmbstan, 2)` days), the Hamiltonian Monte Carlo (HMC) algorithm No-U-Turn Sampling (NUTS) using Stan [@carpenter2017stan] implemented via the `tmbstan` package [@monnahan2018no].
 
 Our goal in this analysis was to determine the accuracy of the approximate methods (TMB and PCA-AGHQ) as compared with the gold-standard (NUTS).
 The `TMB` C++ user-template used to specify the log-posterior was the same for each approach.

@@ -501,15 +501,12 @@ Add here plots and description of the estimated normalising constant for differe
 ## Distribution tests
 
 ```{r}
-ks_summary <- readRDS("depends/ks_summary.rds")
+ks_summary <- readRDS("depends/ks-summary.rds")
 
 ks_summary %>%
-  filter(Type == "Latent field") %>%
-  group_by(Parameter) %>%
-  summarise(
-    `D(TMB)` = round(mean(`KS(TMB, tmbstan)`), 3),
-    `D(PCA-AGHQ)` = round(mean(`KS(aghq, tmbstan)`), 3)
-  ) %>%
+  ungroup() %>%
+  filter(type == "Latent field") %>%
+  select(-type) %>%
   gt::gt(rowname_col = "Parameter") %>%
   gt::summary_rows(
    columns = everything(),

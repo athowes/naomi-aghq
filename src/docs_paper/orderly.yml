@@ -37,7 +37,8 @@ depends:
   - naomi-simple_ks:
       id: latest
       use:
-        depends/ks_summary.rds: ks_summary.rds
+        depends/ks-summary.rds: ks-summary.rds
+        depends/time-taken.csv: time-taken.csv
         depends/beta_alpha.rds: beta_alpha.rds
   - docs_bayescomp-poster:
       id: latest

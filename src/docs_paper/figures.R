@@ -99,8 +99,7 @@ figA <- (figA1 + figA2) / (figA3 + figA4 + figA5) +
 
 #' Fig B
 
-df_compare <- readRDS("depends/beta_alpha.rds") %>%
-  filter(method != "adam")
+df_compare <- readRDS("depends/beta_alpha.rds")
 
 mean <- df_compare %>%
   filter(method == "tmbstan") %>%
