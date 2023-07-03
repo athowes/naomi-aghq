@@ -500,7 +500,7 @@ For the posterior standard deviation estimates, there was a substantial `r abs(r
 These results, alongside those for the mean absolute error (MAE), are presented in Figure \ref{fig:mean-sd}.
 
 ```{r mean-sd, fig.cap="PCA-AGHQ modestly improves estimation of the posterior mean, and substantially improves estimation of the posterior standard deviation, as compared with TMB."}
-knitr::include_graphics("depends/mean-sd-alt.png")
+knitr::include_graphics("depends/mean-sd-alt-latent.png")
 ```
 
 ### Distribution tests

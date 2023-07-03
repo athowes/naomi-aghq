@@ -476,6 +476,10 @@ knitr::include_graphics("depends/ess.png")
 knitr::include_graphics("depends/marginal-sd.png")
 ```
 
+```{r nodes-quantiles-sd, fig.cap="Standard deviations of the quantiles of the quadrature nodes within the NUTS posterior draws varied substantially, in accordance with the marginal standard deviations shown in Figure \\ref{fig:marginal-sd}."}
+knitr::include_graphics("depends/nodes-quantiles-sd.png")
+```
+
 ```{r scree, fig.cap="Most variation could be explained by far fewer than the full 24 dimensions."}
 knitr::include_graphics("depends/tv-plot.png")
 ```
@@ -485,6 +489,8 @@ knitr::include_graphics("depends/reduced-rank-plot.png")
 ```
 
 ## Estimated normalising constant comparison
+
+Add here plots and description of the estimated normalising constant for different PCA-AGHQ settings.
 
 \newpage
 

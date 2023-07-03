@@ -8,13 +8,6 @@ aghq <- readRDS("depends/aghq.rds")
 hyper <- names(tmbstan$mcmc$obj$par)
 stopifnot(length(hyper) == 24)
 
-pdf("hist.pdf", h = 10, w = 10)
-
-bayesplot::mcmc_hist(tmbstan$mcmc$stanfit, pars = hyper) +
-  theme_minimal()
-
-dev.off()
-
 pdf("pairs.pdf", h = 10, w = 10)
 
 bayesplot::mcmc_pairs(tmbstan$mcmc$stanfit, pars = hyper[1:6], off_diag_fun = "hex")
@@ -73,7 +66,7 @@ ggplot(tmbstan_samples, aes(x = x)) +
   geom_histogram(fill = "lightgrey", col = "darkgrey", alpha = 0.5) +
   geom_rug(data = aghq_nodes, aes(x = node), col = "#009E73", length = unit(0.1, "npc"), alpha = 0.5) +
   scale_y_continuous(expand = c(0.2, 0.2)) +
-  facet_wrap(~par, scales = "free", ncol = 4) +
+  facet_wrap(~ par, scales = "free", ncol = 4) +
   labs(x = "", y = "") +
   theme_minimal() +
   theme(
@@ -84,3 +77,35 @@ ggplot(tmbstan_samples, aes(x = x)) +
   )
 
 dev.off()
+
+#' Calculate the quantiles of the nodes within the NUTS posterior draws
+
+node_quantiles <- function(param) {
+  ecdf <- ecdf(filter(tmbstan_samples, par == param)$x)
+  q <- ecdf(filter(aghq_nodes, par == param)$node)
+  return(q)
+}
+
+node_quantiles_df <- lapply(
+  1:length(hyper),
+  function(i) data.frame("q" = node_quantiles(param = hyper[i]), par = paste0(hyper[i]))
+) %>%
+  bind_rows()
+
+node_quantiles_df %>%
+  group_by(par) %>%
+  summarise(sd = sd(q)) %>%
+  mutate(
+    start = str_extract(par, "^[^_]+"),
+    scale = fct_recode(start, "Log" = "log", "Logit" = "logit", "Other" = "OmegaT")
+  ) %>%
+  ggplot(aes(x = reorder(par, sd), y = sd, color = scale)) +
+    geom_point() +
+    coord_flip() +
+    scale_color_manual(values = c("#56B4E9","#009E73", "#E69F00")) +
+    geom_hline(yintercept = sqrt(1/12), linetype = "dashed", size = 0.25) +
+    annotate("text", x = 5, y = 0.2, size = 3, label = "Standard deviation of Unif[0,1]") +
+    theme_minimal() +
+    labs(x = "",  y = "Standard deviation of quadrature node quantiles within NUTS posterior", col = "Scale")
+
+ggsave("nodes-quantiles-sd.png", h = 3.5, w = 6.25)

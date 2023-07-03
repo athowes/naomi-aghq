@@ -4,10 +4,10 @@ artefacts:
   - data:
       description: Hyperparameter marginals (and some pairs)
       filenames:
-        - hist.pdf
         - pairs.pdf
         - nodes-samples-comparison-multi-page.pdf
         - nodes-samples-comparison.pdf
+        - nodes-quantiles-sd.png
 
 packages:
   - dplyr

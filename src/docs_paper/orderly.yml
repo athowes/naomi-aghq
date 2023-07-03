@@ -63,12 +63,13 @@ depends:
   - naomi-simple_point-estimates:
       id: latest
       use:
-        depends/mean-sd-alt.png: mean-sd-alt.png
+        depends/mean-sd-alt-latent.png: mean-sd-alt-latent.png
         depends/mean-sd.csv: mean-sd.csv
   - check_hyper-marginals:
       id: latest
       use:
         depends/nodes-samples-comparison.pdf: nodes-samples-comparison.pdf
+        depends/nodes-quantiles-sd.png: nodes-quantiles-sd.png
   - naomi-simple_mcmc:
       id: latest
       use:
