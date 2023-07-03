@@ -212,6 +212,28 @@ mean_plot_latent_alt$labels$y <- sd_plot_latent_alt$labels$y <- ""
 ggsave("mean-sd-alt-latent.png", mean_sd_plot_latent_alt, h = 6, w = 6.25)
 ```
 
+Where are the greatest errors occurring for the mean?
+
+```{r}
+df_plot_latent %>%
+  filter(indicator == "Posterior mean estimate") %>%
+  mutate(diff = abs(approximate - truth)) %>%
+  arrange(desc(diff)) %>%
+  select(indicator, par, id, method, truth, approximate, diff) %>%
+  DT::datatable()
+```
+
+What about for the standard deviations?
+
+```{r}
+df_plot_latent %>%
+  filter(indicator == "Posterior SD estimate") %>%
+  mutate(diff = abs(approximate - truth)) %>%
+  arrange(desc(diff)) %>%
+  select(indicator, par, id, method, truth, approximate, diff) %>%
+  DT::datatable()
+```
+
 ## Outputs
 
 ```{r}
