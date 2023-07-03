@@ -8,11 +8,15 @@ artefacts:
   - data:
       description: Plots and saved output
       filenames:
-        - mean-sd.png
-        - mean-sd-alt.png
         - mean-sd.csv
-        - mean.png
-        - sd.png
+        - mean-sd-latent.png
+        - mean-sd-alt-latent.png
+        - mean-latent.png
+        - sd-latent.png
+        - mean-sd-output.png
+        - mean-sd-alt-output.png
+        - mean-output.png
+        - sd-output.png
 
 resources:
   - point-estimates.Rmd

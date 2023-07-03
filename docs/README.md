@@ -28,6 +28,7 @@
 
 ### Results
 
+* [point-estimates](https://athowes.github.io/naomi-aghq/point-estimates.html): comparison of inference methods for the simplified Naomi model using point estimates (the mean and standard deviation)
 * [ks](https://athowes.github.io/naomi-aghq/ks.html): comparison of inference methods for the simplified Naomi model using histograms and KS test results
 * [exceedance](https://athowes.github.io/naomi-aghq/exceedance.html): case-study of exceedance probabilities: probability to meet the second 90 target, high incidence strata, and amount of unmet treatment need
 * [psis](https://athowes.github.io/naomi-aghq/psis.html): comparison of inference methods for the simplified Naomi model using Pareto-smoothed importance sampling

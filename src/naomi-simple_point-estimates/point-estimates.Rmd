@@ -27,7 +27,9 @@ aghq <- readRDS("depends/aghq.rds")
 tmbstan <- readRDS("depends/tmbstan.rds")
 ```
 
-# Means and standard deviations
+# Data manipulation
+
+We're interested in the latent field and certain model outputs (prevalence, incidence and treatment coverage):
 
 ```{r}
 latent_pars <- unique(names(tmb$fit$par.full))[!(unique(names(tmb$fit$par.full)) %in% names(tmb$fit$par))]
@@ -37,23 +39,27 @@ type_key <- data.frame(
   par = c(latent_pars, output_pars),
   type = c(rep("latent", times = length(latent_pars)), rep("output", times = length(output_pars)))
 )
+```
 
+Extract the mean and standard deviation for each parameter for each inference method, then bind them together:
+
+```{r}
 df_tmb <- lapply(tmb$fit$sample[type_key$par], function(row) {
-  data.frame("sd" = matrixStats::rowSds(row), "mean" = rowMeans(row)) %>%
+  data.frame("mean" = rowMeans(row), "sd" = matrixStats::rowSds(row)) %>%
     tibble::rowid_to_column("id")
   }) %>%
   dplyr::bind_rows(.id = "par") %>%
   mutate(method = "TMB")
 
 df_aghq <- lapply(aghq$quad$sample[type_key$par], function(row) {
-  data.frame("sd" = matrixStats::rowSds(row), "mean" = rowMeans(row)) %>%
+  data.frame("mean" = rowMeans(row), "sd" = matrixStats::rowSds(row)) %>%
     tibble::rowid_to_column("id")
   }) %>%
   dplyr::bind_rows(.id = "par") %>%
   mutate(method = "PCA-AGHQ")
 
 df_tmbstan <- lapply(tmbstan$mcmc$sample[type_key$par], function(row) {
-  data.frame("sd" = matrixStats::rowSds(row), "mean" = rowMeans(row)) %>%
+  data.frame("mean" = rowMeans(row), "sd" = matrixStats::rowSds(row)) %>%
     tibble::rowid_to_column("id")
   }) %>%
   dplyr::bind_rows(.id = "par") %>%
@@ -65,6 +71,12 @@ df <- bind_rows(df_tmb, df_aghq, df_tmbstan) %>%
     by = "par"
   )
 
+head(df)
+```
+
+Pivot so that the data is ready to plot:
+
+```{r}
 df_plot <- df %>%
   pivot_longer(cols = c("sd", "mean"), names_to = "indicator", values_to = "estimate") %>%
   pivot_wider(values_from = "estimate", names_from = "method") %>%
@@ -75,47 +87,79 @@ df_plot <- df %>%
     method = fct_relevel(method, "TMB", "PCA-AGHQ")
   )
 
+head(df_plot)
+```
+Calculate the root mean square and mean absolute errors between the approximate methods and NUTS (taken to be the truth):
+
+```{r}
 df_metrics <- df_plot %>%
-  group_by(method, indicator) %>%
+  group_by(method, indicator, type) %>%
   summarise(
     rmse = sqrt(mean((truth - approximate)^2)),
     mae = mean(abs(truth - approximate))
-  )
+  ) %>%
+  ungroup()
 
+head(df_metrics)
+```
+
+Add difference in metric between TMB and PCA-AGHQ:
+
+```{r}
 df_metrics_pct <- df_metrics %>%
-  ungroup() %>%
-  group_by(indicator) %>%
-  summarise(
-    rmse_diff = 100 * diff(rmse) / max(rmse),
-    mae_diff = 100 * diff(mae) / max(mae)
-  )
+  split(~ indicator + type) %>%
+  lapply(function(x) {
+    x %>% summarise(
+      rmse_diff = 100 * diff(rmse) / max(rmse),
+      mae_diff = 100 * diff(mae) / max(mae)
+    )
+  }) %>%
+  bind_rows(.id = "id") %>%
+  separate(id, c("indicator", "type"), sep = "\\.")
 
+#' Add as a naming column for plot
 df_metrics <- df_metrics %>%
+  left_join(
+    df_metrics_pct,
+    by = c("indicator", "type")
+  ) %>%
   mutate(
     label = ifelse(
       method == "PCA-AGHQ",
-      paste0("RMSE: ", round(rmse, 2), " (", round(df_metrics_pct$rmse_diff), "%)", "\nMAE: ", round(mae, 2), " (", round(df_metrics_pct$mae_diff), "%)"),
-      paste0("RMSE: ", round(rmse, 2), "\nMAE: ", round(mae, 2))
+      paste0("RMSE: ", signif(rmse, 2), " (", signif(rmse_diff, 2), "%)", "\nMAE: ", signif(mae, 2), " (", signif(mae_diff, 2), "%)"),
+      paste0("RMSE: ", signif(rmse, 2), "\nMAE: ", signif(mae, 2))
     )
   )
 
 write_csv(df_metrics, "mean-sd.csv")
+```
 
-mean_sd_plot <- ggplot(df_plot, aes(x = truth, y = approximate - truth)) +
+# Plots
+
+## Latent field
+
+```{r}
+df_plot_latent <- filter(df_plot, type == "latent")
+df_metrics_latent <- filter(df_metrics, type == "latent")
+
+(mean_sd_plot_latent <- df_plot_latent %>%
+  ggplot(aes(x = truth, y = approximate - truth)) +
   geom_point(shape = 1, alpha = 0.4) +
   facet_grid(indicator ~ method) +
   geom_abline(slope = 0, intercept = 0, linetype = "dashed") +
-  geom_text(data = df_metrics, aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5) +
+  geom_text(data = df_metrics_latent, aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5) +
   labs(x = "NUTS", y = "Approximation - NUTS") +
-  theme_minimal()
+  theme_minimal())
 
-ggsave("mean-sd.png", mean_sd_plot, h = 6, w = 6.25)
+ggsave("mean-sd-latent.png", mean_sd_plot_latent, h = 6, w = 6.25)
+```
 
-#' Split into two plots for presentations etc.
+Version split into two for presentations
 
+```{r}
 jitter_amount <- 0.02
 
-mean_plot <- df_plot %>%
+mean_plot_latent <- df_plot_latent %>%
   filter(indicator == "Posterior mean estimate") %>%
   ggplot(aes(x = truth, y = approximate - truth)) +
   geom_jitter(shape = 1, alpha = 0.4, width = jitter_amount, height = jitter_amount) +
@@ -123,15 +167,15 @@ mean_plot <- df_plot %>%
   facet_grid(indicator ~ method) +
   geom_abline(slope = 0, intercept = 0, linetype = "dashed", size = 0.25) +
   geom_text(
-    data = filter(df_metrics, indicator == "Posterior mean estimate"),
+    data = filter(df_metrics_latent, indicator == "Posterior mean estimate"),
     aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
   ) +
   labs(x = "NUTS", y = "Approximation - NUTS") +
   theme_minimal()
 
-ggsave("mean.png", mean_plot, h = 4, w = 6.25)
+ggsave("mean-latent.png", mean_plot_latent, h = 4, w = 6.25)
 
-sd_plot <- df_plot %>%
+sd_plot_latent <- df_plot_latent %>%
   filter(indicator == "Posterior SD estimate") %>%
   ggplot(aes(x = truth, y = approximate - truth)) +
   geom_jitter(shape = 1, alpha = 0.4, width = jitter_amount, height = jitter_amount) +
@@ -139,33 +183,114 @@ sd_plot <- df_plot %>%
   facet_grid(indicator ~ method) +
   geom_abline(slope = 0, intercept = 0, linetype = "dashed", size = 0.25) +
   geom_text(
-    data = filter(df_metrics, indicator == "Posterior SD estimate"),
+    data = filter(df_metrics_latent, indicator == "Posterior SD estimate"),
     aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
   ) +
   labs(x = "NUTS", y = "Approximation - NUTS") +
   theme_minimal()
 
-ggsave("sd.png", sd_plot, h = 4, w = 6.25)
+ggsave("sd-latent.png", sd_plot_latent, h = 4, w = 6.25)
 
-sd_plot_alt <- sd_plot +
+sd_plot_latent_alt <- sd_plot_latent +
   theme(
     strip.background = element_blank(),
     strip.text.x = element_blank()
   )
 
-y_axis <- ggplot(data.frame(l = mean_plot$labels$y, x = 1, y = 1)) +
+y_axis <- ggplot(data.frame(l = mean_plot_latent$labels$y, x = 1, y = 1)) +
   geom_text(aes(x, y, label = l), angle = 90) +
   theme_void() +
   coord_cartesian(clip = "off")
 
-mean_plot_alt <- mean_plot
-mean_plot_alt$labels$x <- ""
-mean_plot_alt$labels$y <- sd_plot_alt$labels$y <- ""
+mean_plot_latent_alt <- mean_plot_latent
+mean_plot_latent_alt$labels$x <- ""
+mean_plot_latent_alt$labels$y <- sd_plot_latent_alt$labels$y <- ""
 
-mean_sd_plot_alt <- y_axis + (mean_plot_alt / sd_plot_alt) +
-  plot_layout(widths = c(1, 30))
+(mean_sd_plot_latent_alt <- y_axis + (mean_plot_latent_alt / sd_plot_latent_alt) +
+  plot_layout(widths = c(1, 30)))
 
-ggsave("mean-sd-alt.png", mean_sd_plot_alt, h = 6, w = 6.25)
+ggsave("mean-sd-alt-latent.png", mean_sd_plot_latent_alt, h = 6, w = 6.25)
+```
+
+## Outputs
+
+```{r}
+df_plot_output <- filter(df_plot, type == "output")
+df_metrics_output <- filter(df_metrics, type == "output")
+cbpalette <- c("#56B4E9","#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
+
+(mean_sd_plot_output <- df_plot_output %>%
+  ggplot() +
+  geom_point(aes(x = truth, y = approximate - truth, color = par), shape = 1, alpha = 0.4) +
+  scale_color_manual(values = cbpalette) +
+  facet_grid(indicator ~ method) +
+  geom_abline(slope = 0, intercept = 0, linetype = "dashed") +
+  geom_text(data = df_metrics_output, aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5) +
+  labs(x = "NUTS", y = "Approximation - NUTS") +
+  theme_minimal())
+
+ggsave("mean-sd-output.png", mean_sd_plot_output, h = 6, w = 6.25)
+```
+
+Version split into two for presentations
+
+```{r}
+jitter_amount <- 0.02
+
+mean_plot_output <- df_plot_output %>%
+  filter(indicator == "Posterior mean estimate") %>%
+  ggplot() +
+  geom_jitter(aes(x = truth, y = approximate - truth, color = par), shape = 1, alpha = 0.4, width = jitter_amount, height = jitter_amount) +
+  scale_color_manual(values = cbpalette) +
+  facet_grid(indicator ~ method) +
+  geom_abline(slope = 0, intercept = 0, linetype = "dashed", size = 0.25) +
+  geom_text(
+    data = filter(df_metrics_output, indicator == "Posterior mean estimate"),
+    aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
+  ) +
+  labs(x = "NUTS", y = "Approximation - NUTS", col = "Output") +
+  theme_minimal()
+
+ggsave("mean-output.png", mean_plot_output, h = 4, w = 6.25)
+
+sd_plot_output <- df_plot_output %>%
+  filter(indicator == "Posterior SD estimate") %>%
+  ggplot() +
+  geom_jitter(aes(x = truth, y = approximate - truth, color = par), shape = 1, alpha = 0.4, width = jitter_amount, height = jitter_amount) +
+  scale_color_manual(values = cbpalette) +
+  facet_grid(indicator ~ method) +
+  geom_abline(slope = 0, intercept = 0, linetype = "dashed", size = 0.25) +
+  geom_text(
+    data = filter(df_metrics_output, indicator == "Posterior SD estimate"),
+    aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
+  ) +
+  labs(x = "NUTS", y = "Approximation - NUTS", col = "Output") +
+  theme_minimal()
+
+ggsave("sd-output.png", sd_plot_output, h = 4, w = 6.25)
+
+sd_plot_output_alt <- sd_plot_output +
+  theme(
+    strip.background = element_blank(),
+    strip.text.x = element_blank(),
+    legend.position = "bottom"
+  )
+
+y_axis <- ggplot(data.frame(l = mean_plot_output$labels$y, x = 1, y = 1)) +
+  geom_text(aes(x, y, label = l), angle = 90) +
+  theme_void() +
+  coord_cartesian(clip = "off")
+
+mean_plot_output_alt <- mean_plot_output +
+  theme(legend.position = "none")
+
+mean_plot_output_alt$labels$x <- ""
+mean_plot_output_alt$labels$y <- sd_plot_output_alt$labels$y <- ""
+
+(mean_sd_plot_output_alt <- y_axis + (mean_plot_output_alt / sd_plot_output_alt) +
+  plot_layout(widths = c(1, 30)))
+
+ggsave("mean-sd-alt-output.png", mean_sd_plot_output_alt, h = 6, w = 6.25)
 ```
 
 # Original computing environment {-}
