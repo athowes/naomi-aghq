@@ -76,7 +76,7 @@ time_taken <- data.frame(
   "tmbstan" = tmbstan$time
 )
 
-write_csv(time_taken, "time_taken.csv")
+write_csv(time_taken, "time-taken.csv")
 
 time_taken
 ```
@@ -151,32 +151,28 @@ pars_eval <- pars %in% c("beta_rho", "u_rho_x")
 names(pars_eval) <- pars
 ```
 
-```{r}
-histogram_and_ecdf_helper <- function(par) lapply(1:sum(names(tmb$fit$obj$env$par) == par), histogram_and_ecdf, par = par)
-```
-
 ## `beta_rho`
 
 ```{r eval = pars_eval[["beta_rho"]]}
-histogram_and_ecdf_helper("beta_rho")
+histogram_and_ecdf_list("beta_rho")
 ```
 
 ## `beta_alpha`
 
 ```{r eval = pars_eval[["beta_alpha"]]}
-histogram_and_ecdf_helper("beta_alpha")
+histogram_and_ecdf_list("beta_alpha")
 ```
 
 ## `beta_lambda`
 
 ```{r eval = pars_eval[["beta_lambda"]]}
-histogram_and_ecdf_helper("beta_lambda")
+histogram_and_ecdf_list("beta_lambda")
 ```
 
 ## `beta_anc_rho`
 
 ```{r eval = pars_eval[["beta_anc_rho"]]}
-histogram_and_ecdf_helper("beta_anc_rho")
+histogram_and_ecdf_list("beta_anc_rho")
 ```
 
 ## `beta_anc_alpha`
@@ -200,97 +196,97 @@ lapply(pars[stringr::str_starts(pars, "log_sigma")], histogram_and_ecdf)
 ## `u_rho_x`
 
 ```{r eval = pars_eval[["u_rho_x"]]}
-histogram_and_ecdf_helper("u_rho_x")
+histogram_and_ecdf_list("u_rho_x")
 ```
 
 ## `us_rho_x`
 
 ```{r eval = pars_eval[["us_rho_x"]]}
-histogram_and_ecdf_helper("us_rho_x")
+histogram_and_ecdf_list("us_rho_x")
 ```
 
 ## `u_rho_xs`
 
 ```{r eval = pars_eval[["u_rho_xs"]]}
-histogram_and_ecdf_helper("u_rho_xs")
+histogram_and_ecdf_list("u_rho_xs")
 ```
 
 ## `us_rho_xs`
 
 ```{r eval = pars_eval[["us_rho_xs"]]}
-histogram_and_ecdf_helper("us_rho_xs")
+histogram_and_ecdf_list("us_rho_xs")
 ```
 
 ## `u_rho_as`
 
 ```{r eval = pars_eval[["u_rho_as"]]}
-histogram_and_ecdf_helper("u_rho_as")
+histogram_and_ecdf_list("u_rho_as")
 ```
 
 ## `u_alpha_x`
 
 ```{r eval = pars_eval[["u_alpha_x"]]}
-histogram_and_ecdf_helper("u_alpha_x")
+histogram_and_ecdf_list("u_alpha_x")
 ```
 
 ## `us_alpha_x`
 
 ```{r eval = pars_eval[["us_alpha_x"]]}
-histogram_and_ecdf_helper("us_alpha_x")
+histogram_and_ecdf_list("us_alpha_x")
 ```
 
 ## `u_alpha_xs`
 
 ```{r eval = pars_eval[["u_alpha_xs"]]}
-histogram_and_ecdf_helper("u_alpha_xs")
+histogram_and_ecdf_list("u_alpha_xs")
 ```
 
 ## `us_alpha_xs`
 
 ```{r eval = pars_eval[["beta_rho"]]}
-histogram_and_ecdf_helper("us_alpha_xs")
+histogram_and_ecdf_list("us_alpha_xs")
 ```
 
 ## `u_alpha_a`
 
 ```{r eval = pars_eval[["u_alpha_a"]]}
-histogram_and_ecdf_helper("u_alpha_a")
+histogram_and_ecdf_list("u_alpha_a")
 ```
 
 ## `u_alpha_as`
 
 ```{r eval = pars_eval[["u_alpha_as"]]}
-histogram_and_ecdf_helper("u_alpha_as")
+histogram_and_ecdf_list("u_alpha_as")
 ```
 
 ## `u_alpha_xa`
 
 ```{r eval = pars_eval[["u_alpha_xa"]]}
-histogram_and_ecdf_helper("u_alpha_xa")
+histogram_and_ecdf_list("u_alpha_xa")
 ```
 
 ## `ui_lambda_x`
 
 ```{r eval = pars_eval[["ui_lambda_x"]]}
-histogram_and_ecdf_helper("ui_lambda_x")
+histogram_and_ecdf_list("ui_lambda_x")
 ```
 
 ## `ui_anc_rho_x`
 
 ```{r eval = pars_eval[["ui_anc_rho_x"]]}
-histogram_and_ecdf_helper("ui_anc_rho_x")
+histogram_and_ecdf_list("ui_anc_rho_x")
 ```
 
 ## `ui_anc_alpha_x`
 
 ```{r eval = pars_eval[["ui_anc_alpha_x"]]}
-histogram_and_ecdf_helper("ui_anc_alpha_x")
+histogram_and_ecdf_list("ui_anc_alpha_x")
 ```
 
 ## `log_or_gamma`
 
 ```{r eval = pars_eval[["log_or_gamma"]]}
-histogram_and_ecdf_helper("log_or_gamma")
+histogram_and_ecdf_list("log_or_gamma")
 ```
 
 ## `rho_t1_out`
@@ -307,11 +303,29 @@ There are too many variables to plot this here!
 
 # KS plots 
 
+```{r}
+r <- tmb$fit$obj$env$random
+x_names <- names(tmb$fit$obj$env$par[r])
+theta_names <- names(tmb$fit$obj$env$par[-r])
+
+dict <- data.frame(
+  parname = c(unique(x_names), unique(theta_names)),
+  type = c(rep("Latent field", length(unique(x_names))), rep("Hyper", length(unique(theta_names))))
+)
+
+ks_df <- lapply(unique(names(tmb$fit$obj$env$par)), to_ks_df) %>%
+  bind_rows() %>%
+  mutate(parname = str_extract(par, ".*(?=\\[)")) %>%
+  left_join(dict, by = "parname")
+```
+
 ## Individual parameters {.tabset .tabset-fade}
 
 ```{r}
-ks_helper <- function(par, starts_with = FALSE, ...) {
-  to_ks_df(par, starts_with = starts_with) %>% ks_plot(par, ...)
+ks_plot_starts_with <- function(param) {
+  ks_df %>%
+    filter(startsWith(par, param)) %>%
+    ks_plot(par = param)
 }
 
 ks_df_out <- function(par) {
@@ -329,115 +343,115 @@ ks_df_out <- function(par) {
 ### `beta`
 
 ```{r}
-ks_helper("beta", starts_with = TRUE)
+ks_plot_starts_with("beta")
 ```
 
 ### `logit`
 
 ```{r}
-ks_helper("logit", starts_with = TRUE)
+ks_plot_starts_with("logit")
 ```
 
 ### `log_sigma`
 
 ```{r}
-ks_helper("log_sigma", starts_with = TRUE)
+ks_plot_starts_with("log_sigma")
 ```
 
 ### `u_rho_x`
 
 ```{r eval = pars_eval[["u_rho_x"]]}
-ks_helper("u_rho_x")
+ks_plot_starts_with("u_rho_x")
 ```
 
 ### `u_rho_xs`
 
 ```{r eval = pars_eval[["u_rho_xs"]]}
-ks_helper("u_rho_xs")
+ks_plot_starts_with("u_rho_xs")
 ```
 
 ### `us_rho_x`
 
 ```{r eval = pars_eval[["us_rho_x"]]}
-ks_helper("us_rho_x")
+ks_plot_starts_with("us_rho_x")
 ```
 
 ### `us_rho_xs`
 
 ```{r eval = pars_eval[["us_rho_xs"]]}
-ks_helper("us_rho_xs")
+ks_plot_starts_with("us_rho_xs")
 ```
 
 ### `u_rho_a`
 
 ```{r eval = pars_eval[["u_rho_a"]]}
-ks_helper("u_rho_a")
+ks_plot_starts_with("u_rho_a")
 ```
 
 ### `u_rho_as`
 
 ```{r eval = pars_eval[["u_rho_as"]]}
-ks_helper("u_rho_as")
+ks_plot_starts_with("u_rho_as")
 ```
 
 ### `u_alpha_x`
 
 ```{r eval = pars_eval[["u_alpha_x"]]}
-ks_helper("u_alpha_x")
+ks_plot_starts_with("u_alpha_x")
 ```
 
 ### `u_alpha_xs`
 
 ```{r eval = pars_eval[["u_alpha_xs"]]}
-ks_helper("u_alpha_xs")
+ks_plot_starts_with("u_alpha_xs")
 ```
 
 ### `us_alpha_x`
 
 ```{r eval = pars_eval[["us_alpha_x"]]}
-ks_helper("us_alpha_x")
+ks_plot_starts_with("us_alpha_x")
 ```
 
 ### `us_alpha_xs`
 
 ```{r eval = pars_eval[["us_alpha_xs"]]}
-ks_helper("us_alpha_xs")
+ks_plot_starts_with("us_alpha_xs")
 ```
 
 ### `u_alpha_a`
 
 ```{r eval = pars_eval[["u_alpha_a"]]}
-ks_helper("u_alpha_a")
+ks_plot_starts_with("u_alpha_a")
 ```
 
 ### `u_alpha_as`
 
 ```{r eval = pars_eval[["u_alpha_as"]]}
-ks_helper("u_alpha_as")
+ks_plot_starts_with("u_alpha_as")
 ```
 
 ### `u_alpha_xa`
 
 ```{r eval = pars_eval[["u_alpha_xa"]]}
-ks_helper("u_alpha_xa")
+ks_plot_starts_with("u_alpha_xa")
 ```
 
 ### `ui_anc_rho_x`
 
 ```{r eval = pars_eval[["ui_anc_rho_x"]]}
-ks_helper("ui_anc_rho_x")
+ks_plot_starts_with("ui_anc_rho_x")
 ```
 
 ### `ui_anc_alpha_x`
 
 ```{r eval = pars_eval[["ui_anc_alpha_x"]]}
-ks_helper("ui_anc_alpha_x")
+ks_plot_starts_with("ui_anc_alpha_x")
 ```
 
 ### `log_or_gamma`
 
 ```{r eval = pars_eval[["log_or_gamma"]]}
-ks_helper("log_or_gamma")
+ks_plot_starts_with("log_or_gamma")
 ```
 
 ### `rho_t1_out`
@@ -464,61 +478,31 @@ ks_df_out(par = "lambda_t1_out") %>%
 
 Filter out the age group 5-9, 10-14 and 80+ here because there are new new infections in those age groups, and the posterior samples from each method are exactly the same: in particular draws of identically zero.
 
-```{r}
-# ks_lambda_t1_out %>%
-#   filter(ks == 0) %>%
-#   group_by(method) %>%
-#   summarise(n = n())
-# 
-# ks_lambda_t1_out %>%
-#   filter(ks == 0) %>%
-#   pull(age_group) %>%
-#   unique()
-```
-
 ## Summary {.tabset .tabset-fade}
-
-Values in dark blue are the lowest KS difference for that particular parameter:
 
 ```{r class.source = 'fold-hide'}
 options(dplyr.summarise.inform = FALSE)
 
-ks_summary <- lapply(unique(names(tmb$fit$obj$env$par)), function(x) {
-  to_ks_df(x) %>%
-    group_by(method, index) %>%
-    summarise(ks = mean(ks), par = x) %>%
-    ungroup()
-}) %>%
-  bind_rows() %>%
+ks_summary <- ks_df %>%
+  group_by(method, parname, type) %>%
+  summarise(ks = signif(mean(ks), 4)) %>%
   pivot_wider(names_from = "method", values_from = "ks") %>%
   rename(
-    "Parameter" = "par",
+    "Parameter" = "parname",
     "KS(aghq, tmbstan)" = "aghq",
     "KS(TMB, tmbstan)" = "TMB",
   )
 
-r <- tmb$obj$env$random
-x_names <- names(tmb$obj$env$par[r])
-theta_names <- names(tmb$obj$env$par[-r])
-
-dict <- data.frame(
-  Parameter = c(unique(x_names), unique(theta_names)),
-  Type = c(rep("Latent field", length(unique(x_names))), rep("Hyper", length(unique(theta_names))))
-)
-
-ks_summary <- ks_summary %>%
-  left_join(dict, by = "Parameter")
-
-saveRDS(ks_summary, "ks_summary.rds")
+saveRDS(ks_summary, "ks-summary.rds")
 
 ks_summary %>%
-  filter(Type != "Hyper") %>%
+  filter(type != "Hyper") %>%
   ks_plot_many("TMB", "aghq")
 ```
 
 ```{r}
 ks_summary %>%
-  group_by(Type) %>%
+  group_by(type) %>%
   summarise(
     TMB = mean(`KS(TMB, tmbstan)`),
     aghq = mean(`KS(aghq, tmbstan)`)
@@ -530,33 +514,9 @@ ks_summary %>%
 
 ```{r}
 ks_summary %>%
-  filter(Type == "Latent field") %>%
-  group_by(Parameter) %>%
-  summarise(
-    `KS(TMB, tmbstan)` = mean(`KS(TMB, tmbstan)`),
-    `KS(aghq, tmbstan)` = mean(`KS(aghq, tmbstan)`)
-  ) %>%
-  ks_table()
-```
-
-
-### Hyperparameters
-
-```{r}
-# ks_summary %>%
-#   filter(Type == "Hyper") %>%
-#   group_by(Parameter) %>%
-#   summarise(
-#     `KS(TMB, tmbstan)` = mean(`KS(TMB, tmbstan)`),
-#     `KS(aghq, tmbstan)` = mean(`KS(aghq, tmbstan)`)
-#   ) %>%
-#   ks_table()
-```
-
-### Outputs
-
-```{r}
-#' To-do
+  filter(type == "Latent field") %>%
+  mutate(diff = signif(`KS(TMB, tmbstan)` - `KS(aghq, tmbstan)`, 3)) %>%
+  DT::datatable()
 ```
 
 ## Investigation into large KS values
@@ -564,35 +524,33 @@ ks_summary %>%
 Want to create rank order lists of largest KS differences between methods:
 
 ```{r}
-ks_comparison <- function(ks_summary, method1, method2, n) {
-  ks_method1 <- paste0("KS(", method1, ", tmbstan)")
-  ks_method2 <- paste0("KS(", method2, ", tmbstan)")
-  ks_summary[["KS difference"]] <- ks_summary[[ks_method1]] - ks_summary[[ks_method2]]
-  ks_summary %>%
-    filter(Type != "Hyper") %>%
-    arrange(desc(`KS difference`)) %>%
-    head(n = n)
-}
+ks_df_wide <- ks_df %>%
+  pivot_wider(names_from = "method", values_from = "ks") %>%
+  mutate(diff = TMB - aghq)
 ```
 
 ### Nodes where `TMB` beats `aghq`
 
 ```{r}
-ks_comparison(ks_summary, method1 = "aghq", method2 = "TMB", 10)
+ks_df_wide %>%
+  arrange(desc(diff)) %>%
+  head(n = 10)
 
-histogram_and_ecdf(par = "us_rho_x", i = 19)
-histogram_and_ecdf(par = "ui_anc_rho_x", i = 2)
-histogram_and_ecdf(par = "u_rho_x", i = 2)
+histogram_and_ecdf(par = "us_alpha_xs", i = 18)
+histogram_and_ecdf(par = "us_alpha_xs", i = 16)
+histogram_and_ecdf(par = "u_alpha_xs", i = 13)
 ```
 
 ### Nodes where `aghq` beats `TMB`
 
 ```{r}
-ks_comparison(ks_summary, method1 = "TMB", method2 = "aghq", 10)  
+ks_df_wide %>%
+  arrange(diff) %>%
+  head(n = 10)
 
-histogram_and_ecdf(par = "us_alpha_xs", i = 18)
-histogram_and_ecdf(par = "us_alpha_xs", i = 30)
-histogram_and_ecdf(par = "u_alpha_xa", i = 10)
+histogram_and_ecdf(par = "ui_anc_rho_x", i = 27)
+histogram_and_ecdf(par = "ui_anc_alpha_x", i = 19)
+histogram_and_ecdf(par = "u_alpha_x", i = 18)
 ```
 
 ## Correlation between KS values and ESS
@@ -605,33 +563,15 @@ ess_ratio <- bayesplot::neff_ratio(tmbstan$mcmc$stanfit)
 niter <- 4 * tmbstan_details$niter / tmbstan_details$nthin
 ess <- ess_ratio * niter
 
-ks_summary %>%
-  pivot_longer(
-    col = starts_with("KS"),
-    names_to = "Method",
-    values_to = "KS"
-  ) %>%
-  mutate(
-    Method = fct_recode(Method,
-      "aghq" = "KS(aghq, tmbstan)",
-      "TMB" = "KS(TMB, tmbstan)"
-    )
-  ) %>%
-  group_by(Parameter) %>%
-  mutate(
-    par_num = case_when(
-      max(index) > 1 ~ paste0(Parameter, "[", index, "]"),
-      TRUE ~ Parameter
-    )
-  ) %>%
-  ungroup() %>%
+ks_df %>%
+  filter(type != "Hyper") %>%
   left_join(data.frame(ess) %>%
-    tibble::rownames_to_column("par_num")
+    tibble::rownames_to_column("par"),
   ) %>%
-  ggplot(aes(x = ess, y = KS)) +
+  ggplot(aes(x = ess, y = ks)) +
     geom_point(alpha = 0.5) +
     geom_smooth(method = "lm", color = "#56B4E9") +
-    facet_grid(~ Method) +
+    facet_grid(~ method) +
     theme_minimal() +
     labs(x = "ESS", y = "KS(method, tmbstan)")
 ```

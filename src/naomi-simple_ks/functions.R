@@ -1,4 +1,4 @@
-#' Return the maximum distance from zero containted in a vector
+#' Return the maximum distance from zero contained in a vector
 #'
 #' @param x A vector
 #' @return The element with maximum absolute value
@@ -22,8 +22,8 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
       data.frame(method = "tmbstan", samples = as.numeric(tmbstan$mcmc$sample[[par]][i, ]))
     )
 
-    rhat <- round(rstan::Rhat(tmbstan$mcmc$sample[[par]][i, ]), 3)
-    ess <- round(rstan::ess_bulk(tmbstan$mcmc$sample[[par]][i, ]), 3)
+    rhat <- signif(rstan::Rhat(tmbstan$mcmc$sample[[par]][i, ]), 3)
+    ess <- signif(rstan::ess_bulk(tmbstan$mcmc$sample[[par]][i, ]), 3)
 
   } else {
     par_name <- paste0(par)
@@ -34,23 +34,14 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
       data.frame(method = "tmbstan", samples = as.numeric(tmbstan$mcmc$sample[[par]]))
     )
 
-    rhat <- round(rstan::Rhat(tmbstan$mcmc$sample[[par]]), 3)
-    ess <- round(rstan::ess_bulk(tmbstan$mcmc$sample[[par]]), 3)
+    rhat <- signif(rstan::Rhat(tmbstan$mcmc$sample[[par]]), 3)
+    ess <- signif(rstan::ess_bulk(tmbstan$mcmc$sample[[par]]), 3)
   }
 
   df_compare$method <- factor(df_compare$method, levels = c("TMB", "aghq", "tmbstan"))
 
-  mean <- df_compare %>%
-    filter(method == "tmbstan") %>%
-    summarise(mean = mean(samples)) %>%
-    pull(mean) %>%
-    round(digits = 3)
-
-  sd <- df_compare %>%
-    filter(method == "tmbstan") %>%
-    summarise(sd = sd(samples)) %>%
-    pull(sd) %>%
-    round(digits = 3)
+  mean <- signif(mean(filter(df_compare, method == "tmbstan")$samples), digits = 3)
+  sd <- signif(sd(filter(df_compare, method == "tmbstan")$samples), digits = 3)
 
   histogram_plot <- ggplot(df_compare, aes(x = samples, fill = method, col = method)) +
     geom_histogram(aes(y = after_stat(density)), alpha = 0.5, position = "identity", bins = 30) +
@@ -60,11 +51,7 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
     scale_color_manual(values = colours) +
     scale_fill_manual(values = colours) +
     theme(legend.position = "none") +
-    labs(
-      title = par_name,
-      subtitle = paste0("tmbstan: Rhat = ", rhat, ", ESS = ", ess),
-      x = ""
-    )
+    labs(title = par_name, subtitle = paste0("tmbstan: Rhat = ", rhat, ", ESS = ", ess), x = "")
 
   grid <- seq(from = min(df_compare$samples), to = max(df_compare$samples), length.out = 1000)
 
@@ -89,7 +76,7 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
 
   ecdf_df$method <- factor(ecdf_df$method, levels = c("TMB", "aghq", "tmbstan"))
 
-  ks_labeller <- function(x) toString(round(abs(x), 2))
+  ks_labeller <- function(x) toString(signif(abs(x), 2))
 
   ecdf_plot <- ggplot(ecdf_df, aes(x = x, y = ecdf_diff, col = method)) +
     geom_line() +
@@ -113,6 +100,8 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
   }
 }
 
+histogram_and_ecdf_list <- function(par) lapply(1:sum(names(tmb$fit$obj$env$par) == par), histogram_and_ecdf, par = par)
+
 #' Create a dataframe of KS test statistics using samples from TMB, aghq and tmbstan
 #'
 #' @param par The name of a parameter (latent field, hyperparameter, or model output)
@@ -125,11 +114,7 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
 to_ks_df <- function(par, starts_with = FALSE, outputs = FALSE, id = NULL) {
   par_names <- par
   all_par_names <- names(tmb$fit$obj$env$par)
-
-  if(starts_with) {
-    par_names <- all_par_names[stringr::str_starts(all_par_names, par)]
-  }
-
+  if(starts_with) par_names <- all_par_names[stringr::str_starts(all_par_names, par)]
   unique_par_names <- unique(par_names)
 
   # If outputs = TRUE then we use id to subset the samples to only to outputs at
@@ -187,33 +172,20 @@ ks_plot <- function(ks_df, par, method1 = "TMB", method2 = "aghq", alpha = 0.5) 
 
   jitterplot <- wide_ks_df %>%
     ggplot(aes(x = "", y = ks_diff)) +
-    geom_jitter(width = 0.05, height = 0, alpha = alpha) +
+    geom_jitter(shape = 1, width = 0.05, height = 0, alpha = alpha) +
     scale_y_continuous(labels = scales::percent) +
     geom_boxplot(fill = NA, width = 0.2, outlier.shape = NA) +
     labs(
       caption = paste0(
         "KS tests for ", par, " of length ", nrow(ks_df) / length(unique(ks_df$method)),
-        " with a mean KS difference of ", 100 * round(mean_ks_diff, 3), "%.\n",
+        " with a mean KS difference of ", 100 * signif(mean_ks_diff, 3), "%.\n",
         "(If >0% then ", method1, " more different to tmbstan, and if <0% then ", method2, " more different)"),
       x = "", y = paste0("KS(", method1, ", tmbstan) - KS(", method2,", tmbstan)")
     ) +
     theme_minimal()
 
-  xy_length <- min(1, max(wide_ks_df[[method1]], wide_ks_df[[method2]]) + 0.03)
-
-  x <- y <- seq(0, xy_length, length.out = 30)
-
-  gradient_base <- expand.grid(x, y) %>%
-    mutate(diff = Var1 - Var2) %>%
-    ggplot(aes(x = Var1, y = Var2)) +
-    geom_tile(aes(fill = diff), alpha = 0.7) +
-    scale_fill_gradientn(
-      colours = c("#56B4E9", "white", "#009E73"),
-      rescaler = ~ scales::rescale_mid(.x, mid = 0)
-    )
-
-  scatterplot <- gradient_base +
-    geom_point(data = wide_ks_df, aes(x = .data[[method1]], y = .data[[method2]]), alpha = alpha) +
+  scatterplot <- ggplot() +
+    geom_point(data = wide_ks_df, aes(x = .data[[method1]], y = .data[[method2]]), shape = 1, alpha = alpha) +
     scale_x_continuous(labels = scales::percent) +
     scale_y_continuous(labels = scales::percent) +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
@@ -241,19 +213,8 @@ ks_plot_many <- function(ks_summary, method1, method2) {
 
   xy_length <- min(1, max(ks_summary[[ks_method1]], ks_summary[[ks_method2]]) + 0.03)
 
-  x <- y <- seq(0, xy_length, length.out = 30)
-
-  gradient_base <- expand.grid(x, y) %>%
-    mutate(diff = Var1 - Var2) %>%
-    ggplot(aes(x = Var1, y = Var2)) +
-    geom_tile(aes(fill = diff), alpha = 0.7) +
-    scale_fill_gradientn(
-      colours = c("#56B4E9", "white", "#009E73"),
-      rescaler = ~ scales::rescale_mid(.x, mid = 0)
-    )
-
-  densityplot <- gradient_base +
-    stat_density_2d(data = ks_summary, aes(x = .data[[ks_method1]], y = .data[[ks_method2]], linetype = Type), col = "black") +
+  densityplot <- ggplot() +
+    stat_density_2d(data = ks_summary, aes(x = .data[[ks_method1]], y = .data[[ks_method2]], linetype = type), col = "black") +
     xlim(0, xy_length) +
     ylim(0, xy_length) +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed", alpha = 0.5) +
@@ -261,14 +222,12 @@ ks_plot_many <- function(ks_summary, method1, method2) {
     labs(x = ks_method1, y = ks_method2) +
     theme_minimal() +
     guides(fill = "none") +
-    theme(
-      legend.position = "bottom"
-    )
+    theme(legend.position = "bottom")
 
   ks_summary[["KS difference"]] <- ks_summary[[ks_method1]] - ks_summary[[ks_method2]]
 
-  ridgeplot <- ggplot(ks_summary, aes(y = Type, x = `KS difference`)) +
-    ggridges::geom_density_ridges(alpha = 0.7, fill = NA, aes(linetype = Type)) +
+  ridgeplot <- ggplot(ks_summary, aes(y = type, x = `KS difference`)) +
+    ggridges::geom_density_ridges(alpha = 0.7, fill = NA, aes(linetype = type)) +
     coord_flip() +
     scale_linetype_manual(values = c("solid", "dashed")) +
     labs(y = "", x = paste0(ks_method1, " - ", ks_method2)) +
@@ -276,27 +235,4 @@ ks_plot_many <- function(ks_summary, method1, method2) {
     theme_minimal()
 
   densityplot + ridgeplot
-}
-
-ks_table <- function(ks_summary) {
-  ks_summary %>%
-    gt::gt() %>%
-    gt::fmt_number(
-      columns = starts_with("KS"),
-      decimals = 3
-    ) %>%
-    gt::tab_style(
-      style = cell_fill(color = "#0072B2"),
-      locations = cells_body(
-        columns = `KS(aghq, tmbstan)`,
-        rows = `KS(aghq, tmbstan)` < `KS(TMB, tmbstan)`
-      )
-    ) %>%
-    gt::tab_style(
-      style = cell_fill(color = "#0072B2"),
-      locations = cells_body(
-        columns = `KS(TMB, tmbstan)`,
-        rows = `KS(TMB, tmbstan)` < `KS(aghq, tmbstan)`
-      )
-    )
 }
