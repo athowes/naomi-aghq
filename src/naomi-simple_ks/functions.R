@@ -19,7 +19,6 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
     df_compare <- rbind(
       data.frame(method = "TMB", samples = as.numeric(tmb$fit$sample[[par]][i, ])),
       data.frame(method = "aghq", samples = as.numeric(aghq$quad$sample[[par]][i, ])),
-      data.frame(method = "adam", samples = as.numeric(adam$sample[[par]][i, ])),
       data.frame(method = "tmbstan", samples = as.numeric(tmbstan$mcmc$sample[[par]][i, ]))
     )
 
@@ -32,7 +31,6 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
     df_compare <- rbind(
       data.frame(method = "TMB", samples = as.numeric(tmb$fit$sample[[par]])),
       data.frame(method = "aghq", samples = as.numeric(aghq$quad$sample[[par]])),
-      data.frame(method = "adam", samples = as.numeric(adam$sample[[par]])),
       data.frame(method = "tmbstan", samples = as.numeric(tmbstan$mcmc$sample[[par]]))
     )
 
@@ -40,7 +38,7 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
     ess <- round(rstan::ess_bulk(tmbstan$mcmc$sample[[par]]), 3)
   }
 
-  df_compare$method <- factor(df_compare$method, levels = c("TMB", "aghq", "adam", "tmbstan"))
+  df_compare$method <- factor(df_compare$method, levels = c("TMB", "aghq", "tmbstan"))
 
   mean <- df_compare %>%
     filter(method == "tmbstan") %>%
@@ -76,25 +74,20 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
   aghq_ecdf <- stats::ecdf(filter(df_compare, method == "aghq") %>% pull(samples))
   aghq_ecdf_df <- data.frame(x = grid, ecdf = aghq_ecdf(grid), method = "aghq")
 
-  adam_ecdf <- stats::ecdf(filter(df_compare, method == "adam") %>% pull(samples))
-  adam_ecdf_df <- data.frame(x = grid, ecdf = adam_ecdf(grid), method = "adam")
-
   tmbstan_ecdf <- stats::ecdf(filter(df_compare, method == "tmbstan") %>% pull(samples))
   tmbstan_ecdf_df <- data.frame(x = grid, ecdf = tmbstan_ecdf(grid), method = "tmbstan")
 
   # Add ECDF differences
   tmb_ecdf_df$ecdf_diff <- tmbstan_ecdf_df$ecdf - tmb_ecdf_df$ecdf
   aghq_ecdf_df$ecdf_diff <- tmbstan_ecdf_df$ecdf - aghq_ecdf_df$ecdf
-  adam_ecdf_df$ecdf_diff <- tmbstan_ecdf_df$ecdf - adam_ecdf_df$ecdf
   tmbstan_ecdf_df$ecdf_diff <- 0
 
   ks_tmb <- absmax(tmb_ecdf_df$ecdf_diff)
   ks_aghq <- absmax(aghq_ecdf_df$ecdf_diff)
-  ks_adam <- absmax(adam_ecdf_df$ecdf_diff)
 
-  ecdf_df <- bind_rows(tmb_ecdf_df, aghq_ecdf_df, adam_ecdf_df, tmbstan_ecdf_df)
+  ecdf_df <- bind_rows(tmb_ecdf_df, aghq_ecdf_df, tmbstan_ecdf_df)
 
-  ecdf_df$method <- factor(ecdf_df$method, levels = c("TMB", "aghq", "adam", "tmbstan"))
+  ecdf_df$method <- factor(ecdf_df$method, levels = c("TMB", "aghq", "tmbstan"))
 
   ks_labeller <- function(x) toString(round(abs(x), 2))
 
@@ -104,8 +97,6 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
     annotate("text", x = 1.1 * max(ecdf_df$x), y = ks_tmb, label = ks_labeller(ks_tmb), col = colours[1], alpha = 0.8) +
     geom_abline(intercept = ks_aghq, slope = 0, col = colours[2], linetype = "dashed", alpha = 0.8) +
     annotate("text", x = 1.1 * max(ecdf_df$x), y = ks_aghq, label = ks_labeller(ks_aghq), col = colours[2], alpha = 0.8) +
-    geom_abline(intercept = ks_adam, slope = 0, col = colours[3], linetype = "dashed", alpha = 0.8) +
-    annotate("text", x = 1.1 * max(ecdf_df$x), y = ks_adam, label = ks_labeller(ks_adam), col = colours[3], alpha = 0.8) +
     scale_color_manual(values = colours) +
     labs(x = "", y = "ECDF difference") +
     guides(col = "none") +
@@ -122,7 +113,7 @@ histogram_and_ecdf <- function(par, i = NULL, return_df = FALSE) {
   }
 }
 
-#' Create a dataframe of KS test statistics using samples from TMB, aghq, adam and tmbstan
+#' Create a dataframe of KS test statistics using samples from TMB, aghq and tmbstan
 #'
 #' @param par The name of a parameter (latent field, hyperparameter, or model output)
 #' @param starts_with Should all parameters starting with `par` be kept? Only applicable
@@ -166,23 +157,19 @@ to_ks_df <- function(par, starts_with = FALSE, outputs = FALSE, id = NULL) {
 
   samples_tmb <- process_samples(tmb$fit$sample, outputs = outputs, id = id)
   samples_aghq <- process_samples(aghq$quad$sample, outputs = outputs, id = id)
-  samples_adam <- process_samples(adam$sample, outputs = outputs, id = id)
   samples_tmbstan <- process_samples(tmbstan$mcmc$sample, outputs = outputs, id = id)
 
   n <- ncol(samples_tmbstan)
   ks_tmb <- numeric(n)
   ks_aghq <- numeric(n)
-  ks_adam <- numeric(n)
   for(i in 1:n) {
     ks_tmb[i] <- inf.utils::ks_test(samples_tmb[, i], samples_tmbstan[, i])$D
     ks_aghq[i] <- inf.utils::ks_test(samples_aghq[, i], samples_tmbstan[, i])$D
-    ks_adam[i] <- inf.utils::ks_test(samples_adam[, i], samples_tmbstan[, i])$D
   }
 
   rbind(
     data.frame(method = "TMB", ks = ks_tmb, par = names(samples_tmbstan), index = 1:n),
-    data.frame(method = "aghq", ks = ks_aghq, par = names(samples_tmbstan), index = 1:n),
-    data.frame(method = "adam", ks = ks_adam, par = names(samples_tmbstan), index = 1:n)
+    data.frame(method = "aghq", ks = ks_aghq, par = names(samples_tmbstan), index = 1:n)
   )
 }
 
@@ -301,22 +288,15 @@ ks_table <- function(ks_summary) {
     gt::tab_style(
       style = cell_fill(color = "#0072B2"),
       locations = cells_body(
-        columns = `KS(adam, tmbstan)`,
-        rows = `KS(adam, tmbstan)` < `KS(aghq, tmbstan)` & `KS(adam, tmbstan)` < `KS(TMB, tmbstan)`
-      )
-    ) %>%
-    gt::tab_style(
-      style = cell_fill(color = "#0072B2"),
-      locations = cells_body(
         columns = `KS(aghq, tmbstan)`,
-        rows = `KS(aghq, tmbstan)` < `KS(adam, tmbstan)` & `KS(aghq, tmbstan)` < `KS(TMB, tmbstan)`
+        rows = `KS(aghq, tmbstan)` < `KS(TMB, tmbstan)`
       )
     ) %>%
     gt::tab_style(
       style = cell_fill(color = "#0072B2"),
       locations = cells_body(
         columns = `KS(TMB, tmbstan)`,
-        rows = `KS(TMB, tmbstan)` < `KS(aghq, tmbstan)` & `KS(TMB, tmbstan)` < `KS(adam, tmbstan)`
+        rows = `KS(TMB, tmbstan)` < `KS(aghq, tmbstan)`
       )
     )
 }

@@ -11,22 +11,19 @@ output:
     code_folding: show
     theme: lumen
 abstract: |
-  **Background**  We have run the simplified Naomi model using a range of inference methods: `TMB`, `aghq`, `adam` and `tmbstan`.
+  **Background**  We have run the simplified Naomi model using a range of inference methods: `TMB`, `aghq`, and `tmbstan`.
   
   **Task** In this report, we compare the accuracy of the posterior distributions obtained from these inference methods using histograms and Kolmogorov-Smirnov tests.
 ---
 
 # Background
 
-We compare the inference results from `TMB`, `aghq`, `adam`, and `tmbstan`.
+We compare the inference results from `TMB`, `aghq`, and `tmbstan`.
 Import these inference results as follows:
 
 ```{r}
 tmb <- readRDS("depends/tmb.rds")
 aghq <- readRDS("depends/aghq.rds")
-adam <- readRDS("depends/adam.rds")
-adam_time <- adam$time
-adam <- adam$adam
 tmbstan <- readRDS("depends/tmbstan.rds")
 
 depends <- yaml::read_yaml("orderly.yml")$depends
@@ -36,7 +33,6 @@ Check that the parameters (latent field, hyperparameters, model outputs) sampled
 
 ```{r}
 stopifnot(names(tmb$fit$sample) == names(aghq$quad$sample))
-stopifnot(names(tmb$fit$sample) == names(adam$adam$sample))
 stopifnot(names(tmb$fit$sample) == names(tmbstan$mcmc$sample))
 ```
 
@@ -64,16 +60,10 @@ dependency_details(1)
 dependency_details(2)
 ```
 
-### `adam`
-
-```{r}
-dependency_details(3)
-```
-
 ### `tmbstan`
 
 ```{r}
-tmbstan_details <- dependency_details(4)
+tmbstan_details <- dependency_details(3)
 tmbstan_details
 ```
 
@@ -83,7 +73,6 @@ tmbstan_details
 time_taken <- data.frame(
   "TMB" = tmb$time,
   "aghq" = aghq$time,
-  "adam" = adam_time,
   "tmbstan" = tmbstan$time
 )
 
@@ -504,14 +493,13 @@ ks_summary <- lapply(unique(names(tmb$fit$obj$env$par)), function(x) {
   pivot_wider(names_from = "method", values_from = "ks") %>%
   rename(
     "Parameter" = "par",
-    "KS(adam, tmbstan)" = "adam",
     "KS(aghq, tmbstan)" = "aghq",
     "KS(TMB, tmbstan)" = "TMB",
   )
 
-r <- adam$quad$obj$env$random
-x_names <- names(adam$quad$obj$env$par[r])
-theta_names <- names(adam$quad$obj$env$par[-r])
+r <- tmb$obj$env$random
+x_names <- names(tmb$obj$env$par[r])
+theta_names <- names(tmb$obj$env$par[-r])
 
 dict <- data.frame(
   Parameter = c(unique(x_names), unique(theta_names)),
@@ -533,8 +521,7 @@ ks_summary %>%
   group_by(Type) %>%
   summarise(
     TMB = mean(`KS(TMB, tmbstan)`),
-    aghq = mean(`KS(aghq, tmbstan)`),
-    adam = mean(`KS(adam, tmbstan)`)
+    aghq = mean(`KS(aghq, tmbstan)`)
   ) %>%
   gt::gt()
 ```
@@ -547,8 +534,7 @@ ks_summary %>%
   group_by(Parameter) %>%
   summarise(
     `KS(TMB, tmbstan)` = mean(`KS(TMB, tmbstan)`),
-    `KS(aghq, tmbstan)` = mean(`KS(aghq, tmbstan)`),
-    `KS(adam, tmbstan)` = mean(`KS(adam, tmbstan)`)
+    `KS(aghq, tmbstan)` = mean(`KS(aghq, tmbstan)`)
   ) %>%
   ks_table()
 ```
@@ -562,8 +548,7 @@ ks_summary %>%
 #   group_by(Parameter) %>%
 #   summarise(
 #     `KS(TMB, tmbstan)` = mean(`KS(TMB, tmbstan)`),
-#     `KS(aghq, tmbstan)` = mean(`KS(aghq, tmbstan)`),
-#     `KS(adam, tmbstan)` = mean(`KS(adam, tmbstan)`)
+#     `KS(aghq, tmbstan)` = mean(`KS(aghq, tmbstan)`)
 #   ) %>%
 #   ks_table()
 ```
@@ -628,7 +613,6 @@ ks_summary %>%
   ) %>%
   mutate(
     Method = fct_recode(Method,
-      "adam" = "KS(adam, tmbstan)",
       "aghq" = "KS(aghq, tmbstan)",
       "TMB" = "KS(TMB, tmbstan)"
     )
