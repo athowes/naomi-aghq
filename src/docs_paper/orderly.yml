@@ -15,7 +15,6 @@ artefacts:
 resources:
   - paper.Rmd
   - appendix.Rmd
-  - appendix-word.Rmd
   - citations.bib
   - preamble.tex
   - imsart-nameyear.bst
