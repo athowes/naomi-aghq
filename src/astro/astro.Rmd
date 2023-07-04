@@ -12,12 +12,8 @@ output:
     theme: lumen
 bibliography: citations.bib
 abstract: |
-  **Background**
-  
-  **Task** 
+  **Task** We reanalyse the "estimating the mass of the Milky Way" example from @bilodeau2021stochastic.
 ---
-
-We reanalyse the "estimating the mass of the Milky Way" example from @bilodeau2021stochastic.
 
 Originally Alex used the `ipoptr` package.
 However, it is now not possible, or at least very difficult, to install it (as of 01/04/2023).
@@ -211,7 +207,7 @@ get_beta(nloptr_result$solution[4])
 
 Create the template for AGHQ:
 
-```{r}
+```{r message=FALSE}
 ffa <- list(
   fn = function(x) -1 * ff$fn(x),
   gr = function(x) -1 * ff$gr(x),
@@ -245,7 +241,7 @@ optruntime + quadruntime
 
 # EB
 
-```{r}
+```{r message=FALSE}
 tm <- Sys.time()
 
 k_eb <- 1
@@ -263,7 +259,7 @@ optruntime + quadebruntime
 
 # PCA-AGHQ 
 
-```{r}
+```{r message=FALSE}
 C <- Matrix::forceSymmetric(solve(useropt$hessian))
 eigenC <- eigen(C)
 lambda <- eigenC$values
@@ -274,13 +270,13 @@ data.frame(
 ) %>% ggplot(aes(x = n, y = tv)) +
   geom_point() +
   geom_hline(yintercept = 0.9, col = "grey", linetype = "dashed") +
-  annotate("text", x = 3, y = 0.875, label = "90% of total variation explained", col = "grey") +
+  annotate("text", x = 3, y = 0.89, label = "90% of total variation explained", col = "grey") +
   scale_y_continuous(labels = scales::percent) +
   labs(x = "PCA dimensions included", y = "Total variation explained") +
   theme_minimal()
 
 k_pca <- 5
-s <- 1 #' Could choose this based on the Scree plot
+s <- 1 #' Chosen based on the Scree plot
 m <- length(useropt$mode)
 levels <- c(rep(k_pca, s), rep(1, m - s))
 pca_grid <- mvQuad::createNIGrid(dim = m, type = "GHe", level = levels)
@@ -331,7 +327,7 @@ standata$beta <- get_beta(standata[ ,4])
 
 ## Plots
 
-```{r}
+```{r warning=FALSE}
 #' Manual plots
 parambounds <- list(
   Psi0 = c(1, 200),
@@ -373,7 +369,7 @@ gammaprior <- function(gamma) dunif(gamma, parambounds$gamma[1], parambounds$gam
 alphaprior <- function(alpha) dgamma(alpha - parambounds$alpha[1], shape = 1, rate = 4.6, log = FALSE)
 betaprior <- function(beta) dunif(beta, parambounds$beta[1], parambounds$beta[2], log = FALSE)
 
-Psi0_postplot <- Psi0pdf %>%
+(Psi0_postplot <- Psi0pdf %>%
   ggplot(aes(x = transparam, y = pdf_transparam)) +
   geom_histogram(
     data = standata,
@@ -393,9 +389,9 @@ Psi0_postplot <- Psi0pdf %>%
   labs(title = "", x = "", y = "Density") +
   scale_x_continuous(breaks = seq(10, 60, by = 5)) +
   coord_cartesian(xlim = c(24, 43)) +
-  theme_minimal()
+  theme_minimal())
 
-gamma_postplot <- gammapdf %>%
+(gamma_postplot <- gammapdf %>%
   ggplot(aes(x = transparam, y = pdf_transparam)) +
   geom_histogram(
     data = standata,
@@ -414,9 +410,9 @@ gamma_postplot <- gammapdf %>%
   labs(title = "", x = "", y = "Density") +
   scale_x_continuous(breaks = seq(0, 0.44, by = 0.02)) +
   coord_cartesian(xlim = c(0.3, 0.4)) +
-  theme_minimal()
+  theme_minimal())
 
-alpha_postplot <- alphapdf %>%
+(alpha_postplot <- alphapdf %>%
   ggplot(aes(x = transparam, y = pdf_transparam)) +
   geom_histogram(
     data = standata,
@@ -435,9 +431,9 @@ alpha_postplot <- alphapdf %>%
   labs(title = "",x = "",y = "Density") +
   scale_x_continuous(breaks = seq(3, 4, by = 0.02)) +
   coord_cartesian(xlim = c(3, 3.05)) +
-  theme_minimal()
+  theme_minimal())
 
-beta_postplot <- betapdf %>%
+(beta_postplot <- betapdf %>%
   ggplot(aes(x = transparam, y = pdf_transparam)) +
   geom_histogram(
     data = standata,
@@ -456,22 +452,30 @@ beta_postplot <- betapdf %>%
   labs(title = "",x = "",y = "Density") +
   scale_x_continuous(breaks = seq(-0.5, 1, by = 0.1)) +
   coord_cartesian(xlim = c(-0.3, 0.4)) +
-  theme_minimal()
+  theme_minimal())
+```
 
-{Psi0_postplot + gamma_postplot} / {alpha_postplot + beta_postplot}
+## Normalising constant
+
+```{r}
+data.frame(
+  method = c("AGHQ", "PCA-AGHQ", "EB"),
+  lognormconst = c(astroquad$normalized_posterior$lognormconst, astropcaquad$normalized_posterior$lognormconst, astroebquad$normalized_posterior$lognormconst)
+) %>%
+  gt::gt()
 ```
 
 ## KS tests
 
-```{r}
+```{r warning=FALSE}
 kstable <- function(quad) {
-  aghqpostsamps_spline <- sample_marginal(astroquad, nrow(standata), interpolation = "spline")
-  aghqpostsamps_poly <- sample_marginal(astroquad, nrow(standata), interpolation = "polynomial")
+  aghqpostsamps_spline <- sample_marginal(quad, nrow(standata), interpolation = "spline")
+  aghqpostsamps_poly <- sample_marginal(quad, nrow(standata), interpolation = "polynomial")
 
   suppressWarnings({
     kstable <- data.frame(
       Psi0 = ks.test(standata[[1]], aghqpostsamps_poly[[1]])$statistic,
-      gamma = ks.test(standata[[2]], aghqpostsamps_spline[[2]])$statistic,
+      gamma = ks.test(standata[[2]], aghqpostsamps_poly[[2]])$statistic,
       alpha = ks.test(standata[[3]], aghqpostsamps_poly[[3]])$statistic,
       beta = ks.test(standata[[4]], aghqpostsamps_poly[[4]])$statistic
     )
@@ -484,18 +488,15 @@ kstable_astroquad <- kstable(astroquad) %>%
   pivot_longer(cols = everything()) %>%
   mutate(method = "AGHQ", k = k_dense, s = NA, total_points = k^4)
 
-kstable_astroebquad <- kstable(astroebquad) %>%
-  pivot_longer(cols = everything()) %>%
-  mutate(method = "EB", k = k_eb, s = NA, total_points = k_eb)
+#' Not working (yet?)
+# kstable_astropcaquad <- kstable(astropcaquad) %>%
+#   pivot_longer(cols = everything()) %>%
+#   mutate(method = "AGHQ-PCA", k = k_pca, s = s, total_points = k^s)
 
-kstable_astropcaquad <- kstable(astroquad) %>%
-  pivot_longer(cols = everything()) %>%
-  mutate(method = "AGHQ-PCA", k = k_pca, s = s, total_points = k^s)
-
-bind_rows(kstable_astroquad, kstable_astroebquad, kstable_astropcaquad) %>%
+bind_rows(kstable_astroquad) %>%
   gt::gt()
 
-bind_rows(kstable_astroquad, kstable_astroebquad, kstable_astropcaquad) %>%
+bind_rows(kstable_astroquad) %>%
   ggplot(aes(x = name, y = value, col = method)) +
     geom_jitter(height = 0, width = 0.05) +
     scale_y_continuous(limits = c(0, 0.05)) +
