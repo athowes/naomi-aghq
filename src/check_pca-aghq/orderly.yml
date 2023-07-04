@@ -1,0 +1,24 @@
+script: script.R
+
+sources:
+  - functions.R
+
+artefacts:
+  - data:
+      description: Outputs
+      filenames:
+        - temp.rds
+
+packages:
+  - dplyr
+  - forcats
+  - ggplot2
+  - readr
+  - tidyr
+  - purrr
+  - stringr
+  - Matrix
+  - TMB
+  - tmbstan
+  - aghq
+  - inf.utils
