@@ -496,11 +496,15 @@ knitr::include_graphics("depends/nodes-quantiles-sd.png")
 ```
 
 ```{r scree, fig.cap="Most variation could be explained by far fewer than the full 24 dimensions."}
-knitr::include_graphics("depends/tv-plot.png")
+knitr::include_graphics("depends/total-variation.png")
+```
+
+```{r pc-loadings, fig.cap="Principal component loadings."}
+knitr::include_graphics("depends/pc-loadings.png")
 ```
 
 ```{r reduced-rank, fig.cap="The reduced rank (8) matrix approximation to the Hessian is visually similar to the full rank matrix."}
-knitr::include_graphics("depends/reduced-rank-plot.png")
+knitr::include_graphics("depends/reduced-rank.png")
 ```
 
 ## Estimated normalising constant comparison

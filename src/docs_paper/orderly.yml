@@ -81,5 +81,6 @@ depends:
       id: latest
       use:
         depends/marginal-sd.png: marginal-sd.png
-        depends/reduced-rank-plot.png: reduced-rank-plot.png
-        depends/tv-plot.png: tv-plot.png
+        depends/reduced-rank.png: reduced-rank.png
+        depends/total-variation.png: total-variation.png
+        depends/pc-loadings.png: pc-loadings.png
