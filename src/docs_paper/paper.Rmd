@@ -360,7 +360,7 @@ Samples from this mixture of Gaussians may be obtained by drawing a node $\z$ wi
 
 ## Principal components analysis \label{sec:pca}
 
-```{r aghq, fig.cap="The Gauss-Hermite quadrature nodes $\\z \\in \\mathcal{Q}(2, 3)$ for a two dimensional integral with three nodes per dimension (A). Adaption occurs based on the mode (B) and covariance matrix of the target via the Cholesky decomposition (C) or spectral decompostion (D) of the inverse curvature at the mode. In PCA-AGHQ (E) only nodes along the first $s = 1$ principal components are kept. The Scree plot (F) shows that over 90% of variation is explained by keeping just the first principal component. The integrand is $f(\\btheta) = \\text{sn}(0.5 \\theta_1, \\alpha = 2) \\cdot \\text{sn}(0.8 \\theta_1 - 0.5 \\theta_2, \\alpha = -2)$, where $\\text{sn}(\\cdot)$ is the standard skewnormal probability density function with shape parameter $\\alpha \\in \\mathbb{R}$."}
+```{r aghq, fig.cap="The Gauss-Hermite quadrature nodes $\\z \\in \\mathcal{Q}(2, 3)$ for a two dimensional integral with three nodes per dimension (A). Adaption occurs based on the mode (B) and covariance matrix of the target via the Cholesky decomposition (C) or spectral decompostion (D) of the inverse curvature at the mode. In PCA-AGHQ (E) only nodes along the first $s = 1$ principal components are kept. The Scree plot (F) shows that over 90\\% of variation is explained by keeping just the first principal component. The integrand is $f(\\btheta) = \\text{sn}(0.5 \\theta_1, \\alpha = 2) \\cdot \\text{sn}(0.8 \\theta_1 - 0.5 \\theta_2, \\alpha = -2)$, where $\\text{sn}(\\cdot)$ is the standard skewnormal probability density function with shape parameter $\\alpha \\in \\mathbb{R}$."}
 figA
 ```
 
@@ -400,7 +400,7 @@ For all methods, we simulated age-sex-district specific HIV prevalence, ART cove
 Example model outputs from TMB are illustrated in Figure \ref{fig:naomi-results}.
 
 ```{r naomi-results, fig.cap="District-level model outputs for adults aged 15-49. Inference conducted with TMB."}
-knitr::include_graphics("depends/naomi_results.png")
+knitr::include_graphics("depends/naomi-results.png")
 ```
 
 The \textsc{R} [@r] code used to produce all results we describe below is available at `github.com/athowes/naomi-aghq`.

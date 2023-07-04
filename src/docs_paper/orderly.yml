@@ -43,7 +43,7 @@ depends:
   - docs_bayescomp-poster:
       id: latest
       use:
-        depends/naomi_results.png: fig3.png
+        depends/naomi-results.png: fig3.png
   - plot-tikz_algorithm-flowchart:
       id: latest
       use:
