@@ -17,8 +17,10 @@ artefacts:
       description: Plots
       filenames:
         - marginal-sd.png
-        - tv-plot.png
-        - reduced-rank-plot.png
+        - total-variation.png
+        - reduced-rank.png
+        - pc-loadings.png
+
 
 packages:
   - dplyr
