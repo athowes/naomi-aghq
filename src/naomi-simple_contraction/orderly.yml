@@ -5,6 +5,7 @@ artefacts:
       description: Plots and saved output
       filenames:
         - posterior-contraction.png
+        - nuts-hand-comparison.png
 
 resources:
   - naomi_simple_prior.cpp
@@ -28,10 +29,6 @@ depends:
       id: latest(parameter:tmb == TRUE && parameter:random_only == TRUE)
       use:
         depends/tmb.rds: out.rds
-  - naomi-simple_fit:
-      id: latest(parameter:aghq == TRUE && parameter:k == 3 && parameter:s == 8)
-      use:
-        depends/aghq.rds: out.rds
   - naomi-simple_fit:
       id: latest(parameter:tmbstan == TRUE && parameter:niter > 50000)
       use:

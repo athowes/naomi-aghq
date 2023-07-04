@@ -3,7 +3,6 @@
 # setwd("src/naomi-simple_contraction")
 
 tmb <- readRDS("depends/tmb.rds")
-aghq <- readRDS("depends/aghq.rds")
 tmbstan <- readRDS("depends/tmbstan.rds")
 mcmc <- tmbstan$mcmc$stanfit
 
@@ -27,7 +26,7 @@ obj_prior <- TMB::MakeADFun(
   silent = TRUE,
 )
 
-prior_mcmc <- tmbstan::tmbstan(obj_prior, chains = 4, iter = 1000)
+prior_mcmc <- tmbstan::tmbstan(obj_prior, chains = 4, iter = 2000)
 
 prior_stan_summary <- rstan::summary(prior_mcmc)$summary
 prior_sd <- prior_stan_summary[, "sd"][1:491] #' Remove the lp__ at the end
@@ -73,3 +72,65 @@ ggsave("posterior-contraction.png", posterior_contraction_plot, h = 6.5, w = 6.2
 
 #' Which have lower amounts of posterior contraction?
 names(subset(posterior_contraction, posterior_contraction < 0.5))
+
+#' Calculate the prior standard deviations manually for the hyperparameters
+nsim <- 100000
+phi_A <- rbeta(nsim, 0.5, 0.5)
+logit_phi_A_sd <- sd(qlogis(phi))
+
+phi_B <- abs(rnorm(nsim, 0, 2.582))
+logit_phi_B_sd <- sd(phi_B)
+
+sigma_A <- abs(rnorm(nsim, 0, 2.5))
+log_sigma_A_sd <- sd(log(sigma))
+
+sigma_B <- abs(rnorm(nsim, 0, 1.0))
+log_sigma_B_sd <- sd(log(sigma))
+
+manual_hyper_prior_sd <- list(
+  "logit_phi_rho_x" = logit_phi_A_sd,
+  "log_sigma_rho_x" = log_sigma_A_sd,
+  "logit_phi_rho_xs" = logit_phi_A_sd,
+  "log_sigma_rho_xs" = log_sigma_A_sd,
+  "logit_phi_rho_a" = logit_phi_B_sd,
+  "log_sigma_rho_a" = log_sigma_A_sd,
+  "logit_phi_rho_as" = logit_phi_B_sd,
+  "log_sigma_rho_as" = log_sigma_A_sd,
+  "log_sigma_rho_xa" = log_sigma_A_sd,
+  "logit_phi_alpha_x" = logit_phi_A_sd,
+  "log_sigma_alpha_x" = log_sigma_A_sd,
+  "logit_phi_alpha_xs" = logit_phi_A_sd,
+  "log_sigma_alpha_xs" = log_sigma_A_sd,
+  "logit_phi_alpha_a" = logit_phi_B_sd,
+  "log_sigma_alpha_a" = log_sigma_A_sd,
+  "logit_phi_alpha_as" = logit_phi_B_sd,
+  "log_sigma_alpha_as" = log_sigma_A_sd,
+  "log_sigma_alpha_xa" = log_sigma_A_sd,
+  "OmegaT_raw" = 1.0,
+  "log_betaT" = log_sigma_B_sd,
+  "log_sigma_lambda_x" = log_sigma_A_sd,
+  "log_sigma_ancrho_x" = log_sigma_A_sd,
+  "log_sigma_ancalpha_x" = log_sigma_A_sd,
+  "log_sigma_or_gamma" = log_sigma_A_sd
+)
+
+nuts_manual_comparison_df <- prior_sd[names(tmb$fit$obj$par)] %>%
+  data.frame() %>%
+  tibble::rownames_to_column("par") %>%
+  rename("NUTS" = ".") %>%
+  mutate(Hand = unlist(manual_hyper_prior_sd))
+
+nuts_manual_comparison_df %>%
+  pivot_longer(
+    cols = c("NUTS", "Hand"),
+    names_to = "method",
+    values_to = "sd"
+  ) %>%
+  ggplot(aes(x = par, y = sd, col = method, shape = method)) +
+    geom_point() +
+    coord_flip() +
+    scale_color_manual(values = c("#E69F00", "#F0E442")) +
+    labs(x = "Hyperparamter", y = "Prior standard deviation", col = "Calculated by", shape = "Calculated by") +
+    theme_minimal()
+
+ggsave("nuts-hand-comparison.png", h = 3.5, w = 6.25)
