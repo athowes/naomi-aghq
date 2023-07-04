@@ -1,15 +1,18 @@
-cols <- c("#56B4E9","#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
+library(tidyverse)
+library(patchwork)
 
-#' Fig A
+cols <- c("#56B4E9","#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
 
 TMB::compile("2d.cpp")
 dyn.load(TMB::dynlib("2d"))
 
 obj <- TMB::MakeADFun(data = list(), parameters = list(theta1 = 0, theta2 = 0), DLL = "2d")
 
+box_size <- 10
+
 grid <- expand.grid(
-  theta1 = seq(-8, 8, length.out = 400),
-  theta2 = seq(-8, 8, length.out = 400)
+  theta1 = seq(-box_size, box_size, length.out = box_size * 50),
+  theta2 = seq(-box_size, box_size, length.out = box_size * 50)
 )
 
 ground_truth <- cbind(grid, pdf = apply(grid, 1, function(x) exp(-1 * obj$fn(x))))
@@ -32,7 +35,7 @@ cov <- sd_out$cov.fixed
 
 figA0 <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
   geom_contour(col = "lightgrey") +
-  coord_fixed(xlim = c(-8, 8), ylim = c(-8, 8), ratio = 1) +
+  coord_fixed(xlim = c(-box_size, box_size), ylim = c(-box_size, box_size), ratio = 1) +
   labs(x = "", y = "") +
   theme_minimal() +
   guides(size = "none") +
@@ -93,7 +96,22 @@ mvQuad::rescale(gg5, m = mu, C = cov, dec.type = 1)
 figA5 <- add_points(figA0, gg5) +
   labs(size = "")
 
-figA <- (figA1 + figA2) / (figA3 + figA4 + figA5) +
+#' Scree
+lambda <- eigen(cov)$values
+
+figA6 <- data.frame(
+  n = 1:length(lambda),
+  tv = cumsum(lambda / sum(lambda))
+) %>%
+  ggplot(aes(x = as.factor(n), y = tv)) +
+  geom_point() +
+  geom_hline(yintercept = 0.9, col = "grey", linetype = "dashed") +
+  annotate("text", x = 1, y = 0.85, label = "90% of total variation explained", col = "grey") +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+  labs(x = "PCA dimensions included", y = "Total variation explained") +
+  theme_minimal()
+
+figA <- (figA1 + figA2 + figA3) / (figA4 + figA5 + figA6) +
   plot_annotation(tag_levels = "A") &
   theme(plot.tag.position  = c(0.15, 0.95))
 
