@@ -16,7 +16,7 @@
 
 * [scale-grid](https://athowes.github.io/naomi-aghq/scale-grid.html): how can we scale up the number of points in the hyperparameter grid in an intelligent way?
 * [astro](https://athowes.github.io/naomi-aghq/astro.html): application of scalable grid to astronomy example from [Bilodeau, Stringer and Tang (2022)](https://www.tandfonline.com/doi/full/10.1080/01621459.2022.2141635)
-* [increase-s-k](https://athowes.github.io/naomi-aghq/increase-s-k.html): how does increasing $s$ or $k$ change estimation of the log normalising constant for Naomi?
+* [increase-s-k](https://athowes.github.io/naomi-aghq/increase-s-k.html): how does increasing the number of principal components, or number of points per dimension, change estimation of the log normalising constant?
 
 ### Laplace marginals
 
