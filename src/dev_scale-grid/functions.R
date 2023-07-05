@@ -1,3 +1,51 @@
+#' A local version of naomi::make_tmb_obj, edited to work with DLL = "naomi_simple"
+local_make_tmb_obj <- function(data, par, calc_outputs = 0L, inner_verbose, progress = NULL, map = NULL, DLL = "naomi_simple") {
+  # Begin expose naomi:::make_tmb_obj
+  # https://github.com/mrc-ide/naomi/blob/e9de40f12cf2e652f78966bb351fa5718ecd7867/R/tmb-model.R#L496
+  data$calc_outputs <- as.integer(calc_outputs)
+
+  integrate_out <- c(
+    "beta_rho", "beta_alpha", "beta_alpha_t2", "beta_lambda", "beta_asfr",
+    "beta_anc_rho", "beta_anc_alpha", "beta_anc_rho_t2", "beta_anc_alpha_t2",
+    "u_rho_x", "us_rho_x", "u_rho_xs", "us_rho_xs", "u_rho_a", "u_rho_as",
+    "u_rho_xa", "u_alpha_x", "us_alpha_x", "u_alpha_xs", "us_alpha_xs",
+    "u_alpha_a", "u_alpha_as", "u_alpha_xt", "u_alpha_xa", "u_alpha_xat",
+    "u_alpha_xst", "ui_lambda_x", "logit_nu_raw", "ui_asfr_x", "ui_anc_rho_x",
+    "ui_anc_alpha_x", "ui_anc_rho_xt", "ui_anc_alpha_xt", "log_or_gamma",
+    "log_or_gamma_t1t2"
+  )
+
+  if (DLL == "naomi_simple") {
+    exclude_random_pars <- c(
+      "beta_alpha_t2", "beta_asfr", "beta_anc_rho_t2", "beta_anc_alpha_t2",
+      "u_alpha_xt", "u_alpha_xat", "u_alpha_xst", "logit_nu_raw", "ui_asfr_x",
+      "ui_anc_rho_xt", "ui_anc_alpha_xt", "log_or_gamma_t1t2"
+    )
+
+    integrate_out <- setdiff(integrate_out, exclude_random_pars)
+  }
+
+  if(DLL == "naomi_simple_x_index") {
+    integrate_out <- "x_minus_i"
+  }
+
+  obj <- TMB::MakeADFun(
+    data = data,
+    parameters = par,
+    DLL = DLL,
+    silent = !inner_verbose,
+    random = integrate_out,
+    map = map
+  )
+
+  if (!is.null(progress)) {
+    obj$fn <- naomi:::report_progress(obj$fn, progress)
+  }
+
+  obj
+  # End expose naomi:::make_tmb_obj
+}
+
 #' Exclude parameters and data not required by naomi_simple model
 local_exclude_inputs <- function(tmb_inputs) {
 
@@ -39,6 +87,16 @@ local_exclude_inputs <- function(tmb_inputs) {
   tmb_inputs
 }
 
+#' Inference for the Naomi model using aghq, edited to work with DLL = "naomi_simple"
+fit_aghq <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple", ...) {
+  stopifnot(inherits(tmb_input, "naomi_tmb_input"))
+  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL = DLL)
+  quad <- aghq::marginal_laplace_tmb(obj, startingvalue = obj$par, ...)
+  objout <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 1L, inner_verbose, progress, map, DLL = DLL)
+  quad$obj <- objout
+  quad
+}
+
 #' Create a quadrature grid
 #'
 #' @param dim The dimension of the grid
@@ -52,4 +110,74 @@ sd_levels_ghe_grid <- function(dim, level, cut_off, sd) {
   for(i in seq_along(cut_off)) levels[sd > cut_off[i]] <- level[i]
   grid <- mvQuad::createNIGrid(dim = dim, "GHe", level = levels)
   grid
+}
+
+#' @param m Mean vector
+#' @param C Covariance matrix
+#' @param s Small grid dimension
+#' @param k Number of points per small grid dimension
+pca_rescale <- function(m, C, s, k) {
+  d <- nrow(C)
+  stopifnot(d == length(m))
+  eigenC <- eigen(C)
+  lambda <- eigenC$values
+  Lambda <- diag(lambda)
+  E <- eigenC$vectors
+  E_s <- E[, 1:s]
+  gg_s <- mvQuad::createNIGrid(dim = s, type = "GHe", level = k)
+  nodes_out <- t(E_s %*% diag(lambda[1:s]^{0.5}, ncol = s) %*% t(mvQuad::getNodes(gg_s)))
+  for(j in 1:d) nodes_out[, j] <- nodes_out[, j] + m[j]
+  weights_out <- mvQuad::getWeights(gg_s) * as.numeric(mvQuad::getWeights(mvQuad::createNIGrid(dim = d - s, type = "GHe", level = 1)))
+
+  # Putting things into a mvQuad format manually
+  gg <- mvQuad::createNIGrid(dim = d, type = "GHe", level = 1)
+  gg$level <- rep(NA, times = d)
+  gg$ndConstruction <- "PCA"
+  gg$nodes <- nodes_out
+  gg$weights <- weights_out
+  return(gg)
+}
+
+plot_matrix <- function(M) {
+  name <- deparse(substitute(M))
+  M_df <- reshape2::melt(as.matrix(M))
+
+  ggplot(M_df, aes(x = Var1, y = Var2, fill = value)) +
+    labs(x = "", y = "", fill = paste0(name, "[i, j]")) +
+    geom_tile() +
+    scale_fill_viridis_c() +
+    labs(x = "i", y = "j") +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    )
+}
+
+plot_total_variation <- function(eigen, label_x) {
+  ggplot(data = NULL, aes(x = 1:length(eigen$values), y = cumsum(eigen$values) / sum(eigen$values))) +
+    geom_point() +
+    geom_hline(yintercept = 0.9, col = "grey", linetype = "dashed") +
+    annotate("text", x = label_x, y = 0.875, label = "90% of total correlation explained", col = "grey") +
+    scale_y_continuous(labels = scales::percent) +
+    labs(x = "PCA dimensions included", y = "Total variation explained") +
+    theme_minimal()
+}
+
+plot_pc_loadings <- function(eigen) {
+  reshape2::melt(as.matrix(eigen$vectors)) %>%
+    ggplot(aes(x = Var1, y = factor(Var2), fill = value)) +
+    labs(x = "", y = "", fill = "") +
+    geom_tile() +
+    coord_flip() +
+    scale_fill_gradientn(
+      colours = c("#E69F00", "white", "#009E73"),
+      rescaler = ~ scales::rescale_mid(.x, mid = 0),
+      limits = c(-1.1, 1.1)
+    ) +
+    labs(x = "Hyper", y = "Principal component loading") +
+    theme_minimal() +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 }

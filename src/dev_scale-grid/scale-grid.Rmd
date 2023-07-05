@@ -13,7 +13,7 @@ output:
 abstract: |
   **Background** We have previously fit empirical Bayes style approaches to the Naomi model, fixing hyperparameter values to a single value.
   
-  **Task** We would like to begin to integrate over the hyperparameters using multiple nodes. The problem is that there are >20 hyperparameters, and so using any type of dense grid is not practical. In this notebook we investigate approaches to using a smaller number of grid points to cover the space, including 1) allocating points in proporiton to posterior standard deviation 2) using principle components analysis.
+  **Task** We would like to begin to integrate over the hyperparameters using multiple nodes. The problem is that there are >20 hyperparameters, and so using any type of dense grid is not practical. In this notebook we investigate approaches to using a smaller number of grid points to cover the space, including 1) allocating points in proporiton to posterior standard deviation 2) using different varieties of principal components analysis.
 editor_options: 
   markdown: 
     wrap: sentence
@@ -77,21 +77,7 @@ Or, more generally, the covariance matrix is:
 
 ```{r cov, class.source = 'fold-hide', fig.cap="Covariance matrix."}
 C <- sd_out$cov.fixed
-C_df <- reshape2::melt(as.matrix(C))
-
-C_plot <- C_df %>%
-  ggplot(aes(x = Var1, y = Var2, fill = value)) +
-  labs(x = "", y = "", fill = "C[i, j]") +
-  geom_tile() +
-  scale_fill_viridis_c() +
-  labs(x = "i", y = "j") +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_blank(),
-    axis.text.y = element_blank()
-  )
-
-C_plot
+(C_plot <- plot_matrix(C))
 ```
 
 One way to place grid points would be proportional to the standard deviations shown in the plot above.
@@ -195,7 +181,7 @@ quad$modesandhessians[, 1:24] %>%
   pivot_longer(cols = everything()) %>%
   mutate(id = rep(1:24, times = 2)) %>%
   ggplot(aes(x = reorder(name, id), y = value)) +
-    geom_point(alpha = 0.8) +
+    geom_jitter(shape = 1, height = 0, width = 0.2) +
     coord_flip() +
     labs(x = "", y = "Value") + 
     theme_minimal()
@@ -264,43 +250,21 @@ max(C - (E %*% Lambda %*% t(E))) < 10E-12
 The relative contributions of each principle component are given by $\lambda_i / \sum_i \lambda_i$:
 
 ```{r scree, class.source = 'fold-hide', fig.cap="Scree plot."}
-tv_df <- data.frame(
-  n = 1:length(lambda),
-  tv = cumsum(lambda / sum(lambda))
-)
-
-ggplot(tv_df, aes(x = n, y = tv)) +
-  geom_point() +
-  geom_hline(yintercept = 0.9, col = "grey", linetype = "dashed") +
-  annotate("text", x = 20, y = 0.875, label = "90% of total variation explained", col = "grey") +
-  scale_y_continuous(labels = scales::percent) +
-  labs(x = "PCA dimensions included", y = "Total variation explained") +
-  theme_minimal()
+plot_total_variation(eigenC, label_x = 20)
 
 ggsave("total-variation.png", h = 3, w = 6.25)
+
+tv <- cumsum(eigenC$values) / sum(eigenC$values)
 ```
 
-Based on Figure \@ref(fig:scree) with 5 dimensions included, we can explain `r round(100 * filter(tv_df, n == 5) %>% pull(tv), 1)`% of the total variation.
-Or, with 10 dimensions included, that percentage increases to `r round(100 * filter(tv_df, n == 10) %>% pull(tv), 1)`%.
+Based on Figure \@ref(fig:scree) with 5 dimensions included, we can explain `r signif(100 * tv[5], 3)`% of the total variation.
+Or, with 10 dimensions included, that percentage increases to `r signif(100 * tv[10], 3)`%.
 
 What do the PC loadings (columns of the matrix `E`) look like?
 
 ```{r pc-loadings, class.source = 'fold-hide', fig.cap="PC loadings."}
 rownames(E) <- hypers
-
-reshape2::melt(as.matrix(E)) %>%
-  ggplot(aes(x = Var1, y = factor(Var2), fill = value)) +
-  labs(x = "", y = "", fill = "") +
-  geom_tile() +
-  coord_flip() +
-  scale_fill_gradientn(
-    colours = c("#E69F00", "white", "#009E73"),
-    rescaler = ~ scales::rescale_mid(.x, mid = 0),
-    limits = c(-1.1, 1.1)
-  ) +
-  labs(x = "Hyper", y = "Principal component loading") +
-  theme_minimal() +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+plot_pc_loadings(eigenC)
 
 ggsave("pc-loadings.png", h = 3.5, w = 6.25)
 ```
@@ -329,20 +293,8 @@ E_s <- E[, 1:s]
 Lambda_s <- Lambda[1:s, 1:s]
 C_s <- E_s %*% Lambda_s %*% t(E_s)
 
-C_s_plot <- reshape2::melt(as.matrix(C_s)) %>%
-  ggplot(aes(x = as.factor(Var1), y = as.factor(Var2), fill = value)) +
-  labs(x = "", y = "", fill = "C_s[i, j]") +
-  geom_tile() +
-  scale_fill_viridis_c() +
-  labs(x = "i", y = "j") +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_blank(),
-    axis.text.y = element_blank(),
-    legend.position = "none"
-  )
-
-{C_plot + theme(legend.position = "none") + labs(subtitle = "Full rank")} + {C_s_plot + labs(subtitle = "Reduced rank")}
+C_s_plot <- plot_matrix(C_s)
+{C_plot + theme(legend.position = "none") + labs(subtitle = "Full rank")} + {C_s_plot + theme(legend.position = "none") + labs(subtitle = "Reduced rank")}
 
 ggsave("reduced-rank.png", h = 3.5, w = 6.25)
 ```
@@ -370,7 +322,75 @@ nrow(mvQuad::getNodes(gg9))
 
 # Dealing with the scales issue
 
-Put `logit` and `log` on parity somehow!
+Eventually we want to put parameters on the log and logit scales in parity.
+
+## Using the correlation matrix
+
+```{r}
+C <- sd_out$cov.fixed
+d <- 1 / (sqrt(diag(C)))
+R <- diag(d) %*% C %*% diag(d)
+plot_matrix(R)
+```
+
+```{r}
+eigenR <- eigen(R)
+plot_total_variation(eigenR, label_x = 5)
+```
+
+```{r}
+rownames(eigenR$vectors) <- hypers
+plot_pc_loadings(eigenR)
+```
+
+## Scale standardised system
+
+```{r}
+C <- sd_out$cov.fixed
+var <- diag(C)
+
+df_std <- data.frame(var = var) %>%
+  tibble::rownames_to_column("par") %>%
+  mutate(
+    scale = fct_recode(str_extract(par, "^[^_]+"), "Log" = "log", "Logit" = "logit", "Other" = "OmegaT")
+  ) %>%
+  group_by(scale) %>%
+  mutate(mean_var = mean(var)) %>%
+  ungroup() %>%
+  mutate(var_std = var / mean_var)
+
+df_std %>%  
+  pivot_longer(
+    cols = c("var", "var_std"),
+    names_to = "method",
+    values_to = "value"
+  ) %>%
+  mutate(
+    method = fct_recode(method, "Default" = "var", "Scale standardised" = "var_std"),
+    start = str_extract(par, "^[^_]+"),
+    scale = fct_recode(start, "Log" = "log", "Logit" = "logit", "Other" = "OmegaT") 
+  ) %>%
+  ggplot(aes(x = reorder(par, value), y = value, col = scale)) +
+    geom_point() +
+    facet_grid(~ method) +
+    coord_flip() +
+    scale_color_manual(values = c("#56B4E9","#009E73", "#E69F00")) +
+    labs(x = "Hyperparameter", y = "Marginal variance", col = "Scale") +
+    theme_minimal()
+
+Rs <- diag(1 / sqrt(df_std$mean_var)) %*% C %*% diag(1 / sqrt(df_std$mean_var))
+plot_matrix(Rs)
+
+eigenRs <- eigen(Rs)
+plot_total_variation(eigenRs, label_x = 5)
+
+rownames(eigenRs$vectors) <- hypers
+plot_pc_loadings(eigenRs)
+```
+
+# Testing pruning
+
+Remove any nodes which have small enough weight.
 
 ```{r}
 #' TODO!
