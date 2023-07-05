@@ -102,7 +102,9 @@ The reports within `src` are as follows:
 
 | Report | Description |
 |--------|-------------|
+| `astro` | Analysis of an astronomy example |
 | `check_hyper-marginals` | Visualise hyperparameter posteriors fitted with NUTS for simplified Naomi, as well as positions of PCA-AGHQ nodes |
+| `check_pca-aghq` | Unit tests for the PCA-AGHQ procedure working as expected |
 | `check_sd-estimation` | Analysing odd behaviour for simplified Naomi whereby joint Gaussian approximation better estimates the standard deviation than conditionals |
 | `check_tmb-aghq-k1` | Assessment that TMB and `aghq` run with `k = 1` produce essentially the same inferences for simplified Naomi, in contrast to inferences from `aghq` with any grid |
 | `check_tmb-output` | Checking the the TMB output for simplified Naomi looks Gaussian, as it should be |
@@ -131,8 +133,9 @@ The reports within `src` are as follows:
 | `naomi-simple_increase-s-k` | Is the log normalising constant better estimated as $s$ and $k$ are increased in PCA-AGHQ? |
 | `naomi-simple_ks` | Comparison of inference methods using Kolmogorov-Smirnov tests on marginals |
 | `naomi-simple_mcmc` | Diagnostics for MCMC convergence |
-| `naomi-simple_mmd` | Comparison of inference methods using Kolmogorov-Smirnov tests on marginals |
-| `naomi-simple_model-checks` | Comparison of inference methods using Kolmogorov-Smirnov tests on marginals |
+| `naomi-simple_mmd` | Comparison of inference methods using maximum mean discrepancy on joint distributions |
+| `naomi-simple_model-checks` | Checking the model fit to data |
+| `naomi-simple_point-estimates` | Comparison of inference methods for estimating the mean and standard deviation |
 | `naomi-simple_psis` | Comparison of inference methods using Pareto-smoothed importance sampling on joint distributions |
 | `plot-tikz_algorithm-flowchart` | TikZ diagram of proposed algorithm |
 | `plot-tikz_simplified-naomi` | TikZ diagram of the simplified Naomi directed acyclic graph |
