@@ -7,7 +7,8 @@ artefacts:
   - data:
       description: Outputs
       filenames:
-        - temp.rds
+        - 2d-gaussian.png
+        - 2d-non-gaussian.png
 
 packages:
   - dplyr

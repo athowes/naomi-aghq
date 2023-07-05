@@ -1,3 +1,31 @@
+#' Create a function to do the PCA rescaling, which also adapts according to the mean and reweights the nodes:
+
+#' @param m Mean vector
+#' @param C Covariance matrix
+#' @param s Small grid dimension
+#' @param k Number of points per small grid dimension
+pca_rescale <- function(m, C, s, k) {
+  d <- nrow(C)
+  stopifnot(d == length(m))
+  eigenC <- eigen(C)
+  lambda <- eigenC$values
+  Lambda <- diag(lambda)
+  E <- eigenC$vectors
+  E_s <- E[, 1:s]
+  gg_s <- mvQuad::createNIGrid(dim = s, type = "GHe", level = k)
+  nodes_out <- t(E_s %*% diag(lambda[1:s]^{0.5}, ncol = s) %*% t(mvQuad::getNodes(gg_s)))
+  for(j in 1:d) nodes_out[, j] <- nodes_out[, j] + m[j]
+  weights_out <- mvQuad::getWeights(gg_s) * as.numeric(mvQuad::getWeights(mvQuad::createNIGrid(dim = d - s, type = "GHe", level = 1)))
+
+  # Putting things into a mvQuad format manually
+  gg <- mvQuad::createNIGrid(dim = d, type = "GHe", level = 1)
+  gg$level <- rep(NA, times = d)
+  gg$ndConstruction <- "PCA"
+  gg$nodes <- nodes_out
+  gg$weights <- weights_out
+  return(gg)
+}
+
 #' A local version of aghq::normalize_logpost
 #' I have added an argument whereby the basegrid provided can not be adapted (if it is adapted already)
 local_normalize_logpost <- function(optresults, k, whichfirst = 1, basegrid = NULL, adapt = TRUE, ndConstruction = "product", ...) {

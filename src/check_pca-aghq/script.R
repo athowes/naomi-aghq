@@ -2,34 +2,6 @@
 # orderly::orderly_develop_start("check_pca-aghq")
 # setwd("src/check_pca-aghq")
 
-#' Create a function to do the PCA rescaling, which also adapts according to the mean and reweights the nodes:
-
-#' @param m Mean vector
-#' @param C Covariance matrix
-#' @param s Small grid dimension
-#' @param k Number of points per small grid dimension
-pca_rescale <- function(m, C, s, k) {
-  d <- nrow(C)
-  stopifnot(d == length(m))
-  eigenC <- eigen(C)
-  lambda <- eigenC$values
-  Lambda <- diag(lambda)
-  E <- eigenC$vectors
-  E_s <- E[, 1:s]
-  gg_s <- mvQuad::createNIGrid(dim = s, type = "GHe", level = k)
-  nodes_out <- t(E_s %*% diag(lambda[1:s]^{0.5}, ncol = s) %*% t(mvQuad::getNodes(gg_s)))
-  for(j in 1:d) nodes_out[, j] <- nodes_out[, j] + m[j]
-  weights_out <- mvQuad::getWeights(gg_s) * as.numeric(mvQuad::getWeights(mvQuad::createNIGrid(dim = d - s, type = "GHe", level = 1)))
-
-  # Putting things into a mvQuad format manually
-  gg <- mvQuad::createNIGrid(dim = d, type = "GHe", level = 1)
-  gg$level <- rep(NA, times = d)
-  gg$ndConstruction <- "PCA"
-  gg$nodes <- nodes_out
-  gg$weights <- weights_out
-  return(gg)
-}
-
 #' Testing with simple examples
 #' Here we run some unit tests to make sure, visually and numerically, that the
 #' methods are working as expected.
@@ -60,8 +32,6 @@ plot <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
   coord_fixed(xlim = c(-2, 4.5), ylim = c(-2, 4.5), ratio = 1) +
   labs(x = "", y = "") +
   theme_minimal()
-
-plot
 
 #' Define four AGHQ-PCA grids, with `k` running from 1 to 7:
 pca_grid_1 <- pca_rescale(m = m, C = C, s = 1, k = 1)
@@ -136,17 +106,21 @@ norm_pca2_bfgs <- list(norm_pca2_bfgs_1, norm_pca2_bfgs_3, norm_pca2_bfgs_5, nor
 truelognormconst <- 0
 
 results <- data.frame(
-  "method" = c("Truth", paste0("aghq, k = ", c(1, 3, 5, 7)), paste0("aghq-pca, k = ", c(1, 3, 5, 7)), paste0("aghq-pca2, k = ", c(1, 3, 5, 7))),
+  "method" = c("Truth", paste0("AGHQ, k = ", c(1, 3, 5, 7)), paste0("PCA-AGHQ, k = ", c(1, 3, 5, 7)), paste0("PCA2-AGHQ, k = ", c(1, 3, 5, 7))),
   "lognormconst" = c(truelognormconst, sapply(c(norm_bfgs, norm_pca_bfgs, norm_pca2_bfgs), function(x) x$lognormconst)),
-  "type" = c("Truth", rep("AGHQ", 4), rep("AGHQ-PCA", 4), rep("AGHQ-PCA2", 4))
+  "type" = c("Truth", rep("AGHQ", 4), rep("PCA-AGHQ", 4), rep("PCA2-AGHQ", 4))
 )
 
-ggplot(results, aes(x = method, y = lognormconst, col = as.factor(type))) +
-  geom_point(size = 1) +
-  labs(x = "Method", y = "Log normalising constant", col = "") +
+error <- ggplot(results, aes(x = method, y = lognormconst, col = as.factor(type))) +
+  geom_point(shape = 1) +
+  labs(x = "", y = "Log normalising constant", col = "", title = "") +
   scale_color_manual(values = multi.utils::cbpalette()) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 70, vjust = 0.5, hjust = 0.5))
+  coord_flip() +
+  theme_minimal()
+
+plot + error
+
+ggsave("2d-gaussian.png", h = 3.5, w = 6.25)
 
 #' Non-Gaussian 2D function
 #' A more complicated two dimensional function from Alex's unit tests
@@ -197,8 +171,6 @@ plot <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
   coord_fixed(xlim = c(0.8, 2), ylim = c(0.8, 2), ratio = 1) +
   labs(x = "", y = "") +
   theme_minimal()
-
-plot
 
 #' Optimise using BFSG:
 opt_bfgs <- aghq::optimize_theta(ff, c(1.5, 1.5), control = default_control(method = "BFGS"))
@@ -260,14 +232,18 @@ norm_pca2_bfgs <- list(norm_pca2_bfgs_1, norm_pca2_bfgs_3, norm_pca2_bfgs_5, nor
 plot_points(pca2_grid_3)
 
 results <- data.frame(
-  "method" = c("Truth", paste0("aghq, k = ", c(1, 3, 5, 7)), paste0("aghq-pca, k = ", c(1, 3, 5, 7)), paste0("aghq-pca2, k = ", c(1, 3, 5, 7))),
+  "method" = c("Truth", paste0("AGHQ, k = ", c(1, 3, 5, 7)), paste0("PCA-AGHQ, k = ", c(1, 3, 5, 7)), paste0("PCA2-AGHQ, k = ", c(1, 3, 5, 7))),
   "lognormconst" = c(truelognormconst, sapply(c(norm_bfgs, norm_pca_bfgs, norm_pca2_bfgs), function(x) x$lognormconst)),
-  "type" = as.factor(c("Truth", rep("AGHQ", 4), rep("AGHQ-PCA", 4), rep("AGHQ-PCA2", 4)))
+  "type" = as.factor(c("Truth", rep("AGHQ", 4), rep("PCA-AGHQ", 4), rep("PCA2-AGHQ", 4)))
 )
 
-ggplot(results, aes(x = method, y = lognormconst, col = type)) +
-  geom_point(size = 1) +
-  labs(x = "Method", y = "Log normalising constant", col = "") +
+error <- ggplot(results, aes(x = method, y = lognormconst, col = as.factor(type))) +
+  geom_point(shape = 1) +
+  labs(x = "", y = "Log normalising constant", col = "", title = "") +
   scale_color_manual(values = multi.utils::cbpalette()) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 70, vjust = 0.5, hjust = 0.5))
+  coord_flip() +
+  theme_minimal()
+
+plot + error
+
+ggsave("2d-non-gaussian.png", h = 3.5, w = 6.25)

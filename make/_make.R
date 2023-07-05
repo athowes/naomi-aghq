@@ -95,6 +95,7 @@ run_commit_push("naomi-simple_contraction")
 run_commit_push("check_hyper-marginals")
 run_commit_push("check_sd-estimation")
 run_commit_push("check_tmb-output")
+run_commit_push("check_pca-aghq")
 
 #' Documentation and plots
 run_commit_push("docs_paper")
