@@ -122,6 +122,18 @@ plot + error
 
 ggsave("2d-gaussian.png", h = 3.5, w = 6.25)
 
+#' Check that the node positions are equal
+stopifnot(all.equal(mvQuad::getNodes(pca_grid_1), mvQuad::getNodes(pca2_grid_1)))
+stopifnot(all.equal(mvQuad::getNodes(pca_grid_3), mvQuad::getNodes(pca2_grid_3)))
+stopifnot(all.equal(mvQuad::getNodes(pca_grid_5), mvQuad::getNodes(pca2_grid_5)))
+stopifnot(all.equal(mvQuad::getNodes(pca_grid_7), mvQuad::getNodes(pca2_grid_7)))
+
+#' Check that the node weights are equal
+stopifnot(all.equal(mvQuad::getWeights(pca_grid_1), mvQuad::getWeights(pca2_grid_1)))
+stopifnot(all.equal(mvQuad::getWeights(pca_grid_3), mvQuad::getWeights(pca2_grid_3)))
+stopifnot(all.equal(mvQuad::getWeights(pca_grid_5), mvQuad::getWeights(pca2_grid_5)))
+stopifnot(all.equal(mvQuad::getWeights(pca_grid_7), mvQuad::getWeights(pca2_grid_7)))
+
 #' Non-Gaussian 2D function
 #' A more complicated two dimensional function from Alex's unit tests
 #' https://github.com/awstringer1/aghq/blob/master/tests/testthat/setup-01-optimization.R
@@ -211,22 +223,22 @@ norm_pca_bfgs <- list(norm_pca_bfgs_1, norm_pca_bfgs_3, norm_pca_bfgs_5, norm_pc
 
 plot_points(pca_grid_bfgs_3)
 
-pca2_grid_1 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = c(1, 1))
-mvQuad::rescale(pca2_grid_1, m = m, C = C, dec.type = 1)
+pca2_grid_bfgs_1 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = c(1, 1))
+mvQuad::rescale(pca2_grid_bfgs_1, m = m, C = C, dec.type = 1)
 
-pca2_grid_3 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = c(3, 1))
-mvQuad::rescale(pca2_grid_3, m = m, C = C, dec.type = 1)
+pca2_grid_bfgs_3 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = c(3, 1))
+mvQuad::rescale(pca2_grid_bfgs_3, m = m, C = C, dec.type = 1)
 
-pca2_grid_5 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = c(5, 1))
-mvQuad::rescale(pca2_grid_5, m = m, C = C, dec.type = 1)
+pca2_grid_bfgs_5 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = c(5, 1))
+mvQuad::rescale(pca2_grid_bfgs_5, m = m, C = C, dec.type = 1)
 
-pca2_grid_7 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = c(7, 1))
-mvQuad::rescale(pca2_grid_7, m = m, C = C, dec.type = 1)
+pca2_grid_bfgs_7 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = c(7, 1))
+mvQuad::rescale(pca2_grid_bfgs_7, m = m, C = C, dec.type = 1)
 
-norm_pca2_bfgs_1 <- local_normalize_logpost(opt_bfgs, basegrid = pca2_grid_1, adapt = FALSE)
-norm_pca2_bfgs_3 <- local_normalize_logpost(opt_bfgs, basegrid = pca2_grid_3, adapt = FALSE)
-norm_pca2_bfgs_5 <- local_normalize_logpost(opt_bfgs, basegrid = pca2_grid_5, adapt = FALSE)
-norm_pca2_bfgs_7 <- local_normalize_logpost(opt_bfgs, basegrid = pca2_grid_7, adapt = FALSE)
+norm_pca2_bfgs_1 <- local_normalize_logpost(opt_bfgs, basegrid = pca2_grid_bfgs_1, adapt = FALSE)
+norm_pca2_bfgs_3 <- local_normalize_logpost(opt_bfgs, basegrid = pca2_grid_bfgs_3, adapt = FALSE)
+norm_pca2_bfgs_5 <- local_normalize_logpost(opt_bfgs, basegrid = pca2_grid_bfgs_5, adapt = FALSE)
+norm_pca2_bfgs_7 <- local_normalize_logpost(opt_bfgs, basegrid = pca2_grid_bfgs_7, adapt = FALSE)
 norm_pca2_bfgs <- list(norm_pca2_bfgs_1, norm_pca2_bfgs_3, norm_pca2_bfgs_5, norm_pca2_bfgs_7)
 
 plot_points(pca2_grid_3)
@@ -247,3 +259,15 @@ error <- ggplot(results, aes(x = method, y = lognormconst, col = as.factor(type)
 plot + error
 
 ggsave("2d-non-gaussian.png", h = 3.5, w = 6.25)
+
+#' Check that the node positions are equal
+stopifnot(all.equal(mvQuad::getNodes(pca_grid_bfgs_1), mvQuad::getNodes(pca2_grid_bfgs_1)))
+stopifnot(all.equal(mvQuad::getNodes(pca_grid_bfgs_3), mvQuad::getNodes(pca2_grid_bfgs_3)))
+stopifnot(all.equal(mvQuad::getNodes(pca_grid_bfgs_5), mvQuad::getNodes(pca2_grid_bfgs_5)))
+stopifnot(all.equal(mvQuad::getNodes(pca_grid_bfgs_7), mvQuad::getNodes(pca2_grid_bfgs_7)))
+
+#' Check that the node weights are equal
+stopifnot(all.equal(mvQuad::getWeights(pca_grid_bfgs_1), mvQuad::getWeights(pca2_grid_bfgs_1)))
+stopifnot(all.equal(mvQuad::getWeights(pca_grid_bfgs_3), mvQuad::getWeights(pca2_grid_bfgs_3)))
+stopifnot(all.equal(mvQuad::getWeights(pca_grid_bfgs_5), mvQuad::getWeights(pca2_grid_bfgs_5)))
+stopifnot(all.equal(mvQuad::getWeights(pca_grid_bfgs_7), mvQuad::getWeights(pca2_grid_bfgs_7)))
