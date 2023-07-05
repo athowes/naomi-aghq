@@ -72,7 +72,11 @@
 * [paper](https://athowes.github.io/naomi-aghq/paper.pdf): work-in-progress write-up
 * [appendix](https://athowes.github.io/naomi-aghq/appendix.pdf): additional material for write-up
 
+<!--
+
 ## Misc
 
 * [bayescomp](https://athowes.github.io/naomi-aghq/bayescomp.html): abstract for BayesComp 2023
 * [bioinference](https://athowes.github.io/naomi-aghq/bioinference.html): abstract for BioInference 2023
+
+-->
