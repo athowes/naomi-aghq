@@ -85,10 +85,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r results='hide'}
-source("figures.R")
-```
-
 <!-- Most published papers will not exceed 20 pages -->
 <!-- We strongly encourage submission of data sets, computer algorithms and supporting material -->
 
@@ -292,12 +288,12 @@ We then propose (Section \ref{sec:pca}) an extension of the method which uses PC
 
 ## Inference for ELGMs \label{sec:inferenceelgm}
 
-The joint posterior of the parameters $(\x, \btheta)$ given data $\y$ for an ELGM is given by
+The joint posterior of the parameters $(\x, \btheta)$ given data $\y$ is given by
 \begin{equation*}
   p(\x, \btheta \, | \, \y)
   \propto p(\btheta) |\mathbf{Q}(\btheta)|^{n/2} \exp \left( - \frac{1}{2} \x^\top \mathbf{Q}(\btheta) \x + \sum_{i = 1}^n \log p(y_i \, | \, \x_{\mathcal{J}_i}, \btheta) \right).
 \end{equation*}
-Consider approximations to the posterior marginals of each latent random variable $x_i$ and hyperparameter $\theta_j$ given by
+We consider approximations to the posterior marginals of each latent random variable $x_i$ and hyperparameter $\theta_j$ given by
 \begin{align}
   p(x_i \, | \, \y) &\approx \tilde p(x_i \, | \, \y) = \int \tilde p(x_i \, | \, \btheta, \y) \tilde p(\btheta \, | \, \y) \text{d}\btheta, \quad i \in [N], \label{eq:inla1} \\
   p(\theta_j \, | \, \y) &\approx \tilde p(\theta_j \, | \, \y) = \int \tilde  p(\btheta \, | \, \y) \text{d}\btheta_{-j} \quad j \in [m]. \label{eq:inla2}
@@ -328,10 +324,9 @@ Quadrature rules can be used to approximate the integral of $\tilde p_\texttt{LA
 p(\y) \approx \int_{\btheta} \tilde p_\texttt{LA}(\btheta, \y) \text{d}\btheta \approx \sum_{\z \in \mathcal{Q}} p_\texttt{LA}(\z, \y) \omega(\z), \label{eq:quad}
 \end{equation}
 where $\z \in \mathcal{Q}$ are a set of nodes and $\omega: \mathcal{Q} \to \mathbb{R}$ is a weighting function.
-Gauss-Hermite quadrature [GHQ; @davis1975methods] is one such quadrature rule, where in the univariate case the nodes $\mathcal{Q}(1, k) = \{z: H_k(z) = (-1)^k \exp(z^2 / 2) \frac{\text{d}}{\text{d}z^k} \exp(-z^2 / 2) = 0\}$ are selected as zeros of the $k$th Hermite polynomial.
-The corresponding weights $\omega: \mathcal{Q}(1, k) \to \mathbb{R}$ are given by $\omega(z) = k! / [H_{k + 1}(z)]^2 \phi(z)$, where $\phi(\cdot)$ is a standard univariate Gaussian density.
-GHQ is attractive because it is exact for functions which are a polynomial of total order no more than $2k - 1$ multiplied by a Gaussian density.
-Posterior distributions can typically be expected to be relatively well described by this class of functions.
+Gauss-Hermite quadrature [GHQ; @davis1975methods] is a quadrature rule, where the nodes $\mathcal{Q}(1, k) = \{z: H_k(z) = (-1)^k \exp(z^2 / 2) \frac{\text{d}}{\text{d}z^k} \exp(-z^2 / 2) = 0\}$ are selected as zeros of the $k$th Hermite polynomial in the univariate case.
+The corresponding weights $\omega: \mathcal{Q}(1, k) \to \mathbb{R}$ are given by $\omega(z) = k! / [H_{k + 1}(z)]^2 \phi(z)$, where $\phi(\cdot)$ is a standard Gaussian density.
+GHQ is attractive because it is exact for functions which are a Gaussian density multiplied by a polynomial of total order no more than $2k - 1$, and we expect posterior distributions to be relatively well described by this class of functions.
 Multivariate GHQ rules, required to integrate over $\btheta$, are typically obtained using the product rule such that $\z = (z_1, \ldots, z_m) \in \mathcal{Q}(m, k) = \mathcal{Q}(1, k)^m$ and $\omega(\z) = \prod_{j = 1}^m \omega(z_j)$ [@jackel2005note].
 
 <!-- Tie together connection to Laplace for AGHQ k = 1 -->
@@ -339,14 +334,13 @@ Multivariate GHQ rules, required to integrate over $\btheta$, are typically obta
 ### Adaptive quadrature
 
 In adaptive Gauss-Hermite quadrature [AHGQ; @naylor1982applications; @tierney1986accurate] the nodes are shifted and rotated to suit the particular integrand.
-Repositioning the nodes is especially important in statistical quadrature problems, where the integral depends on data $\y$ such that regions of high density are not known in advance.
-To obtain an AGHQ estimate of Equation \ref{eq:quad}, let $\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA}) = - \partial^2 \log p_\texttt{LA}(\hat{\btheta}_\texttt{LA}, \y)$ be the curvature at the mode $\hat{\btheta}_\texttt{LA}$ and $[\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})]^{-1} = \hat{\mathbf{P}}_\texttt{LA} {\hat{\mathbf{P}}_\texttt{LA}}^\top$ be a matrix decomposition of the inverse curvature, then
+Repositioning the nodes is especially important in statistical quadrature problems, where the integral depends on data $\y$ and regions of high density are not known in advance.
+Let $\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA}) = - \partial^2 \log p_\texttt{LA}(\hat{\btheta}_\texttt{LA}, \y)$ be the curvature at the mode $\hat{\btheta}_\texttt{LA}$ and $[\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})]^{-1} = \hat{\mathbf{P}}_\texttt{LA} {\hat{\mathbf{P}}_\texttt{LA}}^\top$ be a matrix decomposition of the inverse curvature, then an AGHQ estimate of Equation \ref{eq:quad} is given by
 \begin{equation}
 \tilde p_\texttt{AGHQ}(\y) = |\hat{\mathbf{P}}_\texttt{LA}|\sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\texttt{LA}(\hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}, \y) \omega(\z). \label{eq:aghq}
 \end{equation}
-That is, the unadapted nodes have been shifted by the mode and rotated by a decomposition of the inverse curvature such that $\z \mapsto \hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}$.
+The unadapted nodes are shifted by the mode and rotated by a decomposition of the inverse curvature such that $\z \mapsto \hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}$.
 Two alternatives for the decomposition are the Cholesky decomposition $\hat{\mathbf{P}}_\texttt{LA} = \hat{\mathbf{L}}_\texttt{LA}$ and the spectral decomposition $\hat{\mathbf{P}}_\texttt{LA} = \hat{\mathbf{E}}_\texttt{LA} \hat{\mathbf{\Lambda}}_\texttt{LA}^{1/2}$ [@jackel2005note].
-Figure \ref{fig:aghq} demonstrates GHQ, as well as adaption for these two choices of matrix decomposition.
 Equation \ref{eq:aghq} may then be used to normalise the Laplace approximation
 \begin{equation*}
 \tilde p_\texttt{LA}(\btheta \, | \, \y) = \frac{\tilde p_\texttt{LA}(\btheta, \y)}{\tilde p_\texttt{AGHQ}(\y)}.
@@ -358,10 +352,10 @@ To obtain inferences for the latent field (Equation \ref{eq:inla1}) the adapted 
 \end{equation}
 Samples from this mixture of Gaussians may be obtained by drawing a node $\z$ with multinomial probabilities $\lambda(\z) = |\hat{\mathbf{P}}_\texttt{LA}| p_\texttt{LA}(\hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA} \, | \, \y) \omega(\z)$, then drawing from the Gaussian $\tilde p_\texttt{G}(\x \, | \, \hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}, \y)$.
 
-## Principal components analysis \label{sec:pca}
+## Principal components analysis\label{sec:pca}
 
-```{r aghq, fig.cap="The Gauss-Hermite quadrature nodes $\\z \\in \\mathcal{Q}(2, 3)$ for a two dimensional integral with three nodes per dimension (A). Adaption occurs based on the mode (B) and covariance matrix of the target via the Cholesky decomposition (C) or spectral decompostion (D) of the inverse curvature at the mode. In PCA-AGHQ (E) only nodes along the first $s = 1$ principal components are kept. The Scree plot (F) shows that over 90\\% of variation is explained by keeping just the first principal component. The integrand is $f(\\btheta) = \\text{sn}(0.5 \\theta_1, \\alpha = 2) \\cdot \\text{sn}(0.8 \\theta_1 - 0.5 \\theta_2, \\alpha = -2)$, where $\\text{sn}(\\cdot)$ is the standard skewnormal probability density function with shape parameter $\\alpha \\in \\mathbb{R}$."}
-figA
+```{r aghq, fig.cap="The Gauss-Hermite quadrature nodes $\\z \\in \\mathcal{Q}(2, 3)$ for a two dimensional integral with three nodes per dimension (A). Adaption occurs based on the mode and covariance matrix of the target via the Cholesky decomposition of the inverse curvature at the mode (B). In PCA-AGHQ (C) only nodes along the first $s$ principal components are kept. Here, 95\\% of variation is explained by the first principal component. The integrand is $f(\\btheta) = \\text{sn}(0.5 \\theta_1, \\alpha = 2) \\cdot \\text{sn}(0.8 \\theta_1 - 0.5 \\theta_2, \\alpha = -2)$, where $\\text{sn}(\\cdot)$ is the standard skewnormal probability density function with shape parameter $\\alpha \\in \\mathbb{R}$."}
+knitr::include_graphics("figA.png")
 ```
 
 Use of the product rule grid above requires $|\mathcal{Q}(m, k)| = k^m$ quadrature points.
@@ -512,8 +506,8 @@ knitr::include_graphics("depends/mean-sd-alt-latent.png")
 The two-sample Kolmogorov-Smirnov (KS) test statistic [@smirnov1948table] is the maximum absolute difference between two ECDFs $F(\varphi) = \frac{1}{n} \sum_{i = 1}^n \mathbb{I}_{\phi_i \leq \varphi}$.
 See an illustration of the KS test in Figure \ref{fig:ks} and a summary of the results in Table.
 
-```{r ks, fig.height = 4, fig.cap="Example KS test for one parameter."}
-figB
+```{r ks, fig.cap="Example KS test for one parameter."}
+knitr::include_graphics("figB.png")
 ```
 
 ### Pareto-smoothed importance sampling

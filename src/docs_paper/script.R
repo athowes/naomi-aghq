@@ -1,6 +1,8 @@
 # orderly::orderly_develop_start("docs_paper")
 # setwd("src/docs_paper")
 
+source("figures.R")
+
 #' Conversion of figures from .pdf at specified resolution
 Sys.setenv(PATH = paste(Sys.getenv("PATH"), "/opt/homebrew/bin", sep = ":"))
 

@@ -8,11 +8,13 @@ dyn.load(TMB::dynlib("2d"))
 
 obj <- TMB::MakeADFun(data = list(), parameters = list(theta1 = 0, theta2 = 0), DLL = "2d")
 
-box_size <- 10
+box_lower <- -5
+box_upper <- 10
+box_size <- box_upper - box_lower
 
 grid <- expand.grid(
-  theta1 = seq(-box_size, box_size, length.out = box_size * 50),
-  theta2 = seq(-box_size, box_size, length.out = box_size * 50)
+  theta1 = seq(box_lower, box_upper, length.out = box_size * 50),
+  theta2 = seq(box_lower, box_upper, length.out = box_size * 50)
 )
 
 ground_truth <- cbind(grid, pdf = apply(grid, 1, function(x) exp(-1 * obj$fn(x))))
@@ -35,7 +37,7 @@ cov <- sd_out$cov.fixed
 
 figA0 <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
   geom_contour(col = "lightgrey") +
-  coord_fixed(xlim = c(-box_size, box_size), ylim = c(-box_size, box_size), ratio = 1) +
+  coord_fixed(xlim = c(box_lower, box_upper), ylim = c(box_lower, box_upper), ratio = 1) +
   labs(x = "", y = "") +
   theme_minimal() +
   guides(size = "none") +
@@ -66,54 +68,41 @@ add_points <- function(figA0, gg) {
 }
 
 figA1 <- add_points(figA0, gg) +
-  labs(size = "")
-
-#' Adapt by the mean
-gg2 <- gg
-mvQuad::rescale(gg2, m = mu, C = diag(c(1, 1)), dec.type = 1)
-
-figA2 <- add_points(figA0, gg2) +
-  labs(size = "")
-
-#' Adapt by the lower Cholesky
-gg3 <- gg
-mvQuad::rescale(gg3, m = mu, C = cov, dec.type = 2)
-
-figA3 <- add_points(figA0, gg3) +
-  labs(size = "")
+  labs(subtitle = "A", size = "")
 
 #' Adapt by the spectral
-gg4 <- gg
-mvQuad::rescale(gg4, m = mu, C = cov, dec.type = 1)
+gg2 <- gg
+mvQuad::rescale(gg2, m = mu, C = cov, dec.type = 1)
 
-figA4 <- add_points(figA0, gg4) +
-  labs(size = "")
+figA2 <- add_points(figA0, gg2) +
+  labs(subtitle = "B", size = "")
 
 #' PCA-AGHQ
-gg5 <- mvQuad::createNIGrid(2, "GHe", level = c(3, 1))
-mvQuad::rescale(gg5, m = mu, C = cov, dec.type = 1)
+gg3 <- mvQuad::createNIGrid(2, "GHe", level = c(3, 1))
+mvQuad::rescale(gg3, m = mu, C = cov, dec.type = 1)
 
-figA5 <- add_points(figA0, gg5) +
-  labs(size = "")
-
-#' Scree
 lambda <- eigen(cov)$values
+cumsum(lambda) / sum(lambda)
 
-figA6 <- data.frame(
-  n = 1:length(lambda),
-  tv = cumsum(lambda / sum(lambda))
-) %>%
-  ggplot(aes(x = as.factor(n), y = tv)) +
-  geom_point() +
-  geom_hline(yintercept = 0.9, col = "grey", linetype = "dashed") +
-  annotate("text", x = 1, y = 0.85, label = "90% of total variation explained", col = "grey") +
-  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
-  labs(x = "PCA dimensions included", y = "Total variation explained") +
-  theme_minimal()
+xstart <- 6.2
+ystart <- -2.3
 
-figA <- (figA1 + figA2 + figA3) / (figA4 + figA5 + figA6) +
-  plot_annotation(tag_levels = "A") &
-  theme(plot.tag.position  = c(0.15, 0.95))
+x1end <- xstart + 4 * eigen(cov)$vectors[1, 1]
+y1end <- ystart + 4 * eigen(cov)$vectors[2, 1]
+
+x2end <- xstart + 1 * eigen(cov)$vectors[1, 2]
+y2end <- ystart + 1 * eigen(cov)$vectors[2, 2]
+
+figA3 <- add_points(figA0, gg3) +
+  geom_segment(aes(x = xstart, y = ystart, xend = x1end, yend = y1end), arrow = arrow(length = unit(0.25, "cm")), col = "darkgrey") +
+  annotate("text", x = x1end + 1, y = y1end - 3, label = "95%", col = "darkgrey") +
+  geom_segment(aes(x = xstart, y = ystart, xend = x2end, yend = y2end), arrow = arrow(length = unit(0.25, "cm")), col = "darkgrey") +
+  annotate("text", x = x2end, y = y2end - 2, label = "5%", col = "darkgrey") +
+  labs(subtitle = "C", size = "")
+
+cowplot::plot_grid(figA1, figA2, figA3, ncol = 3)
+
+ggsave("figA.png", h = 3, w = 6.25, bg = "white")
 
 #' Fig B
 
@@ -182,4 +171,6 @@ ecdf_diff <- ggplot(ecdf_df, aes(x = x, y = ecdf_diff, col = method)) +
   theme_minimal() +
   theme(plot.margin = unit(c(1, 3, 1, 1), "lines"))
 
-figB <- histogram + ecdf_diff
+histogram + ecdf_diff
+
+ggsave("figB.png", h = 4, w = 6.25, background = "white")
