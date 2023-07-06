@@ -106,9 +106,9 @@ norm_pca2_bfgs <- list(norm_pca2_bfgs_1, norm_pca2_bfgs_3, norm_pca2_bfgs_5, nor
 truelognormconst <- 0
 
 results <- data.frame(
-  "method" = c("Truth", paste0("AGHQ, k = ", c(1, 3, 5, 7)), paste0("PCA-AGHQ, k = ", c(1, 3, 5, 7)), paste0("PCA2-AGHQ, k = ", c(1, 3, 5, 7))),
+  "method" = c("Truth", paste0("AGHQ, k = ", c(1, 3, 5, 7)), paste0("PCA, k = ", c(1, 3, 5, 7)), paste0("PCA (mvQuad), k = ", c(1, 3, 5, 7))),
   "lognormconst" = c(truelognormconst, sapply(c(norm_bfgs, norm_pca_bfgs, norm_pca2_bfgs), function(x) x$lognormconst)),
-  "type" = c("Truth", rep("AGHQ", 4), rep("PCA-AGHQ", 4), rep("PCA2-AGHQ", 4))
+  "type" = c("Truth", rep("AGHQ", 4), rep("PCA", 4), rep("PCA (mvQuad)", 4))
 )
 
 error <- ggplot(results, aes(x = method, y = lognormconst, col = as.factor(type))) +
@@ -116,11 +116,12 @@ error <- ggplot(results, aes(x = method, y = lognormconst, col = as.factor(type)
   labs(x = "", y = "Log normalising constant", col = "", title = "") +
   scale_color_manual(values = multi.utils::cbpalette()) +
   coord_flip() +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "none")
 
 plot + error
 
-ggsave("2d-gaussian.png", h = 3.5, w = 6.25)
+ggsave("2d-gaussian.png", h = 4.5, w = 6.25)
 
 #' Check that the node positions are equal
 stopifnot(all.equal(mvQuad::getNodes(pca_grid_1), mvQuad::getNodes(pca2_grid_1)))
@@ -184,7 +185,7 @@ plot <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
   labs(x = "", y = "") +
   theme_minimal()
 
-#' Optimise using BFSG:
+#' Optimise using BFGS:
 opt_bfgs <- aghq::optimize_theta(ff, c(1.5, 1.5), control = default_control(method = "BFGS"))
 (m <- opt_bfgs$mode)
 (C <- Matrix::forceSymmetric(solve(opt_bfgs$hessian)))
@@ -244,9 +245,9 @@ norm_pca2_bfgs <- list(norm_pca2_bfgs_1, norm_pca2_bfgs_3, norm_pca2_bfgs_5, nor
 plot_points(pca2_grid_3)
 
 results <- data.frame(
-  "method" = c("Truth", paste0("AGHQ, k = ", c(1, 3, 5, 7)), paste0("PCA-AGHQ, k = ", c(1, 3, 5, 7)), paste0("PCA2-AGHQ, k = ", c(1, 3, 5, 7))),
+  "method" = c("Truth", paste0("AGHQ, k = ", c(1, 3, 5, 7)), paste0("PCA, k = ", c(1, 3, 5, 7)), paste0("PCA (mvQuad), k = ", c(1, 3, 5, 7))),
   "lognormconst" = c(truelognormconst, sapply(c(norm_bfgs, norm_pca_bfgs, norm_pca2_bfgs), function(x) x$lognormconst)),
-  "type" = as.factor(c("Truth", rep("AGHQ", 4), rep("PCA-AGHQ", 4), rep("PCA2-AGHQ", 4)))
+  "type" = as.factor(c("Truth", rep("AGHQ", 4), rep("PCA", 4), rep("PCA (mvQuad)", 4)))
 )
 
 error <- ggplot(results, aes(x = method, y = lognormconst, col = as.factor(type))) +
@@ -254,11 +255,12 @@ error <- ggplot(results, aes(x = method, y = lognormconst, col = as.factor(type)
   labs(x = "", y = "Log normalising constant", col = "", title = "") +
   scale_color_manual(values = multi.utils::cbpalette()) +
   coord_flip() +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "none")
 
 plot + error
 
-ggsave("2d-non-gaussian.png", h = 3.5, w = 6.25)
+ggsave("2d-non-gaussian.png", h = 4.5, w = 6.25)
 
 #' Check that the node positions are equal
 stopifnot(all.equal(mvQuad::getNodes(pca_grid_bfgs_1), mvQuad::getNodes(pca2_grid_bfgs_1)))
@@ -271,3 +273,22 @@ stopifnot(all.equal(mvQuad::getWeights(pca_grid_bfgs_1), mvQuad::getWeights(pca2
 stopifnot(all.equal(mvQuad::getWeights(pca_grid_bfgs_3), mvQuad::getWeights(pca2_grid_bfgs_3)))
 stopifnot(all.equal(mvQuad::getWeights(pca_grid_bfgs_5), mvQuad::getWeights(pca2_grid_bfgs_5)))
 stopifnot(all.equal(mvQuad::getWeights(pca_grid_bfgs_7), mvQuad::getWeights(pca2_grid_bfgs_7)))
+
+#' Function which can be used to look at two quadrature rules (to check they're the same)
+compare_nodes_and_weights <- function(quad1, quad2) {
+  nodes1 <- mvQuad::getNodes(quad1)
+  nodes2 <- mvQuad::getNodes(quad2)
+  weights1 <- mvQuad::getWeights(quad1)
+  weights2 <- mvQuad::getWeights(quad2)
+
+  df <- as.data.frame(rbind(nodes1, nodes2))
+  df$weight <- c(weights1, weights2)
+  df$method <- rep(c("Quadrature 1", "Quadrature 2"), each = length(weights1))
+
+  df %>%
+    ggplot(aes(x = V1, y = V2, size = weight)) +
+    geom_point() +
+    facet_wrap(~method) +
+    labs(x = "", y = "") +
+    theme_minimal()
+}

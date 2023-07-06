@@ -1,5 +1,5 @@
 #' Create a function to do the PCA rescaling, which also adapts according to the mean and reweights the nodes:
-
+#'
 #' @param m Mean vector
 #' @param C Covariance matrix
 #' @param s Small grid dimension
@@ -9,13 +9,13 @@ pca_rescale <- function(m, C, s, k) {
   stopifnot(d == length(m))
   eigenC <- eigen(C)
   lambda <- eigenC$values
-  Lambda <- diag(lambda)
   E <- eigenC$vectors
   E_s <- E[, 1:s]
   gg_s <- mvQuad::createNIGrid(dim = s, type = "GHe", level = k)
-  nodes_out <- t(E_s %*% diag(lambda[1:s]^{0.5}, ncol = s) %*% t(mvQuad::getNodes(gg_s)))
-  for(j in 1:d) nodes_out[, j] <- nodes_out[, j] + m[j]
+  nodes_out <- t(E_s %*% diag(sqrt(lambda[1:s]), ncol = s) %*% t(mvQuad::getNodes(gg_s)))
+  for(j in 1:d) nodes_out[, j] <- nodes_out[, j] + m[j] # Adaption
   weights_out <- mvQuad::getWeights(gg_s) * as.numeric(mvQuad::getWeights(mvQuad::createNIGrid(dim = d - s, type = "GHe", level = 1)))
+  weights_out <- det(chol(C)) * weights_out # Adaption
 
   # Putting things into a mvQuad format manually
   gg <- mvQuad::createNIGrid(dim = d, type = "GHe", level = 1)

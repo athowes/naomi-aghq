@@ -5,10 +5,13 @@ sources:
 
 artefacts:
   - data:
-      description: Outputs
+      description: Unit tests for AGHQ
       filenames:
         - 2d-gaussian.png
         - 2d-non-gaussian.png
+
+resources:
+  - debug.R
 
 packages:
   - dplyr
@@ -23,3 +26,4 @@ packages:
   - tmbstan
   - aghq
   - inf.utils
+  - patchwork
