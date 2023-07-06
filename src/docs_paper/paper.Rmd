@@ -358,16 +358,16 @@ Samples from this mixture of Gaussians may be obtained by drawing a node $\z$ wi
 knitr::include_graphics("figA.png")
 ```
 
-Use of the product rule grid above requires $|\mathcal{Q}(m, k)| = k^m$ quadrature points.
+Use of the product rule grid described above requires $|\mathcal{Q}(m, k)| = k^m$ quadrature points.
 This quickly becomes intractable as $m$ increases for $k > 1$.
 An alternative is to let $\bk = (k_1, \ldots, k_m)$ be a vector of levels for each dimension of $\btheta$.
 We may then define $\mathcal{Q}(m, \bk) = \mathcal{Q}(1, k_1) \times \cdots \times \mathcal{Q}(1, k_m)$ of size $|\mathcal{Q}(m, \bk)| = \prod_{j = 1}^m k_j$.
 Let $\mathcal{Q}(m, s, k)$ correspond to $\mathcal{Q}(m, \bk)$ with choice of levels $k_j = k, j \leq s$ and $k_j = 1, j > s$ for some $s \leq m$.
-Taken together with use of the spectral decomposition, this choice of levels is analogous to a principal components analysis (PCA) approach to AGHQ
+Using the spectral decomposition, this choice of levels is analogous to a principal components analysis (PCA) approach to AGHQ
 \begin{equation}
-\tilde p_\texttt{PCA}(\y) = |\hat{\mathbf{E}}_{\texttt{LA}, s} \hat{\mathbf{\Lambda}}_{\texttt{LA}, s}^{1/2}|\sum_{\z \in \mathcal{Q}(m, s, k)} \tilde p_\texttt{LA}(\hat{\mathbf{E}}_{\texttt{LA}, s} \hat{\mathbf{\Lambda}}_{\texttt{LA}, s}^{1/2} \z + \hat{\btheta}_\texttt{LA}, \y) \omega(\z),
+\tilde p_\texttt{PCA}(\y) = |\hat{\mathbf{E}}_{\texttt{LA}} \hat{\mathbf{\Lambda}}_{\texttt{LA}}^{1/2}|\sum_{\z \in \mathcal{Q}(m, s, k)} \tilde p_\texttt{LA}(\hat{\mathbf{E}}_{\texttt{LA}, s} \hat{\mathbf{\Lambda}}_{\texttt{LA}, s}^{1/2} \z + \hat{\btheta}_\texttt{LA}, \y) \omega(\z),
 \end{equation}
-where $\hat{\mathbf{E}}_{\texttt{LA}, s} = \cdots$ and $\hat{\mathbf{\Lambda}}_{\texttt{LA}, s} = \cdots$ are terms which should be described.
+where $\hat{\mathbf{E}}_{\texttt{LA}, s}$ is an $m \times s$ matrix containing the first $s$ eigenvectors, $\hat{\mathbf{\Lambda}}_{\texttt{LA}, s}$ is the $s \times s$ diagonal matrix containing the first $s$ eigenvalues, and $\omega(\z) = \prod_{j = 1}^s \omega_s(z_j) \times \prod_{j = s + 1}^d \omega_1(z_j)$.
 The final panel of Figure \ref{fig:aghq} illustrates a case where $m = 2$ and $s = 1$. 
 We refer to use of this quadrature rule as PCA-AGHQ.
 

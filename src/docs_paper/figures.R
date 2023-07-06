@@ -102,7 +102,7 @@ figA3 <- add_points(figA0, gg3) +
 
 cowplot::plot_grid(figA1, figA2, figA3, ncol = 3)
 
-ggsave("figA.png", h = 3, w = 6.25, bg = "white")
+ggsave("figA.png", h = 2.5, w = 6.25, bg = "white")
 
 #' Fig B
 
