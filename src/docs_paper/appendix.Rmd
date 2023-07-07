@@ -580,6 +580,10 @@ knitr::include_graphics("depends/ratio.png")
 knitr::include_graphics("depends/ess.png")
 ```
 
+```{r rho_a, fig.cap="Variation between units can be explained either by high correlation and high variance, or by low correlation and low variance. As such, some hyperparameters has correlated posteriors. It is this correlation which is made use of by PCA-AGHQ."}
+knitr::include_graphics("depends/rho_a.png")
+```
+
 \clearpage
 
 # Algorithm using Laplace latent field marginals 
