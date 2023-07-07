@@ -1,3 +1,22 @@
+#' Function which can be used to look at two quadrature rules (to check they're the same)
+compare_nodes_and_weights <- function(quad1, quad2) {
+  nodes1 <- mvQuad::getNodes(quad1)
+  nodes2 <- mvQuad::getNodes(quad2)
+  weights1 <- mvQuad::getWeights(quad1)
+  weights2 <- mvQuad::getWeights(quad2)
+
+  df <- as.data.frame(rbind(nodes1, nodes2))
+  df$weight <- c(weights1, weights2)
+  df$method <- rep(c("Quadrature 1", "Quadrature 2"), each = length(weights1))
+
+  df %>%
+    ggplot(aes(x = V1, y = V2, size = weight)) +
+    geom_point() +
+    facet_wrap(~method) +
+    labs(x = "", y = "") +
+    theme_minimal()
+}
+
 #' Create a function to do the PCA rescaling, which also adapts according to the mean and reweights the nodes:
 #'
 #' @param m Mean vector
