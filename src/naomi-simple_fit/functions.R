@@ -707,18 +707,3 @@ sample_cdf <- function(df, M) {
   for(i in 1:M) samples[i] <- df$x[max(which(df$cdf < q[i]))]
   return(samples)
 }
-
-#' Create a quadrature grid
-#'
-#' @param dim The dimension of the grid
-#' @param level The possible numbers of grid points per dimension
-#' @param cut_off The cut-offs for standard deviations
-#' @param sd A vector of length `dim` of standard deviations
-sd_levels_ghe_grid <- function(dim, level, cut_off, sd) {
-  stopifnot(length(level) == length(cut_off))
-  stopifnot(dim == length(sd))
-  levels <- vector(mode = "numeric", length = dim)
-  for(i in seq_along(cut_off)) levels[sd > cut_off[i]] <- level[i]
-  grid <- mvQuad::createNIGrid(dim = dim, "GHe", level = levels)
-  grid
-}
