@@ -142,16 +142,16 @@ write_csv(df_metrics, "mean-sd.csv")
 df_plot_latent <- filter(df_plot, type == "latent")
 df_metrics_latent <- filter(df_metrics, type == "latent")
 
-(mean_sd_plot_latent <- df_plot_latent %>%
+df_plot_latent %>%
   ggplot(aes(x = truth, y = approximate - truth)) +
   geom_point(shape = 1, alpha = 0.4) +
   facet_grid(indicator ~ method) +
   geom_abline(slope = 0, intercept = 0, linetype = "dashed") +
   geom_text(data = df_metrics_latent, aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5) +
   labs(x = "NUTS", y = "Approximation - NUTS") +
-  theme_minimal())
+  theme_minimal()
 
-ggsave("mean-sd-latent.png", mean_sd_plot_latent, h = 6, w = 6.25)
+ggsave("mean-sd-latent.png", h = 6, w = 6.25)
 ```
 
 Version split into two for presentations
@@ -241,23 +241,24 @@ df_plot_output <- filter(df_plot, type == "output")
 df_metrics_output <- filter(df_metrics, type == "output")
 cbpalette <- c("#56B4E9","#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
 
-(mean_sd_plot_output <- df_plot_output %>%
+df_plot_output %>%
   ggplot() +
   geom_point(aes(x = truth, y = approximate - truth, color = par), shape = 1, alpha = 0.4) +
   scale_color_manual(values = cbpalette) +
   facet_grid(indicator ~ method) +
   geom_abline(slope = 0, intercept = 0, linetype = "dashed") +
   geom_text(data = df_metrics_output, aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5) +
-  labs(x = "NUTS", y = "Approximation - NUTS") +
-  theme_minimal())
+  labs(x = "NUTS", y = "Approximation - NUTS", col = "Output") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
 
-ggsave("mean-sd-output.png", mean_sd_plot_output, h = 6, w = 6.25)
+ggsave("mean-sd-output.png", h = 6, w = 6.25)
 ```
 
 Version split into two for presentations
 
 ```{r}
-jitter_amount <- 0.02
+jitter_amount <- 0
 
 mean_plot_output <- df_plot_output %>%
   filter(indicator == "Posterior mean estimate") %>%
@@ -312,7 +313,7 @@ mean_plot_output_alt$labels$y <- sd_plot_output_alt$labels$y <- ""
 (mean_sd_plot_output_alt <- y_axis + (mean_plot_output_alt / sd_plot_output_alt) +
   plot_layout(widths = c(1, 30)))
 
-ggsave("mean-sd-alt-output.png", mean_sd_plot_output_alt, h = 6, w = 6.25)
+ggsave("mean-sd-alt-output.png", mean_sd_plot_output_alt, h = 6, w = 6.25, bg = "white")
 ```
 
 # Original computing environment {-}
