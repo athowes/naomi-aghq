@@ -8,9 +8,10 @@ artefacts:
   - data:
       description: Outputs to go into the appendix of the manuscript
       filenames:
-        - rhat.pdf
-        - ratio.pdf
-        - ess.pdf
+        - rhat.png
+        - ratio.png
+        - ess.png
+        - rho_a.png
         - nuts-params.rds
 
 resources:

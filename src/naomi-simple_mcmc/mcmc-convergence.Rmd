@@ -40,9 +40,9 @@ We are looking for values of $\hat R$ less than 1.1 here.
 ```{r}
 rhats <- bayesplot::rhat(mcmc)
 
-rhat_plot <- mcmc_rhat_data(rhats) %>%
-  ggplot(mapping = aes_(x = ~value, y = ~parameter, col = ~description)) +
-  geom_segment(mapping = aes_(yend = ~parameter, xend = ifelse(min(data$value) < 1, 1, -Inf)), na.rm = TRUE, alpha = 0.7) +
+bayesplot::mcmc_rhat_data(rhats) %>%
+  ggplot(aes(x = value, y = parameter, col = description)) +
+  geom_segment(aes(yend = parameter, xend = ifelse(min(value) < 1, 1, -Inf)), na.rm = TRUE, alpha = 0.7) +
   scale_color_manual(values = "#E69F00") +
   geom_vline(xintercept = 1.05, linetype = "dashed", col = "grey40") +
   labs(x = "Potential scale reduction factor", y = "NUTS parameter", col = "") +
@@ -53,17 +53,10 @@ rhat_plot <- mcmc_rhat_data(rhats) %>%
     panel.grid.major = element_blank()
   )
 
-rhat_plot
-
-pdf("rhat.pdf", h = 3, w = 6.25)
-
-rhat_plot
-
-dev.off()
+ggsave("rhat.png", h = 3, w = 6.25)
 
 (big_rhats <- rhats[rhats > 1.1])
 length(big_rhats) / length(rhats)
-
 ```
 
 # ESS ratio
@@ -75,9 +68,9 @@ ratios <- bayesplot::neff_ratio(mcmc)
 
 breaks <- c(0, 0.1, 0.25, 0.5, 0.75, 1)
 
-ratio_plot <- mcmc_neff_data(ratios) %>%
-  ggplot(mapping = aes_(x = ~value, y = ~parameter, color = ~description)) +
-  geom_segment(aes_(yend = ~parameter, xend = -Inf), na.rm = TRUE, alpha = 0.7) +
+bayesplot::mcmc_neff_data(ratios) %>%
+  ggplot(mapping = aes(x = value, y = parameter, color = description)) +
+  geom_segment(aes(yend = parameter, xend = -Inf), na.rm = TRUE, alpha = 0.7) +
   scale_color_manual(values = c("#56B4E9", "#009E73", "#E69F00")) +
   geom_vline(xintercept = 0.1, linetype = "dashed", col = "grey40") +
   geom_vline(xintercept = 0.5, linetype = "dashed", col = "grey40") +
@@ -90,13 +83,7 @@ ratio_plot <- mcmc_neff_data(ratios) %>%
     panel.grid.major = element_blank()
   )
 
-ratio_plot
-
-pdf("ratio.pdf", h = 3, w = 6.25)
-
-ratio_plot
-
-dev.off()
+ggsave("ratio.png", h = 3, w = 6.25)
 ```
 
 # ESS
@@ -107,19 +94,13 @@ What are the total effective sample sizes?
 #' I think that this $summary should be all of the chains grouped together
 mcmc_summary <- summary(mcmc)$summary
 
-ess_plot <- data.frame(mcmc_summary) %>%
+data.frame(mcmc_summary) %>%
   tibble::rownames_to_column("param") %>%
   ggplot(aes(x = n_eff)) +
     geom_histogram(alpha = 0.8) +
     labs(x = "ESS", y = "Count")
 
-ess_plot
-
-pdf("ess.pdf", h = 3, w = 6.25)
-
-ess_plot
-
-dev.off()
+ggsave("ess.png", h = 3, w = 6.25)
 ```
 
 # Autocorrelation
@@ -176,6 +157,22 @@ bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("log_or_gamma["))) #' N.B. t
 ```
 
 # Pairs plots
+
+## Paired PCA parameters
+
+Variation between units can be explained by high correlation and high standard deviation, or low correlation and low standard deviation.
+Hence there is an unidentifiabiility here that leads to correlated posteriors.
+
+```{r}
+bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_as", "logit_phi_alpha_as"), diag_fun = "hist", off_diag_fun = "hex")
+bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_as", "logit_phi_rho_as"), diag_fun = "hist", off_diag_fun = "hex")
+bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_a", "logit_phi_alpha_a"), diag_fun = "hist", off_diag_fun = "hex")
+(plot <- bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_a", "logit_phi_rho_a"), diag_fun = "hist", off_diag_fun = "hex"))
+
+ggsave("rho_a.png", plot, h = 4, w = 6.25)
+```
+
+## ART attendance
 
 There is a prior suspicion (from Jeff, Tim, Rachel) that the ART attendance model is unidentifiable.
 Let's have a look at the pairs plot for neighbouring districts and the `log_or_gamma` parameter.

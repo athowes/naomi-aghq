@@ -73,9 +73,10 @@ depends:
   - naomi-simple_mcmc:
       id: latest
       use:
-        depends/rhat.pdf: rhat.pdf
-        depends/ratio.pdf: ratio.pdf
-        depends/ess.pdf: ess.pdf
+        depends/rhat.png: rhat.png
+        depends/ratio.png: ratio.png
+        depends/ess.png: ess.png
+        depends/rho_a.png: rho_a.png
         depends/nuts-params.rds: nuts-params.rds
   - dev_scale-grid:
       id: latest

@@ -17,11 +17,6 @@ convert_pdf_png <- function(name) {
 #' For paper.Rmd
 convert_pdf_png("nodes-samples-comparison")
 
-#' For appendix.Rmd
-convert_pdf_png("rhat")
-convert_pdf_png("ratio")
-convert_pdf_png("ess")
-
 #' Render documents
 rmarkdown::render("paper.Rmd")
 rmarkdown::render("appendix.Rmd")
