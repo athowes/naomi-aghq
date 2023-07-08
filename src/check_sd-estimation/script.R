@@ -8,7 +8,7 @@ aghq_pca <- readRDS("depends/aghq-pca.rds")
 
 #' For the parameter ui_anc_alpha_x[29] then TMB appears to estimate the SD as
 #' being larger than AGHQ does. This is confusing because AGHQ would seem to take
-#' into account more variation thatn TMB. So let's look into this
+#' into account more variation than TMB. So let's look into this
 
 par <- "ui_anc_alpha_x"
 i <- 29 #' These are the bad ones: 18, 29, 16, 19
