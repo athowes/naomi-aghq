@@ -47,3 +47,52 @@ df %>%
 #' Now reproduce HIV output from scratch. This may be useful:
 #' https://github.com/mrc-ide/naomi/blob/master/R/tmb-model-r-implementation.R
 
+calculate_rho_t1 <- function(p, d) {
+  mu_rho <- d$X_rho %*% p$beta_rho +
+    d$logit_rho_offset +
+    d$Z_rho_x %*% p$u_rho_x +
+    d$Z_rho_xs %*% p$u_rho_xs +
+    d$Z_rho_a %*% p$u_rho_a +
+    d$Z_rho_as %*% p$u_rho_as
+
+  mu_rho <- as.vector(mu_rho)
+
+  rho_15to49f_t1 <- d$X_15to49f %*% (plogis(mu_rho) * d$population_t1) / (d$X_15to49f %*% d$population_t1)
+  mu_rho_paed <- d$X_paed_rho_ratio %*% rho_15to49f_t1 + d$paed_rho_ratio_offset
+  mu_rho_paed <- as.vector(mu_rho_paed)
+  mu_rho_paed <- qlogis(mu_rho_paed)
+  mu_rho <- mu_rho + mu_rho_paed
+
+  rho_t1 <- plogis(mu_rho)
+  return(rho_t1)
+}
+
+f <- function(sample) {
+  d <- tmb$inputs$data
+  n <- ncol(sample$beta_rho)
+  X <- matrix(nrow = n, ncol = 1088)
+  for(i in 1:n) {
+    p <- lapply(sample[latent_pars], function(x) x[, i])
+    X[i, ] <- calculate_rho_t1(p, d)
+  }
+  return(X)
+}
+
+X_tmb <- f(tmb$fit$sample)
+X_aghq <- f(aghq$quad$sample)
+X_tmbstan <- f(tmbstan$mcmc$sample)
+
+tmb_error <- colMeans(X_tmb) - colMeans(X_tmbstan)
+aghq_error <- colMeans(X_aghq) - colMeans(X_tmbstan)
+
+sqrt(mean(tmb_error^2))
+sqrt(mean(aghq_error^2))
+
+tmb_error <- apply(X_tmb, 2, sd) - apply(X_tmbstan, 2, sd)
+aghq_error <- apply(X_aghq, 2, sd) - apply(X_tmbstan, 2, sd)
+
+plot(tmb_error)
+plot(aghq_error)
+
+sqrt(mean(tmb_error^2))
+sqrt(mean(aghq_error^2))
