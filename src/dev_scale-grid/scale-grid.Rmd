@@ -440,11 +440,9 @@ plot_points <- function(gg) {
     labs(x = "", y = "", size = "Weight") +
     theme_minimal()
 }
-
-plot_points(grid_5) + plot_points(pca_grid_5) + plot_annotation(tag_levels = "A")
 ```
 
-Try to create a grid similar to A above but using the second principal component rather than the first:
+Create a grid similar to A above but using the second principal component rather than the first:
 
 ```{r}
 eigenC <- eigen(C)
@@ -457,15 +455,11 @@ for(j in 1:2) nodes_out[, j] <- nodes_out[, j] + m[j] # Adaption
 weights_out <- mvQuad::getWeights(gg_s) * as.numeric(mvQuad::getWeights(mvQuad::createNIGrid(dim = 1, type = "GHe", level = 1)))
 weights_out <- det(chol(C)) * weights_out # Adaption
 
-custom_grid_5 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 1)
-custom_grid_5$level <- rep(NA, times = 2)
-custom_grid_5$ndConstruction <- "custom"
-custom_grid_5$nodes <- nodes_out
-custom_grid_5$weights <- weights_out
-
-plot_points(grid_5) / plot_points(pca_grid_5) / plot_points(custom_grid_5) + plot_annotation(tag_levels = "A")
-
-ggsave("pca-demo.png", h = 7, w = 6.25)
+pc2_grid_5 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 1)
+pc2_grid_5$level <- rep(NA, times = 2)
+pc2_grid_5$ndConstruction <- "custom"
+pc2_grid_5$nodes <- nodes_out
+pc2_grid_5$weights <- weights_out
 ```
 
 We know that $C = E \Lambda E^\top = \sum \lambda_i \mathbf{e}_i \mathbf{e}_i^\top$
@@ -474,13 +468,58 @@ We know that $C = E \Lambda E^\top = \sum \lambda_i \mathbf{e}_i \mathbf{e}_i^\t
 lambda[1] * E[, 1] %*% t(E[, 1]) + lambda[2] * E[, 2] %*% t(E[, 2])
 ```
 
-We also know that any vector can be written in terms of the eigendecomposition.
-For example, the vector `c(1, 1)` can be written as:
+We also know that any vector can be written in terms of the eigendecomposition:
 
 ```{r}
 a <- c(1, 1) %*% E
-
 a[1] * E[, 1] + a[2] * E[, 2]
+```
+
+We also have the definition of an eigenvalue and vector:
+
+```{r}
+sum(t(lambda[1] %*% E[, 1]) - C %*% E[, 1]) < 10e-12
+```
+
+The definition of the unit eigenvectors is that they maximise the amount of variation explained, which is given by this function `variance_explained`.
+By definition `E[, 1]` maximises this!
+
+```{r}
+variance_explained <- function(v) {
+  v %*% C %*% v / v %*% v
+}
+
+variance_explained(c(1, 1))
+variance_explained(E[, 1])
+```
+
+```{r}
+v <- c(1, 1)
+v_norm <- v / sqrt(c(v %*% v))
+
+gg_s <- mvQuad::createNIGrid(dim = 1, type = "GHe", level = 5)
+nodes_out <- t(v_norm %*% sqrt(variance_explained(v_norm)) %*% t(mvQuad::getNodes(gg_s)))
+for(j in 1:2) nodes_out[, j] <- nodes_out[, j] + m[j] # Adaption
+weights_out <- mvQuad::getWeights(gg_s) * as.numeric(mvQuad::getWeights(mvQuad::createNIGrid(dim = 1, type = "GHe", level = 1)))
+weights_out <- det(chol(C)) * weights_out # Adaption
+
+v_norm_grid_5 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 1)
+v_norm_grid_5$level <- rep(NA, times = 2)
+v_norm_grid_5$ndConstruction <- "custom"
+v_norm_grid_5$nodes <- nodes_out
+v_norm_grid_5$weights <- weights_out
+
+{plot_points(grid_5) + plot_points(pca_grid_5)} / {plot_points(pc2_grid_5) + plot_points(v_norm_grid_5)} + plot_annotation(tag_levels = "A")
+
+ggsave("pca-demo.png", h = 6, w = 6.25)
+```
+
+## Application of custom coordinate system to scale standardised system
+
+Now we apply what we've learnt about making grids with custom coordinate systems to make a grid with coordinate system defined by the eigendecomposition of the scale standardised variance matrix!
+
+```{r}
+#' TODO
 ```
 
 # Testing prerotation

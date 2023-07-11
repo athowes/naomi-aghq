@@ -21,6 +21,7 @@ artefacts:
         - total-variation.png
         - reduced-rank.png
         - pc-loadings.png
+        - pca-demo.png
 
 
 packages:
