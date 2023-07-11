@@ -6,6 +6,7 @@ sources:
 resources:
   - scale-grid.Rmd
   - naomi_simple.cpp
+  - citations.bib
   - tmb.rds
 
 artefacts:

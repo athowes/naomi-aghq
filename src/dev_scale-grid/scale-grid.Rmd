@@ -17,6 +17,7 @@ abstract: |
 editor_options: 
   markdown: 
     wrap: sentence
+bibliography: citations.bib
 ---
 
 # `TMB` fit
@@ -388,10 +389,126 @@ rownames(eigenRs$vectors) <- hypers
 plot_pc_loadings(eigenRs)
 ```
 
-# Testing pruning
+## Creating quadrature grids with different coordinate systems
 
-Remove any nodes which have small enough weight.
+Want to use a particular coordinate system, but still the covariance matrix scaling as in adaptive quadrature.
+
+```{r}
+m <- c(1, 1.5)
+C <- matrix(c(2, 1, 1, 1), ncol = 2)
+
+obj <- function(theta) {
+  mvtnorm::dmvnorm(theta, mean = m, sigma = C, log = TRUE)
+}
+
+ff <- list(
+  fn = obj,
+  gr = function(theta) numDeriv::grad(obj, theta),
+  he = function(theta) numDeriv::hessian(obj, theta)
+)
+
+grid <- expand.grid(
+  theta1 = seq(-6, 6, length.out = 600),
+  theta2 = seq(-6, 6, length.out = 600)
+)
+
+ground_truth <- cbind(grid, pdf = exp(obj(grid)))
+
+plot <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
+  geom_contour(col = multi.utils::cbpalette()[1]) +
+  coord_fixed(xlim = c(-6, 6), ylim = c(-6, 6), ratio = 1) +
+  labs(x = "", y = "") +
+  theme_minimal()
+
+grid_5 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 5)
+mvQuad::rescale(grid_5, m = m, C = C, dec.type = 1)
+
+pca_grid_5 <- pca_rescale(m = m, C = C, s = 1, k = 5)
+
+plot_points <- function(gg) {
+  plot +
+    geom_point(
+      data = mvQuad::getNodes(gg) %>%
+        as.data.frame() %>%
+        mutate(weights = mvQuad::getWeights(gg)),
+      aes(x = V1, y = V2, size = weights),
+      alpha = 0.8,
+      col = multi.utils::cbpalette()[2],
+      inherit.aes = FALSE
+    ) +
+    scale_size_continuous(range = c(1, 2)) +
+    labs(x = "", y = "", size = "Weight") +
+    theme_minimal()
+}
+
+plot_points(grid_5) + plot_points(pca_grid_5) + plot_annotation(tag_levels = "A")
+```
+
+Try to create a grid similar to A above but using the second principal component rather than the first:
+
+```{r}
+eigenC <- eigen(C)
+E <- eigenC$vectors
+lambda <- eigenC$values
+
+gg_s <- mvQuad::createNIGrid(dim = 1, type = "GHe", level = 5)
+nodes_out <- t(E[, 2] %*% diag(sqrt(lambda[2]), ncol = 1) %*% t(mvQuad::getNodes(gg_s)))
+for(j in 1:2) nodes_out[, j] <- nodes_out[, j] + m[j] # Adaption
+weights_out <- mvQuad::getWeights(gg_s) * as.numeric(mvQuad::getWeights(mvQuad::createNIGrid(dim = 1, type = "GHe", level = 1)))
+weights_out <- det(chol(C)) * weights_out # Adaption
+
+custom_grid_5 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 1)
+custom_grid_5$level <- rep(NA, times = 2)
+custom_grid_5$ndConstruction <- "custom"
+custom_grid_5$nodes <- nodes_out
+custom_grid_5$weights <- weights_out
+
+plot_points(grid_5) / plot_points(pca_grid_5) / plot_points(custom_grid_5) + plot_annotation(tag_levels = "A")
+
+ggsave("pca-demo.png", h = 7, w = 6.25)
+```
+
+We know that $C = E \Lambda E^\top = \sum \lambda_i \mathbf{e}_i \mathbf{e}_i^\top$
+
+```{r}
+lambda[1] * E[, 1] %*% t(E[, 1]) + lambda[2] * E[, 2] %*% t(E[, 2])
+```
+
+We also know that any vector can be written in terms of the eigendecomposition.
+For example, the vector `c(1, 1)` can be written as:
+
+```{r}
+a <- c(1, 1) %*% E
+
+a[1] * E[, 1] + a[2] * E[, 2]
+```
+
+# Testing prerotation
+
+See @jackel2005note.
+
+```{r}
+R45 <- matrix(
+  c(cos(pi / 2), sin(pi / 2), -sin(pi / 2), cos(pi / 2)), ncol = 2, nrow = 2
+)
+```
 
 ```{r}
 #' TODO!
 ```
+
+# Testing pruning
+
+Remove any nodes which have small enough weight [@jackel2005note].
+
+```{r}
+#' TODO!
+```
+
+# Original computing environment {-}
+
+```{r}
+sessionInfo()
+```
+
+# Bibliography {-}

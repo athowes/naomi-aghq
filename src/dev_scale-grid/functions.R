@@ -112,7 +112,7 @@ sd_levels_ghe_grid <- function(dim, level, cut_off, sd) {
   grid
 }
 
-#' Create a function to do the PCA rescaling, which also adapts according to the mean and reweights the nodes:
+#' Create a function to do the PCA rescaling, which also adapts according to the mean and reweights the nodes
 #'
 #' @param m Mean vector
 #' @param C Covariance matrix
