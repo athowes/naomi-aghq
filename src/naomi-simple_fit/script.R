@@ -144,17 +144,11 @@ if(aghq) {
   if(grid_type == "pca") {
     levels <- c(rep(k, s), rep(1, n_hyper - s))
     pca_base_grid <- mvQuad::createNIGrid(dim = n_hyper, type = "GHe", level = levels)
-
-    #' The k argument here shouldn't be doing anything: this should (in future) be fixed in aghq::aghq
-    quad <- fit_aghq(tmb_inputs_simple, k = 1, basegrid = pca_base_grid, dec.type = 1)
+    quad <- fit_aghq(tmb_inputs_simple, basegrid = pca_base_grid, dec.type = 1)
   }
 
   if(grid_type == "pca-scaled") {
-    levels <- c(rep(k, s), rep(1, n_hyper - s))
-    pca_base_grid <- mvQuad::createNIGrid(dim = n_hyper, type = "GHe", level = levels)
-
-    #' The k argument here shouldn't be doing anything: this should (in future) be fixed in aghq::aghq
-    quad <- fit_aghq(tmb_inputs_simple, k = 1, basegrid = pca_base_grid, dec.type = 1)
+    stop("Not implemented yet!")
   }
 
   if(sample && grid_type != "sparse") {
