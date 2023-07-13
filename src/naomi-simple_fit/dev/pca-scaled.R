@@ -52,7 +52,21 @@ create_pca_grid <- function(m, C, s, k) {
 
 pca_grid <- create_pca_grid(m = optresults$mode, C = solve(optresults$hessian), s = s, k = k)
 
-pca_grid
+S <- length(optresults$mode)
+whichfirst <- 1
+idxorder <- c(whichfirst, (1:S)[-whichfirst])
+m <- optresults$mode[idxorder]
+H <- optresults$hessian[idxorder, idxorder]
+C <- Matrix::forceSymmetric(solve(H))
+var <- diag(C)
+hyper_names <- names(m)
+hyper_name_starts <- stringr::str_extract(hyper_names, "^[^_]+")
+hyper_name_types <- match(hyper_name_starts, unique(hyper_name_starts))
+type_means <- tapply(var, hyper_name_types, mean)
+var_std <- var / type_means[hyper_name_types]
+Cs <- diag(1 / sqrt(var_std)) %*% C %*% diag(1 / sqrt(var_std))
+eigenCs <- eigen(Cs)
+rownames(eigenCs$vectors) <- hyper_names
 
 # quad <- local_marginal_laplace_tmb(obj, optresults = optresults, ...)
 # objout <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 1L, inner_verbose, progress, map, DLL = DLL)
