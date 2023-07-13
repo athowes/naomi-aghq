@@ -162,7 +162,7 @@ plot_total_variation <- function(eigen, label_x) {
   ggplot(data = NULL, aes(x = 1:length(eigen$values), y = cumsum(eigen$values) / sum(eigen$values))) +
     geom_point() +
     geom_hline(yintercept = 0.9, col = "grey", linetype = "dashed") +
-    annotate("text", x = label_x, y = 0.875, label = "90% of total correlation explained", col = "grey") +
+    annotate("text", x = label_x, y = 0.875, label = "90% of total variation explained", col = "grey") +
     scale_y_continuous(labels = scales::percent) +
     labs(x = "PCA dimensions included", y = "Total variation explained") +
     theme_minimal()
