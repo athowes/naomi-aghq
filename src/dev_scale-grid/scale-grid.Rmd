@@ -379,14 +379,14 @@ df_std %>%
     labs(x = "Hyperparameter", y = "Marginal variance", col = "Scale") +
     theme_minimal()
 
-Rs <- diag(1 / sqrt(df_std$mean_var)) %*% C %*% diag(1 / sqrt(df_std$mean_var))
-plot_matrix(Rs)
+Cs <- diag(1 / sqrt(df_std$mean_var)) %*% C %*% diag(1 / sqrt(df_std$mean_var))
+plot_matrix(Cs)
 
-eigenRs <- eigen(Rs)
-plot_total_variation(eigenRs, label_x = 5)
+eigenCs <- eigen(Cs)
+plot_total_variation(eigenCs, label_x = 5)
 
-rownames(eigenRs$vectors) <- hypers
-plot_pc_loadings(eigenRs)
+rownames(eigenCs$vectors) <- hypers
+plot_pc_loadings(eigenCs)
 ```
 
 ## Creating quadrature grids with different coordinate systems
