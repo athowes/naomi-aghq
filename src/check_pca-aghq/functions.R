@@ -77,7 +77,7 @@ local_normalize_logpost <- function(optresults, k, whichfirst = 1, basegrid = NU
 
 #' A local version of aghq::aghq
 #' Compatible with local_normalize_logpost -- i.e. allowing no adaption
-local_aghq <- function(ff,k,startingvalue,transformation = default_transformation(), optresults = NULL, basegrid = NULL, adapt = TRUE, control = default_control(), ...) {
+local_aghq <- function(ff, k, startingvalue, transformation = default_transformation(), optresults = NULL, basegrid = NULL, adapt = TRUE, control = default_control(), ...) {
 
   validate_control(control)
   validate_transformation(transformation)
@@ -97,7 +97,7 @@ local_aghq <- function(ff,k,startingvalue,transformation = default_transformatio
   }
 
   # Optimization
-  if (is.null(optresults)) utils::capture.output(optresults <- optimize_theta(ff,startingvalue,control,...))
+  if (is.null(optresults)) utils::capture.output(optresults <- optimize_theta(ff, startingvalue, control, ...))
 
   # Normalization
   normalized_posterior <- local_normalize_logpost(optresults, k, basegrid = basegrid, adapt = adapt, ndConstruction = control$ndConstruction, ...)
@@ -116,12 +116,12 @@ local_aghq <- function(ff,k,startingvalue,transformation = default_transformatio
 
   # Marginals
   d <- length(startingvalue)
-  marginals <- vector(mode = "list",length = d)
+  marginals <- vector(mode = "list", length = d)
 
-  if (control$method_summaries[1] == 'correct') {
-    for (j in 1:d) marginals[[j]] <- aghq:::marginal_posterior.aghq(out,j,method = 'correct')
+  if (control$method_summaries[1] == "correct") {
+    for (j in 1:d) marginals[[j]] <- aghq:::marginal_posterior.aghq(out, j, method = "correct")
   } else {
-    for (j in 1:d) marginals[[j]] <- aghq:::marginal_posterior.aghq(out,j,method = 'reuse')
+    for (j in 1:d) marginals[[j]] <- aghq:::marginal_posterior.aghq(out, j, method = "reuse")
   }
 
   out$marginals <- marginals

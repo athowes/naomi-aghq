@@ -30,53 +30,53 @@ local_normalize_logpost <- function(optresults, k, whichfirst = 1, basegrid = NU
 
 #' A local version of aghq::aghq
 #' Compatible with local_normalize_logpost -- i.e. allowing no adaption
-local_aghq <- function(ff,k,startingvalue,transformation = default_transformation(), optresults = NULL, basegrid = NULL, adapt = TRUE, control = default_control(), ...) {
+local_aghq <- function(ff, k, startingvalue, transformation = default_transformation(), optresults = NULL, basegrid = NULL, adapt = TRUE, control = default_control(), ...) {
 
-    validate_control(control)
-    validate_transformation(transformation)
-    transformation <- make_transformation(transformation)
+  validate_control(control)
+  validate_transformation(transformation)
+  transformation <- make_transformation(transformation)
 
-    # If they provided a basegrid, get the k from that. If they also provided a k, compare them and issue a warning
-    if (!is.null(basegrid)) {
-      if (missing(k)) {
-        k <- max(as.numeric(basegrid$level))
-      } else {
-        k2 <- max(as.numeric(basegrid$level))
-        if (k != k2) {
-          warning(paste0("You provided a basegrid and a specified number of quadrature points k. You do not need to specify k if you supply a basegrid. Further, they don't match: your grid has k = ",k2,", but you specified k = ",k,". Proceeding with k = ",k2,", from the supplied grid.\n"))
-          k <- k2
-        }
+  # If they provided a basegrid, get the k from that. If they also provided a k, compare them and issue a warning
+  if (!is.null(basegrid)) {
+    if (missing(k)) {
+      k <- max(as.numeric(basegrid$level))
+    } else {
+      k2 <- max(as.numeric(basegrid$level))
+      if (k != k2) {
+        warning(paste0("You provided a basegrid and a specified number of quadrature points k. You do not need to specify k if you supply a basegrid. Further, they don't match: your grid has k = ",k2,", but you specified k = ",k,". Proceeding with k = ",k2,", from the supplied grid.\n"))
+        k <- k2
       }
     }
-
-    # Optimization
-    if (is.null(optresults)) utils::capture.output(optresults <- optimize_theta(ff,startingvalue,control,...))
-
-    # Normalization
-    normalized_posterior <- local_normalize_logpost(optresults, k, basegrid = basegrid, adapt = adapt, ndConstruction = control$ndConstruction, ...)
-
-    if (control$onlynormconst) return(normalized_posterior$lognormconst)
-
-    out <- list(
-      normalized_posterior = normalized_posterior,
-      # marginals = marginals,
-      optresults = optresults,
-      control = control,
-      transformation = transformation
-    )
-
-    class(out) <- "aghq"
-
-    # Marginals
-    d <- length(startingvalue)
-    marginals <- vector(mode = "list",length = d)
-
-    if (control$method_summaries[1] == 'correct') {
-      for (j in 1:d) marginals[[j]] <- aghq:::marginal_posterior.aghq(out,j,method = 'correct')
-    } else {
-      for (j in 1:d) marginals[[j]] <- aghq:::marginal_posterior.aghq(out,j,method = 'reuse')
-    }
-
-    out$marginals <- marginals
-    out
   }
+
+  # Optimization
+  if (is.null(optresults)) utils::capture.output(optresults <- optimize_theta(ff, startingvalue, control, ...))
+
+  # Normalization
+  normalized_posterior <- local_normalize_logpost(optresults, k, basegrid = basegrid, adapt = adapt, ndConstruction = control$ndConstruction, ...)
+
+  if (control$onlynormconst) return(normalized_posterior$lognormconst)
+
+  out <- list(
+    normalized_posterior = normalized_posterior,
+    # marginals = marginals,
+    optresults = optresults,
+    control = control,
+    transformation = transformation
+  )
+
+  class(out) <- "aghq"
+
+  # Marginals
+  d <- length(startingvalue)
+  marginals <- vector(mode = "list", length = d)
+
+  if (control$method_summaries[1] == "correct") {
+    for (j in 1:d) marginals[[j]] <- aghq:::marginal_posterior.aghq(out, j, method = "correct")
+  } else {
+    for (j in 1:d) marginals[[j]] <- aghq:::marginal_posterior.aghq(out, j, method = "reuse")
+  }
+
+  out$marginals <- marginals
+  out
+}

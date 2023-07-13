@@ -183,6 +183,150 @@ local_sample_tmb <- function(fit, M = 1000, rng_seed = NULL, random_only = TRUE,
   # End expose naomi::sample_tmb
 }
 
+#' A local version of aghq::normalize_logpost
+#' I have added an argument whereby the basegrid provided can not be adapted (if it is adapted already)
+local_normalize_logpost <- function(optresults, k, whichfirst = 1, basegrid = NULL, adapt = TRUE, ndConstruction = "product", ...) {
+  S <- length(optresults$mode)
+  thegrid <- basegrid
+  idxorder <- c(whichfirst, (1:S)[-whichfirst])
+
+  if(adapt) {
+    m <- optresults$mode[idxorder]
+    H <- optresults$hessian[idxorder, idxorder]
+    mvQuad::rescale(thegrid, m = m, C = Matrix::forceSymmetric(solve(H)), dec.type = 2)
+  }
+
+  nodesandweights <- cbind(mvQuad::getNodes(thegrid), mvQuad::getWeights(thegrid))
+  colnames(nodesandweights) <- c(paste0("theta", idxorder), "weights")
+  nodesandweights <- as.data.frame(nodesandweights)
+  thetaorder <- paste0("theta", 1:S)
+  if (length(idxorder) == 1) {
+    nodesandweights$logpost <- sapply(nodesandweights[, thetaorder], optresults$ff$fn, ...)
+  }
+  else {
+    nodesandweights$logpost <- apply(nodesandweights[, thetaorder], 1, optresults$ff$fn, ...)
+  }
+  ww <- nodesandweights$weights
+  pp <- nodesandweights$logpost
+  lognormconst <- aghq:::logsumexpweights(pp, ww)
+  nodesandweights$logpost_normalized <- nodesandweights$logpost - lognormconst
+  list(nodesandweights = nodesandweights, grid = thegrid, lognormconst = lognormconst)
+}
+
+#' A local version of aghq::aghq
+#' Compatible with local_normalize_logpost -- i.e. allowing no adaption
+local_aghq <- function(ff, k, startingvalue, transformation = default_transformation(), optresults = NULL, basegrid = NULL, adapt = TRUE, control = default_control(), ...) {
+
+  validate_control(control)
+  validate_transformation(transformation)
+  transformation <- make_transformation(transformation)
+
+  # If they provided a basegrid, get the k from that. If they also provided a k, compare them and issue a warning
+  if (!is.null(basegrid)) {
+    if (missing(k)) {
+      k <- max(as.numeric(basegrid$level))
+    } else {
+      k2 <- max(as.numeric(basegrid$level))
+      if (k != k2) {
+        warning(paste0("You provided a basegrid and a specified number of quadrature points k. You do not need to specify k if you supply a basegrid. Further, they don't match: your grid has k = ",k2,", but you specified k = ",k,". Proceeding with k = ",k2,", from the supplied grid.\n"))
+        k <- k2
+      }
+    }
+  }
+
+  # Optimization
+  if (is.null(optresults)) utils::capture.output(optresults <- optimize_theta(ff, startingvalue, control, ...))
+
+  # Normalization
+  normalized_posterior <- local_normalize_logpost(optresults, k, basegrid = basegrid, adapt = adapt, ndConstruction = control$ndConstruction, ...)
+
+  if (control$onlynormconst) return(normalized_posterior$lognormconst)
+
+  out <- list(
+    normalized_posterior = normalized_posterior,
+    # marginals = marginals,
+    optresults = optresults,
+    control = control,
+    transformation = transformation
+  )
+
+  class(out) <- "aghq"
+
+  # Marginals
+  d <- length(startingvalue)
+  marginals <- vector(mode = "list", length = d)
+
+  if (control$method_summaries[1] == "correct") {
+    for (j in 1:d) marginals[[j]] <- aghq:::marginal_posterior.aghq(out, j, method = "correct")
+  } else {
+    for (j in 1:d) marginals[[j]] <- aghq:::marginal_posterior.aghq(out, j, method = "reuse")
+  }
+
+  out$marginals <- marginals
+  out
+}
+
+local_marginal_laplace_tmb <- function(ff, k, startingvalue, transformation = default_transformation(), optresults = NULL, basegrid = NULL, adapt = TRUE, control = default_control_tmb(), ...) {
+
+  validate_control(control, type = "tmb")
+  validate_transformation(transformation)
+  transformation <- make_transformation(transformation)
+
+  # Get names from TMB function template
+  thetanames <- NULL
+  if (exists('par',ff)) thetanames <- make.unique(names(ff$par), sep = "")
+
+  # Hessian
+  if (control$numhessian) {
+    ff$he <- function(theta) numDeriv::jacobian(ff$gr, theta, method = "Richardson")
+  }
+  ## Do aghq ##
+  # The aghq
+  quad <- local_aghq(ff = ff, k = k, transformation = transformation, startingvalue = startingvalue, optresults = optresults, basegrid = basegrid, adapt = adapt, control = control, ...)
+  if (control$onlynormconst) return(quad) # NOTE: control was passed to aghq here so quad should itself just be a number
+
+  ## Add on the info needed for marginal Laplace ##
+  # Add on the quad point modes and curvatures
+  distinctthetas <- quad$normalized_posterior$nodesandweights[, grep("theta", colnames(quad$normalized_posterior$nodesandweights))]
+  if (!is.data.frame(distinctthetas)) distinctthetas <- data.frame(theta1 = distinctthetas)
+
+  modesandhessians <- distinctthetas
+  if (is.null(thetanames)) {
+    thetanames <- colnames(distinctthetas)
+  } else {
+    colnames(modesandhessians) <- thetanames
+    colnames(quad$normalized_posterior$nodesandweights)[grep("theta", colnames(quad$normalized_posterior$nodesandweights))] <- thetanames
+  }
+  modesandhessians$mode <- vector(mode = "list", length = nrow(distinctthetas))
+  modesandhessians$H <- vector(mode = "list", length = nrow(distinctthetas))
+
+  # if (is.null(thetanames)) {
+  #   thetanames <- colnames(distinctthetas)
+  # } else {
+  #   colnames(modesandhessians)[colnames(modesandhessians) == colnames(distinctthetas)] <- thetanames
+  #   colnames(quad$normalized_posterior$nodesandweights)[grep('theta',colnames(quad$normalized_posterior$nodesandweights))] <- thetanames
+  # }
+
+  for (i in 1:nrow(distinctthetas)) {
+    # Get the theta
+    theta <- as.numeric(modesandhessians[i,thetanames])
+    # Set up the mode and hessian of the random effects. This happens when you run
+    # the TMB objective with a particular theta
+    ff$fn(theta)
+    # Now pull the mode and hessian. Have to be careful about scoping
+    mm <- ff$env$last.par
+    modesandhessians[i, "mode"] <- list(list(mm[ff$env$random]))
+    H <- ff$env$spHess(mm,random = TRUE)
+    H <- rlang::duplicate(H) # Somehow, TMB puts all evals of spHess in the same memory location.
+    modesandhessians[i, "H"] <- list(list(H))
+  }
+
+  quad$modesandhessians <- modesandhessians
+
+  class(quad) <- c("marginallaplace", "aghq")
+  quad
+}
+
 #' Inference for the Naomi model using aghq, edited to work with DLL = "naomi_simple"
 fit_aghq <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple", ...) {
   if (DLL == "naomi_simple") {
