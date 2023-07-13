@@ -90,8 +90,11 @@ data.frame(x = 1:length(lambda_CsC), Cs = cumsum(lambda_CsC) / sum(lambda_CsC), 
 s <- 8
 k <- 3
 d <- nrow(C)
+
 gg_s <- mvQuad::createNIGrid(dim = s, type = "GHe", level = k)
-nodes_out <- t(eigenCs$vectors[, 1:s] %*% diag(sqrt(lambda_CsC[1:s]), ncol = s) %*% t(mvQuad::getNodes(gg_s)))
+R <- eigenCs$vectors[, 1:s] %*% diag(sqrt(lambda_CsC[1:s]), ncol = s)
+nodes_out <- data.frame(t(R %*% t(mvQuad::getNodes(gg_s))))
+names(nodes_out) <- hyper_names
 for(j in 1:d) nodes_out[, j] <- nodes_out[, j] + m[j] # Adaption
 weights_out <- mvQuad::getWeights(gg_s) * as.numeric(mvQuad::getWeights(mvQuad::createNIGrid(dim = d - s, type = "GHe", level = 1)))
 weights_out <- det(chol(C)) * weights_out # Adaption
