@@ -19,7 +19,7 @@ compare_nodes_and_weights <- function(quad1, quad2) {
 
 #' Create a PCA-AGHQ grid
 #'
-#' @param m Mean vector
+#' @param m Mode vector
 #' @param C Covariance matrix
 #' @param s Small grid dimension
 #' @param k Number of points per small grid dimension
