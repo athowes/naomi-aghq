@@ -289,7 +289,7 @@ This grid has $3^8 = 6561$ nodes:
 
 How does the reconstruction of the covariance matrix with `r s` components look?
 
-```{r cov-reconstruction, class.source = 'fold-hide', fig.cap="Hessian matrix recons."}
+```{r cov-reconstruction, class.source = 'fold-hide', fig.cap="Covariance matrix reconstruction."}
 E_s <- E[, 1:s]
 Lambda_s <- Lambda[1:s, 1:s]
 C_s <- E_s %*% Lambda_s %*% t(E_s)

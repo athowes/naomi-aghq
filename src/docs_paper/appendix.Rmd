@@ -503,7 +503,7 @@ knitr::include_graphics("depends/total-variation.png")
 knitr::include_graphics("depends/pc-loadings.png")
 ```
 
-```{r reduced-rank, fig.cap="The reduced rank (8) matrix approximation to the Hessian is visually similar to the full rank matrix."}
+```{r reduced-rank, fig.cap="The reduced rank (8) matrix approximation to the covariance matrix is visually similar to the full rank original."}
 knitr::include_graphics("depends/reduced-rank.png")
 ```
 

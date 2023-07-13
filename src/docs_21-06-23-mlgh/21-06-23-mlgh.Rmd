@@ -151,7 +151,7 @@ knitr::include_graphics("depends/tv-plot.png")
 
 #
 
-```{r, echo=FALSE, message=FALSE, fig.cap="If you reconstruct the Hessian with just those 8 dimensions, it looks pretty similar.", out.width = '90%'}
+```{r, echo=FALSE, message=FALSE, fig.cap="If you reconstruct the covariance matrix with just those 8 dimensions, it looks pretty similar.", out.width = '90%'}
 knitr::include_graphics("depends/reduced-rank-plot.png")
 ```
 
