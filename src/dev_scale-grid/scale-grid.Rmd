@@ -308,16 +308,16 @@ Let's see how large the PCA approach would make the grids for Naomi:
 m <- sd_out$par.fixed
 C <- sd_out$cov.fixed
 
-gg3 <- pca_rescale(m = m, C = C, s = 3, k = 3)
+gg3 <- create_pca_grid(m = m, C = C, s = 3, k = 3)
 nrow(mvQuad::getNodes(gg3))
 
-gg5 <- pca_rescale(m = m, C = C, s = 5, k = 3)
+gg5 <- create_pca_grid(m = m, C = C, s = 5, k = 3)
 nrow(mvQuad::getNodes(gg5))
 
-gg7 <- pca_rescale(m = m, C = C, s = 7, k = 3)
+gg7 <- create_pca_grid(m = m, C = C, s = 7, k = 3)
 nrow(mvQuad::getNodes(gg7))
 
-gg9 <- pca_rescale(m = m, C = C, s = 9, k = 3)
+gg9 <- create_pca_grid(m = m, C = C, s = 9, k = 3)
 nrow(mvQuad::getNodes(gg9))
 ```
 
@@ -423,7 +423,7 @@ plot <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
 grid_5 <- mvQuad::createNIGrid(dim = 2, type = "GHe", level = 5)
 mvQuad::rescale(grid_5, m = m, C = C, dec.type = 1)
 
-pca_grid_5 <- pca_rescale(m = m, C = C, s = 1, k = 5)
+pca_grid_5 <- create_pca_grid(m = m, C = C, s = 1, k = 5)
 
 plot_points <- function(gg) {
   plot +

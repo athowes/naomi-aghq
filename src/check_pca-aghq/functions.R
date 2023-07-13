@@ -17,13 +17,13 @@ compare_nodes_and_weights <- function(quad1, quad2) {
     theme_minimal()
 }
 
-#' Create a function to do the PCA rescaling, which also adapts according to the mean and reweights the nodes:
+#' Create a PCA-AGHQ grid
 #'
 #' @param m Mean vector
 #' @param C Covariance matrix
 #' @param s Small grid dimension
 #' @param k Number of points per small grid dimension
-pca_rescale <- function(m, C, s, k) {
+create_pca_grid <- function(m, C, s, k) {
   d <- nrow(C)
   stopifnot(d == length(m))
   eigenC <- eigen(C)

@@ -34,10 +34,10 @@ plot <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
   theme_minimal()
 
 #' Define four AGHQ-PCA grids, with `k` running from 1 to 7:
-pca_grid_1 <- pca_rescale(m = m, C = C, s = 1, k = 1)
-pca_grid_3 <- pca_rescale(m = m, C = C, s = 1, k = 3)
-pca_grid_5 <- pca_rescale(m = m, C = C, s = 1, k = 5)
-pca_grid_7 <- pca_rescale(m = m, C = C, s = 1, k = 7)
+pca_grid_1 <- create_pca_grid(m = m, C = C, s = 1, k = 1)
+pca_grid_3 <- create_pca_grid(m = m, C = C, s = 1, k = 3)
+pca_grid_5 <- create_pca_grid(m = m, C = C, s = 1, k = 5)
+pca_grid_7 <- create_pca_grid(m = m, C = C, s = 1, k = 7)
 
 plot_points <- function(gg) {
   plot +
@@ -210,10 +210,10 @@ norm <- list(norm_1, norm_3, norm_5, norm_7)
 
 plot_points(grid_3)
 
-pca_grid_1 <- pca_rescale(m = m, C = C, s = 1, k = 1)
-pca_grid_3 <- pca_rescale(m = m, C = C, s = 1, k = 3)
-pca_grid_5 <- pca_rescale(m = m, C = C, s = 1, k = 5)
-pca_grid_7 <- pca_rescale(m = m, C = C, s = 1, k = 7)
+pca_grid_1 <- create_pca_grid(m = m, C = C, s = 1, k = 1)
+pca_grid_3 <- create_pca_grid(m = m, C = C, s = 1, k = 3)
+pca_grid_5 <- create_pca_grid(m = m, C = C, s = 1, k = 5)
+pca_grid_7 <- create_pca_grid(m = m, C = C, s = 1, k = 7)
 
 norm_pca_1 <- local_normalize_logpost(opt_bfgs, basegrid = pca_grid_1, adapt = FALSE)
 norm_pca_3 <- local_normalize_logpost(opt_bfgs, basegrid = pca_grid_3, adapt = FALSE)
