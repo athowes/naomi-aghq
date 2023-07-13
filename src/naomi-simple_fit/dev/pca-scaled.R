@@ -87,7 +87,7 @@ data.frame(x = 1:length(lambda_CsC), Cs = cumsum(lambda_CsC) / sum(lambda_CsC), 
   ) +
   theme_minimal()
 
-s <- 8
+s <- 3
 k <- 3
 d <- nrow(C)
 
@@ -127,7 +127,8 @@ ggplot(tmbstan_samples, aes(x = x)) +
   theme_minimal() +
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
 
-# quad <- local_marginal_laplace_tmb(obj, optresults = optresults, ...)
-# objout <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 1L, inner_verbose, progress, map, DLL = DLL)
-# quad$obj <- objout
-# quad
+quad <- local_marginal_laplace_tmb(obj, optresults = optresults, basegrid = gg, adapt = FALSE)
+
+objout <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 1L, inner_verbose, progress, map, DLL = DLL)
+quad$obj <- objout
+quad

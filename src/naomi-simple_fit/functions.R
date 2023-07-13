@@ -233,6 +233,7 @@ local_aghq <- function(ff, k = NULL, startingvalue, transformation = default_tra
   if (is.null(optresults)) utils::capture.output(optresults <- optimize_theta(ff, startingvalue, control, ...))
 
   # Normalization
+  message("Start normalizing logposterior")
   normalized_posterior <- local_normalize_logpost(optresults, k, basegrid = basegrid, adapt = adapt, ndConstruction = control$ndConstruction, ...)
 
   if (control$onlynormconst) return(normalized_posterior$lognormconst)
@@ -276,6 +277,7 @@ local_marginal_laplace_tmb <- function(ff, k, startingvalue, transformation = de
   }
 
   # The aghq
+  message("Start AGHQ")
   quad <- local_aghq(ff = ff, k = k, transformation = transformation, startingvalue = startingvalue, optresults = optresults, basegrid = basegrid, adapt = adapt, control = control, ...)
   if (control$onlynormconst) return(quad) # NOTE: control was passed to aghq here so quad should itself just be a number
 
