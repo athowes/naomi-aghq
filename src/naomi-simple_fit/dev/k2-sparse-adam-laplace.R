@@ -1,12 +1,11 @@
-#' This development script attempts to get AGHQ with Laplace marignals working
-#' for AGHQ k = 2 with sparse grid. It's big in the sense of biting off more than
-#' I can chew. The hypothetical culprit for what's going wrong wrong here is that
-#' the sparse weights, which sometimes are negative, are not suitable for reusing
-#' within the next integration. Possible next steps could be to confirm somehow
-#' that these sparse weights would cause a problem, or to try some alternative
-#' "sparse"-like grid integration strategies that do not produce negative weights.
-#' Possible "sparse"-like strategies include CCD and the adaptive choice of k by
-#' dimension idea that I had and started playing with in adaptive-k-dev.R
+#' This development script attempts to get AGHQ with Laplace marginals working
+#' for AGHQ k = 2 with sparse grid. The hypothetical culprit for what's going
+#' wrong here is that the sparse weights, which sometimes are negative, are not
+#' suitable for reusing within the next integration. Possible next steps could
+#' be to confirm somehow that these sparse weights would cause a problem, or to
+#' try some alternative "sparse"-like grid integration strategies that do not
+#' produce negative weights. Possible "sparse"-like strategies include CCD and
+#' he adaptive choice of k by dimension idea.
 
 #' Start of if(adam) loop
 

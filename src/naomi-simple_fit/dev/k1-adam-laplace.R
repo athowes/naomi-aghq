@@ -1,7 +1,5 @@
 #' This development script attempts to get AGHQ with Laplace marignals working
-#' for AGHQ k = 1. It's small in the sense of being simple enough that it works,
-#' which I have now confirmed. The next steps here are to get this into proper
-#' function.R code.
+#' for AGHQ k = 1. The next steps here are to get this into proper function code.
 
 #' Going to do k = 1
 #' Assume that the if(aghq) loop has been run

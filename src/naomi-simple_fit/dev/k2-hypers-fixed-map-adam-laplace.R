@@ -11,7 +11,7 @@ tmb$fit$par.fixed
 #' * `logit_phi_rho_x`
 #' * `logit_phi_rho_xs`
 #'
-#' These both have relatively large uncertainty -- see k-varied-adam-laplace.R
+#' These both have relatively large uncertainty
 
 #' This would give us 3^2 = 9 points
 n_hyper <- 2

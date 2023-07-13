@@ -1,4 +1,5 @@
 #' Expose internals of `MakeADFun` to look to change the matrix algebra
+#' This would be a next step to implementing Wood SINLA Laplace marginals
 
 local_MakeADFun <- function(
   data,
