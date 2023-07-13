@@ -63,8 +63,8 @@ hyper_names <- names(m)
 hyper_name_starts <- stringr::str_extract(hyper_names, "^[^_]+")
 hyper_name_types <- match(hyper_name_starts, unique(hyper_name_starts))
 type_means <- tapply(var, hyper_name_types, mean)
-var_std <- var / type_means[hyper_name_types]
-Cs <- diag(1 / sqrt(var_std)) %*% C %*% diag(1 / sqrt(var_std))
+mean_var <- type_means[hyper_name_types]
+Cs <- diag(1 / sqrt(mean_var)) %*% C %*% diag(1 / sqrt(mean_var))
 eigenCs <- eigen(Cs)
 rownames(eigenCs$vectors) <- hyper_names
 
