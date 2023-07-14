@@ -26,7 +26,7 @@ parameters:
   #' Default number of grid points per hyperparameter dimension for aghq
   k:
     default: 1
-  #' Type of grid to use for aghq: either product, sparse, pca or pca-scaled
+  #' Type of grid to use for aghq: either product, sparse, pca or scaled_pca
   grid_type:
     default: "product"
   #' If a PCA grid is to be used, how many dimensions should be kept?

@@ -119,48 +119,70 @@ if(tmb) {
 if(aghq) {
   start <- Sys.time()
 
-  if(!(grid_type %in% c("product", "sparse", "pca", "pca-scaled"))) {
-    warning('grid_type must be either "product", "sparse", "pca", or "pca-scaled"')
-  }
+  inner_verbose <- FALSE
+  progress <- NULL
+  map <- NULL
+  DLL <- "naomi_simple"
+
+  stopifnot(inherits(tmb_inputs_simple, "naomi_simple_tmb_input"))
+
+  obj <- local_make_tmb_obj(tmb_inputs_simple$data, tmb_inputs_simple$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL = DLL)
+
+  #' Start by doing the optimisation for the hyperparameters
+  control <- aghq::default_control_tmb()
+  optresults <- optimize_theta(obj, startingvalue = obj$par, control = control)
+
+  # In future, start optimisations from the hyperparamter mode
+  startingvalue <- optresults$mode
+  d <- length(optresults$mode)
+
+  #' Now the AGHQ grid can be created, potentially using the optimisation
+  stopifnot(grid_type %in% c("product", "sparse", "pca", "scaled_pca"))
 
   if(grid_type == "product") {
-    quad <- fit_aghq(tmb_inputs_simple, k = k)
+    basegrid <- NULL
+    adapt <- TRUE
   }
 
   if(grid_type == "sparse") {
-    sparse_grid <- mvQuad::createNIGrid(n_hyper, "GHe", k, "sparse")
-
-    control <- aghq::default_control_tmb()
+    basegrid <- mvQuad::createNIGrid(d, "GHe", k, "sparse")
     control$method_summaries <- "correct"
     control$ndConstruction <- "sparse"
-
-    quad <- fit_aghq(tmb_inputs_simple, k = k, basegrid = sparse_grid, control = control)
-
-    #' Note on time taken for sparse grids:
-    #' * k = 2 and ndConstruction = "sparse" is 49 points, and takes ~45 minutes
-    #' * k = 3 and ndConstruction = "sparse" it's 1225 points, and takes ~10 hours (on a cluster)
+    adapt <- TRUE
   }
 
   if(grid_type == "pca") {
-    levels <- c(rep(k, s), rep(1, n_hyper - s))
-    pca_base_grid <- mvQuad::createNIGrid(dim = n_hyper, type = "GHe", level = levels)
-    quad <- fit_aghq(tmb_inputs_simple, basegrid = pca_base_grid, dec.type = 1)
+    whichfirst <- 1
+    idxorder <- c(whichfirst, (1:d)[-whichfirst])
+    H <- optresults$hessian[idxorder, idxorder]
+    basegrid <- create_pca_grid(optresults$mode[idxorder], Matrix::forceSymmetric(solve(H)), s, k)
+    stopifnot(nrow(basegrid$nodes) == k^s)
+    adapt <- FALSE
   }
 
-  if(grid_type == "pca-scaled") {
-    stop("Not implemented yet!")
+  if(grid_type == "scaled_pca") {
+    whichfirst <- 1
+    idxorder <- c(whichfirst, (1:d)[-whichfirst])
+    H <- optresults$hessian[idxorder, idxorder]
+    basegrid <- create_scaled_pca_grid(optresults$mode[idxorder], Matrix::forceSymmetric(solve(H)), s, k)
+    stopifnot(nrow(basegrid$nodes) == k^s)
+    adapt <- FALSE
   }
 
+  #' Here is where the AGHQ is done
+  quad <- local_marginal_laplace_tmb(obj, k = k, optresults = optresults, startingvalue = startingvalue, basegrid = basegrid, adapt = adapt, control = control)
+  objout <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 1L, inner_verbose, progress, map, DLL = DLL)
+  quad$obj <- objout
+
+  #' Add uncertainty
+  #' Note: can't sample when the quadrature is sparse because of negative weights
   if(sample && grid_type != "sparse") {
-    #' Add uncertainty
-    #' Note: error sampling from sparse quadratures due to negative weights
-    quad <- sample_aghq(quad, M = nsample)
+    quad <- sample_aghq(quad, M = 10)
   }
-
-  #' Note that local_output_package_naomi_simple needs to be adapted to work with aghq fits
 
   end <- Sys.time()
 
+  #' Note that local_output_package_naomi_simple needs to be adapted to work with aghq fits
   out <- list(quad = quad, inputs = tmb_inputs_simple, naomi_data = naomi_data, time = end - start)
 
   saveRDS(out, "out.rds")

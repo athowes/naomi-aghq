@@ -240,7 +240,6 @@ local_aghq <- function(ff, k = NULL, startingvalue, transformation = default_tra
 
   out <- list(
     normalized_posterior = normalized_posterior,
-    # marginals = marginals,
     optresults = optresults,
     control = control,
     transformation = transformation
@@ -249,6 +248,7 @@ local_aghq <- function(ff, k = NULL, startingvalue, transformation = default_tra
   class(out) <- "aghq"
 
   # Marginals
+  # Error here when k not provided for now!
   # d <- length(startingvalue)
   # marginals <- vector(mode = "list", length = d)
   #
@@ -342,20 +342,59 @@ create_pca_grid <- function(m, C, s, k) {
   return(gg)
 }
 
-#' Inference for the Naomi model using aghq, edited to work with DLL = "naomi_simple"
-fit_aghq <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple", ...) {
-  if (DLL == "naomi_simple") {
-    stopifnot(inherits(tmb_input, "naomi_simple_tmb_input"))
-  } else {
-    stopifnot(inherits(tmb_input, "naomi_tmb_input"))
-  }
+#' Create a scaled PCA-AGHQ grid
+#'
+#' @param m Mode vector
+#' @param C Covariance matrix
+#' @param s Small grid dimension
+#' @param k Number of points per small grid dimension
+create_scaled_pca_grid <- function(m, C, s, k) {
+  d <- nrow(C)
+  stopifnot(d == length(m))
+  var <- diag(C)
 
-  obj <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 0L, inner_verbose, progress, map, DLL = DLL)
-  optresults <- optimize_theta(obj, startingvalue = obj$par, control = default_control_tmb())
-  quad <- local_marginal_laplace_tmb(obj, optresults = optresults, ...)
-  objout <- local_make_tmb_obj(tmb_input$data, tmb_input$par_init, calc_outputs = 1L, inner_verbose, progress, map, DLL = DLL)
-  quad$obj <- objout
-  quad
+  # The names of the hyperparameters
+  hyper_names <- names(m)
+
+  # What comes before _ in the name?
+  hyper_name_starts <- stringr::str_extract(hyper_names, "^[^_]+")
+  hyper_name_types <- match(hyper_name_starts, unique(hyper_name_starts))
+
+  # The mean variance for each type of hyperparameter
+  type_means <- tapply(var, hyper_name_types, mean)
+  mean_var <- type_means[hyper_name_types]
+
+  # Scale the covariance matrix by the type mean variance
+  Cs <- diag(1 / sqrt(mean_var)) %*% C %*% diag(1 / sqrt(mean_var))
+
+  # Eigencomposition of the scaled covariance matrix
+  eigenCs <- eigen(Cs)
+
+  # Proportion of variance in the covariance matrix explained by the eigenvectors of the scaled covariance
+  lambda_CsC <- apply(eigenCs$vectors, 2, function(v) as.numeric(v %*% C %*% v / v %*% v))
+
+  # Dense grid on s dimensions
+  gg_s <- mvQuad::createNIGrid(dim = s, type = "GHe", level = k)
+
+  # Transform the dense s grid onto all d dimensions
+  R <- eigenCs$vectors[, 1:s] %*% diag(sqrt(lambda_CsC[1:s]), ncol = s)
+  nodes_out <- data.frame(t(R %*% t(mvQuad::getNodes(gg_s))))
+  names(nodes_out) <- hyper_names
+
+  # Adapt by the mode
+  for(j in 1:d) nodes_out[, j] <- nodes_out[, j] + m[j]
+
+  # Calculate the weights as a product of s at level k and (d - s) at level 1
+  weights_out <- mvQuad::getWeights(gg_s) * as.numeric(mvQuad::getWeights(mvQuad::createNIGrid(dim = d - s, type = "GHe", level = 1)))
+  weights_out <- det(chol(C)) * weights_out # Adaption
+
+  # Put into mvQuad format
+  gg <- mvQuad::createNIGrid(dim = d, type = "GHe", level = 1)
+  gg$level <- rep(NA, times = d)
+  gg$ndConstruction <- "PCA"
+  gg$nodes <- nodes_out
+  gg$weights <- weights_out
+  return(gg)
 }
 
 #' Uncertainty for the Naomi model using aghq
@@ -366,15 +405,22 @@ sample_aghq <- function(quad, M, verbose = TRUE) {
   samp <- aghq::sample_marginal(quad, M)
 
   # This part replaces samples from TMB with samples from aghq
+  # The names of the samples from aghq::sample_marginal are not that descriptive
+  # * samp$samps: samples from the latent field
+  # * samp$theta: samples from the hyperparameters used to generate the latent field samples
+  # * samp$thetasamples: samples from the hyperparameters
+  # Currently I don't have a good way to sample from the hyperparamters using a non-dense grid!
+  # So for now I'll put the samp$theta samples in their place
+
   if (verbose) print("Rearranging samples")
   r <- quad$obj$env$random
   smp <- matrix(0, M, length(quad$obj$env$par))
   smp[, r] <- unname(t(samp$samps))
-  names(samp$thetasamples) <- names(samp$theta)
-  smp[, -r] <- unname(as.matrix(bind_rows(samp$thetasamples)))
+  # names(samp$thetasamples) <- names(samp$theta)
+  smp[, -r] <- unname(as.matrix(bind_rows(samp$theta)))
   smp <- as.data.frame(smp)
   colnames(smp)[r] <- rownames(samp$samps)
-  colnames(smp)[-r] <- names(samp$thetasamples)
+  colnames(smp)[-r] <- names(samp$theta)
 
   # This part is the same as TMB
   if (verbose) print("Simulating from model")
