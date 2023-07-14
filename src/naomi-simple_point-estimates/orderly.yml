@@ -41,7 +41,8 @@ depends:
       use:
         depends/tmb.rds: out.rds
   - naomi-simple_fit:
-      id: latest(parameter:aghq == TRUE && parameter:k == 3 && parameter:s == 8)
+      id: 20230424-192453-b044811f
+      # id: latest(parameter:aghq == TRUE && parameter:grid_type == "pca" && parameter:k == 3 && parameter:s == 8)
       use:
         depends/aghq.rds: out.rds
   - naomi-simple_fit:

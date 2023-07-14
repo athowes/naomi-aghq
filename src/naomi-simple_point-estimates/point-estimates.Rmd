@@ -316,6 +316,66 @@ mean_plot_output_alt$labels$y <- sd_plot_output_alt$labels$y <- ""
 ggsave("mean-sd-alt-output.png", mean_sd_plot_output_alt, h = 6, w = 6.25, bg = "white")
 ```
 
+Version split by output type:
+
+```{r}
+df_metrics_output_split <- df_plot_output %>%
+  group_by(method, indicator, type, par) %>%
+  summarise(
+    rmse = sqrt(mean((truth - approximate)^2)),
+    mae = mean(abs(truth - approximate))
+  ) %>%
+  ungroup()
+
+df_metrics_output_split_pct <- df_metrics_output_split %>%
+  split(~ indicator + type + par) %>%
+  lapply(function(x) {
+    x %>% summarise(
+      rmse_diff = 100 * diff(rmse) / max(rmse),
+      mae_diff = 100 * diff(mae) / max(mae)
+    )
+  }) %>%
+  bind_rows(.id = "id") %>%
+  separate(id, c("indicator", "type", "par"), sep = "\\.")
+
+df_metrics_output_split <- df_metrics_output_split %>%
+  left_join(
+    df_metrics_output_split_pct,
+    by = c("indicator", "type", "par")
+  ) %>%
+  mutate(
+    label = ifelse(
+      method == "PCA-AGHQ",
+      paste0("RMSE: ", signif(rmse, 2), " (", signif(rmse_diff, 2), "%)", "\nMAE: ", signif(mae, 2), " (", signif(mae_diff, 2), "%)"),
+      paste0("RMSE: ", signif(rmse, 2), "\nMAE: ", signif(mae, 2))
+    )
+  )
+
+plot_outputs <- function(.indicator, .par, col) {
+  df_plot_output %>%
+  filter(indicator == .indicator, par == .par) %>%
+  ggplot() +
+  geom_jitter(aes(x = truth, y = approximate - truth, color = par), shape = 1, alpha = 0.4, width = jitter_amount, height = jitter_amount) +
+  scale_color_manual(values = c(col, "white", "white")) +
+  facet_grid(indicator + par ~ method) +
+  geom_abline(slope = 0, intercept = 0, linetype = "dashed", size = 0.25) +
+  geom_text(
+    data = filter(df_metrics_output_split, indicator == .indicator, par == .par),
+    aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
+  ) +
+  labs(x = "NUTS", y = "Approximation - NUTS", col = "Output") +
+  theme_minimal() +
+  theme(legend.position = "none")
+}
+
+plot_outputs(.indicator = "Posterior mean estimate", .par = "rho_t1_out", col = "#E69F00")
+plot_outputs(.indicator = "Posterior mean estimate", .par = "lambda_t1_out", col = "#009E73")
+plot_outputs(.indicator = "Posterior mean estimate", .par = "alpha_t1_out", col = "#56B4E9")
+plot_outputs(.indicator = "Posterior SD estimate", .par = "rho_t1_out", col = "#E69F00")
+plot_outputs(.indicator = "Posterior SD estimate", .par = "lambda_t1_out", col = "#009E73")
+plot_outputs(.indicator = "Posterior SD estimate", .par = "alpha_t1_out", col = "#56B4E9")
+```
+
 # Original computing environment {-}
 
 ```{r}
