@@ -44,13 +44,13 @@ orderly::orderly_commit(id) #' [x]
 #' Scaling up the grid
 run_commit_push("dev_scale-grid")
 
-#' With PCA-AGHQ experiments
+#' PCA-AGHQ experiments
 run_pca_aghq <- function(k, s, sample = FALSE) {
   id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = k, s = s, grid_type = "pca", sample = sample))
   orderly::orderly_commit(id)
 }
 
-#' Runs for scoping out times
+#' Runs for scoping out times and calculating normalising constants
 run_pca_aghq(k = 2, s = 1) #' [x]
 run_pca_aghq(k = 2, s = 2) #' [x]
 run_pca_aghq(k = 2, s = 3) #' [x]
@@ -73,6 +73,16 @@ run_pca_aghq(k = 5, s = 4) #' [x]
 run_pca_aghq(k = 5, s = 5) #' [x]
 
 run_commit_push("naomi-simple_increase-s-k") #' [x]
+
+#' Scaled PCA-AGHQ experiments
+run_scaled_pca_aghq <- function(k, s, sample = FALSE) {
+  id <- orderly::orderly_run("naomi-simple_fit", parameters = list(aghq = TRUE, k = k, s = s, grid_type = "scaled_pca", sample = sample))
+  orderly::orderly_commit(id)
+}
+
+#' Run to first test it works, then a reasonable try at good inference
+run_scaled_pca_aghq(k = 3, s = 3) #' [x]
+run_scaled_pca_aghq(k = 3, s = 8, sample = TRUE) #' [ ]
 
 #' SINLA development
 run_commit_push("dev_sinla") #' Without experiments

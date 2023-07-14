@@ -177,7 +177,7 @@ if(aghq) {
   #' Add uncertainty
   #' Note: can't sample when the quadrature is sparse because of negative weights
   if(sample && grid_type != "sparse") {
-    quad <- sample_aghq(quad, M = 10)
+    quad <- sample_aghq(quad, M = nsample)
   }
 
   end <- Sys.time()
