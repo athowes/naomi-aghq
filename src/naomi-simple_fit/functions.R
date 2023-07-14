@@ -315,6 +315,33 @@ local_marginal_laplace_tmb <- function(ff, k, startingvalue, transformation = de
   quad
 }
 
+#' Create a PCA-AGHQ grid
+#'
+#' @param m Mode vector
+#' @param C Covariance matrix
+#' @param s Small grid dimension
+#' @param k Number of points per small grid dimension
+create_pca_grid <- function(m, C, s, k) {
+  d <- nrow(C)
+  stopifnot(d == length(m))
+  eigenC <- eigen(C)
+  lambda <- eigenC$values
+  E <- eigenC$vectors
+  E_s <- E[, 1:s]
+  gg_s <- mvQuad::createNIGrid(dim = s, type = "GHe", level = k)
+  nodes_out <- t(E_s %*% diag(sqrt(lambda[1:s]), ncol = s) %*% t(mvQuad::getNodes(gg_s)))
+  for(j in 1:d) nodes_out[, j] <- nodes_out[, j] + m[j] # Adaption
+  weights_out <- mvQuad::getWeights(gg_s) * as.numeric(mvQuad::getWeights(mvQuad::createNIGrid(dim = d - s, type = "GHe", level = 1)))
+  weights_out <- det(chol(C)) * weights_out # Adaption
+
+  gg <- mvQuad::createNIGrid(dim = d, type = "GHe", level = 1)
+  gg$level <- rep(NA, times = d)
+  gg$ndConstruction <- "PCA"
+  gg$nodes <- nodes_out
+  gg$weights <- weights_out
+  return(gg)
+}
+
 #' Inference for the Naomi model using aghq, edited to work with DLL = "naomi_simple"
 fit_aghq <- function(tmb_input, inner_verbose = FALSE, progress = NULL, map = NULL, DLL = "naomi_simple", ...) {
   if (DLL == "naomi_simple") {

@@ -36,7 +36,6 @@ create_pca_grid <- function(m, C, s, k) {
   weights_out <- mvQuad::getWeights(gg_s) * as.numeric(mvQuad::getWeights(mvQuad::createNIGrid(dim = d - s, type = "GHe", level = 1)))
   weights_out <- det(chol(C)) * weights_out # Adaption
 
-  # Putting things into a mvQuad format manually
   gg <- mvQuad::createNIGrid(dim = d, type = "GHe", level = 1)
   gg$level <- rep(NA, times = d)
   gg$ndConstruction <- "PCA"
