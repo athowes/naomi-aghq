@@ -71,7 +71,7 @@ The notation $\sum_{\{x\}}$ is used as shorthand for $\sum_{x \in \{x\}}$, and a
 
 ### Structured random effects
 
-We use structured random effects to enable partial pooling of information across units assessed as being similar, such as those belonging to neighbouring districts or adjacent age-bands.
+We use structured random effects to enable partial pooling of information across units assessed as being similar, such as those belonging to neighbouring districts or adjacent age groups.
 Let $\bu$ be a generic random effect, with length $\dim(\bu) > 1$.
 Three types of structured random effects are used in the model:
 
@@ -487,24 +487,24 @@ Variable name & Notation & Type & Size & Domain & $\rho$ input? & $\alpha$ input
 
 ## Additional figures
 
-```{r marginal-sd, fig.cap="Hyperparameters on the logit-scale had systematically higher marginal standard deviations than those on the log-scale. This is because variation on the real scale is compressed by the inverse logit and expanded by the inverse log (exponential)."}
-knitr::include_graphics("depends/marginal-sd.png")
+```{r scree, fig.cap="Most variation could be explained by far fewer than the full 24 dimensions."}
+knitr::include_graphics("depends/total-variation.png")
+```
+
+```{r reduced-rank, fig.cap="The reduced rank (8) matrix approximation to the covariance matrix is visually similar to the full rank original."}
+knitr::include_graphics("depends/reduced-rank.png")
 ```
 
 ```{r nodes-quantiles-sd, fig.cap="Standard deviations of the quantiles of the quadrature nodes within the NUTS posterior draws varied substantially, in accordance with the marginal standard deviations shown in Figure \\ref{fig:marginal-sd}."}
 knitr::include_graphics("depends/nodes-quantiles-sd.png")
 ```
 
-```{r scree, fig.cap="Most variation could be explained by far fewer than the full 24 dimensions."}
-knitr::include_graphics("depends/total-variation.png")
+```{r marginal-sd, fig.cap="Hyperparameters on the logit-scale had systematically higher marginal standard deviations than those on the log-scale. This is because variation on the real scale is compressed by the inverse logit and expanded by the inverse log (exponential)."}
+knitr::include_graphics("depends/marginal-sd.png")
 ```
 
 ```{r pc-loadings, fig.cap="Principal component loadings."}
 knitr::include_graphics("depends/pc-loadings.png")
-```
-
-```{r reduced-rank, fig.cap="The reduced rank (8) matrix approximation to the covariance matrix is visually similar to the full rank original."}
-knitr::include_graphics("depends/reduced-rank.png")
 ```
 
 ## Estimated normalising constant comparison
