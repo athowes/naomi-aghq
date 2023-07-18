@@ -164,12 +164,48 @@ Variation between units can be explained by high correlation and high standard d
 Hence there is an unidentifiabiility here that leads to correlated posteriors.
 
 ```{r}
+bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_a", "logit_phi_alpha_a"), diag_fun = "hist", off_diag_fun = "hex")
 bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_as", "logit_phi_alpha_as"), diag_fun = "hist", off_diag_fun = "hex")
 bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_as", "logit_phi_rho_as"), diag_fun = "hist", off_diag_fun = "hex")
-bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_a", "logit_phi_alpha_a"), diag_fun = "hist", off_diag_fun = "hex")
-(plot <- bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_a", "logit_phi_rho_a"), diag_fun = "hist", off_diag_fun = "hex"))
+bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_a", "logit_phi_rho_a"), diag_fun = "hist", off_diag_fun = "hex")
 
-ggsave("rho_a.png", plot, h = 4, w = 6.25)
+ggsave("rho_a.png", h = 4, w = 6.25)
+
+get_correlation <- function(par) {
+  cor(as.data.frame(rstan::extract(mcmc, c(paste0("log_sigma_", par), paste0("logit_phi_", par)))))[1, 2]
+}
+
+ar1_cor_df <- data.frame(
+  par = c("alpha_a", "alpha_as", "rho_as", "rho_a"),
+  type = "ar1"
+) %>%
+  mutate(cor = purrr::map_dbl(get_correlation, .x = par))
+
+ar1_cor_df
+```
+
+## BYM2 orthogonality
+
+Does the supposed orthogonality of the BYM2 model play out?
+Looks like the answer is mostly yes.
+
+```{r}
+bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_x", "logit_phi_rho_x"), diag_fun = "hist", off_diag_fun = "hex")
+bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_xs", "logit_phi_rho_xs"), diag_fun = "hist", off_diag_fun = "hex")
+bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_xs", "logit_phi_alpha_xs"), diag_fun = "hist", off_diag_fun = "hex")
+bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_x", "logit_phi_alpha_x"), diag_fun = "hist", off_diag_fun = "hex")
+
+ggsave("alpha_x.png", h = 4, w = 6.25)
+
+bym2_cor_df <- data.frame(
+  par = c("rho_x", "rho_xs", "alpha_x", "alpha_xs"),
+  type = "bym2"
+) %>%
+  mutate(cor = purrr::map_dbl(get_correlation, .x = par))
+
+bym2_cor_df
+
+write_csv(bind_rows(ar1_cor_df, bym2_cor_df), file = "ar1-bym2-cor.csv")
 ```
 
 ## ART attendance
