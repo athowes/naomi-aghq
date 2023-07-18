@@ -3,6 +3,8 @@ library(patchwork)
 
 cols <- c("#56B4E9","#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
 
+#' Fig A
+
 TMB::compile("2d.cpp")
 dyn.load(TMB::dynlib("2d"))
 
@@ -106,6 +108,12 @@ ggsave("figA.png", h = 2.5, w = 6.25, bg = "white")
 
 #' Fig B
 
+# aghq <- readRDS("depends/aghq.rds")
+
+#' TODO Generate this figure here: requires having outputs for AGHQ
+
+#' Fig C
+
 df_compare <- readRDS("depends/beta_alpha.rds")
 
 mean <- df_compare %>%
@@ -173,4 +181,4 @@ ecdf_diff <- ggplot(ecdf_df, aes(x = x, y = ecdf_diff, col = method)) +
 
 histogram + ecdf_diff
 
-ggsave("figB.png", h = 4, w = 6.25, background = "white")
+ggsave("figC.png", h = 4, w = 6.25, background = "white")

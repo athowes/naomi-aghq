@@ -22,6 +22,18 @@ We start by obtaining results from the latest version of `naomi-simple_fit` with
 ```{r}
 out <- readRDS("depends/out.rds")
 mcmc <- out$mcmc$stanfit
+
+depends <- yaml::read_yaml("orderly.yml")$depends
+
+dependency_details <- function(i) {
+  report_name <- names(depends[[i]])
+  print(paste0("Inference results obtained from ", report_name, " with the query ", depends[[i]][[report_name]]$id))
+  report_id <- orderly::orderly_search(query = depends[[i]][[report_name]]$id, report_name)
+  print(paste0("Obtained report had ID ", report_id, " and was run with the following parameters:"))
+  print(orderly::orderly_info(report_id, report_name)$parameters)
+}
+
+dependency_details(1)
 ```
 
 This MCMC took `r round(out$time, 3)` days to run
@@ -29,13 +41,13 @@ This MCMC took `r round(out$time, 3)` days to run
 ```{r}
 cbpalette <- c("#56B4E9", "#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
 
-bayesplot::color_scheme_set("viridisA")
+color_scheme_set("viridis")
 ggplot2::theme_set(theme_minimal())
 ```
 
 # $\hat R$
 
-We are looking for values of $\hat R$ less than 1.1 here. 
+We are looking for values of $\hat R$ less than 1.05 here. 
 
 ```{r}
 rhats <- bayesplot::rhat(mcmc)
@@ -55,8 +67,10 @@ bayesplot::mcmc_rhat_data(rhats) %>%
 
 ggsave("rhat.png", h = 3, w = 6.25)
 
-(big_rhats <- rhats[rhats > 1.1])
+(big_rhats <- rhats[rhats > 1.05])
 length(big_rhats) / length(rhats)
+
+(max_rhat <- max(rhats))
 ```
 
 # ESS ratio
@@ -84,6 +98,8 @@ bayesplot::mcmc_neff_data(ratios) %>%
   )
 
 ggsave("ratio.png", h = 3, w = 6.25)
+
+(average_ess_ratio <- mean(ratios))
 ```
 
 # ESS
@@ -101,6 +117,28 @@ data.frame(mcmc_summary) %>%
     labs(x = "ESS", y = "Count")
 
 ggsave("ess.png", h = 3, w = 6.25)
+
+(ess_min <- min(mcmc_summary[, "n_eff"]))
+(ess_lower <- quantile(mcmc_summary[, "n_eff"], 0.025))
+(ess_median <- quantile(mcmc_summary[, "n_eff"], 0.50))
+(ess_upper <- quantile(mcmc_summary[, "n_eff"], 0.975))
+(ess_max <- max(mcmc_summary[, "n_eff"]))
+```
+
+Save outputs for use in manuscript:
+
+```{r}
+out <- list(
+  "max_rhat" = max_rhat,
+  "average_ess_ratio" = average_ess_ratio, 
+  "ess_min" = ess_min,
+  "ess_lower" = ess_lower,
+  "ess_median" = ess_median,
+  "ess_upper" = ess_upper,
+  "ess_max" = ess_max
+)
+
+saveRDS(out, "out.rds")
 ```
 
 # Autocorrelation
@@ -117,6 +155,14 @@ bayesplot::mcmc_acf(mcmc, pars = vars(starts_with("beta")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("beta")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("logit")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("log_sigma")))
+```
+
+The parameters with the worst ESS and the worst $\hat R$:
+
+```{r}
+(plot <- bayesplot::mcmc_trace(mcmc, pars = c(names(which.min(mcmc_summary[, "n_eff"])), names(which.max(rhats)))))
+
+ggsave("worst-trace.png", plot, h = 4, w = 6.25)
 ```
 
 ## Prevalence model
@@ -167,9 +213,9 @@ Hence there is an unidentifiabiility here that leads to correlated posteriors.
 bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_a", "logit_phi_alpha_a"), diag_fun = "hist", off_diag_fun = "hex")
 bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_as", "logit_phi_alpha_as"), diag_fun = "hist", off_diag_fun = "hex")
 bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_as", "logit_phi_rho_as"), diag_fun = "hist", off_diag_fun = "hex")
-bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_a", "logit_phi_rho_a"), diag_fun = "hist", off_diag_fun = "hex")
+(plot <- bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_a", "logit_phi_rho_a"), diag_fun = "hist", off_diag_fun = "hex"))
 
-ggsave("rho_a.png", h = 4, w = 6.25)
+ggsave("rho_a.png", plot, h = 4, w = 6.25)
 
 get_correlation <- function(par) {
   cor(as.data.frame(rstan::extract(mcmc, c(paste0("log_sigma_", par), paste0("logit_phi_", par)))))[1, 2]
@@ -193,9 +239,9 @@ Looks like the answer is mostly yes.
 bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_x", "logit_phi_rho_x"), diag_fun = "hist", off_diag_fun = "hex")
 bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_xs", "logit_phi_rho_xs"), diag_fun = "hist", off_diag_fun = "hex")
 bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_xs", "logit_phi_alpha_xs"), diag_fun = "hist", off_diag_fun = "hex")
-bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_x", "logit_phi_alpha_x"), diag_fun = "hist", off_diag_fun = "hex")
+(plot <- bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_x", "logit_phi_alpha_x"), diag_fun = "hist", off_diag_fun = "hex"))
 
-ggsave("alpha_x.png", h = 4, w = 6.25)
+ggsave("alpha_x.png", plot, h = 4, w = 6.25)
 
 bym2_cor_df <- data.frame(
   par = c("rho_x", "rho_xs", "alpha_x", "alpha_xs"),
@@ -224,10 +270,6 @@ neighbours_pairs_plot <- function(par, i) {
   neighbour_pars <- paste0(par, "[", c(i, nb[[i]]), "]")
   bayesplot::mcmc_pairs(mcmc, pars = neighbour_pars, diag_fun = "hist", off_diag_fun = "hex")
 }
-
-# area_merged %>%
-#   filter(area_level == max(area_level)) %>%
-#   print(n = Inf)
 ```
 
 Here are Nkhata Bay and neighbours:

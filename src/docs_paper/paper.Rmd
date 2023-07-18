@@ -412,7 +412,7 @@ Method & Software & Details \\
 \midrule
 TMB & \texttt{TMB} & $1000$ samples \\
 PCA-AGHQ & \texttt{aghq} & $k = 3, s = 8$ (see Section \ref{sec:pca-use}), $1000$ samples \\
-NUTS & \texttt{tmbstan} & $4$ chains of $20000$ iterations, with the first $10000$ iterations of each chain discarded as warmup, thinned by a factor of $20$. Default NUTS tuning parameters \citep{hoffman2014no}. \\
+NUTS & \texttt{tmbstan} & $4$ chains of $100,000$ iterations, with the first $50,000$ iterations of each chain discarded as warmup, thinned by a factor of $40$, to give a total of $5000$ samples kept. Default NUTS tuning parameters \citep{hoffman2014no}. \\
 \bottomrule
 \end{tabularx}
 \caption{A summary of settings used for each inferential method.}
@@ -422,11 +422,15 @@ NUTS & \texttt{tmbstan} & $4$ chains of $20000$ iterations, with the first $1000
 
 ## NUTS convergence
 
-We increased the chain lengths until all NUTS diagnostics were acceptable.
-This required chains of length 20,000, which we thinned by a factor of 20 for ease-of-storage.
-All potential scale reduction factors [@gelman1992inference; @vehtari2021rank] were $\hat R < 1.05$ (Figure S7).
+```{r}
+mcmc_out <- readRDS("depends/mcmc-out.rds")
+# signif(mcmc_out$max_rhat, 4)
+```
+
+Obtaining acceptable NUTS diagnostics required four chains run in parallel for 100,000 iterations, thinned by a factor of 20 for ease-of-storage.
+The largest potential scale reduction factor [@gelman1992inference; @vehtari2021rank] was $\hat R = 1.021$ (Figure S7), and there were no divergent transitions.
+We considered the NUTS results a gold-standard, though inaccuracies remain possible.
 For full details see Appendix S2.
-Though inaccuracies remain possible, we considered the NUTS results to be a gold-standard.
 
 ## Use of PCA-AGHQ \label{sec:pca-use}
 
@@ -441,7 +445,7 @@ knitr::include_graphics("depends/nodes-samples-comparison.png")
 ### Visual inspection
  
 Overlaying the resulting $3^8 = 6561$ PCA-AGHQ nodes onto the hyperparameter marginal posteriors obtained using NUTS, we found approximately 12 of the 24 hyperparameters had well covered marginals (Figure \ref{fig:node-positions}).
-Though 12 is an improvement on the 8 that would be naively achieved using a dense grid, there remained many hyperparameters poorly covered.
+Though 12 improves on the 8 naively achievable using a dense grid, there remained many hyperparameters poorly covered.
 Coverage was associated with marginal standard deviation (Figure S4), which varied particularly according to the hyperparameter scale.
 All constrained hyperparameters $\theta$ were transformed to the real line, using either a log ($\theta > 0$) or logit ($\theta \in [0, 1]$) transformation.
 As a result, marginal standard deviations for log transformed hyperparameters were systematically smaller than those which were logit transformed (Figure S5).
@@ -475,7 +479,11 @@ Appendix S3 shows those values which we could compute in a reasonable time (less
 
 ### Posterior contraction
 
-To assess the informativeness of the data we compared the prior variance $\sigma_\text{prior}^2(\psi)$ to the posterior variance $\sigma_\text{posterior}^2(\psi)$ via the posterior contraction $c(\psi) = 1 - (\sigma_\text{posterior}^2(\psi) / \sigma_\text{prior}^2(\psi))$ [@schad2021toward], where $\psi$ is a model parameter.
+To assess the informativeness of the data we compared the prior variance $\sigma_\text{prior}^2(\psi)$ to the posterior variance $\sigma_\text{posterior}^2(\psi)$ via the posterior contraction [@schad2021toward]
+\begin{equation}
+c(\psi) = 1 - (\sigma_\text{posterior}^2(\psi) / \sigma_\text{prior}^2(\psi)),
+\end{equation}
+where $\psi$ is a model parameter.
 We found that (Figure \ref{fig:contraction})) something something.
 For greater interpretability, facet parameters in this plot according to model component.
 
@@ -539,12 +547,12 @@ Results for the PSIS analysis are pending.
 
 ### Maximum mean discrepancy
 
-Let $\Psi = \{\bpsi_i\}_{i = 1}^n$ and $\Psi = \{\bpsi_i\}_{i = 1}^n$ be two sets of joint posterior samples, and $k$ be a kernel.
+Let $\Psi^{1} = \{\bpsi^1_i\}_{i = 1}^n$ and $\Psi^2 = \{\bpsi^2_i\}_{i = 1}^n$ be two sets of joint posterior samples, and $k$ be a kernel.
 The maximum mean discrepancy [MMD; @gretton2006kernel] can be empirically estimated by
 \begin{equation*}
-\text{MMD}(\Psi, \Psi) = \sqrt{\frac{1}{n^2} \sum_{i, j = 1}^n k(\bpsi_i, \bpsi_j) - \frac{2}{n^2} \sum_{i, j = 1}^n k(\bpsi_i, \bpsi_j) + \frac{1}{n^2} \sum_{i, j = 1}^n k(\bpsi_i, \bpsi_j)}.
+\text{MMD}(\Psi^1, \Psi^2) = \sqrt{\frac{1}{n^2} \sum_{i, j = 1}^n k(\bpsi^1_i, \bpsi^1_j) - \frac{2}{n^2} \sum_{i, j = 1}^n k(\bpsi_i^1, \bpsi_j^2) + \frac{1}{n^2} \sum_{i, j = 1}^n k(\bpsi^2_i, \bpsi^2_j)}.
 \end{equation*}
-We set $k(\bpsi_i, \bpsi_j) = \exp(-\sigma \lVert \bpsi_i - \bpsi_j \rVert^2)$ with $\sigma$ estimated from data using the `kernlab` \textsc{R} package [@karatzoglou2019package].
+We set $k(\bpsi^1, \bpsi^2) = \exp(-\sigma \lVert \bpsi^1 - \bpsi^2 \rVert^2)$ with $\sigma$ estimated from data using the `kernlab` \textsc{R} package [@karatzoglou2019package].
 As compared with NUTS, the MMD from PCA-AGHQ (0.071) was 11% smaller than that of TMB (0.080).
 
 <!-- This should be calculated inline! -->
@@ -570,7 +578,7 @@ Naomi can be used to assess the probability of a strata having high incidence by
 We found that both TMB and PCA-AGHQ overestimate these exceedance probabilities (Figure \ref{fig:exceedance}, second row).
 This is surprising, in that we expect inferences from NUTS to be more heavy-tailed than those from TMB or PCA-AGHQ.
 
-```{r exceedance, fig.cap="Though PCA-AGHQ does perform slightly better, both approximate inference methods are meaningfully inaccurate as compared with NUTS for estimating exceedance probabilities. For the second 90 target the inaccuracy varies substantially by sex."}
+```{r exceedance, fig.cap="Though PCA-AGHQ was marginally better, both approximate inference methods were meaningfully inaccurate as compared with NUTS for estimating exceedance probabilities. For the second 90 target the inaccuracy varied substantially by sex."}
 knitr::include_graphics("depends/exceedance.png")
 ```
 

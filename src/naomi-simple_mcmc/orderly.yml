@@ -11,9 +11,11 @@ artefacts:
         - rhat.png
         - ratio.png
         - ess.png
+        - out.rds
         - rho_a.png
         - alpha_x.png
         - ar1-bym2-cor.csv
+        - worst-trace.png
         - nuts-params.rds
 
 resources:

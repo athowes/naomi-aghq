@@ -550,12 +550,18 @@ ks_summary %>%
 
 # MCMC convergence and suitability
 
+```{r}
+mcmc_out <- readRDS("depends/mcmc-out.rds")
+```
+
 We assessed MCMC convergence and suitability using a range of graphical and numerical tests.
-All potential scale reduction factor $\hat R$ statistics [@vehtari2021rank] were below 1.05 and therefore acceptable (Figure \ref{fig:rhat}).
-However, even thinning by a factor of 20, samples were not obtained very efficiently, resulting in the majority of effective sample size (ESS) ratios being below 0.5, with some as low as 0.1 (Figure \ref{fig:ratio}).
-As a result, the number of obtained ESS varied substantially by parameter (Figure \ref{fig:ess}).
+The largest scale reduction factor $\hat R$ was `r signif(mcmc_out$max_rhat, 3)` (Figure \ref{fig:rhat}).
+As such, all values of $\hat R < 1.05$.
+Even thinning by a factor of 20, samples were not obtained very efficiently, resulting in the majority of effective sample size (ESS) ratios being below 0.5, with some as low as 0.1 (Figure \ref{fig:ratio}).
+As a result, the number of obtained ESS varied substantially by parameter (Figure \ref{fig:ess}): the minimum was `r round(mcmc_out$ess_min, 1)`, 2.5% quantile was `r round(mcmc_out$ess_lower, 1)`, median was `r round(mcmc_out$ess_median, 1)`, 97.5% quantile was `r round(mcmc_out$ess_upper, 1)` and maximum was `r round(mcmc_out$ess_max, 1)`.
+Traceplots for the parameters with the lowest ESS (`log_sigma_alpha_xs`) and highest $\hat R$ (the 10th index of `ui_lambda_x`) are shown in Figure \ref{fig:worst_trace}.
 There were no divergent transitions.
-Could add energy plot from @betancourt2017conceptual here.
+<!-- Could add energy plot from @betancourt2017conceptual here. -->
 
 ```{r}
 np <- readRDS("depends/nuts-params.rds")
@@ -580,11 +586,15 @@ knitr::include_graphics("depends/ratio.png")
 knitr::include_graphics("depends/ess.png")
 ```
 
+```{r worst_trace, fig.cap="Traceplots of the parameters with the lowest ESS and highest scale reduction factor."}
+knitr::include_graphics("depends/worst-trace.png")
+```
+
 ```{r rho_a, fig.cap="Variation between units can be explained either by high correlation and high variance, or by low correlation and low variance. As such, the AR1 hyperparameters had correlated posteriors. It is this correlation which we made use of with PCA-AGHQ."}
 knitr::include_graphics("depends/rho_a.png")
 ```
 
-```{r rho_a, fig.cap="In contrast to the AR1 hyperparameters, the BYM2 hyperparameter posteriors are much less correlated."}
+```{r alpha_x, fig.cap="In contrast to the AR1 hyperparameters, the BYM2 hyperparameter posteriors are much less correlated."}
 knitr::include_graphics("depends/alpha_x.png")
 ```
 
