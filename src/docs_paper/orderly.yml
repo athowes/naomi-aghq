@@ -80,6 +80,10 @@ depends:
         depends/alpha_x.png: alpha_x.png
         depends/ar1-bym2-cor.csv: ar1-bym2-cor.csv
         depends/nuts-params.rds: nuts-params.rds
+  # - naomi-simple_fit:
+  #     id: latest(parameter:aghq == TRUE && parameter:k == 3 && parameter:s == 8)
+  #     use:
+  #       depends/aghq.rds: out.rds
   - dev_scale-grid:
       id: latest
       use:

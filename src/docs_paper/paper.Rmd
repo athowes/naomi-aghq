@@ -340,10 +340,8 @@ p(\y) \approx \int_{\btheta} \tilde p_\texttt{LA}(\btheta, \y) \approx \tilde p_
 \end{equation}
 The unadapted nodes are shifted by the mode and rotated by a decomposition of the inverse curvature such that $\z \mapsto \hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}$.
 Two alternatives [@jackel2005note] are
-
 1. the Cholesky decomposition $\hat{\mathbf{P}}_\texttt{LA} = \hat{\mathbf{L}}_\texttt{LA}$, where $\hat{\mathbf{L}}_\texttt{LA}$ is lower triangular, and
 2. the spectral decomposition $\hat{\mathbf{P}}_\texttt{LA} = \hat{\mathbf{E}}_\texttt{LA} \hat{\mathbf{\Lambda}}_\texttt{LA}^{1/2}$, where $\hat{\mathbf{E}}_\texttt{LA} = (\hat{\mathbf{e}}_{\texttt{LA}, 1}, \ldots \hat{\mathbf{e}}_{\texttt{LA}, m})$ contains the eigenvectors of $[\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})]^{-1}$ and $\hat{\mathbf{\Lambda}}_\texttt{LA}$ is a diagonal matrix containing its eigenvalues $(\hat \lambda_{\texttt{LA}, 1}, \ldots, \hat \lambda_{\texttt{LA}, m})$.
-
 Equation \ref{eq:aghq} may then be used to normalise the Laplace approximation
 \begin{equation}
 \tilde p_\texttt{LA}(\btheta \, | \, \y) = \frac{\tilde p_\texttt{LA}(\btheta, \y)}{\tilde p_\texttt{AGHQ}(\y)}.
@@ -394,11 +392,13 @@ The `TMB` C++ user-template used to specify the log-posterior was the same for e
 The dimension of the latent field was $N = 467$ and the dimension of the hyperparameters was $m = 24$.
 For the deterministic methods, following inference we simulated hyperparameter and latent field samples.
 For all methods, we simulated age-sex-district specific HIV prevalence, ART coverage and HIV incidence from the latent field and hyperparameter posteriors.
-<!-- Note: eventually this figure should be generated using the algorithm proposed in the paper -->
 To provide intuition, model outputs from TMB are illustrated in Figure \ref{fig:naomi-results}.
 
 ```{r naomi-results, fig.cap="District-level model outputs for adults aged 15-49. Inference conducted using TMB."}
 knitr::include_graphics("depends/naomi-results.png")
+
+# Eventually this figure should be generated using PCA-AGHQ
+# knitr::include_graphics("depends/figB.png")
 ```
 
 The \textsc{R} [@r] code used to produce all results we describe below is available at `github.com/athowes/naomi-aghq`.
@@ -499,19 +499,19 @@ df_point <- read_csv("depends/mean-sd.csv")
 
 df_point_pct <- df_point %>%
   ungroup() %>%
-  group_by(indicator) %>%
+  group_by(indicator, type) %>%
   summarise(
     rmse_diff = 100 * diff(rmse) / max(rmse),
     mae_diff = 100 * diff(mae) / max(mae)
   )
 
-rmse_ahgq_mean <- filter(df_point, method == "PCA-AGHQ", indicator == "Posterior mean estimate") %>% pull(rmse) %>% signif(2)
-rmse_tmb_mean <- filter(df_point, method == "TMB", indicator == "Posterior mean estimate") %>% pull(rmse) %>% signif(2)
-rmse_diff_mean <- filter(df_point_pct, indicator == "Posterior mean estimate") %>% pull(rmse_diff) %>% signif(2)
+rmse_ahgq_mean <- filter(df_point, method == "PCA-AGHQ", indicator == "Posterior mean estimate", type == "latent") %>% pull(rmse) %>% signif(2)
+rmse_tmb_mean <- filter(df_point, method == "TMB", indicator == "Posterior mean estimate", type == "latent") %>% pull(rmse) %>% signif(2)
+rmse_diff_mean <- filter(df_point_pct, indicator == "Posterior mean estimate", type == "latent") %>% pull(rmse_diff) %>% signif(2)
 
-rmse_ahgq_sd <- filter(df_point, method == "PCA-AGHQ", indicator == "Posterior SD estimate") %>% pull(rmse) %>% signif(2)
-rmse_tmb_sd <- filter(df_point, method == "TMB", indicator == "Posterior SD estimate") %>% pull(rmse) %>% signif(2)
-rmse_diff_sd <- filter(df_point_pct, indicator == "Posterior SD estimate") %>% pull(rmse_diff) %>% signif(0)
+rmse_ahgq_sd <- filter(df_point, method == "PCA-AGHQ", indicator == "Posterior SD estimate", type == "latent") %>% pull(rmse) %>% signif(2)
+rmse_tmb_sd <- filter(df_point, method == "TMB", indicator == "Posterior SD estimate", type == "latent") %>% pull(rmse) %>% signif(2)
+rmse_diff_sd <- filter(df_point_pct, indicator == "Posterior SD estimate", type == "latent") %>% pull(rmse_diff) %>% signif(0)
 ```
 
 The root mean square error (RMSE) between posterior mean estimates from PCA-AGHQ and NUTS (`r rmse_ahgq_mean`) was `r abs(rmse_diff_mean)`% lower than that between TMB and NUTS (`r rmse_tmb_mean`).
@@ -528,7 +528,7 @@ The two-sample Kolmogorov-Smirnov (KS) test statistic [@smirnov1948table] is the
 See an illustration of the KS test in Figure \ref{fig:ks} and a summary of the results in Table.
 
 ```{r ks, fig.cap="Example KS test for one parameter."}
-knitr::include_graphics("figB.png")
+knitr::include_graphics("figC.png")
 ```
 
 ### Pareto-smoothed importance sampling
