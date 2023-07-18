@@ -234,7 +234,7 @@ More details regarding this part of the model are provided in Appendix S1.
 
 In all, Naomi is a joint model on the observations $\mathbf{y} = (y^{\theta}_I)$ for $\theta \in \{\rho, \alpha, \kappa, \rho^\text{ANC}, \alpha^\text{ANC}, N^\text{ART}\}$ and $I \in \mathcal{I}$.
 The structured additive predictors contain intercept effects, age random effects, and spatial random effects which we collectively describe as the latent field $\x$.
-The latent field is controlled by hyperparamters $\btheta$ which include standard deviations, first-order autoregressive model correlation parameters, and reparameterised Besag-York-Mollie model [@simpson2017penalising] proportion parameters.
+The latent field is controlled by hyperparamters $\btheta$ which include standard deviations, first-order autoregressive model correlation parameters, and reparameterised Besag-York-Mollie model [BYM2; @simpson2017penalising] proportion parameters.
 
 # Extended Latent Gaussian models\label{sec:elgm}
 
@@ -377,6 +377,7 @@ The final panel of Figure \ref{fig:aghq} illustrates PCA-AGHQ for a case when $m
 # Application to data from Malawi\label{sec:results}
 
 ```{r}
+#' It's a shame here that I have to put "seconds", "hours" and "days" manually and it's not stored in the time taken
 time_taken <- read_csv("depends/time-taken.csv")
 ```
 
@@ -423,7 +424,7 @@ NUTS & \texttt{tmbstan} & $4$ chains of $20000$ iterations, with the first $1000
 
 We increased the chain lengths until all NUTS diagnostics were acceptable.
 This required chains of length 20,000, which we thinned by a factor of 20 for ease-of-storage.
-All potential scale reduction factors [@gelman1992inference; @vehtari2021rank] were $\hat R < 1.05$.
+All potential scale reduction factors [@gelman1992inference; @vehtari2021rank] were $\hat R < 1.05$ (Figure S7).
 For full details see Appendix S2.
 Though inaccuracies remain possible, we considered the NUTS results to be a gold-standard.
 
@@ -435,8 +436,6 @@ With this choice of $s$, the reduced rank approximation to the inverse curvature
 
 ```{r node-positions, fig.cap="The 6561 PCA-AGHQ node positions (green, rug plot) projected onto the hyperparameter marginal posteriors (grey, histogram) for each of the 24 hyperparameters. Some hyperparameters, such as logit\\_phi\\_alpha\\_x, are well covered where as others, such as log\\_sigma\\_lambda\\_x, are near only being covered by one unique node."}
 knitr::include_graphics("depends/nodes-samples-comparison.png")
-
-# This plot could be improved with a scale for "coverage"
 ```
 
 ### Visual inspection
@@ -449,9 +448,22 @@ As a result, marginal standard deviations for log transformed hyperparameters we
 
 ### Interpreation of eigenvectors
 
-The ordered eigenvectors can be interpreted to inform us about the directions of greatest variation in the inverse curvature (Figure S6)
-The first and second eigenvectors are the weakly identified AR1 standard deviation and correlation parameters.
-Variability can be explained both by low correlation or by high standard deviation.
+```{r}
+cor_df <- read_csv("depends/ar1-bym2-cor.csv")
+
+summary_cor_df <- cor_df %>%
+  group_by(type) %>%
+  summarise(mean_cor = mean(abs(cor)))
+
+ar1_mean_cor <- signif(filter(summary_cor_df, type == "ar1")$mean_cor, 2)
+bym2_mean_cor <- signif(filter(summary_cor_df, type == "bym2")$mean_cor, 2)
+```
+
+The ordered eigenvectors correspond to the directions of greatest variation in the inverse curvature.
+The first and second eigenvectors each contain coupled AR1 standard deviation and correlation parameters (Figure S6).
+As variability can be explained either by high standard deviation and high correlation or low standard deviation and low correlation these parameters are weakly identified.
+This is reflected in high correlation in the the NUTS posterior pairs plot (Figure S10, average absolute correlation across all four pairs of `r ar1_mean_cor`).
+The BYM2 standard deviation and proportion parameters on the other hand are designed to be orthogonal, and as such did not display posterior correlation (Figure S11, average absolute correlation across all four pairs of `r bym2_mean_cor`) or appear prominently in the eigenvectors.
 
 ### Normalising constant assessment
 
@@ -463,8 +475,7 @@ Appendix S3 shows those values which we could compute in a reasonable time (less
 
 ### Posterior contraction
 
-Let $\phi$ be a generic model parameter.
-To assess the informativeness of the data we compared the prior variance $\sigma_\text{prior}^2(\phi)$ to the posterior variance $\sigma_\text{posterior}^2(\phi)$ via the posterior contraction $c(\phi) = 1 - (\sigma_\text{posterior}^2(\phi) / \sigma_\text{prior}^2(\phi))$ [@schad2021toward].
+To assess the informativeness of the data we compared the prior variance $\sigma_\text{prior}^2(\psi)$ to the posterior variance $\sigma_\text{posterior}^2(\psi)$ via the posterior contraction $c(\psi) = 1 - (\sigma_\text{posterior}^2(\psi) / \sigma_\text{prior}^2(\psi))$ [@schad2021toward], where $\psi$ is a model parameter.
 We found that (Figure \ref{fig:contraction})) something something.
 For greater interpretability, facet parameters in this plot according to model component.
 
@@ -475,7 +486,7 @@ knitr::include_graphics("depends/posterior-contraction.png")
 ### Coverage
 
 We assessed the coverage of our estimates via the uniformity of the data within each posterior marginal distribution.
-Let $\{\phi_i\}_{i = 1}^n$ be posterior marginal samples.
+Let $\{\psi_i\}_{i = 1}^n$ be posterior marginal samples.
 
 ## Inference comparison \label{sec:inf-comparison}
 
@@ -513,7 +524,7 @@ knitr::include_graphics("depends/mean-sd-alt-latent.png")
 
 ### Distribution tests
 
-The two-sample Kolmogorov-Smirnov (KS) test statistic [@smirnov1948table] is the maximum absolute difference between two ECDFs $F(\varphi) = \frac{1}{n} \sum_{i = 1}^n \mathbb{I}_{\phi_i \leq \varphi}$.
+The two-sample Kolmogorov-Smirnov (KS) test statistic [@smirnov1948table] is the maximum absolute difference between two ECDFs $F(\omega) = \frac{1}{n} \sum_{i = 1}^n \mathbb{I}_{\psi_i \leq \omega}$.
 See an illustration of the KS test in Figure \ref{fig:ks} and a summary of the results in Table.
 
 ```{r ks, fig.cap="Example KS test for one parameter."}
@@ -522,18 +533,18 @@ knitr::include_graphics("figB.png")
 
 ### Pareto-smoothed importance sampling
 
-Let $\{\bphi_i\}_{i = 1}^n$ be joint posterior samples.
+Let $\{\bpsi_i\}_{i = 1}^n$ be joint posterior samples.
 Pareto-smoothed importance sampling [PSIS; @vehtari2015pareto, @yao2018yes] is a method for stabilising the ratios used in importance sampling.
 Results for the PSIS analysis are pending.
 
 ### Maximum mean discrepancy
 
-Let $\Phi = \{\bphi_i\}_{i = 1}^n$ and $\Psi = \{\bpsi_i\}_{i = 1}^n$ be two sets of joint posterior samples, and $k$ be a kernel.
+Let $\Psi = \{\bpsi_i\}_{i = 1}^n$ and $\Psi = \{\bpsi_i\}_{i = 1}^n$ be two sets of joint posterior samples, and $k$ be a kernel.
 The maximum mean discrepancy [MMD; @gretton2006kernel] can be empirically estimated by
 \begin{equation*}
-\text{MMD}(\Phi, \Psi) = \sqrt{\frac{1}{n^2} \sum_{i, j = 1}^n k(\bphi_i, \bphi_j) - \frac{2}{n^2} \sum_{i, j = 1}^n k(\bphi_i, \bpsi_j) + \frac{1}{n^2} \sum_{i, j = 1}^n k(\bpsi_i, \bpsi_j)}.
+\text{MMD}(\Psi, \Psi) = \sqrt{\frac{1}{n^2} \sum_{i, j = 1}^n k(\bpsi_i, \bpsi_j) - \frac{2}{n^2} \sum_{i, j = 1}^n k(\bpsi_i, \bpsi_j) + \frac{1}{n^2} \sum_{i, j = 1}^n k(\bpsi_i, \bpsi_j)}.
 \end{equation*}
-We set $k(\bphi_i, \bphi_j) = \exp(-\sigma \lVert \bphi_i - \bphi_j \rVert^2)$ with $\sigma$ estimated from data using the `kernlab` \textsc{R} package [@karatzoglou2019package].
+We set $k(\bpsi_i, \bpsi_j) = \exp(-\sigma \lVert \bpsi_i - \bpsi_j \rVert^2)$ with $\sigma$ estimated from data using the `kernlab` \textsc{R} package [@karatzoglou2019package].
 As compared with NUTS, the MMD from PCA-AGHQ (0.071) was 11% smaller than that of TMB (0.080).
 
 <!-- This should be calculated inline! -->

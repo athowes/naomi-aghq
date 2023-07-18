@@ -77,6 +77,8 @@ depends:
         depends/ratio.png: ratio.png
         depends/ess.png: ess.png
         depends/rho_a.png: rho_a.png
+        depends/alpha_x.png: alpha_x.png
+        depends/ar1-bym2-cor.csv: ar1-bym2-cor.csv
         depends/nuts-params.rds: nuts-params.rds
   - dev_scale-grid:
       id: latest

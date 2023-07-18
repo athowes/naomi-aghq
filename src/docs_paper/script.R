@@ -21,10 +21,7 @@ convert_pdf_png("nodes-samples-comparison")
 rmarkdown::render("paper.Rmd")
 rmarkdown::render("appendix.Rmd")
 
-
+#' I just used this function to check some things as I was writing!
 kish_ess <- function(w) {
   sum(w)^2 / sum(w^2)
 }
-
-kish_ess(c(1, 1, 1, 1, 1))
-kish_ess(c(2, 5, 2, 2, 2))

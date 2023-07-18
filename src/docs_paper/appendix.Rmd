@@ -580,8 +580,12 @@ knitr::include_graphics("depends/ratio.png")
 knitr::include_graphics("depends/ess.png")
 ```
 
-```{r rho_a, fig.cap="Variation between units can be explained either by high correlation and high variance, or by low correlation and low variance. As such, some hyperparameters has correlated posteriors. It is this correlation which is made use of by PCA-AGHQ."}
+```{r rho_a, fig.cap="Variation between units can be explained either by high correlation and high variance, or by low correlation and low variance. As such, the AR1 hyperparameters had correlated posteriors. It is this correlation which we made use of with PCA-AGHQ."}
 knitr::include_graphics("depends/rho_a.png")
+```
+
+```{r rho_a, fig.cap="In contrast to the AR1 hyperparameters, the BYM2 hyperparameter posteriors are much less correlated."}
+knitr::include_graphics("depends/alpha_x.png")
 ```
 
 \clearpage
