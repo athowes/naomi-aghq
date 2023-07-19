@@ -11,6 +11,12 @@ artefacts:
       filenames:
         - paper.tex
         - appendix.tex
+  - data:
+      description: Any generated figures
+      filenames:
+        - figA.png
+        - figB.png
+        - figC.png
 
 resources:
   - paper.Rmd
