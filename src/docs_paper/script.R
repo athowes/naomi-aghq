@@ -1,7 +1,7 @@
 # orderly::orderly_develop_start("docs_paper")
 # setwd("src/docs_paper")
 
-source("figures.R")
+source("figs.R")
 
 #' Conversion of figures from .pdf at specified resolution
 Sys.setenv(PATH = paste(Sys.getenv("PATH"), "/opt/homebrew/bin", sep = ":"))
@@ -27,6 +27,8 @@ tinytex::pdflatex("appendix.tex", clean = FALSE)
 
 tinytex::pdflatex("paper.tex")
 tinytex::pdflatex("appendix.tex")
+
+pdftools::pdf_combine(c("paper.pdf", "appendix.pdf"), output = "naomi-aghq.pdf")
 
 #' I just used this function to check some things as I was writing!
 kish_ess <- function(w) {

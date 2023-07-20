@@ -29,7 +29,7 @@ resources:
   - imsart.sty
   - naomi_simple.cpp
   - 2d.cpp
-  - figures.R
+  - figs.R
 
 packages:
   - rmarkdown
@@ -46,10 +46,6 @@ depends:
         depends/ks-summary.rds: ks-summary.rds
         depends/time-taken.csv: time-taken.csv
         depends/beta_alpha.rds: beta_alpha.rds
-  - docs_bayescomp-poster:
-      id: latest
-      use:
-        depends/naomi-results.png: fig3.png
   - plot-tikz_algorithm-flowchart:
       id: latest
       use:
@@ -94,6 +90,10 @@ depends:
   #     id: latest(parameter:aghq == TRUE && parameter:k == 3 && parameter:s == 8)
   #     use:
   #       depends/aghq.rds: out.rds
+  - naomi-simple_fit:
+      id: latest(parameter:tmb == TRUE)
+      use:
+        depends/tmb.rds: out.rds
   - dev_scale-grid:
       id: latest
       use:
