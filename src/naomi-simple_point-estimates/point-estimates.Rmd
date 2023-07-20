@@ -92,6 +92,8 @@ head(df_plot)
 Calculate the root mean square and mean absolute errors between the approximate methods and NUTS (taken to be the truth):
 
 ```{r}
+write_csv(df_plot, "point-estimates.csv")
+
 df_metrics <- df_plot %>%
   group_by(method, indicator, type) %>%
   summarise(

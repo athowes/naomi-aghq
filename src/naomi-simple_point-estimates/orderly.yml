@@ -19,6 +19,7 @@ artefacts:
         - mean-alt-output.png
         - sd-output.png
         - sd-alt-output.png
+        - point-estimates.csv
 
 resources:
   - point-estimates.Rmd

@@ -508,19 +508,78 @@ knitr::include_graphics("depends/marginal-sd.png")
 knitr::include_graphics("depends/pc-loadings.png")
 ```
 
-## Estimated normalising constant comparison
+## Normalising constant estimation
 
 Add here plots and description of the estimated normalising constant for different PCA-AGHQ settings.
 
 \clearpage
 
-# Comprehensive inference comparison
+# Inference comparison
 
-In this section we give further inference comparison results, parameter by parameter.
+In this section we give more detailed inference comparison results for each parameter or group of parameters.
+For any parameter with length greater than one, the results presented are an average.
 
 ## Point estimates
 
+### Posterior mean
+
+```{r}
+point_summary <- read_csv("depends/point-estimates.csv")
+
+point_summary <- point_summary %>%
+  mutate(type = fct_recode(type, "Output" = "output", "Latent" = "latent"))
+
+latex_table_point_estimates <- function(.indicator) {
+  point_summary %>%
+  group_by(par, type, indicator, method) %>%
+  summarise(
+    rmse = sqrt(mean((truth - approximate)^2)),
+    mae = mean(abs(truth - approximate))
+  ) %>%
+  ungroup() %>%
+  pivot_wider(
+    names_from = "method",
+    values_from = c("rmse", "mae")
+  ) %>%
+  filter(indicator == .indicator) %>%
+  select(Parameter = par, Type = type, `TMB` = `rmse_TMB`, `PCA-AGHQ` = `rmse_PCA-AGHQ`) %>%
+  mutate(
+    Difference = `PCA-AGHQ` - TMB,
+    `Percent Difference` =  (`PCA-AGHQ` - TMB) / TMB
+  ) %>%
+  gt::gt(groupname_col = "Type") %>%
+  gt::fmt_number(
+    columns = c(`TMB`, `PCA-AGHQ`, Difference),
+    n_sigfig = 2
+  ) %>%
+ gt::fmt_percent(
+    columns = `Percent Difference`,
+    decimals = 1
+  ) %>%
+  gt::text_transform(
+    locations = gt::cells_body("Parameter"),
+    fn = function(x) paste0("\\texttt{", x, "}")
+  ) %>%
+  gt::as_latex() %>%
+  as.character()
+}
+
+latex_table_point_estimates("Posterior mean estimate") %>%
+  cat(file = "point-summary-mean.tex")
+
+latex_table_point_estimates("Posterior SD estimate") %>%
+  cat(file = "point-summary-sd.tex")
+```
+
+\input{point-summary-mean.tex}
+
+### Posterior standard deviation
+
+\input{point-summary-sd.tex}
+
 ## Distribution tests
+
+### Kolmogorov-Smirnov
 
 ```{r}
 ks_summary <- readRDS("depends/ks-summary.rds")
@@ -529,9 +588,8 @@ ks_summary %>%
   ungroup() %>%
   filter(type == "Latent field") %>%
   select(-type) %>%
-  rename(TMB = `KS(TMB, tmbstan)`, `PCA-AGHQ` = `KS(aghq, tmbstan)`) %>%
-  select(Parameter, TMB, `PCA-AGHQ`) %>%
-  mutate(Difference = TMB - `PCA-AGHQ`) %>%
+  select(Parameter, TMB = `KS(TMB, tmbstan)`, `PCA-AGHQ` = `KS(aghq, tmbstan)`) %>%
+  mutate(Difference = `PCA-AGHQ` - TMB) %>%
   gt::gt() %>%
   gt::summary_rows(
    columns = c(`TMB`, `PCA-AGHQ`, Difference),
@@ -549,7 +607,7 @@ ks_summary %>%
   ) %>%
   gt::text_transform(
     locations = gt::cells_body("Difference"),
-    fn = function(x) ifelse(x > 0, paste0("\\textbf{", x, "}"), paste0(x))
+    fn = function(x) ifelse(x < 0, paste0("\\textbf{", x, "}"), paste0(x))
   ) %>%
   gt::as_latex() %>%
   as.character() %>%

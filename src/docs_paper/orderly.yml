@@ -71,6 +71,7 @@ depends:
       use:
         depends/mean-sd-alt-latent.png: mean-sd-alt-latent.png
         depends/mean-sd.csv: mean-sd.csv
+        depends/point-estimates.csv: point-estimates.csv
   - check_hyper-marginals:
       id: latest
       use:
