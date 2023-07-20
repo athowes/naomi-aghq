@@ -397,7 +397,7 @@ For the deterministic methods, following inference we simulated hyperparameter a
 For all methods, we simulated age-sex-district specific HIV prevalence, ART coverage and HIV incidence from the latent field and hyperparameter posteriors.
 To provide intuition, model outputs from TMB are illustrated in Figure \ref{fig:naomi-results}.
 
-```{r naomi-results, fig.cap="District-level HIV prevalence (A), ART coverage (B), and HIV incidence and new cases (C) for adults 15-49 in Malawi. Inference conducted using TMB."}
+```{r naomi-results, fig.cap="District-level HIV prevalence (A), ART coverage (B), and new HIV cases and HIV incidence (C) for adults 15-49 in Malawi. Inference conducted using TMB."}
 knitr::include_graphics("figB.png")
 ```
 
