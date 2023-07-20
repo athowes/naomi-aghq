@@ -70,14 +70,14 @@ add_points <- function(figA0, gg) {
 }
 
 figA1 <- add_points(figA0, gg) +
-  labs(subtitle = "A", size = "")
+  labs(subtitle = "A", size = "", caption = "GHQ")
 
 #' Adapt by the spectral
 gg2 <- gg
 mvQuad::rescale(gg2, m = mu, C = cov, dec.type = 1)
 
 figA2 <- add_points(figA0, gg2) +
-  labs(subtitle = "B", size = "")
+  labs(subtitle = "B", size = "", caption = "AGHQ")
 
 #' PCA-AGHQ
 gg3 <- mvQuad::createNIGrid(2, "GHe", level = c(3, 1))
@@ -100,11 +100,11 @@ figA3 <- add_points(figA0, gg3) +
   annotate("text", x = x1end + 1, y = y1end - 3, label = "95%", col = "darkgrey") +
   geom_segment(aes(x = xstart, y = ystart, xend = x2end, yend = y2end), arrow = arrow(length = unit(0.25, "cm")), col = "darkgrey") +
   annotate("text", x = x2end, y = y2end - 2, label = "5%", col = "darkgrey") +
-  labs(subtitle = "C", size = "")
+  labs(subtitle = "C", size = "", caption = "PCA-AGHQ")
 
 cowplot::plot_grid(figA1, figA2, figA3, ncol = 3)
 
-ggsave("figA.png", h = 2.5, w = 6.25, bg = "white")
+ggsave("figA.png", h = 3, w = 6.25)
 
 #' Fig B
 
