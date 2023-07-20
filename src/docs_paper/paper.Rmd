@@ -341,8 +341,8 @@ p(\y) \approx \int_{\btheta} \tilde p_\texttt{LA}(\btheta, \y) \approx \tilde p_
 The unadapted nodes are shifted by the mode and rotated by a matrix decomposition of the inverse curvature such that $\z \mapsto \hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}$.
 Repositioning the nodes is crucial for statistical quadrature problems like ours, where the integral depends on data $\y$ and regions of high density are not known in advance.
 Two alternatives for the matrix decomposition [@jackel2005note] are
-1. the Cholesky decomposition $\hat{\mathbf{P}}_\texttt{LA} = \hat{\mathbf{L}}_\texttt{LA}$, where $\hat{\mathbf{L}}_\texttt{LA}$ is lower triangular, and
-2. the spectral decomposition $\hat{\mathbf{P}}_\texttt{LA} = \hat{\mathbf{E}}_\texttt{LA} \hat{\mathbf{\Lambda}}_\texttt{LA}^{1/2}$, where $\hat{\mathbf{E}}_\texttt{LA} = (\hat{\mathbf{e}}_{\texttt{LA}, 1}, \ldots \hat{\mathbf{e}}_{\texttt{LA}, m})$ contains the eigenvectors of $[\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})]^{-1}$ and $\hat{\mathbf{\Lambda}}_\texttt{LA}$ is a diagonal matrix containing its eigenvalues $(\hat \lambda_{\texttt{LA}, 1}, \ldots, \hat \lambda_{\texttt{LA}, m})$.
+(1) the Cholesky decomposition $\hat{\mathbf{P}}_\texttt{LA} = \hat{\mathbf{L}}_\texttt{LA}$, where $\hat{\mathbf{L}}_\texttt{LA}$ is lower triangular, and
+(2) the spectral decomposition $\hat{\mathbf{P}}_\texttt{LA} = \hat{\mathbf{E}}_\texttt{LA} \hat{\mathbf{\Lambda}}_\texttt{LA}^{1/2}$, where $\hat{\mathbf{E}}_\texttt{LA} = (\hat{\mathbf{e}}_{\texttt{LA}, 1}, \ldots \hat{\mathbf{e}}_{\texttt{LA}, m})$ contains the eigenvectors of $[\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})]^{-1}$ and $\hat{\mathbf{\Lambda}}_\texttt{LA}$ is a diagonal matrix containing its eigenvalues $(\hat \lambda_{\texttt{LA}, 1}, \ldots, \hat \lambda_{\texttt{LA}, m})$.
 This estimate may be used to normalise the Laplace approximation
 \begin{equation}
 \tilde p_\texttt{LA}(\btheta \, | \, \y) = \frac{\tilde p_\texttt{LA}(\btheta, \y)}{\tilde p_\texttt{AGHQ}(\y)}.
@@ -386,7 +386,7 @@ We fit the simplified Naomi model (Section \ref{sec:naomi}) to data from Malawi 
 These were:
 
 1. TMB (`r signif(time_taken$TMB, 2)` seconds), based on a Gaussian approximation at $\hat{\btheta}_\texttt{LA}$.
-2. PCA-AGHQ (`r signif(time_taken$aghq, 2)` hours), based on a Gaussian approximation mixture at the nodes of a PCA-AGHQ quadrature grid, as described in Section \ref{sec:pca}, and implemented via extension of the `aghq` package [@stringer2021implementing].
+2. PCA-AGHQ (`r signif(time_taken$aghq, 2)` hours), based on a Gaussian approximation mixture at the adapted nodes $\z \in \mathcal{Q}(m, s, k)$, as described in Section \ref{sec:pca}, and implemented via extension of the `aghq` package [@stringer2021implementing].
 3. NUTS (`r signif(time_taken$tmbstan, 2)` days), the Hamiltonian Monte Carlo (HMC) algorithm No-U-Turn Sampling using Stan [@carpenter2017stan] implemented via the `tmbstan` package [@monnahan2018no].
 
 Our goal was to determine the accuracy of the approximate methods (TMB and PCA-AGHQ) as compared with the gold-standard (NUTS).
@@ -496,9 +496,10 @@ For greater interpretability, facet parameters in this plot according to model c
 We assessed the coverage of our estimates via the uniformity of the data within each posterior marginal distribution.
 Let $\{\psi_i\}_{i = 1}^n$ be posterior marginal samples.
 
-## Inference comparison \label{sec:inf-comparison}
+## Inference comparison\label{sec:inf-comparison}
 
-To compare the accuracy of posterior distributions produced by TMB and PCA-AGHQ as compared with those from NUTS we assessed (1) marginal point estimates, (2) marginal Kolmogorov-Smirnov and Anderson-Darling tests using the empirical cumulative distribution function (ECDF), (3) joint Pareto-smoothed importance sampling results, and (4) joint maximum mean discrepancy results. 
+We compared the accuracy of posterior distributions produced by TMB and PCA-AGHQ as compared with those from NUTS for latent field parameters and model outputs.
+The metrics we used were (1) marginal point estimates, (2) marginal Kolmogorov-Smirnov and Anderson-Darling tests using the empirical cumulative distribution function (ECDF), (3) joint Pareto-smoothed importance sampling results, and (4) joint maximum mean discrepancy results. 
 
 ### Point estimates
 
@@ -522,12 +523,18 @@ rmse_tmb_sd <- filter(df_point, method == "TMB", indicator == "Posterior SD esti
 rmse_diff_sd <- filter(df_point_pct, indicator == "Posterior SD estimate", type == "latent") %>% pull(rmse_diff) %>% signif(0)
 ```
 
-The root mean square error (RMSE) between posterior mean estimates from PCA-AGHQ and NUTS (`r rmse_ahgq_mean`) was `r abs(rmse_diff_mean)`% lower than that between TMB and NUTS (`r rmse_tmb_mean`).
+For the latent field, the root mean square error (RMSE) between posterior mean estimates from PCA-AGHQ and NUTS (`r rmse_ahgq_mean`) was `r abs(rmse_diff_mean)`% lower than that between TMB and NUTS (`r rmse_tmb_mean`).
 For the posterior standard deviation estimates, there was a substantial `r abs(rmse_diff_sd)`% reduction in RMSE: from `r abs(rmse_tmb_sd)` (TMB) to `r abs(rmse_ahgq_sd)` (PCA-AGHQ).
-These results, alongside those for the mean absolute error (MAE), are presented in Figure \ref{fig:mean-sd}.
+These results, alongside those for the mean absolute error (MAE), are presented in Figure \ref{fig:mean-sd-latent}.
 
-```{r mean-sd, fig.cap="PCA-AGHQ modestly improves estimation of the posterior mean, and substantially improves estimation of the posterior standard deviation, as compared with TMB."}
+These improvements did not transfer to the model outputs (Figure \ref{fig:mean-sd-output}).
+
+```{r mean-sd-latent, fig.cap="For the latent field PCA-AGHQ modestly improves estimation of the posterior mean, and substantially improves estimation of the posterior standard deviation, as compared with TMB."}
 knitr::include_graphics("depends/mean-sd-alt-latent.png")
+```
+
+```{r mean-sd-output, fig.cap="PCA-AGHQ doesn't do so well for the model outputs."}
+knitr::include_graphics("depends/mean-sd-alt-output.png")
 ```
 
 ### Distribution tests
