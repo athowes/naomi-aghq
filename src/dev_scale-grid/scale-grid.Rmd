@@ -256,6 +256,13 @@ plot_total_variation(eigenC, label_x = 20)
 ggsave("total-variation.png", h = 3, w = 6.25)
 
 tv <- cumsum(eigenC$values) / sum(eigenC$values)
+
+tv_df <- data.frame(
+  s = 1:length(m),
+  tv = tv
+)
+
+write_csv(tv_df, "total-variation.csv")
 ```
 
 Based on Figure \@ref(fig:scree) with 5 dimensions included, we can explain `r signif(100 * tv[5], 3)`% of the total variation.
@@ -264,7 +271,7 @@ Or, with 10 dimensions included, that percentage increases to `r signif(100 * tv
 What do the PC loadings (columns of the matrix `E`) look like?
 
 ```{r pc-loadings, class.source = 'fold-hide', fig.cap="PC loadings."}
-rownames(E) <- hypers
+rownames(eigenC$vectors) <- hypers
 plot_pc_loadings(eigenC)
 
 ggsave("pc-loadings.png", h = 3.5, w = 6.25)

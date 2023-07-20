@@ -40,7 +40,7 @@ affiliation:
     name: MRC Centre for Global Infectious Disease Analysis, School of Public Health, Imperial College London
 
 abstract: |
-  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of policy interest, including HIV prevalence, HIV incidence, and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. The model is provided as a tool for countries to input their data to and generate estimates during a yearly process supported by UNAIDS. Inference has previously been conducted using empirical Bayes and a Gaussian approximation via the \texttt{TMB} \textsc{R} package. We propose a new inference method extending adaptive Gauss-Hermite quadrature to deal with >20 hyperparameters. Using data from Malawi, our method improves the accuracy of inferences for model parameters, while being substantially faster to run than Hamiltonian Monte Carlo with the No-U-Turn sampler. However, for model ouptuts, we found the simpler empirical Bayes approach to achieve similar performance. Our implementation is based on the existing \texttt{TMB} \textsf{C++} template for the model's log-posterior, and is compatible with any model with such a template.
+  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of policy interest, including HIV prevalence, HIV incidence, and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. The model is provided as a tool for countries to input their data to and generate estimates with during a yearly process supported by UNAIDS. Inference has previously been conducted using empirical Bayes and a Gaussian approximation via the \texttt{TMB} \textsc{R} package. We propose a new inference method extending adaptive Gauss-Hermite quadrature to deal with >20 hyperparameters. Using data from Malawi, our method improves the accuracy of inferences for model parameters, while being substantially faster to run than Hamiltonian Monte Carlo with the No-U-Turn sampler. However, for model ouptuts, we found the simpler empirical Bayes approach to achieve similar performance. Our implementation is based on the existing \texttt{TMB} \textsf{C++} template for the model's log-posterior, and is compatible with any model with such a template.
 keyword-subclass: | 
  \begin{keyword}[class=MSC2020] % It must be define for aap, aop, aos journals. For aoas, sts is not used
  \kwd[Primary ]{00X00}
@@ -110,15 +110,16 @@ To allow for interactive review and iteration of model results by workshop parti
 Due to the scale of the model and features of its posterior geometry [@neal2003slice], Markov chain Monte Carlo (MCMC) approaches are prohibitively slow.
 Furthermore, use of the inference method across countries should be effortless, without requiring substantial statistical expertise, as would be the case for monitoring MCMC convergence and suitability.
 
-To meet these requirements, inference is currently conducted using an empirical Bayes (EB) approach, with a Gaussian approximation to the latent field, via the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
-Owing to its speed and flexibility, `TMB` is gaining popularity, particularly in spatial statistics [@osgood2022statistical], and via the `glmmTMB` \textsc{R} package [@brooks2017glmmTMB] which provides a user-friendly formula interface for fitting common models.
+To meet these requirements, inference is currently conducted using an empirical Bayes (EB) approach, with a Gaussian approximation to the latent field, via the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb], which we refer to as TMB (distinguished from the package `TMB`).
+Owing to its speed and flexibility, `TMB` is gaining popularity, particularly in spatial statistics [@osgood2022statistical] and via the user-friendly `glmmTMB` \textsc{R} package [@brooks2017glmmTMB].
 Inference in `TMB` is based on optimisation of a \textsf{C++} template function, with the option available to use a Laplace approximation to integrate out any subset of the parameters.
 For the Naomi model, this subset is the high-dimensional latent field, leaving a smaller number of hyperparameters.
-`TMB` uses automatic differentiation [@baydin2017automatic] to calculate the derivatives required for numerical optimisation routines and the Laplace approximation, Taking inspiration from the AD Model Builder package [@fournier2012ad].
+Taking inspiration from the AD Model Builder package [@fournier2012ad], `TMB` uses automatic differentiation [@baydin2017automatic] to calculate the derivatives required for numerical optimisation routines and the Laplace approximation.
 
-Although the approach of `TMB` is fast, within the empirical Bayes framework hyperparameter uncertainty is not accounted for in the latent field posterior.
-This consideration motivated us to look for an approach closer to full Bayesian inference, which is also flexible enough to be compatible with the model, as well as fast enough to be run in production by country teams.
-We developed an inference method based on adaptive Gauss-Hermite quadrature (AGHQ) extended to handle integration over many hyperparameters.
+Although the TMB approach is fast, within the empirical Bayes framework hyperparameter uncertainty is not accounted for in the latent field posterior.
+We suspected this would result in underestimation of posterior variances, which may have implications 
+As such, we were motivated to look for an more fully Bayesian inference approach, which is also flexible enough to be compatible with the model, as well as fast enough to be run in production by country teams.
+We developed an inference method based on adaptive Gauss-Hermite quadrature (AGHQ) extended to handle integration over large numbers of hyperparameters.
 AGHQ is a quadrature method based on the theory of polynomial interpolation, which is well suited to statistical estimation problems.
 @bilodeau2022stochastic prove stochastic convergence rates for Bayesian posterior quantities when the normalising constant is estimated using AGHQ.
 However, it is not computationally feasible to use AGHQ in high dimensions directly, as exponentially many nodes would be required.
@@ -127,7 +128,7 @@ For the Naomi model in Malawi, this results in a grid which has millions of time
 Our implementation of the method makes use of the existing Naomi `TMB` template, and is immediately compatible with any model with such a template.
 
 Other work aiming to extend the scope of the INLA method includes the `inlabru` \textsc{R} package [@bachl2019inlabru], INLA within MCMC [@gomez2018markov], and importance sampling with INLA [@berild2022importance], all of which leverage the `R-INLA` \textsc{R} package [@martins2013bayesian].
-`inlabru` approximates non-linear predictors using linearisation, which involves making iterative calls to `R-INLA`.
+The approach of `inlabru` is to approximate non-linear predictors using linearisation, by making iterative calls to `R-INLA`.
 <!-- See https://inlabru-org.github.io/inlabru/articles/method.html -->
 <!-- Want to say in particular what the class of models that `inlabru` allows you to fit are -->
 <!-- Don't know the answer to this yet, but asking Janine Illian I'm told you don't have to call R-INLA that many times -->
@@ -136,11 +137,10 @@ INLA within MCMC and importance sampling with INLA are suitable for models which
 <!-- It would or would not be possible to fit the Naomi model in these frameworks. -->
 
 The remainder of this paper is organised as follows.
-Section \ref{sec:naomi} outlines the version of the Naomi model that we consider in this paper, and  Section \ref{sec:elgm} describes how it falls within the ELGM framework.
-Section \ref{sec:inferencenaomi} outlines a deterministic inference method for ELGMs based on nested application of AGHQ and Laplace approximation, and how we modify it using PCA to be applicable to Naomi.
-In a case study, we evaluate the accuracy of our PCA-AGHQ method for the simplified Naomi model fit to data from Malawi, in Section \ref{sec:results}.
-We also demonstrate a Bayesian workflow, illustrating the applicability of these tools in a deterministic inference setting.
-Finally, in Section \ref{sec:conclusions} we discuss our conclusions, and directions for future research.
+Section \ref{sec:naomi} outlines the version of the Naomi model that we consider in this paper, and Section \ref{sec:elgm} describes how it falls within the ELGM framework.
+In Section \ref{sec:inferencenaomi} we review the deterministic inference method for ELGMs used by @stringer2022fast based on nested application of AGHQ and the Laplace approximation, before introducing the PCA-based modification we use to enable application to Naomi.
+In a case study (Section \ref{sec:results}) we evaluate the accuracy of PCA-AGHQ for the simplified Naomi model fit to data from Malawi, as compared with TMB and gold-standard MCMC.
+Finally, we discuss our conclusions, and directions for future research in Section \ref{sec:conclusions}.
 
 # Simplified Naomi model\label{sec:naomi}
 
@@ -286,12 +286,12 @@ Note that when dependence on a specific number of structured additive predictors
 
 # Inference methods for Naomi \label{sec:inferencenaomi}
 
-We begin by describing (Section \ref{sec:inferenceelgm}) the inference method for ELGMs based on nested applications of the Laplace approximation and AGHQ used by @stringer2022fast.
+We first describe (Section \ref{sec:inferenceelgm}) the inference method for ELGMs based on nested applications of the Laplace approximation and AGHQ used by @stringer2022fast.
 We then propose (Section \ref{sec:pca}) an extension of the method which uses PCA to facilitate inference for Naomi, which otherwise would be intractable.
 
 ## Inference for ELGMs\label{sec:inferenceelgm}
 
-The joint posterior of the parameters $(\x, \btheta)$ given data $\y$ is given by
+The joint posterior of the parameters $(\x, \btheta)$ given data $\y$ in an ELGM is given by
 \begin{equation*}
   p(\x, \btheta \, | \, \y)
   \propto p(\btheta) |\mathbf{Q}(\btheta)|^{n/2} \exp \left( - \frac{1}{2} \x^\top \mathbf{Q}(\btheta) \x + \sum_{i = 1}^n \log p(y_i \, | \, \x_{\mathcal{J}_i}, \btheta) \right).
@@ -317,20 +317,20 @@ Then the Laplace approximation to $p(\btheta, \y)$ is given by
 \end{equation}
 Inference proceeds by optimising Equation \ref{eq:la} using a gradient-based routine to obtain $\hat{\btheta}_\texttt{LA} = \argmax_{\btheta} \tilde p_\texttt{LA}(\btheta, \y)$.
 Each evaluation in the optimisation requires an inner optimisation to obtain $\hat \x(\btheta)$ via Equation \ref{eq:mode}.
-Supposing the hyperparameters are to be considered fixed, then latent field joint and marginal inferences then follow directly from the Gaussian approximation $\tilde p_\texttt{G}(\x \, | \, \hat{\btheta}_\texttt{LA}, \y)$.
-This is the approach used currently for Naomi, which we refer to as TMB (distinguished from the software \texttt{TMB}).
+Supposing the hyperparameters are to be considered fixed, as with the TMB approach used currently for Naomi, then latent field joint and marginal inferences then follow directly from the Gaussian approximation $\tilde p_\texttt{G}(\x \, | \, \hat{\btheta}_\texttt{LA}, \y)$.
 Hyperparameter inferences can be obtained according to some method which should be specified here as well.
 
 ### Adaptive Gauss-Hermite quadrature
 
 Quadrature rules can be used to approximate integrals using a set of nodes $\z \in \mathcal{Q}$ and a weighting function $\omega: \mathcal{Q} \to \mathbb{R}$.
-Gauss-Hermite quadrature [GHQ; @davis1975methods] is a quadrature rule, where the nodes are selected as zeros of the $k$th Hermite polynomial
+Gauss-Hermite quadrature [GHQ; @davis1975methods] is a quadrature rule, where in the univariate case the nodes are selected as zeros of the $k$th Hermite polynomial
 \begin{equation}
 \mathcal{Q}(1, k) = \{z: H_k(z) = (-1)^k \exp(z^2 / 2) \frac{\text{d}}{\text{d}z^k} \exp(-z^2 / 2) = 0\}.
 \end{equation}
 The corresponding weights $\omega: \mathcal{Q}(1, k) \to \mathbb{R}$ are given by $\omega(z) = k! / [H_{k + 1}(z)]^2 \phi(z)$, where $\phi(\cdot)$ is a standard Gaussian density.
-GHQ is attractive because it is exact for functions which are a Gaussian density multiplied by a polynomial of total order no more than $2k - 1$, and we expect posterior distributions to be relatively well described by this class of functions.
-Multivariate GHQ rules, required to integrate over $\btheta$, are typically obtained using the product rule such that $\z = (z_1, \ldots, z_m) \in \mathcal{Q}(m, k) = \mathcal{Q}(1, k)^m$ and $\omega(\z) = \prod_{j = 1}^m \omega(z_j)$.
+GHQ is attractive because it is exact for functions which are a Gaussian density multiplied by a polynomial of total order no more than $2k - 1$.
+We expect posterior distributions to be relatively well described by this class of functions.
+To integrate over $\btheta$ we require a multivariate GHQ rule, which is typically obtained using the product rule such that $\z = (z_1, \ldots, z_m) \in \mathcal{Q}(m, k) = \mathcal{Q}(1, k)^m$ and $\omega(\z) = \prod_{j = 1}^m \omega(z_j)$.
 In adaptive Gauss-Hermite quadrature [AHGQ; @naylor1982applications; @tierney1986accurate] the nodes are shifted and rotated to suit the particular integrand.
 Repositioning the nodes is especially important in statistical quadrature problems, where the integral depends on data $\y$ and regions of high density are not known in advance.
 
@@ -365,12 +365,12 @@ We may then define $\mathcal{Q}(m, \bk) = \mathcal{Q}(1, k_1) \times \cdots \tim
 Let $\mathcal{Q}(m, s, k)$ correspond to $\mathcal{Q}(m, \bk)$ with choice of levels $k_j = k, j \leq s$ and $k_j = 1, j > s$ for some $s \leq m$.
 For example, for $m = 2$ and $s = 1$ then $\bk = (k, 1)$.
 In combination with use of the spectral decomposition, this choice of levels is analogous to a principal components analysis (PCA) approach to AGHQ.
-We term this approach PCA-AGHQ, with estimate of the normalising constant given by
+We refer to this approach as PCA-AGHQ, with corresponding estimate of the normalising constant given by
 \begin{equation}
 \tilde p_\texttt{PCA}(\y) = |\hat{\mathbf{E}}_{\texttt{LA}} \hat{\mathbf{\Lambda}}_{\texttt{LA}}^{1/2}|\sum_{\z \in \mathcal{Q}(m, s, k)} \tilde p_\texttt{LA}(\hat{\mathbf{E}}_{\texttt{LA}, s} \hat{\mathbf{\Lambda}}_{\texttt{LA}, s}^{1/2} \z + \hat{\btheta}_\texttt{LA}, \y) \omega(\z),
 \end{equation}
 where $\hat{\mathbf{E}}_{\texttt{LA}, s}$ is an $m \times s$ matrix containing the first $s$ eigenvectors, $\hat{\mathbf{\Lambda}}_{\texttt{LA}, s}$ is the $s \times s$ diagonal matrix containing the first $s$ eigenvalues, and $\omega(\z) = \prod_{j = 1}^s \omega_s(z_j) \times \prod_{j = s + 1}^d \omega_1(z_j)$.
-The final panel of Figure \ref{fig:aghq} illustrates PCA-AGHQ for a case when $m = 2$ and $s = 1$. 
+Panel C of Figure \ref{fig:aghq} illustrates PCA-AGHQ for a case when $m = 2$ and $s = 1$. 
 
 # Application to data from Malawi\label{sec:results}
 
@@ -382,9 +382,9 @@ time_taken <- read_csv("depends/time-taken.csv")
 We fit the simplified Naomi model (Section \ref{sec:naomi}) to data from Malawi using three inferential approaches.
 These were:
 
-1. TMB (`r signif(time_taken$TMB, 2)` seconds), using a Gaussian approximation at $\hat{\btheta}_\texttt{LA}$.
-2. PCA-AGHQ (`r signif(time_taken$aghq, 2)` hours), using a mixture of Gaussians approximation at a PCA-AGHQ quadrature grid, as described in Section \ref{sec:pca}, and implemented via extension of the `aghq` package [@stringer2021implementing].
-3. NUTS (`r signif(time_taken$tmbstan, 2)` days), the Hamiltonian Monte Carlo (HMC) algorithm No-U-Turn Sampling (NUTS) using Stan [@carpenter2017stan] implemented via the `tmbstan` package [@monnahan2018no].
+1. TMB (`r signif(time_taken$TMB, 2)` seconds), based on a Gaussian approximation at $\hat{\btheta}_\texttt{LA}$.
+2. PCA-AGHQ (`r signif(time_taken$aghq, 2)` hours), based on a Gaussian approximation mixture at the nodes of a PCA-AGHQ quadrature grid, as described in Section \ref{sec:pca}, and implemented via extension of the `aghq` package [@stringer2021implementing].
+3. NUTS (`r signif(time_taken$tmbstan, 2)` days), the Hamiltonian Monte Carlo (HMC) algorithm No-U-Turn Sampling using Stan [@carpenter2017stan] implemented via the `tmbstan` package [@monnahan2018no].
 
 Our goal was to determine the accuracy of the approximate methods (TMB and PCA-AGHQ) as compared with the gold-standard (NUTS).
 Settings used for each inferential method are provided in Table \ref{tab:inference-methods}, and, where relevant, discussed further below.
@@ -412,7 +412,7 @@ Method & Software & Details \\
 \midrule
 TMB & \texttt{TMB} & $1000$ samples \\
 PCA-AGHQ & \texttt{aghq} & $k = 3, s = 8$ (see Section \ref{sec:pca-use}), $1000$ samples \\
-NUTS & \texttt{tmbstan} & $4$ chains of $100,000$ iterations, with the first $50,000$ iterations of each chain discarded as warmup, thinned by a factor of $40$, to give a total of $5000$ samples kept. Default NUTS tuning parameters \citep{hoffman2014no}. \\
+NUTS & \texttt{tmbstan} & $4$ chains of $100000$ iterations, with the first $50000$ iterations of each chain discarded as warmup, thinned by a factor of $40$, to give a total of $5000$ samples kept. Default NUTS tuning parameters \citep{hoffman2014no}. \\
 \bottomrule
 \end{tabularx}
 \caption{A summary of settings used for each inferential method.}
@@ -427,26 +427,30 @@ mcmc_out <- readRDS("depends/mcmc-out.rds")
 # signif(mcmc_out$max_rhat, 4)
 ```
 
-Obtaining acceptable NUTS diagnostics required four chains run in parallel for 100,000 iterations, thinned by a factor of 20 for ease-of-storage.
-The largest potential scale reduction factor [@gelman1992inference; @vehtari2021rank] was $\hat R = 1.021$ (Figure S7), and there were no divergent transitions.
+Due to low effective sample size ratios (Figure S$X$), obtaining acceptable NUTS diagnostics required four chains run in parallel for 100000 iterations, thinned by a factor of 20 for ease-of-storage.
+There were no divergent transitions, and the largest potential scale reduction factor [@gelman1992inference; @vehtari2021rank] was $\hat R = 1.021$ (Figure S7).
 We considered the NUTS results a gold-standard, though inaccuracies remain possible.
 For full details see Appendix S2.
 
 ## Use of PCA-AGHQ \label{sec:pca-use}
 
-We used a Scree plot (Figure S2) based on the spectral decomposition of $\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})^{-1}$ to select the number of principal components to keep.
-We found that $s = 8$ principal components were sufficient to explain close to 90% of total variation.
-With this choice of $s$, the reduced rank approximation to the inverse curvature was visually similar (Figure S3).
+```{r}
+tv_df <- read_csv("depends/total-variation.csv")
+```
 
-```{r node-positions, fig.cap="The 6561 PCA-AGHQ node positions (green, rug plot) projected onto the hyperparameter marginal posteriors (grey, histogram) for each of the 24 hyperparameters. Some hyperparameters, such as logit\\_phi\\_alpha\\_x, are well covered where as others, such as log\\_sigma\\_lambda\\_x, are near only being covered by one unique node."}
+We used a Scree plot based on the spectral decomposition of $\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})^{-1}$ to select the number of principal components to keep (Figure S2).
+We found that $s = 8$ principal components were sufficient to explain `r round(100 * tv_df$tv[8])`% of total variation.
+This choice of $s$ gave a visually similar reduced rank approximation to the inverse curvature (Figure S3).
+
+```{r node-positions, fig.cap="The 6561 PCA-AGHQ node positions (green, rug plot) projected onto the hyperparameter marginal posteriors (grey, histogram) for each of the 24 hyperparameters. Some hyperparameters, such as \\texttt{logit\\_phi\\_alpha\\_x}, are well covered where as others, such as \\texttt{log\\_sigma\\_lambda\\_x}, are near only being covered by one unique node."}
 knitr::include_graphics("depends/nodes-samples-comparison.png")
 ```
 
 ### Visual inspection
  
 Overlaying the resulting $3^8 = 6561$ PCA-AGHQ nodes onto the hyperparameter marginal posteriors obtained using NUTS, we found approximately 12 of the 24 hyperparameters had well covered marginals (Figure \ref{fig:node-positions}).
-Though 12 improves on the 8 naively achievable using a dense grid, there remained many hyperparameters poorly covered.
-Coverage was associated with marginal standard deviation (Figure S4), which varied particularly according to the hyperparameter scale.
+Though 12 does improve on the 8 naively obtained with a dense grid, there remained poorly covered hyperparameters.
+Coverage was associated with marginal standard deviation (Figure S4).
 All constrained hyperparameters $\theta$ were transformed to the real line, using either a log ($\theta > 0$) or logit ($\theta \in [0, 1]$) transformation.
 As a result, marginal standard deviations for log transformed hyperparameters were systematically smaller than those which were logit transformed (Figure S5).
 
@@ -465,11 +469,11 @@ bym2_mean_cor <- signif(filter(summary_cor_df, type == "bym2")$mean_cor, 2)
 
 The ordered eigenvectors correspond to the directions of greatest variation in the inverse curvature.
 The first and second eigenvectors each contain coupled AR1 standard deviation and correlation parameters (Figure S6).
-As variability can be explained either by high standard deviation and high correlation or low standard deviation and low correlation these parameters are weakly identified.
-This is reflected in high correlation in the the NUTS posterior pairs plot (Figure S10, average absolute correlation across all four pairs of `r ar1_mean_cor`).
+These parameters are weakly identified, and have high correlation in the the NUTS posterior pairs plot (Figure S10, average absolute correlation across all four pairs of `r ar1_mean_cor`).
+The reason why is that the same amount of variation can equally be explained by high standard deviation and high correlation or low standard deviation and low correlation.
 The BYM2 standard deviation and proportion parameters on the other hand are designed to be orthogonal, and as such did not display posterior correlation (Figure S11, average absolute correlation across all four pairs of `r bym2_mean_cor`) or appear prominently in the eigenvectors.
 
-### Normalising constant assessment
+### Normalising constant estimation
 
 We assessed appropriateness of the quadrature grid by comparing the estimate of $\log p_\texttt{PCA}(\y)$ for a range of settings.
 Convergence in $\log p_\texttt{PCA}(\y)$ as $s$ and $k$ are increased may suggest a suitable grid has been reached.
@@ -484,10 +488,10 @@ To assess the informativeness of the data we compared the prior variance $\sigma
 c(\psi) = 1 - (\sigma_\text{posterior}^2(\psi) / \sigma_\text{prior}^2(\psi)),
 \end{equation}
 where $\psi$ is a model parameter.
-We found that (Figure \ref{fig:contraction})) something something.
+We found that (Figure \ref{fig:contraction}) something something.
 For greater interpretability, facet parameters in this plot according to model component.
 
-```{r contraction, fig.cap="A posterior contraction tending toward 1.0 corresponds to a posterior tending towards a Dirac delta function. A posterior contraction of 0.0 corresponds to no change in standard deviation between prior and posterior. A posterior contraction less than 0.0 corresponds to a wider posterior than prior."}
+```{r contraction, fig.cap="A posterior contraction of 1 corresponds to a Dirac delta function. A posterior contraction of 0 corresponds to no change in standard deviation between prior and posterior. A posterior contraction less than 0 corresponds to a wider posterior than prior."}
 knitr::include_graphics("depends/posterior-contraction.png")
 ```
 

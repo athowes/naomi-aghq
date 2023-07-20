@@ -98,4 +98,5 @@ depends:
         depends/marginal-sd.png: marginal-sd.png
         depends/reduced-rank.png: reduced-rank.png
         depends/total-variation.png: total-variation.png
+        depends/total-variation.csv: total-variation.csv
         depends/pc-loadings.png: pc-loadings.png

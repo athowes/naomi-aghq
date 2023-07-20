@@ -47,15 +47,15 @@ knitr::opts_chunk$set()
 
 # Simplified Naomi model description \label{sec:math}
 
-In this section we describe the simplified Naomi model [@eaton2021naomi] in more complete mathematical detail than the main text.
+In this section we describe the simplified Naomi model [@eaton2021naomi] in complete detail.
 
 ## Background
 
 ### Indexing
 
 Consider the most recent national household survey with HIV testing which has taken place in the country of interest.
-Let $x \in \{1, \ldots, n\}$ refer to a district located within the Spectrum [@stover2010spectrum] region $R_x$.
-Let $s \in \{\text{F}, \text{M}\}$ be sex, and $a \in \{\text{0-5}, \text{5-10}, \ldots, \text{75-80}, \text{80+}\}$ be five-year age groups.
+Let $x \in \{1, \ldots, n\}$ be district, $s \in \{\text{F}, \text{M}\}$ be sex, and $a \in \{\text{0-5}, \text{5-10}, \ldots, \text{75-80}, \text{80+}\}$ be five-year age groups.
+Each district is located within a correspodning Spectrum [@stover2010spectrum] region $R_x$.
 As short-hand, we write $a = l$ to refer to the age group with lower bound $l$, e.g. $a = 20$ for $a = \text{20-25}$.
 
 We index the known quantity population size $N_{x, s, a}$ by district, sex and age-band, as well as the following unknown quantities:
@@ -67,7 +67,8 @@ We index the known quantity population size $N_{x, s, a}$ by district, sex and a
 
 Sometimes data are observed at an aggregate level, rather than the more granular modelled level.
 We use $\{\cdot\}$ to generically refer to a aggregate set over which an observation is made, e.g. $\{a\} = \{\text{15-19}, \ldots, \text{45-49}\}$ for the adult age range 15-49.
-The notation $\sum_{\{x\}}$ is used as shorthand for $\sum_{x \in \{x\}}$, and analogously for $s$ and $a$.
+The notation $\sum_{\{x\}}$ is used as shorthand for $\sum_{x \in \{x\}}$.
+Analogous notion is used for sums over $\sum_{a \in \{a\}}$ and $\sum_{s \in \{s\}}$.
 
 ### Structured random effects
 
@@ -78,7 +79,7 @@ Three types of structured random effects are used in the model:
 1. We specify the first order auto-regressive model by $\bu \sim \text{AR}1(\sigma, \phi)$ such that
 \begin{align}
 u_1 &\sim \left( 0, \frac{1}{1 - \rho^2} \right), \\
-u_i &= \rho u_{i - 1} + \epsilon_i, \quad i = 2, \ldots, \dim(\bu)
+u_i &= \rho u_{i - 1} + \epsilon_i, \quad i = 2, \ldots, \dim(\bu),
 \end{align}
 where $\epsilon_i \sim \mathcal{N}(0, 1)$ are independent and identically distributed (IID) Gaussian random variables, $\sigma > 0$ is the marginal standard deviation, and $|\rho| < 1$ is the (lag-one) correlation parameter.
 2. We use $\bu \sim \text{ICAR}(\sigma)$ to refer to the Besag intrinsic conditional auto-regressive model (ICAR) [@besag1991bayesian] with full conditionals
@@ -87,7 +88,7 @@ u_i \, | \, \bu_{-i} \sim \mathcal{N} \left(\frac{\sum_{j: j \sim i} u_j}{n_{\de
 \end{equation}
 where $\bu_{-i}$ is $\bu$ with the $i$th element removed i.e. $(u_1, \ldots, u_{i - 1}, u_{i + 1}, \ldots, u_{\dim(\bu)})$, $j \sim i$ if the units $i$ and $j$ are defined as adjacent, $n_{\delta i} = |\{j:j \sim i\}|$ is the total number of adjacent units, and $\sigma > 0$ is the marginal standard deviation.
 We follow recommendations of @freni2018note on scaling of precision matrices, disconnected adjacency graph components, and islands.
-3. For the reparameterised Besag-York-Mollie model (BYM2) [@simpson2017penalising], we write $\bu \sim \text{BYM}2(\sigma, \phi)$, where $\bu$ is comprised of a spatially structured ICAR component $\bv$ with proportion $\phi \in (0, 1)$ and spatially unstructured IID component $\w$ with proportion $1 - \phi$, both scaled to have generalised variance equal to one, and $\sigma > 0$ is the marginal standard deviation such that
+3. For the reparameterised Besag-York-Mollie model [BYM2; @simpson2017penalising], we write $\bu \sim \text{BYM}2(\sigma, \phi)$, where $\bu$ is comprised of a spatially structured ICAR component $\bv$ with proportion $\phi \in (0, 1)$ and spatially unstructured IID component $\w$ with proportion $1 - \phi$, both scaled to have generalised variance equal to one, and $\sigma > 0$ is the marginal standard deviation such that
 \begin{equation}
 \bu = \sigma \left( \sqrt\phi \cdot \bv + \sqrt{1 - \phi} \cdot \w \right).
 \end{equation}
@@ -127,7 +128,7 @@ To make these calculations we used the `survey` \textsc{R} package [@lumley2004a
 \end{table}
 
 We now describe the hyperparameter and latent field process specification for the model.
-Whereas in the main text process and likelihood specifications are written together, here we consider the likelihood equations separately in Section \ref{sec:likelihood} to follow.
+Whereas in the main text process and likelihood specifications are given together, here we consider the likelihood equations separately (Section \ref{sec:likelihood}).
 Table \ref{tab:latent-hyper-size} gives the number of latent field parameters and hyperparameters in each component of the model.
 In the case of Malawi then $n = 32$ such that the total number of latent field parameters is $51 + 14 \cdot 32 = 499$ and the total number of hyperparameters is $24$.
 
@@ -487,11 +488,11 @@ Variable name & Notation & Type & Size & Domain & $\rho$ input? & $\alpha$ input
 
 ## Additional figures
 
-```{r scree, fig.cap="Most variation could be explained by far fewer than the full 24 dimensions."}
+```{r scree, fig.cap="Most variation in the inverse curvature could be explained using far fewer than the full 24 dimensions."}
 knitr::include_graphics("depends/total-variation.png")
 ```
 
-```{r reduced-rank, fig.cap="The reduced rank (8) matrix approximation to the covariance matrix is visually similar to the full rank original."}
+```{r reduced-rank, fig.cap="The reduced rank ($s = 8$) matrix approximation to the covariance matrix is visually similar to the full rank original."}
 knitr::include_graphics("depends/reduced-rank.png")
 ```
 
@@ -503,7 +504,7 @@ knitr::include_graphics("depends/nodes-quantiles-sd.png")
 knitr::include_graphics("depends/marginal-sd.png")
 ```
 
-```{r pc-loadings, fig.cap="Principal component loadings."}
+```{r pc-loadings, fig.cap="Principal component loadings based on the eigendecomposition of the inverse curvature."}
 knitr::include_graphics("depends/pc-loadings.png")
 ```
 
@@ -528,19 +529,34 @@ ks_summary %>%
   ungroup() %>%
   filter(type == "Latent field") %>%
   select(-type) %>%
-  rename(`PCA-AGHQ` = `KS(aghq, tmbstan)`, `TMB` = `KS(TMB, tmbstan)`) %>%
-  gt::gt(rowname_col = "Parameter") %>%
-  gt::fmt_number(
-    columns = c(`PCA-AGHQ`, `TMB`),
-    decimals = 3
-  ) %>%
+  rename(TMB = `KS(TMB, tmbstan)`, `PCA-AGHQ` = `KS(aghq, tmbstan)`) %>%
+  select(Parameter, TMB, `PCA-AGHQ`) %>%
+  mutate(Difference = TMB - `PCA-AGHQ`) %>%
+  gt::gt() %>%
   gt::summary_rows(
-   columns = everything(),
+   columns = c(`TMB`, `PCA-AGHQ`, Difference),
    fns = list(Average = ~ mean(.x)),
    formatter = gt::fmt_number,
    decimals = 3
-  )
+  ) %>%
+  gt::fmt_number(
+    columns = c(`TMB`, `PCA-AGHQ`, Difference),
+    decimals = 3
+  ) %>%
+  gt::text_transform(
+    locations = gt::cells_body("Parameter"),
+    fn = function(x) paste0("\\texttt{", x, "}")
+  ) %>%
+  gt::text_transform(
+    locations = gt::cells_body("Difference"),
+    fn = function(x) ifelse(x > 0, paste0("\\textbf{", x, "}"), paste0(x))
+  ) %>%
+  gt::as_latex() %>%
+  as.character() %>%
+  cat(file = "ks-summary.tex")
 ```
+
+\input{ks-summary.tex}
 
 ## Pareto-smoothed importance sampling
 
