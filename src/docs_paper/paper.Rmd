@@ -322,27 +322,26 @@ Hyperparameter inferences can be obtained according to some method which should 
 
 ### Adaptive Gauss-Hermite quadrature
 
-Quadrature rules can be used to approximate integrals using a set of nodes $\z \in \mathcal{Q}$ and a weighting function $\omega: \mathcal{Q} \to \mathbb{R}$.
-Gauss-Hermite quadrature [GHQ; @davis1975methods] is a quadrature rule, where in the univariate case the nodes are selected as zeros of the $k$th Hermite polynomial
+Let $\z \in \mathcal{Q}(m, k)$ be $m$-dimensional Gauss-Hermite quadrature [GHQ; @davis1975methods] rule with $k$ nodes per dimension constructed using the product rule such that $\mathcal{Q}(m, k) = \mathcal{Q}(1, k) \times \cdots \times \mathcal{Q}(1, k)$ where
 \begin{equation}
-\mathcal{Q}(1, k) = \{z: H_k(z) = (-1)^k \exp(z^2 / 2) \frac{\text{d}}{\text{d}z^k} \exp(-z^2 / 2) = 0\}.
+\mathcal{Q}(1, k) = \{z: H_k(z) = (-1)^k \exp(z^2 / 2) \frac{\text{d}}{\text{d}z^k} \exp(-z^2 / 2) = 0\}, \\
 \end{equation}
-The corresponding weights $\omega: \mathcal{Q}(1, k) \to \mathbb{R}$ are given by $\omega(z) = k! / [H_{k + 1}(z)]^2 \phi(z)$, where $\phi(\cdot)$ is a standard Gaussian density.
-GHQ is attractive because it is exact for functions which are a Gaussian density multiplied by a polynomial of total order no more than $2k - 1$.
-We expect posterior distributions to be relatively well described by this class of functions.
-To integrate over $\btheta$ we require a multivariate GHQ rule, which is typically obtained using the product rule such that $\z = (z_1, \ldots, z_m) \in \mathcal{Q}(m, k) = \mathcal{Q}(1, k)^m$ and $\omega(\z) = \prod_{j = 1}^m \omega(z_j)$.
-In adaptive Gauss-Hermite quadrature [AHGQ; @naylor1982applications; @tierney1986accurate] the nodes are shifted and rotated to suit the particular integrand.
-Repositioning the nodes is especially important in statistical quadrature problems, where the integral depends on data $\y$ and regions of high density are not known in advance.
+with $\phi(\cdot)$ is a standard Gaussian density.
+The corresponding weighting function $\omega: \mathcal{Q}(m, k) \to \mathbb{R}$ is given by $\omega(\z) = \prod_{j = 1}^m \omega(z_j)$ where $\omega(z) = k! / [H_{k + 1}(z)]^2 \phi(z)$.
+For $k = 1$ GHQ corresponds to a Laplace approximation.
+Further GHQ is exact for functions which are a Gaussian density multiplied by a polynomial of total order no more than $2k - 1$, a class of functions we expect the posterior to be close to.
 
-Let $\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA}) = - \partial^2 \log p_\texttt{LA}(\hat{\btheta}_\texttt{LA}, \y)$ be the curvature at the mode $\hat{\btheta}_\texttt{LA}$ and $[\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})]^{-1} = \hat{\mathbf{P}}_\texttt{LA} {\hat{\mathbf{P}}_\texttt{LA}}^\top$ be a matrix decomposition of the inverse curvature, then an AGHQ estimate of the normalising constant $p(\y)$ based on the Laplace approximation is
+Let $\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA}) = - \partial^2 \log p_\texttt{LA}(\hat{\btheta}_\texttt{LA}, \y)$ be the curvature at the mode $\hat{\btheta}_\texttt{LA}$ and $[\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})]^{-1} = \hat{\mathbf{P}}_\texttt{LA} {\hat{\mathbf{P}}_\texttt{LA}}^\top$ be a matrix decomposition of the inverse curvature.
+An adaptive Gauss-Hermite quadrature [AHGQ; @naylor1982applications; @tierney1986accurate] estimate of the normalising constant $p(\y)$ based on the Laplace approximation is given by
 \begin{equation}
 p(\y) \approx \int_{\btheta} \tilde p_\texttt{LA}(\btheta, \y) \approx \tilde p_\texttt{AGHQ}(\y) = |\hat{\mathbf{P}}_\texttt{LA}|\sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\texttt{LA}(\hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}, \y) \omega(\z). \label{eq:aghq}
 \end{equation}
-The unadapted nodes are shifted by the mode and rotated by a decomposition of the inverse curvature such that $\z \mapsto \hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}$.
-Two alternatives [@jackel2005note] are
+The unadapted nodes are shifted by the mode and rotated by a matrix decomposition of the inverse curvature such that $\z \mapsto \hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}$.
+Repositioning the nodes is crucial for statistical quadrature problems like ours, where the integral depends on data $\y$ and regions of high density are not known in advance.
+Two alternatives for the matrix decomposition [@jackel2005note] are
 1. the Cholesky decomposition $\hat{\mathbf{P}}_\texttt{LA} = \hat{\mathbf{L}}_\texttt{LA}$, where $\hat{\mathbf{L}}_\texttt{LA}$ is lower triangular, and
 2. the spectral decomposition $\hat{\mathbf{P}}_\texttt{LA} = \hat{\mathbf{E}}_\texttt{LA} \hat{\mathbf{\Lambda}}_\texttt{LA}^{1/2}$, where $\hat{\mathbf{E}}_\texttt{LA} = (\hat{\mathbf{e}}_{\texttt{LA}, 1}, \ldots \hat{\mathbf{e}}_{\texttt{LA}, m})$ contains the eigenvectors of $[\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})]^{-1}$ and $\hat{\mathbf{\Lambda}}_\texttt{LA}$ is a diagonal matrix containing its eigenvalues $(\hat \lambda_{\texttt{LA}, 1}, \ldots, \hat \lambda_{\texttt{LA}, m})$.
-Equation \ref{eq:aghq} may then be used to normalise the Laplace approximation
+This estimate may be used to normalise the Laplace approximation
 \begin{equation}
 \tilde p_\texttt{LA}(\btheta \, | \, \y) = \frac{\tilde p_\texttt{LA}(\btheta, \y)}{\tilde p_\texttt{AGHQ}(\y)}.
 \end{equation}
@@ -370,7 +369,9 @@ We refer to this approach as PCA-AGHQ, with corresponding estimate of the normal
 \tilde p_\texttt{PCA}(\y) = |\hat{\mathbf{E}}_{\texttt{LA}} \hat{\mathbf{\Lambda}}_{\texttt{LA}}^{1/2}|\sum_{\z \in \mathcal{Q}(m, s, k)} \tilde p_\texttt{LA}(\hat{\mathbf{E}}_{\texttt{LA}, s} \hat{\mathbf{\Lambda}}_{\texttt{LA}, s}^{1/2} \z + \hat{\btheta}_\texttt{LA}, \y) \omega(\z),
 \end{equation}
 where $\hat{\mathbf{E}}_{\texttt{LA}, s}$ is an $m \times s$ matrix containing the first $s$ eigenvectors, $\hat{\mathbf{\Lambda}}_{\texttt{LA}, s}$ is the $s \times s$ diagonal matrix containing the first $s$ eigenvalues, and $\omega(\z) = \prod_{j = 1}^s \omega_s(z_j) \times \prod_{j = s + 1}^d \omega_1(z_j)$.
-Panel C of Figure \ref{fig:aghq} illustrates PCA-AGHQ for a case when $m = 2$ and $s = 1$. 
+Panel C of Figure \ref{fig:aghq} illustrates PCA-AGHQ for a case when $m = 2$ and $s = 1$.
+As AGHQ with $k = 1$ corresponds to the Laplace approximation, PCA-AGHQ can be interpreted as performing AGHQ on the first $s$ principal components of the inverse curvature, and a Laplace approximation on the remaining $m - s$ principal components.
+Inference for the latent field follows analogously to Equation \ref{eq:nest}.
 
 # Application to data from Malawi\label{sec:results}
 
