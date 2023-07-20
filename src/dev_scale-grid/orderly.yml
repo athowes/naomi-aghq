@@ -15,10 +15,11 @@ artefacts:
       filenames:
         - scale-grid.html
   - data:
-      description: Plots
+      description: Plots and other output
       filenames:
         - marginal-sd.png
         - total-variation.png
+        - total-variation.csv
         - reduced-rank.png
         - pc-loadings.png
         - pca-demo.png
