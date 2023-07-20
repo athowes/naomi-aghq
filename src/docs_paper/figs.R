@@ -66,7 +66,10 @@ add_points <- function(figA0, gg) {
       col = "#009E73",
       inherit.aes = FALSE
     ) +
-    scale_size_continuous(range = c(1, 2))
+    scale_size_continuous(range = c(1, 2)) +
+    theme(
+      plot.caption = element_text(hjust = 0)
+    )
 }
 
 figA1 <- add_points(figA0, gg) +
@@ -126,7 +129,7 @@ indicators <- naomi:::add_output_labels(outputs) %>%
     age_group_label = fct_reorder(age_group_label, as.integer(factor(age_group)))
   )
 
-figBadata <- indicators %>%
+figB1data <- indicators %>%
   filter(
     indicator == "prevalence",
     age_group == "Y015_049",
@@ -135,7 +138,7 @@ figBadata <- indicators %>%
     area_level == 4
   )
 
-figBa <- figBadata %>%
+figB1 <- figB1data %>%
   ggplot(aes(fill = mean)) +
   geom_sf(size = 0.1) +
   scale_fill_viridis_c(
@@ -148,7 +151,7 @@ figBa <- figBadata %>%
   coord_sf(expand = FALSE) +
   theme_minimal() +
   theme(
-    plot.caption = element_text(hjust = 5),
+    plot.caption = element_text(hjust = 0),
     panel.grid = element_blank(),
     panel.spacing = unit(0, "lines"),
     axis.text = element_blank(),
@@ -161,7 +164,7 @@ figBa <- figBadata %>%
     legend.key.height = unit(1, "line")
   )
 
-figBbdata <- indicators %>%
+figB2data <- indicators %>%
   filter(
     indicator == "art_coverage",
     age_group == "Y015_049",
@@ -170,7 +173,7 @@ figBbdata <- indicators %>%
     area_level == 4
   )
 
-figBb <- figBbdata %>%
+figB2 <- figB2data %>%
   ggplot(aes(fill = mean)) +
   geom_sf(size = 0.1) +
   scale_fill_viridis_c(
@@ -181,7 +184,7 @@ figBb <- figBbdata %>%
   coord_sf(expand = FALSE) +
   theme_minimal() +
   theme(
-    plot.caption = element_text(hjust = 5),
+    plot.caption = element_text(hjust = 0),
     panel.grid = element_blank(),
     panel.spacing = unit(0, "lines"),
     axis.text = element_blank(),
@@ -194,7 +197,7 @@ figBb <- figBbdata %>%
     legend.key.height = unit(1, "line")
   )
 
-figBcdata <- indicators %>%
+figB3data <- indicators %>%
   filter(
     indicator %in% c("infections", "incidence"),
     age_group == "Y015_049",
@@ -203,7 +206,7 @@ figBcdata <- indicators %>%
     area_level == 4
   )
 
-figBc <- figBcdata %>%
+figB3 <- figB3data %>%
   sf::st_drop_geometry() %>%
   tidyr::pivot_wider(c(area_id, area_name), names_from = indicator, values_from = mean) %>%
   left_join(
@@ -232,7 +235,7 @@ figBc <- figBcdata %>%
   coord_sf(expand = FALSE) +
   theme_minimal() +
   theme(
-    plot.caption = element_text(hjust = -0.15),
+    plot.caption = element_text(hjust = 0),
     panel.grid = element_blank(),
     axis.text = element_blank(),
     strip.text = element_text(face = "bold", size = rel(0.85)),
@@ -249,7 +252,7 @@ figBc <- figBcdata %>%
 
 ggsave(
   "figB.png",
-  plot = figBa + figBb + figBc,
+  plot = figB1 + figB2 + figB3,
   width = 6.25,
   height = 3
 )
@@ -324,3 +327,8 @@ ecdf_diff <- ggplot(ecdf_df, aes(x = x, y = ecdf_diff, col = method)) +
 histogram + ecdf_diff
 
 ggsave("figC.png", h = 4, w = 6.25, background = "white")
+
+#' Abstract figure
+top_row <- cowplot::plot_grid(figA1 + labs(subtitle = ""), figA2 + labs(subtitle = ""), figA3 + labs(subtitle = ""), ncol = 3)
+bottom_row <- {figB1 + labs(subtitle = "") + figB2 + labs(subtitle = "") + figB3 + labs(subtitle = "")}
+ggsave("abstract.png", cowplot::plot_grid(top_row, bottom_row, nrow = 2), h = 6, w = 6.25, bg = "white")

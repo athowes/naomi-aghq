@@ -18,6 +18,7 @@ artefacts:
         - figA.png
         - figB.png
         - figC.png
+        - abstract.png
 
 resources:
   - paper.Rmd

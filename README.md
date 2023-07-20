@@ -10,7 +10,7 @@ We propose a new inference method extending adaptive Gauss-Hermite quadrature to
 Using data from Malawi, our method improves the accuracy of inferences across a range of metrics, while being substantially faster to run than Hamiltonian Monte Carlo with the No-U-Turn sampler.
 Our implementation is based on the existing [`TMB`](https://kaskr.github.io/adcomp/_book/Introduction.html) C++ template for the model's log-posterior, and is compatible with any model with such a template.
 
-![Example district-level Naomi model outputs for adults aged 15-49.](naomi_results.png)
+![Top: Illustration of Gauss-Hermite quadrature, adaption, and the principal components analysis approach we use. Bottom: Example district-level Naomi model outputs for adults aged 15-49.](abstract.png)
 
 ## C++ template for the log-posterior
 
