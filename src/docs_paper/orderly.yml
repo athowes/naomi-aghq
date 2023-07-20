@@ -2,10 +2,11 @@ script: script.R
 
 artefacts:
   - data:
-      description: Main paper, appendix, and figures and tables .pdf
+      description: Main paper, appendix, and joined version
       filenames:
         - paper.pdf
         - appendix.pdf
+        - naomi-aghq.pdf
   - data:
       description: Main paper, appendix, and figures and tables .tex
       filenames:

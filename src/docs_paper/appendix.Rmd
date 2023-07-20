@@ -14,6 +14,8 @@ output:
       in_header: preamble.tex
 bibliography: citations.bib
 cls: imsart.cls
+header-includes:
+  \usepackage{xr} \externaldocument{paper}
 ---
 
 ```{r echo = FALSE}
@@ -484,6 +486,14 @@ Variable name & Notation & Type & Size & Domain & $\rho$ input? & $\alpha$ input
 
 \clearpage
 
+# Model assessment\label{sec:model-assessment}
+
+## Additional figures
+
+```{r contraction, fig.cap="A posterior contraction of 1 corresponds to a Dirac delta function. A posterior contraction of 0 corresponds to no change in standard deviation between prior and posterior. A posterior contraction less than 0 corresponds to a wider posterior than prior."}
+knitr::include_graphics("depends/posterior-contraction.png")
+```
+
 # AGHQ and PCA-AGHQ details
 
 ## Additional figures
@@ -508,7 +518,7 @@ knitr::include_graphics("depends/marginal-sd.png")
 knitr::include_graphics("depends/pc-loadings.png")
 ```
 
-## Normalising constant estimation
+## Normalising constant estimation\label{sec:normalising}
 
 Add here plots and description of the estimated normalising constant for different PCA-AGHQ settings.
 
@@ -622,7 +632,7 @@ ks_summary %>%
 
 \clearpage
 
-# MCMC convergence and suitability
+# MCMC convergence and suitability\label{sec:mcmc}
 
 ```{r}
 mcmc_out <- readRDS("depends/mcmc-out.rds")
@@ -674,7 +684,7 @@ knitr::include_graphics("depends/alpha_x.png")
 
 \clearpage
 
-# Algorithm using Laplace latent field marginals 
+# Algorithm using Laplace latent field marginals\label{sec:laplace-marginals}
 
 1. Calculate the mode, Hessian at the mode, lower Cholesky, and Laplace approximation
 \begin{align}

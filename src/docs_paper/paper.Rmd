@@ -60,6 +60,8 @@ keywords:
 predefined-theoremstyle: true # use in section Environments for Axiom, Theorem, etc
 bibliography: citations.bib
 biblio-style: imsart-nameyear # alternative: imsart-number
+header-includes:
+  \usepackage{xr} \externaldocument{appendix}
 output:
   rticles::ims_article:
     journal: aoas # aap, aoas, aop, aos, sts. See documentation
@@ -146,7 +148,7 @@ Finally, we discuss our conclusions, and directions for future research in Secti
 
 @eaton2021naomi specify a joint model linking three small-area estimation models.
 We consider a simplified version defined only at the time of the most recent household survey with HIV testing, omitting nowcasting and temporal projection, as these time points involve limited inferences.
-An overview of the simplified model is given below, and a more complete mathematical description is provided in Appendix S1.
+An overview of the simplified model is given below, and a more complete mathematical description is provided in Appendix \ref{sec:math}.
 
 ## Household survey component \label{sec:household}
 
@@ -164,7 +166,7 @@ We infer the following unknown HIV indicators using linked regression equations:
 
 We specify independent logistic regression models for HIV prevalence and ART coverage in the general population such that $\text{logit}(\rho_i) = \eta^\rho_i$ and $\text{logit}(\alpha_i) = \eta^\alpha_i$.
 HIV incidence rate is modelled on the log scale as $\log(\lambda_i) = \eta^\lambda_i$, and depends on adult HIV prevalence and adult ART coverage.
-The structured additive predictors $\eta^\theta_i$ for $\theta \in \{\rho, \alpha, \lambda\}$ are given in Appendix S1.
+The structured additive predictors $\eta^\theta_i$ for $\theta \in \{\rho, \alpha, \lambda\}$ are given in Appendix \ref{sec:math}.
 Let $\kappa_i$ be the proportion recently infected among HIV positive persons.
 We link this proportion to HIV incidence via
 \begin{equation}
@@ -228,7 +230,7 @@ We model the log-odds $\tilde \gamma_{x, x'} = \text{logit}(\gamma_{x, x'})$ usi
 As such, we assume travel to each neighbouring district, for all age-sex strata, is equally likely.
 We then model aggregate ART attendance data $y^{N^\text{ART}}_I$ using a Gaussian approximation to a sum of binomials.
 This sum is over both strata $i \in I$ and the number of ART clients travelling from district $x'$ to $x$.
-More details regarding this part of the model are provided in Appendix S1.
+More details regarding this part of the model are provided in Appendix \ref{sec:math}.
 
 ## Summary
 
@@ -428,10 +430,10 @@ mcmc_out <- readRDS("depends/mcmc-out.rds")
 # signif(mcmc_out$max_rhat, 4)
 ```
 
-Due to low effective sample size ratios (Figure S$X$), obtaining acceptable NUTS diagnostics required four chains run in parallel for 100000 iterations, thinned by a factor of 20 for ease-of-storage.
-There were no divergent transitions, and the largest potential scale reduction factor [@gelman1992inference; @vehtari2021rank] was $\hat R = 1.021$ (Figure S7).
+Due to low effective sample size ratios (Figure \ref{fig:ratio}), obtaining acceptable NUTS diagnostics required four chains run in parallel for 100000 iterations, thinned by a factor of 20 for ease-of-storage.
+There were no divergent transitions, and the largest potential scale reduction factor [@gelman1992inference; @vehtari2021rank] was $\hat R = 1.021$ (Figure \ref{fig:rhat}).
 We considered the NUTS results a gold-standard, though inaccuracies remain possible.
-For full details see Appendix S2.
+For full details see Appendix \ref{sec:mcmc}.
 
 ## Use of PCA-AGHQ \label{sec:pca-use}
 
@@ -439,9 +441,9 @@ For full details see Appendix S2.
 tv_df <- read_csv("depends/total-variation.csv")
 ```
 
-We used a Scree plot based on the spectral decomposition of $\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})^{-1}$ to select the number of principal components to keep (Figure S2).
+We used a Scree plot based on the spectral decomposition of $\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})^{-1}$ to select the number of principal components to keep (Figure \ref{fig:scree}).
 We found that $s = 8$ principal components were sufficient to explain `r round(100 * tv_df$tv[8])`% of total variation.
-This choice of $s$ gave a visually similar reduced rank approximation to the inverse curvature (Figure S3).
+This choice of $s$ gave a visually similar reduced rank approximation to the inverse curvature (Figure \ref{fig:reduced-rank}).
 
 ```{r node-positions, fig.cap="The 6561 PCA-AGHQ node positions (green, rug plot) projected onto the hyperparameter marginal posteriors (grey, histogram) for each of the 24 hyperparameters. Some hyperparameters, such as \\texttt{logit\\_phi\\_alpha\\_x}, are well covered where as others, such as \\texttt{log\\_sigma\\_lambda\\_x}, are near only being covered by one unique node."}
 knitr::include_graphics("depends/nodes-samples-comparison.png")
@@ -451,9 +453,9 @@ knitr::include_graphics("depends/nodes-samples-comparison.png")
  
 Overlaying the resulting $3^8 = 6561$ PCA-AGHQ nodes onto the hyperparameter marginal posteriors obtained using NUTS, we found approximately 12 of the 24 hyperparameters had well covered marginals (Figure \ref{fig:node-positions}).
 Though 12 does improve on the 8 naively obtained with a dense grid, there remained poorly covered hyperparameters.
-Coverage was associated with marginal standard deviation (Figure S4).
+Coverage was associated with marginal standard deviation (Figure \ref{fig:nodes-quantiles-sd}).
 All constrained hyperparameters $\theta$ were transformed to the real line, using either a log ($\theta > 0$) or logit ($\theta \in [0, 1]$) transformation.
-As a result, marginal standard deviations for log transformed hyperparameters were systematically smaller than those which were logit transformed (Figure S5).
+As a result, marginal standard deviations for log transformed hyperparameters were systematically smaller than those which were logit transformed (Figure \ref{fig:marginal-sd}).
 
 ### Interpreation of eigenvectors
 
@@ -469,16 +471,16 @@ bym2_mean_cor <- signif(filter(summary_cor_df, type == "bym2")$mean_cor, 2)
 ```
 
 The ordered eigenvectors correspond to the directions of greatest variation in the inverse curvature.
-The first and second eigenvectors each contain coupled AR1 standard deviation and correlation parameters (Figure S6).
-These parameters are weakly identified, and have high correlation in the the NUTS posterior pairs plot (Figure S10, average absolute correlation across all four pairs of `r ar1_mean_cor`).
+The first and second eigenvectors each contain coupled AR1 standard deviation and correlation parameters (Figure \ref{fig:pc-loadings}).
+These parameters are weakly identified, and have high correlation in the the NUTS posterior pairs plot (Figure \ref{fig:rho_a}, average absolute correlation across all four pairs of `r ar1_mean_cor`).
 The reason why is that the same amount of variation can equally be explained by high standard deviation and high correlation or low standard deviation and low correlation.
-The BYM2 standard deviation and proportion parameters on the other hand are designed to be orthogonal, and as such did not display posterior correlation (Figure S11, average absolute correlation across all four pairs of `r bym2_mean_cor`) or appear prominently in the eigenvectors.
+The BYM2 standard deviation and proportion parameters on the other hand are designed to be orthogonal, and as such did not display posterior correlation (Figure \ref{fig:alpha_x}, average absolute correlation across all four pairs of `r bym2_mean_cor`) or appear prominently in the eigenvectors.
 
 ### Normalising constant estimation
 
 We assessed appropriateness of the quadrature grid by comparing the estimate of $\log p_\texttt{PCA}(\y)$ for a range of settings.
 Convergence in $\log p_\texttt{PCA}(\y)$ as $s$ and $k$ are increased may suggest a suitable grid has been reached.
-Appendix S3 shows those values which we could compute in a reasonable time (less than 24 hours using a high performance computing cluster).
+Appendix \ref{sec:normalising} shows those values which we could compute in a reasonable time (less than 24 hours using a high performance computing cluster).
 
 ## Model assessment\label{sec:model-assessment}
 
@@ -491,10 +493,6 @@ c(\psi) = 1 - (\sigma_\text{posterior}^2(\psi) / \sigma_\text{prior}^2(\psi)),
 where $\psi$ is a model parameter.
 We found that (Figure \ref{fig:contraction}) something something.
 For greater interpretability, facet parameters in this plot according to model component.
-
-```{r contraction, fig.cap="A posterior contraction of 1 corresponds to a Dirac delta function. A posterior contraction of 0 corresponds to no change in standard deviation between prior and posterior. A posterior contraction less than 0 corresponds to a wider posterior than prior."}
-knitr::include_graphics("depends/posterior-contraction.png")
-```
 
 ### Coverage
 
@@ -653,7 +651,7 @@ It's possible that similar theory could be established for PCA-AGHQ, or more gen
 
 ### Laplace marginals
 
-See Appendix S4.
+See Appendix \ref{sec:laplace-marginals}.
 
 # Acknowledgements {-}
 

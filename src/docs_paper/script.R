@@ -18,8 +18,15 @@ convert_pdf_png <- function(name) {
 convert_pdf_png("nodes-samples-comparison")
 
 #' Render documents
-rmarkdown::render("paper.Rmd")
-rmarkdown::render("appendix.Rmd")
+#' Found a way to cross-link references: https://stackoverflow.com/questions/52531637/knitr-rmarkdown-latex-how-to-cross-reference-figures-and-tables-in-2-different/52532269#52532269
+rmarkdown::render("paper.Rmd", clean = FALSE)
+rmarkdown::render("appendix.Rmd", clean = FALSE)
+
+tinytex::pdflatex("paper.tex", clean = FALSE)
+tinytex::pdflatex("appendix.tex", clean = FALSE)
+
+tinytex::pdflatex("paper.tex")
+tinytex::pdflatex("appendix.tex")
 
 #' I just used this function to check some things as I was writing!
 kish_ess <- function(w) {
