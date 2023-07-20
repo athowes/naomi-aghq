@@ -16,7 +16,9 @@ artefacts:
         - mean-sd-output.png
         - mean-sd-alt-output.png
         - mean-output.png
+        - mean-alt-output.png
         - sd-output.png
+        - sd-alt-output.png
 
 resources:
   - point-estimates.Rmd

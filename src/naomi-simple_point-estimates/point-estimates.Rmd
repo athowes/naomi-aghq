@@ -191,25 +191,32 @@ sd_plot_latent <- df_plot_latent %>%
 
 ggsave("sd-latent.png", sd_plot_latent, h = 4, w = 6.25)
 
-sd_plot_latent_alt <- sd_plot_latent +
+combine_two_plots <- function(plot1, plot2) {
+  plot1alt <- plot1 +
+    theme(legend.position = "none")
+  
+  plot2alt <- plot2 +
   theme(
     strip.background = element_blank(),
-    strip.text.x = element_blank()
+    strip.text.x = element_blank(),
+    legend.position = "none"
   )
+  
+  y_axis <- ggplot(data.frame(l = plot1$labels$y, x = 1, y = 1)) +
+    geom_text(aes(x, y, label = l), angle = 90) +
+    theme_void() +
+    coord_cartesian(clip = "off")
+  
+  plot1alt$labels$x <- ""
+  plot1alt$labels$y <- plot2alt$labels$y <- ""
+  
+  y_axis + (plot1alt / plot2alt) +
+    plot_layout(widths = c(1, 35))
+}
 
-y_axis <- ggplot(data.frame(l = mean_plot_latent$labels$y, x = 1, y = 1)) +
-  geom_text(aes(x, y, label = l), angle = 90) +
-  theme_void() +
-  coord_cartesian(clip = "off")
+combine_two_plots(mean_plot_latent, sd_plot_latent)
 
-mean_plot_latent_alt <- mean_plot_latent
-mean_plot_latent_alt$labels$x <- ""
-mean_plot_latent_alt$labels$y <- sd_plot_latent_alt$labels$y <- ""
-
-(mean_sd_plot_latent_alt <- y_axis + (mean_plot_latent_alt / sd_plot_latent_alt) +
-  plot_layout(widths = c(1, 30)))
-
-ggsave("mean-sd-alt-latent.png", mean_sd_plot_latent_alt, h = 6, w = 6.25)
+ggsave("mean-sd-alt-latent.png", h = 6, w = 6.25)
 ```
 
 Where are the greatest errors occurring for the mean?
@@ -240,6 +247,9 @@ df_plot_latent %>%
 df_plot_output <- filter(df_plot, type == "output")
 df_metrics_output <- filter(df_metrics, type == "output")
 cbpalette <- c("#56B4E9","#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
+
+df_plot_output <- df_plot_output %>%
+  mutate(par = fct_recode(par, "HIV prevalence" = "rho_t1_out", "ART coverage" = "alpha_t1_out", "HIV incidence" = "lambda_t1_out"))
 
 df_plot_output %>%
   ggplot() +
@@ -292,28 +302,9 @@ sd_plot_output <- df_plot_output %>%
 
 ggsave("sd-output.png", sd_plot_output, h = 4, w = 6.25)
 
-sd_plot_output_alt <- sd_plot_output +
-  theme(
-    strip.background = element_blank(),
-    strip.text.x = element_blank(),
-    legend.position = "bottom"
-  )
+combine_two_plots(mean_plot_output, sd_plot_output)
 
-y_axis <- ggplot(data.frame(l = mean_plot_output$labels$y, x = 1, y = 1)) +
-  geom_text(aes(x, y, label = l), angle = 90) +
-  theme_void() +
-  coord_cartesian(clip = "off")
-
-mean_plot_output_alt <- mean_plot_output +
-  theme(legend.position = "none")
-
-mean_plot_output_alt$labels$x <- ""
-mean_plot_output_alt$labels$y <- sd_plot_output_alt$labels$y <- ""
-
-(mean_sd_plot_output_alt <- y_axis + (mean_plot_output_alt / sd_plot_output_alt) +
-  plot_layout(widths = c(1, 30)))
-
-ggsave("mean-sd-alt-output.png", mean_sd_plot_output_alt, h = 6, w = 6.25, bg = "white")
+ggsave("mean-sd-alt-output.png", h = 6, w = 6.25)
 ```
 
 Version split by output type:
@@ -368,12 +359,49 @@ plot_outputs <- function(.indicator, .par, col) {
   theme(legend.position = "none")
 }
 
-plot_outputs(.indicator = "Posterior mean estimate", .par = "rho_t1_out", col = "#E69F00")
-plot_outputs(.indicator = "Posterior mean estimate", .par = "lambda_t1_out", col = "#009E73")
-plot_outputs(.indicator = "Posterior mean estimate", .par = "alpha_t1_out", col = "#56B4E9")
-plot_outputs(.indicator = "Posterior SD estimate", .par = "rho_t1_out", col = "#E69F00")
-plot_outputs(.indicator = "Posterior SD estimate", .par = "lambda_t1_out", col = "#009E73")
-plot_outputs(.indicator = "Posterior SD estimate", .par = "alpha_t1_out", col = "#56B4E9")
+mean_prev_plot <- plot_outputs(.indicator = "Posterior mean estimate", .par = "HIV prevalence", col = "#E69F00")
+mean_inc_plot <- plot_outputs(.indicator = "Posterior mean estimate", .par = "HIV incidence", col = "#009E73")
+mean_art_plot <- plot_outputs(.indicator = "Posterior mean estimate", .par = "ART coverage", col = "#56B4E9")
+sd_prev_plot <- plot_outputs(.indicator = "Posterior SD estimate", .par = "HIV prevalence", col = "#E69F00")
+sd_inc_plot <- plot_outputs(.indicator = "Posterior SD estimate", .par = "HIV incidence", col = "#009E73")
+sd_art_plot <- plot_outputs(.indicator = "Posterior SD estimate", .par = "ART coverage", col = "#56B4E9")
+
+#' Put together
+combine_three_plots <- function(plot1, plot2, plot3) {
+  plot1alt <- plot1 +
+    theme(legend.position = "none")
+  
+  plot2alt <- plot2 +
+  theme(
+    strip.background = element_blank(),
+    strip.text.x = element_blank(),
+    legend.position = "none"
+  )
+  
+  plot3alt <- plot3 +
+  theme(
+    strip.background = element_blank(),
+    strip.text.x = element_blank(),
+    legend.position = "none"
+  )
+  
+  y_axis <- ggplot(data.frame(l = plot1$labels$y, x = 1, y = 1)) +
+    geom_text(aes(x, y, label = l), angle = 90) +
+    theme_void() +
+    coord_cartesian(clip = "off")
+  
+  plot1alt$labels$x <- plot2alt$labels$x <- ""
+  plot1alt$labels$y <- plot2alt$labels$y <- plot3alt$labels$y <- ""
+  
+  three_plots <- cowplot::plot_grid(plot1alt, plot2alt, plot3alt, ncol = 1)
+  cowplot::plot_grid(y_axis, three_plots, ncol = 2, rel_widths = c(1, 35))
+}
+
+combine_three_plots(mean_prev_plot, mean_inc_plot, mean_art_plot)
+ggsave("mean-alt-output.png", h = 7, w = 6.25)
+
+combine_three_plots(sd_prev_plot, sd_inc_plot, sd_art_plot)
+ggsave("sd-alt-output.png", h = 7, w = 6.25)
 ```
 
 # Original computing environment {-}
