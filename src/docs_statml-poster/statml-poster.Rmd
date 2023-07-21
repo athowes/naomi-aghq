@@ -1,0 +1,197 @@
+---
+poster_height: "1189mm"
+poster_width: "841mm"
+font_family: "Open Sans"
+# Essentials
+title: Fast approximate Bayesian inference of HIV indicators using PCA adaptive Gauss-Hermite quadrature
+# titlebox_height: "10%"
+author:
+  - name: "Adam Howes"
+    affil: 1, 2
+    main: true
+    email: ath19@ic.ac.uk
+  - name: "Alex Stringer"
+    affil: 3
+  - name: "Seth R. Flaxman"
+    affil: 4
+  - name: "Jeffrey W. Eaton"
+    affil: 5, 2
+affiliation:
+  - num: 1
+    address: Department of Mathematics, Imperial College London
+  - num: 2
+    address: MRC Centre for Global Infectious Disease Analysis, School of Public Health, Imperial College London
+  - num: 3
+    address: Department of Statistics and Actuarial Science, University of Waterloo
+  - num: 4
+    address: Department of Computer Science, University of Oxford
+  - num: 5
+    address: Center for Communicable Disease Dynamics, Department of Epidemiology, Harvard T.H. Chan School of Public Health
+logoleft_name: "mrc-gida-icl-uw-hthc-mlgh-uo.png"
+# Style & formatting
+column_numbers: 3
+title_textsize: "75px"
+author_textsize: "55px"
+authorextra_textsize: "35px"
+affiliation_textsize: "35px"
+caption_fontsize: "20px"
+# Title box
+title_textcol: "#000000"
+author_textcol: "#000000"
+affiliation_textcol: "#000000"
+# Main
+main_fontfamily: "Open Sans"
+# Poster body options
+body_bgcol: "#ffffff"
+body_textsize: "36px"
+body_textcol: "#000000"
+reference_textsize: "25px"
+sectitle_textsize: "40px"
+link_col: "#000000"
+# Standard options
+bibliography: citations.bib
+output: 
+  posterdown::posterdown_html:
+    self_contained: false
+    pandoc_args: --mathjax
+    highlight: espresso
+---
+
+```{css, echo=FALSE}
+div.logo_left{
+  width: 35%;
+  background-color: #E5E5E5;
+}
+div.poster_title{
+  width: 60%;
+}
+div.title_container{
+  background-color: #E5E5E5;
+}
+code{
+  background-color: #ffffff;
+  color: #000000;
+}
+.poster_body{
+  column-rule-color: #ffffff;
+}
+```
+
+## Summary
+
+* We developed an approximate Bayesian inference method using Laplace approximation, adaptive Gauss-Hermite quadrature and principal component analysis
+* Motivation: an evidence synthesis model for small-area estimation of HIV indicators in >35 countries in sub-Saharan Africa
+* Implemented using the `aghq` package [@stringer2021implementing], and compatible with any model with a Template Model Builder `TMB` [@kristensen2016tmb] C++ user template
+
+## 1. The Naomi HIV model
+
+* District-level model of HIV indicators which synthesises data from 1) household surveys, 2) antenatal care (ANC) clinics, and 3) routine service provision of antiretroviral therapy (ART) [@eaton2021naomi]
+  * Combining evidence from multiple data sources helps overcome the limitations of any one
+  * Small-area estimation methods (structured random effects) to overcome limited district-level sample sizes
+* Yearly estimation process: model run interactively by by country teams using `naomi.unaids.org` web-app
+  * Figure \@ref(fig:fig1) illustrates the seven stages of using the app
+* Inference conducted in minutes using empirical Bayes and a Gaussian approximation
+* Days to get accurate answers with MCMC via `tmbstan` [@monnahan2018no]: not practical!
+* Naomi has a large latent field $x$ controlled by a smaller number of hyperparameters $\theta$
+* Extended latent Gaussian model [@stringer2022fast]: more complex dependency structures than a latent Gaussian model [@rue2009approximate]
+* Looking for a fast, approximate approach, that properly takes uncertainty in hyperparameters into account
+
+```{r fig1, echo=FALSE, fig.align='center', out.width='100%', fig.cap='Model fitting occurs interactively in stages'}
+knitr::include_graphics("fig1.png")
+```
+
+## 2. Inference procedure
+
+* **Laplace approximation** Integrate out latent field using a Gaussian approximation to the denominator
+$$
+p(\theta, y) \approx \tilde p_\texttt{LA}(\theta, y) = \frac{p(y, x, \theta)}{\tilde p_\texttt{G}(x \, | \, \theta, y)} \Big\rvert_{x = \hat x(\theta)},
+$$
+where $\tilde p_\texttt{G}(x \, | \, \theta, y) = \mathcal{N}(x \, | \, \hat x(\theta), \hat H(\theta)^{-1})$
+  * Use automatic differentiation via `CppAD` in `TMB`
+  
+```{r aghq, echo=FALSE, fig.align='center', fig.cap='Demonstration of PCA-AGHQ.'}
+knitr::include_graphics("fig2.png")
+```
+  
+* **Adaptive Gauss-Hermite Quadrature** (AGHQ) perform quadrature over the hyperparameters
+$$
+\int_\Theta p_\texttt{LA}(\theta, y) \text{d} \theta \approx \lvert L \rvert \sum_{z \in \mathcal{Q}(m, k)} p_\texttt{LA}(\hat \theta + Lz, y) \omega(z),
+$$
+where the Gauss-Hermite quadrature rule $\{z \in \mathcal{Q}(m, k), \omega\}$ with $m = \dim(\theta)$ and $k$ points per dimension is adapted based upon
+  * The mode $\hat \theta = \text{argmax}_{\theta \in \Theta} p_\texttt{LA}(\theta, y)$
+  * A matrix decomposition $LL^\top = - \partial_\theta^2 \log p_\texttt{LA}(\theta, y) \rvert_{\theta = \hat \theta}$
+* Use the spectral decomposition $L = E\Lambda^{1/2}$ and keep only the first $s < m$ **principal components** (PCA-AGHQ)
+
+## 3. Application to Malawi
+
+* Malawi is a relatively small country but still has latent field $\text{dim}(x) = 491$ and hyperparameters $\text{dim}(\theta) = 24$
+
+```{r fig3, echo=FALSE, fig.align='center', fig.cap='District-level model outputs for adults 15-49 in January 2016. Adapted from Eaton et al. 2021.'}
+knitr::include_graphics("fig3.png")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+time_taken <- readr::read_csv("depends/time-taken.csv")
+```
+
+| Method | Description | Time |
+|-----------|----------|------|
+| TMB | Baseline | `r round(time_taken$TMB, 0)` secs |
+| PCA-AGHQ | Ours | `r round(time_taken$aghq, 0)` hour |
+| NUTS | Gold-standard | `r round(time_taken$tmbstan, 1)` days |
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ks <- readRDS("depends/ks-summary.rds")
+
+ks_reduction <- ks %>%
+  filter(type == "Latent field") %>%
+  summarise(
+    ks_tmb = mean(`KS(TMB, tmbstan)`),
+    ks_aghq = mean(`KS(aghq, tmbstan)`)
+  ) %>%
+  mutate(reduction = 100 * (ks_aghq - ks_tmb) / ks_tmb) %>%
+  pull(reduction) %>%
+  round()
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# second90 <- readr::read_csv("depends/second90.csv")
+# 
+# second90_reduction <- second90 %>%
+#   summarise(
+#     rmse_tmb = 100 * sqrt(mean((tmbstan - TMB)^2)),
+#     rmse_aghq = 100 * sqrt(mean((tmbstan - aghq)^2))
+#   ) %>%
+#   mutate(reduction = 100 * (rmse_aghq - rmse_tmb) / rmse_tmb) %>%
+#   pull(reduction) %>%
+#   round()
+```
+
+* For PCA-AGHQ $k = 3$ and $s = 8$ chosen using Scree plot to explain ~90% of variance
+* For NUTS 4 chains of 100,000 thinned by 40 were required for good diagnostics
+* Kolmogorov-Smirnov (KS) test based on the maximum difference between marginal ECDFs
+  * Average KS distance from NUTS reduced by `r abs(ks_reduction)`%
+  * Also considering joint posteriors via Pareto-smoothed importance sampling and maximum mean discrepancy
+* Naomi can be used to assess probabilities targets have been met e.g. 90% of those who know their HIV status are on ART ("second 90"). Both TMB and PCA-AGHQ have biased inferences
+
+<!-- ```{r fig4, echo=FALSE, fig.align='center', fig.cap='Both approximate methods are meaningfully incorrect for policy.'} -->
+<!-- knitr::include_graphics("fig4.png") -->
+<!-- ``` -->
+
+## 4. Future directions
+
+* **Can we do any better than modest improvements?**
+* Laplace marginals with matrix algebra approximations [@wood2020simplified] to speed up calculations
+* Further methods for allocation of effort to "important" dimensions of hyperparameter grid
+
+**Funding** AH was supported by the EPSRC and Bill & Melinda Gates Foundation. This research was supported by the MRC Centre for Global Infectious Disease Analysis.
+
+**Contact** `r fontawesome::fa("home", fill = "black")` `athowes.github.io`; `r fontawesome::fa("envelope", fill = "black")` `ath19@ic.ac.uk`
+
+## References
+
+<font size="5"> <div id="refs" class="references"></div> </font>
+
+<!-- To-do: -->
+<!-- * Get "3. Inference procedure" to be on next page -->
+<!-- * Try to reduce whitespace around Fig 3 -->

@@ -1,0 +1,42 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Poster for StatML retreat
+      filenames:
+        - statml-poster.html
+        - statml-poster.pdf
+  - data:
+      description: Figures
+      filenames:
+        - fig2.png
+        - fig3.png
+
+resources:
+  - statml-poster.Rmd
+  - figs.R
+  - citations.bib
+  - mrc-gida-icl-uw-hthc-mlgh-uo.png
+  - fig1.png
+
+packages:
+  - rmarkdown
+  - dplyr
+  - ggplot2
+  - forcats
+  - patchwork
+
+depends:
+  - naomi-simple_fit:
+      id: latest(parameter:tmb == TRUE)
+      use:
+        depends/tmb.rds: out.rds
+  - naomi-simple_ks:
+      id: latest
+      use:
+        depends/ks-summary.rds: ks-summary.rds
+        depends/time-taken.csv: time-taken.csv
+  - naomi-simple_exceedance:
+      id: latest
+      use:
+        depends/exceedance.csv: exceedance.csv
