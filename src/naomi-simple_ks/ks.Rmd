@@ -560,18 +560,28 @@ Is there any correlation between the value of $\text{KS}(\texttt{method}, \textt
 ```{r}
 rhats <- bayesplot::rhat(tmbstan$mcmc$stanfit)
 ess_ratio <- bayesplot::neff_ratio(tmbstan$mcmc$stanfit)
-niter <- 4 * tmbstan_details$niter / tmbstan_details$nthin
+niter <- 0.5 * 4 * tmbstan_details$niter / tmbstan_details$nthin
 ess <- ess_ratio * niter
+
+fct_reorg <- function(fac, ...) {
+  fct_recode(fct_relevel(fac, ...), ...)
+}
 
 ks_df %>%
   filter(type != "Hyper") %>%
+  mutate(method = fct_reorg(method, "TMB" = "TMB", "PCA-AGHQ" = "aghq")) %>%
   left_join(data.frame(ess) %>%
     tibble::rownames_to_column("par"),
   ) %>%
   ggplot(aes(x = ess, y = ks)) +
-    geom_point(alpha = 0.5) +
-    geom_smooth(method = "lm", color = "#56B4E9") +
+    geom_point(shape = 1, alpha = 0.5) +
+    geom_smooth(method = "lm", color = "#56B4E9", fullrange = TRUE) +
+    stat_poly_eq(use_label("eq"), label.x.npc = "right") +
+    stat_poly_eq(label.y = 0.9, label.x.npc = "right") +
+    scale_x_continuous(limits = c(0, NA)) +
     facet_grid(~ method) +
     theme_minimal() +
-    labs(x = "ESS", y = "KS(method, tmbstan)")
+    labs(x = "ESS", y = "KS(method, NUTS)")
+
+ggsave("ks-ess.png", h = 4, w = 6.25)
 ```

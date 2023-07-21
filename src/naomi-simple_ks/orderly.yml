@@ -21,6 +21,10 @@ artefacts:
       description: KS test summary output
       filenames:
         - ks-summary.rds
+  - data:
+      description: Saved plots
+      filenames:
+        - ks-ess.png
 
 resources:
   - ks.Rmd

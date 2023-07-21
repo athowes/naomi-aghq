@@ -47,6 +47,7 @@ depends:
         depends/ks-summary.rds: ks-summary.rds
         depends/time-taken.csv: time-taken.csv
         depends/beta_alpha.rds: beta_alpha.rds
+        depends/ks-ess.png: ks-ess.png
   - plot-tikz_algorithm-flowchart:
       id: latest
       use:

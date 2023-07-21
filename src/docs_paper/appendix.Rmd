@@ -682,6 +682,10 @@ knitr::include_graphics("depends/rho_a.png")
 knitr::include_graphics("depends/alpha_x.png")
 ```
 
+```{r ks-ess, fig.cap="The ESS was negatively correlated with KS test statistic for both TMB and PCA-AGHQ. This could be explained in two ways. First, harder to sample parameters could be more difficult to estimate with approximate methods. Second, as more effective samples are collected, the NUTS posterior could become closer to the approximate posteriors."}
+knitr::include_graphics("depends/ks-ess.png")
+```
+
 \clearpage
 
 # Algorithm using Laplace latent field marginals\label{sec:laplace-marginals}

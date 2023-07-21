@@ -540,7 +540,8 @@ knitr::include_graphics("depends/mean-sd-alt-output.png")
 ### Distribution tests
 
 The two-sample Kolmogorov-Smirnov (KS) test statistic [@smirnov1948table] is the maximum absolute difference between two ECDFs $F(\omega) = \frac{1}{n} \sum_{i = 1}^n \mathbb{I}_{\psi_i \leq \omega}$.
-See an illustration of the KS test in Figure \ref{fig:ks} and a summary of the results in Table.
+See Figure \ref{fig:ks} for an example.
+Additionally, we found that KS test results were negatively correlated with ESS (Figure \ref{fig:ks-ess}).
 
 ```{r ks, fig.cap="Example KS test for one parameter."}
 knitr::include_graphics("figC.png")
