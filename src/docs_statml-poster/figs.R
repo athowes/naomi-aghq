@@ -4,75 +4,116 @@
 
 #' Figure 2
 
-mu <- c(1, 1.5)
-cov <- matrix(c(2, 1, 1, 1), ncol = 2)
+TMB::compile("2d.cpp")
+dyn.load(TMB::dynlib("2d"))
 
-obj <- function(theta) {
-  mvtnorm::dmvnorm(theta, mean = mu, sigma = cov)
-}
+obj <- TMB::MakeADFun(data = list(), parameters = list(theta1 = 0, theta2 = 0), DLL = "2d")
+
+box_lower <- -4.5
+box_upper <- 9.5
+box_size <- box_upper - box_lower
 
 grid <- expand.grid(
-  theta1 = seq(-2, 5, length.out = 700),
-  theta2 = seq(-2, 5, length.out = 700)
+  theta1 = seq(box_lower, box_upper, length.out = box_size * 50),
+  theta2 = seq(box_lower, box_upper, length.out = box_size * 50)
 )
 
-ground_truth <- cbind(grid, pdf = obj(grid))
+ground_truth <- cbind(grid, pdf = apply(grid, 1, function(x) exp(-1 * obj$fn(x))))
 
-fig2base <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
+opt <- nlminb(
+  start = obj$par,
+  objective = obj$fn,
+  gradient = obj$gr,
+  control = list(iter.max = 1000, trace = 0)
+)
+
+sd_out <- TMB::sdreport(
+  obj,
+  par.fixed = opt$par,
+  getJointPrecision = TRUE
+)
+
+mu <- opt$par
+cov <- sd_out$cov.fixed
+
+figA0 <- ggplot(ground_truth, aes(x = theta1, y = theta2, z = pdf)) +
   geom_contour(col = "lightgrey") +
-  coord_fixed(xlim = c(-2, 4.5), ylim = c(-2, 4.5), ratio = 1) +
+  coord_fixed(xlim = c(box_lower, box_upper), ylim = c(box_lower, box_upper), ratio = 1) +
   labs(x = "", y = "") +
   theme_minimal() +
-  guides(size = FALSE) +
+  guides(size = "none") +
   theme(
     axis.text.x = element_blank(), axis.ticks.x = element_blank(),
-    axis.text.y = element_blank(), axis.ticks.y = element_blank(),
-    plot.margin = grid::unit(c(0, 0, 0, 0), "mm")
+    axis.text.y = element_blank(), axis.ticks.y = element_blank()
   )
 
 gg <- mvQuad::createNIGrid(2, "GHe", 3)
 
-add_points <- function(fig2base, gg) {
-  fig2base +
+add_points <- function(figA0, gg) {
+
+  points <- mvQuad::getNodes(gg) %>%
+    as.data.frame() %>%
+    mutate(weights = mvQuad::getWeights(gg))
+
+  colnames(points) <- c("theta1", "theta2", "weights")
+
+  figA0 +
     geom_point(
-      data = mvQuad::getNodes(gg) %>%
-        as.data.frame() %>%
-        mutate(weights = mvQuad::getWeights(gg)),
-      aes(x = V1, y = V2, size = weights),
+      data = points,
+      aes(x = theta1, y = theta2, size = weights),
       alpha = 0.8,
       col = "#009E73",
       inherit.aes = FALSE
     ) +
-    scale_size_continuous(range = c(2, 4))
+    scale_size_continuous(range = c(1, 2)) +
+    theme(
+      plot.caption = element_text(hjust = 0)
+    )
 }
 
-fig2a <- add_points(fig2base, gg) +
-  labs(title = "GHQ")
+figA1 <- add_points(figA0, gg) +
+  labs(subtitle = "A: GHQ", size = "")
 
-#' Adapt by the mean
+#' Shift by the mode
 gg2 <- gg
 mvQuad::rescale(gg2, m = mu, C = diag(c(1, 1)), dec.type = 2)
 
-fig2b <- add_points(fig2base, gg2) +
-  labs(title = "Shift")
+figA2 <- add_points(figA0, gg2) +
+  labs(subtitle = "B: Shifted", size = "")
 
 #' Adapt by the spectral
 gg3 <- gg
 mvQuad::rescale(gg3, m = mu, C = cov, dec.type = 1)
 
-fig2c <- add_points(fig2base, gg3) +
-  labs(title = "Rotate")
+figA3 <- add_points(figA0, gg3) +
+  labs(subtitle = "C: AGHQ", size = "")
 
 #' PCA-AGHQ
 gg4 <- mvQuad::createNIGrid(2, "GHe", level = c(3, 1))
 mvQuad::rescale(gg4, m = mu, C = cov, dec.type = 1)
 
-fig2d <- add_points(fig2base, gg4) +
-  labs(title = "PCA")
+lambda <- eigen(cov)$values
+cumsum(lambda) / sum(lambda)
+
+xstart <- 6.1
+ystart <- -2.3
+
+x1end <- xstart + 4 * eigen(cov)$vectors[1, 1]
+y1end <- ystart + 4 * eigen(cov)$vectors[2, 1]
+
+x2end <- xstart + 1 * eigen(cov)$vectors[1, 2]
+y2end <- ystart + 1 * eigen(cov)$vectors[2, 2]
+
+figA4 <- add_points(figA0, gg4) +
+  geom_segment(aes(x = xstart, y = ystart, xend = x1end, yend = y1end), arrow = arrow(length = unit(0.25, "cm")), col = "darkgrey") +
+  annotate("text", x = x1end + 1, y = y1end - 3, label = "95%", col = "darkgrey") +
+  geom_segment(aes(x = xstart, y = ystart, xend = x2end, yend = y2end), arrow = arrow(length = unit(0.25, "cm")), col = "darkgrey") +
+  annotate("text", x = x2end, y = y2end - 2, label = "5%", col = "darkgrey") +
+  labs(subtitle = "D: PCA-AGHQ", size = "")
 
 ggsave(
   "fig2.png",
-  plot = (fig2a + fig2b) / (fig2c + fig2d),
+  plot = cowplot::plot_grid(figA1, figA2, figA3, figA4, ncol = 2),
   width = 6,
   height = 6,
   units = "in"

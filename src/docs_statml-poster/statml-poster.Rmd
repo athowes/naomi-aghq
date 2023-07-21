@@ -93,7 +93,7 @@ code{
 * Inference conducted in minutes using empirical Bayes and a Gaussian approximation
 * Days to get accurate answers with MCMC via `tmbstan` [@monnahan2018no]: not practical!
 * Naomi has a large latent field $x$ controlled by a smaller number of hyperparameters $\theta$
-* Extended latent Gaussian model [@stringer2022fast]: more complex dependency structures than a latent Gaussian model [@rue2009approximate]
+* Extended latent Gaussian model [@stringer2022fast]: more complex dependency structures than a latent Gaussian model
 * Looking for a fast, approximate approach, that properly takes uncertainty in hyperparameters into account
 
 ```{r fig1, echo=FALSE, fig.align='center', out.width='100%', fig.cap='Model fitting occurs interactively in stages'}
@@ -102,25 +102,24 @@ knitr::include_graphics("fig1.png")
 
 ## 2. Inference procedure
 
+```{r aghq, echo=FALSE, fig.align='center', fig.cap='Demonstration of Gauss-Hermite quadrature, adaption, and our principal components approach.'}
+knitr::include_graphics("fig2.png")
+```
+
 * **Laplace approximation** Integrate out latent field using a Gaussian approximation to the denominator
 $$
 p(\theta, y) \approx \tilde p_\texttt{LA}(\theta, y) = \frac{p(y, x, \theta)}{\tilde p_\texttt{G}(x \, | \, \theta, y)} \Big\rvert_{x = \hat x(\theta)},
 $$
 where $\tilde p_\texttt{G}(x \, | \, \theta, y) = \mathcal{N}(x \, | \, \hat x(\theta), \hat H(\theta)^{-1})$
   * Use automatic differentiation via `CppAD` in `TMB`
-  
-```{r aghq, echo=FALSE, fig.align='center', fig.cap='Demonstration of PCA-AGHQ.'}
-knitr::include_graphics("fig2.png")
-```
-  
 * **Adaptive Gauss-Hermite Quadrature** (AGHQ) perform quadrature over the hyperparameters
 $$
 \int_\Theta p_\texttt{LA}(\theta, y) \text{d} \theta \approx \lvert L \rvert \sum_{z \in \mathcal{Q}(m, k)} p_\texttt{LA}(\hat \theta + Lz, y) \omega(z),
 $$
-where the Gauss-Hermite quadrature rule $\{z \in \mathcal{Q}(m, k), \omega\}$ with $m = \dim(\theta)$ and $k$ points per dimension is adapted based upon
+where $m = \dim(\theta)$ and the Gauss-Hermite quadrature rule $z \in \mathcal{Q}(m, k)$ with weights $\omega:\mathcal{Q} \mapsto \mathbb{R}$ and $k$ points per dimension is adapted based upon
   * The mode $\hat \theta = \text{argmax}_{\theta \in \Theta} p_\texttt{LA}(\theta, y)$
   * A matrix decomposition $LL^\top = - \partial_\theta^2 \log p_\texttt{LA}(\theta, y) \rvert_{\theta = \hat \theta}$
-* Use the spectral decomposition $L = E\Lambda^{1/2}$ and keep only the first $s < m$ **principal components** (PCA-AGHQ)
+* **PCA-AGHQ** To integrate over large spaces, use the spectral decomposition $L = E\Lambda^{1/2}$ and keep only the first $s < m$ principal components
 
 ## 3. Application to Malawi
 
@@ -134,20 +133,14 @@ knitr::include_graphics("fig3.png")
 time_taken <- readr::read_csv("depends/time-taken.csv")
 ```
 
-| Method | Description | Time |
-|-----------|----------|------|
-| TMB | Baseline | `r round(time_taken$TMB, 0)` secs |
-| PCA-AGHQ | Ours | `r round(time_taken$aghq, 0)` hour |
-| NUTS | Gold-standard | `r round(time_taken$tmbstan, 1)` days |
-
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ks <- readRDS("depends/ks-summary.rds")
 
 ks_reduction <- ks %>%
-  filter(type == "Latent field") %>%
+  filter(type == "Latent") %>%
   summarise(
-    ks_tmb = mean(`KS(TMB, tmbstan)`),
-    ks_aghq = mean(`KS(aghq, tmbstan)`)
+    ks_tmb = mean(TMB),
+    ks_aghq = mean(aghq)
   ) %>%
   mutate(reduction = 100 * (ks_aghq - ks_tmb) / ks_tmb) %>%
   pull(reduction) %>%
@@ -166,17 +159,10 @@ ks_reduction <- ks %>%
 #   pull(reduction) %>%
 #   round()
 ```
-
-* For PCA-AGHQ $k = 3$ and $s = 8$ chosen using Scree plot to explain ~90% of variance
-* For NUTS 4 chains of 100,000 thinned by 40 were required for good diagnostics
-* Kolmogorov-Smirnov (KS) test based on the maximum difference between marginal ECDFs
-  * Average KS distance from NUTS reduced by `r abs(ks_reduction)`%
-  * Also considering joint posteriors via Pareto-smoothed importance sampling and maximum mean discrepancy
+* Run three methods: 1. TMB (baseline, `r round(time_taken$TMB, 0)` secs), 2. PCA-AGHQ (new, `r round(time_taken$aghq, 0)` hour), 3. NUTS (gold-standard, `r round(time_taken$tmbstan, 1)` days)
+  * For PCA-AGHQ $k = 3$ and $s = 8$ chosen using Scree plot to explain ~90% of variance
+  * For NUTS 4 chains of 100,000 thinned by 40 were required for good diagnostics e.g. all $\hat R < 1.025$
 * Naomi can be used to assess probabilities targets have been met e.g. 90% of those who know their HIV status are on ART ("second 90"). Both TMB and PCA-AGHQ have biased inferences
-
-<!-- ```{r fig4, echo=FALSE, fig.align='center', fig.cap='Both approximate methods are meaningfully incorrect for policy.'} -->
-<!-- knitr::include_graphics("fig4.png") -->
-<!-- ``` -->
 
 ## 4. Future directions
 
