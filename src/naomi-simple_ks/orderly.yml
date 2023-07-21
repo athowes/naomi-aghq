@@ -24,6 +24,7 @@ artefacts:
   - data:
       description: Saved plots
       filenames:
+        - ks-summary.png
         - ks-ess.png
 
 resources:

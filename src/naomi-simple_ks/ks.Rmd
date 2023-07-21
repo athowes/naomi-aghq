@@ -310,7 +310,7 @@ theta_names <- names(tmb$fit$obj$env$par[-r])
 
 dict <- data.frame(
   parname = c(unique(x_names), unique(theta_names)),
-  type = c(rep("Latent field", length(unique(x_names))), rep("Hyper", length(unique(theta_names))))
+  type = c(rep("Latent", length(unique(x_names))), rep("Hyper", length(unique(theta_names))))
 )
 
 ks_df <- lapply(unique(names(tmb$fit$obj$env$par)), to_ks_df) %>%
@@ -485,27 +485,42 @@ options(dplyr.summarise.inform = FALSE)
 
 ks_summary <- ks_df %>%
   group_by(method, parname, type) %>%
-  summarise(ks = signif(mean(ks), 4)) %>%
-  pivot_wider(names_from = "method", values_from = "ks") %>%
-  rename(
-    "Parameter" = "parname",
-    "KS(aghq, tmbstan)" = "aghq",
-    "KS(TMB, tmbstan)" = "TMB",
-  )
+  summarise(
+    ks = mean(ks),
+    size = n()
+  ) %>%
+  pivot_wider(names_from = "method", values_from = "ks")
 
 saveRDS(ks_summary, "ks-summary.rds")
 
-ks_summary %>%
-  filter(type != "Hyper") %>%
-  ks_plot_many("TMB", "aghq")
+extended_cbpalette <- colorRampPalette(multi.utils::cbpalette())
+
+ks_summary_latent <- filter(ks_summary, type == "Latent field")
+
+xy_length <- min(1, max(ks_summary_latent$aghq, ks_summary_latent$TMB) + 0.03)
+
+ks_summary_latent %>%
+  ggplot(aes(x = TMB, y = aghq, col = parname, size = size)) +
+  geom_point(alpha = 0.4) +
+  xlim(0, xy_length) +
+  ylim(0, xy_length) +
+  scale_color_manual(values = extended_cbpalette(n = 20)) +
+  scale_size_continuous(breaks = c(2, 10, 32), labels = c(2, 10, 32)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  labs(x = "KS(TMB, NUTS)", y = "KS(PCA-AGHQ, NUTS)", col = "Parameter", size = "Length", subtitle = "Smaller KS values indicate higher accuracy") +
+  theme_minimal() +
+  guides(size = guide_legend(title.position = "top", direction = "vertical"), col = guide_legend(title.position = "top")) +
+  theme(legend.position = "bottom", legend.title = element_text(size = rel(0.9)), legend.text = element_text(size = rel(0.7)))
+
+ggsave("ks-summary.png", h = 5, w = 6.25, bg = "white")
 ```
 
 ```{r}
 ks_summary %>%
   group_by(type) %>%
   summarise(
-    TMB = mean(`KS(TMB, tmbstan)`),
-    aghq = mean(`KS(aghq, tmbstan)`)
+    TMB = mean(TMB),
+    aghq = mean(aghq)
   ) %>%
   gt::gt()
 ```
@@ -514,8 +529,8 @@ ks_summary %>%
 
 ```{r}
 ks_summary %>%
-  filter(type == "Latent field") %>%
-  mutate(diff = signif(`KS(TMB, tmbstan)` - `KS(aghq, tmbstan)`, 3)) %>%
+  filter(type == "Latent") %>%
+  mutate(diff = signif(TMB - aghq, 3)) %>%
   DT::datatable()
 ```
 
@@ -532,25 +547,27 @@ ks_df_wide <- ks_df %>%
 ### Nodes where `TMB` beats `aghq`
 
 ```{r}
-ks_df_wide %>%
-  arrange(desc(diff)) %>%
-  head(n = 10)
+(tmb_beats_aghq <- ks_df_wide %>%
+  filter(!is.na(type)) %>%
+  arrange(diff) %>%
+  head(n = 10))
 
-histogram_and_ecdf(par = "us_alpha_xs", i = 18)
-histogram_and_ecdf(par = "us_alpha_xs", i = 16)
-histogram_and_ecdf(par = "u_alpha_xs", i = 13)
+histogram_and_ecdf(par = tmb_beats_aghq$parname[1], i = tmb_beats_aghq$index[1])
+histogram_and_ecdf(par = tmb_beats_aghq$parname[2], i = tmb_beats_aghq$index[2])
+histogram_and_ecdf(par = tmb_beats_aghq$parname[3], i = tmb_beats_aghq$index[3])
 ```
 
 ### Nodes where `aghq` beats `TMB`
 
 ```{r}
-ks_df_wide %>%
-  arrange(diff) %>%
-  head(n = 10)
+(aghq_beats_tmb <- ks_df_wide %>%
+  filter(!is.na(type)) %>%
+  arrange(desc(diff)) %>%
+  head(n = 10))
 
-histogram_and_ecdf(par = "ui_anc_rho_x", i = 27)
-histogram_and_ecdf(par = "ui_anc_alpha_x", i = 19)
-histogram_and_ecdf(par = "u_alpha_x", i = 18)
+histogram_and_ecdf(par = aghq_beats_tmb$parname[1], i = aghq_beats_tmb$index[1])
+histogram_and_ecdf(par = aghq_beats_tmb$parname[2], i = aghq_beats_tmb$index[2])
+histogram_and_ecdf(par = aghq_beats_tmb$parname[3], i = aghq_beats_tmb$index[3])
 ```
 
 ## Correlation between KS values and ESS
