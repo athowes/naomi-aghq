@@ -123,7 +123,7 @@ where $m = \dim(\theta)$ and the Gauss-Hermite quadrature rule $z \in \mathcal{Q
 
 ## 3. Application to Malawi
 
-* Malawi is a relatively small country but still has latent field $\text{dim}(x) = 491$ and hyperparameters $\text{dim}(\theta) = 24$
+* Malawi is a relatively small country but still has latent field $\text{dim}(x) = 467$ and hyperparameters $\text{dim}(\theta) = 24$
 
 ```{r fig3, echo=FALSE, fig.align='center', fig.cap='District-level model outputs for adults 15-49.'}
 knitr::include_graphics("fig3.png")
@@ -136,11 +136,12 @@ time_taken <- readr::read_csv("depends/time-taken.csv")
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ks <- readRDS("depends/ks-summary.rds")
 
-ks_reduction <- ks %>%
+ks_summary <- ks %>%
   filter(type == "Latent") %>%
+  group_by(type) %>%
   summarise(
-    ks_tmb = mean(TMB),
-    ks_aghq = mean(aghq)
+    ks_tmb = mean(size * TMB) / sum(size),
+    ks_aghq = mean(size * aghq) / sum(size)
   ) %>%
   mutate(reduction = 100 * (ks_aghq - ks_tmb) / ks_tmb) %>%
   pull(reduction) %>%
@@ -153,22 +154,38 @@ second90_rmse <- filter(exceedance_summary, indicator == "Second 90", method == 
 * Run three methods: 1. TMB (baseline, `r round(time_taken$TMB, 0)` secs), 2. PCA-AGHQ (new, `r round(time_taken$aghq, 0)` hour), 3. NUTS (gold-standard, `r round(time_taken$tmbstan, 1)` days)
   * For PCA-AGHQ $k = 3$ and $s = 8$ chosen using Scree plot to explain ~90% of variance
   * For NUTS 4 chains of 100,000 thinned by 40 were required for good diagnostics e.g. all $\hat R < 1.025$
-* Naomi can be used to assess probabilities targets have been met e.g. 90% of those who know their HIV status are on ART ("second 90")
-  * Though PCA-AGHQ is better (`r round(second90_rmse, 0)`% RMSE), both TMB and PCA-AGHQ are biased (Figure 5)
 
-```{r fig5, echo=FALSE, fig.align='center', fig.cap='PCA-AGHQ somewhat improves the second 90 bias.'}
+```{r fig4, echo=FALSE, fig.align='center', fig.cap='PCA-AGHQ moderately improves the posterior mean and substantially improves the posterior standard deviation'}
+knitr::include_graphics("depends/mean-sd-alt-latent.png")
+```  
+
+* PCA-AGHQ improves latent field point estimates (Figure 4) and distributional quantities like the Kolmogorov-Smirnov (KS, Figure 5) test statistic (`r ks_summary`% on average)
+
+```{r fig5, echo=FALSE, fig.align='center', fig.cap='KS test demonstration.'}
 knitr::include_graphics("fig5.png")
+```
+
+* Naomi can be used to assess probabilities targets have been met e.g. 90% of those who know their HIV status are on ART ("second 90")
+  * Though PCA-AGHQ is better (`r round(second90_rmse, 0)`% RMSE), both TMB and PCA-AGHQ are biased (Figure 6)
+
+```{r fig6, echo=FALSE, fig.align='center', fig.cap='PCA-AGHQ moderately improves the second 90 bias.'}
+knitr::include_graphics("fig6.png")
 ```
 
 ## 4. Future directions
 
-* **Can we do any better than modest improvements?**
+* Can we do better than moderate improvements?
+  * Especially for the quantities of policy interest
 * Laplace marginals with matrix algebra approximations [@wood2020simplified] to speed up calculations
 * Further methods for allocation of effort to "important" dimensions of hyperparameter grid
 
-**Funding** AH was supported by the EPSRC and Bill & Melinda Gates Foundation. This research was supported by the MRC Centre for Global Infectious Disease Analysis.
+**Contact**
 
-**Contact** `r fontawesome::fa("home", fill = "black")` `athowes.github.io`; `r fontawesome::fa("envelope", fill = "black")` `ath19@ic.ac.uk`
+* `r fontawesome::fa("code", fill = "black")` `github.com/athowes/naomi-aghq`
+* `r fontawesome::fa("home", fill = "black")` `athowes.github.io`
+* `r fontawesome::fa("envelope", fill = "black")` `ath19@ic.ac.uk`
+
+**Funding** AH was supported by the EPSRC and Bill & Melinda Gates Foundation. This research was supported by the MRC Centre for Global Infectious Disease Analysis.
 
 ## References
 

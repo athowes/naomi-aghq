@@ -260,8 +260,107 @@ ggsave(
 )
 
 #' Figure 4
+#' Imported
 
 #' Figure 5
+#' Custom made from naomi-simple_ks output
+#' TODO: formalise this
+
+# par <- aghq_beats_tmb$parname[3]
+# i <- aghq_beats_tmb$index[3]
+#
+# colours <- c("#56B4E9", "#009E73", "#E69F00", "#CC79A7")
+#
+# if(!is.null(i)) {
+#   par_name <- paste0(par, "[", i, "]")
+#
+#   df_compare <- rbind(
+#     data.frame(method = "TMB", samples = as.numeric(tmb$fit$sample[[par]][i, ])),
+#     data.frame(method = "aghq", samples = as.numeric(aghq$quad$sample[[par]][i, ])),
+#     data.frame(method = "tmbstan", samples = as.numeric(tmbstan$mcmc$sample[[par]][i, ]))
+#   )
+#
+#   rhat <- signif(rstan::Rhat(tmbstan$mcmc$sample[[par]][i, ]), 3)
+#   ess <- signif(rstan::ess_bulk(tmbstan$mcmc$sample[[par]][i, ]), 3)
+#
+# } else {
+#   par_name <- paste0(par)
+#
+#   df_compare <- rbind(
+#     data.frame(method = "TMB", samples = as.numeric(tmb$fit$sample[[par]])),
+#     data.frame(method = "aghq", samples = as.numeric(aghq$quad$sample[[par]])),
+#     data.frame(method = "tmbstan", samples = as.numeric(tmbstan$mcmc$sample[[par]]))
+#   )
+#
+#   rhat <- signif(rstan::Rhat(tmbstan$mcmc$sample[[par]]), 3)
+#   ess <- signif(rstan::ess_bulk(tmbstan$mcmc$sample[[par]]), 3)
+# }
+#
+# fct_reorg <- function(fac, ...) {
+#   fct_recode(fct_relevel(fac, ...), ...)
+# }
+#
+# df_compare <- df_compare %>%
+#   mutate(method = fct_reorg(method, "TMB" = "TMB", "PCA-AGHQ" = "aghq", "NUTS" = "tmbstan"))
+#
+# mean <- signif(mean(filter(df_compare, method == "tmbstan")$samples), digits = 3)
+# sd <- signif(sd(filter(df_compare, method == "tmbstan")$samples), digits = 3)
+#
+# histogram_plot <- ggplot(df_compare, aes(x = samples, fill = method, col = method)) +
+#   geom_histogram(aes(y = after_stat(density)), alpha = 0.5, position = "identity", bins = 30) +
+#   theme_minimal() +
+#   facet_grid(method~.) +
+#   labs(y = "Density", fill = "Method") +
+#   scale_color_manual(values = colours) +
+#   scale_fill_manual(values = colours) +
+#   theme(legend.position = "none") +
+#   labs(subtitle = paste0(par_name, ", NUTS: Rhat = ", rhat, ", ESS = ", ess), x = "")
+#
+# grid <- seq(from = min(df_compare$samples), to = max(df_compare$samples), length.out = 1000)
+#
+# tmb_ecdf <- stats::ecdf(filter(df_compare, method == "TMB") %>% pull(samples))
+# tmb_ecdf_df <- data.frame(x = grid, ecdf = tmb_ecdf(grid), method = "TMB")
+#
+# aghq_ecdf <- stats::ecdf(filter(df_compare, method == "aghq") %>% pull(samples))
+# aghq_ecdf_df <- data.frame(x = grid, ecdf = aghq_ecdf(grid), method = "aghq")
+#
+# tmbstan_ecdf <- stats::ecdf(filter(df_compare, method == "tmbstan") %>% pull(samples))
+# tmbstan_ecdf_df <- data.frame(x = grid, ecdf = tmbstan_ecdf(grid), method = "tmbstan")
+#
+# # Add ECDF differences
+# tmb_ecdf_df$ecdf_diff <- tmbstan_ecdf_df$ecdf - tmb_ecdf_df$ecdf
+# aghq_ecdf_df$ecdf_diff <- tmbstan_ecdf_df$ecdf - aghq_ecdf_df$ecdf
+# tmbstan_ecdf_df$ecdf_diff <- 0
+#
+# ks_tmb <- absmax(tmb_ecdf_df$ecdf_diff)
+# ks_aghq <- absmax(aghq_ecdf_df$ecdf_diff)
+#
+# ecdf_df <- bind_rows(tmb_ecdf_df, aghq_ecdf_df, tmbstan_ecdf_df)
+#
+# ecdf_df$method <- factor(ecdf_df$method, levels = c("TMB", "aghq", "tmbstan"))
+#
+# ks_labeller <- function(x) toString(signif(abs(x), 2))
+#
+# ecdf_plot <- ggplot(ecdf_df, aes(x = x, y = ecdf_diff, col = method)) +
+#   geom_line() +
+#   geom_abline(intercept = ks_tmb, slope = 0, col = colours[1], linetype = "dashed", alpha = 0.8) +
+#   annotate("text", x = 1.3 * max(ecdf_df$x), y = ks_tmb, label = ks_labeller(ks_tmb), col = colours[1], alpha = 0.8) +
+#   geom_abline(intercept = ks_aghq, slope = 0, col = colours[2], linetype = "dashed", alpha = 0.8) +
+#   annotate("text", x = 1.3 * max(ecdf_df$x), y = ks_aghq, label = ks_labeller(ks_aghq), col = colours[2], alpha = 0.8) +
+#   scale_color_manual(values = colours) +
+#   labs(x = "", y = "ECDF difference") +
+#   guides(col = "none") +
+#   coord_cartesian(xlim = c(min(ecdf_df$x), max(ecdf_df$x)), clip = "off") +
+#   theme_minimal() +
+#   theme(plot.margin = unit(c(1, 3, 1, 1), "lines"))
+#
+# plot <- histogram_plot + ecdf_plot
+#
+# plot
+#
+# ggsave("fig5.png", h = 3.5, w = 6)
+
+#' Figure 6
 
 exceedance <- readr::read_csv("depends/exceedance.csv")
 exceedance_summary <- readr::read_csv("depends/exceedance-summary.csv")
@@ -270,7 +369,7 @@ fct_reorg <- function(fac, ...) {
   fct_recode(fct_relevel(fac, ...), ...)
 }
 
-fig5 <- exceedance %>%
+fig6 <- exceedance %>%
   filter(indicator == "Second 90") %>%
   pivot_longer(cols = c("TMB", "aghq"), names_to = "method", values_to = "estimate") %>%
   mutate(
@@ -294,8 +393,8 @@ fig5 <- exceedance %>%
   theme(legend.position = "bottom")
 
 ggsave(
-  "fig5.png",
-  plot = fig5,
+  "fig6.png",
+  plot = fig6,
   width = 6,
   height = 4,
   units = "in"

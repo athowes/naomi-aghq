@@ -15,9 +15,11 @@ artefacts:
 resources:
   - statml-poster.Rmd
   - figs.R
+  - 2d.cpp
   - citations.bib
   - mrc-gida-icl-uw-hthc-mlgh-uo.png
   - fig1.png
+  - fig5.png
 
 packages:
   - rmarkdown
@@ -41,3 +43,8 @@ depends:
       use:
         depends/exceedance.csv: exceedance.csv
         depends/exceedance-summary.csv: exceedance-summary.csv
+  - naomi-simple_point-estimates:
+      id: latest
+      use:
+        depends/mean-sd.csv: mean-sd.csv
+        depends/mean-sd-alt-latent.png: mean-sd-alt-latent.png

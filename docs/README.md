@@ -66,6 +66,7 @@
 
 * [bayescomp-poster](https://athowes.github.io/naomi-aghq/bayescomp-poster.pdf): for BayesComp 2023
 * [bioinference-poster](https://athowes.github.io/naomi-aghq/bioinference-poster.pdf): for BioInference 2023
+* [statml-poster](https://athowes.github.io/naomi-aghq/statml-poster.pdf): for StatML retreat 2023
 
 ## Manuscript
 
