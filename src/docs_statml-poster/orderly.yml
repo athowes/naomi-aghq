@@ -40,3 +40,4 @@ depends:
       id: latest
       use:
         depends/exceedance.csv: exceedance.csv
+        depends/exceedance-summary.csv: exceedance-summary.csv

@@ -20,10 +20,12 @@ artefacts:
       description: Data to make plots or other further analysis
       filenames:
         - exceedance.csv
+        - exceedance-summary.csv
 
 resources:
   - exceedance.Rmd
   - citations.bib
+  - 2d.cpp
 
 packages:
   - dplyr

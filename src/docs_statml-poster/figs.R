@@ -153,10 +153,11 @@ fig3a <- fig3adata %>%
   scale_fill_viridis_c(
     option = "C", direction = -1,
     begin = 0.1, end = 0.9,
-    labels = scales::label_percent(1)
+    labels = scales::label_percent(1),
+    breaks = c(0, 0.08, 0.16)
   ) +
   expand_limits(fill = 0) +
-  labs(title = "HIV prevalence", fill = "") +
+  labs(title = "A: HIV prevalence", fill = "") +
   coord_sf(expand = FALSE) +
   theme_minimal() +
   theme(
@@ -167,7 +168,7 @@ fig3a <- fig3adata %>%
     legend.title = element_text(size = rel(0.8)),
     legend.text = element_text(size = rel(0.8)),
     legend.position = "bottom",
-    legend.key.width = unit(1.5, "line")
+    legend.key.width = unit(1, "line")
   )
 
 fig3bdata <- indicators %>%
@@ -183,10 +184,11 @@ fig3b <- fig3bdata %>%
   ggplot(aes(fill = mean)) +
   geom_sf(size = 0.1) +
   scale_fill_viridis_c(
-    option = "D", direction = -1, begin = 0.05, end = 0.9,
-    labels = scales::label_percent(1), limits = c(0.6, 0.853)
+    option = "D", direction = -1, begin = 0.1, end = 0.9,
+    labels = scales::label_percent(1), limits = c(0.6, 0.853),
+    breaks = c(0.6, 0.7, 0.8)
   ) +
-  labs(title = "ART coverage", fill = "") +
+  labs(title = "B: ART coverage", fill = "") +
   coord_sf(expand = FALSE) +
   theme_minimal() +
   theme(
@@ -197,7 +199,7 @@ fig3b <- fig3bdata %>%
     legend.title = element_text(size = rel(0.8)),
     legend.text = element_text(size = rel(0.8)),
     legend.position = "bottom",
-    legend.key.width = unit(1.5, "line")
+    legend.key.width = unit(1, "line")
   )
 
 fig3cdata <- indicators %>%
@@ -225,9 +227,9 @@ fig3c <- fig3cdata %>%
     begin = 0.05, end = 0.9,
     labels = scales::label_number(scale = 1000)
   ) +
-  scale_size_area(max_size = 8) +
+  scale_size_area(max_size = 8, labels = scales::unit_format(unit = "K", scale = 1e-3, sep = "")) +
   labs(
-    title = "HIV incidence",
+    title = "C: HIV incidence",
     col = "",
     size = "",
     x = element_blank(),
@@ -244,7 +246,7 @@ fig3c <- fig3cdata %>%
     legend.text = element_text(size = rel(0.8)),
     legend.position = "bottom",
     legend.box = "vertical",
-    legend.key.width = unit(1.5, "line"),
+    legend.key.width = unit(1, "line"),
     legend.margin = margin(0, 0, 0, 0),
     legend.box.margin=margin(-10, -10, -10, -10)
   )
@@ -259,24 +261,42 @@ ggsave(
 
 #' Figure 4
 
-# second90 <- readr::read_csv("depends/exceedance.csv")
-#
-# fig4 <- second90 %>%
-#   mutate(sex = dplyr::recode_factor(sex, "female" = "Female", "male" = "Male")) %>%
-#   ggplot(aes(x = tmbstan, y = TMB, col = sex)) +
-#   geom_point(alpha = 0.6) +
-#   scale_color_manual(values = c("#D55E00", "#009E73")) +
-#   geom_abline(slope = 1, intercept = 0, col = "grey30", linetype = "dashed") +
-#   annotate(geom = "text", x = 0.75, y = 0.225, label = "Exceedance probabilities for \n women are overestimated \n by approximate methods", color = "#D55E00") +
-#   labs(col = "Sex") +
-#   labs(x = "NUTS", y = "TMB") +
-#   theme_minimal() +
-#   theme(legend.position = "bottom")
-#
-# ggsave(
-#   "fig4.png",
-#   plot = fig4,
-#   width = 5,
-#   height = 5,
-#   units = "in"
-# )
+#' Figure 5
+
+exceedance <- readr::read_csv("depends/exceedance.csv")
+exceedance_summary <- readr::read_csv("depends/exceedance-summary.csv")
+
+fct_reorg <- function(fac, ...) {
+  fct_recode(fct_relevel(fac, ...), ...)
+}
+
+fig5 <- exceedance %>%
+  filter(indicator == "Second 90") %>%
+  pivot_longer(cols = c("TMB", "aghq"), names_to = "method", values_to = "estimate") %>%
+  mutate(
+    method = fct_reorg(method, "TMB" = "TMB", "PCA-AGHQ" = "aghq")
+  ) %>%
+  ggplot(aes(x = tmbstan, y = estimate)) +
+  geom_point(aes(col = sex), shape = 1, alpha = 0.6) +
+  coord_fixed(ratio = 1) +
+  scale_colour_manual(values = c("#56B4E9", "#999999"), labels = c("Female", "Male")) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  geom_text(
+    data = exceedance_summary %>%
+      filter(indicator == "Second 90") %>%
+      mutate(method = fct_relevel(method, "TMB", "PCA-AGHQ")),
+    aes(x = -Inf, y = Inf, label = label),
+    size = 3, hjust = 0, vjust = 1.5
+  ) +
+  facet_grid(indicator ~ method) +
+  labs(x = "NUTS", y = "", col = "Sex", subtitle = "Estimated probabilities of meeting second 90 target") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+ggsave(
+  "fig5.png",
+  plot = fig5,
+  width = 6,
+  height = 4,
+  units = "in"
+)

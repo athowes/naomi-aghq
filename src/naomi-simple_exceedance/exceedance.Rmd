@@ -274,6 +274,8 @@ df_wide <- bind_rows(
     mutate(indicator = "High incidence")
 )
 
+write_csv(df_wide, "exceedance.csv")
+
 fct_reorg <- function(fac, ...) {
   fct_recode(fct_relevel(fac, ...), ...)
 }
@@ -314,7 +316,7 @@ df_metrics <- df_metrics %>%
   ) %>%
   ungroup()
 
-write_csv(df_metrics, "exceedance.csv")
+write_csv(df_metrics, "exceedance-summary.csv")
 
 exceedance_manuscript_plot <- df_wide %>%
   pivot_longer(cols = c("TMB", "aghq"), names_to = "method", values_to = "estimate") %>%

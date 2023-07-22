@@ -102,7 +102,7 @@ knitr::include_graphics("fig1.png")
 
 ## 2. Inference procedure
 
-```{r aghq, echo=FALSE, fig.align='center', fig.cap='Demonstration of Gauss-Hermite quadrature, adaption, and our principal components approach.'}
+```{r fig2, echo=FALSE, fig.align='center', fig.cap='Demonstration of Gauss-Hermite quadrature, adaption, and our principal components approach.'}
 knitr::include_graphics("fig2.png")
 ```
 
@@ -116,7 +116,7 @@ where $\tilde p_\texttt{G}(x \, | \, \theta, y) = \mathcal{N}(x \, | \, \hat x(\
 $$
 \int_\Theta p_\texttt{LA}(\theta, y) \text{d} \theta \approx \lvert L \rvert \sum_{z \in \mathcal{Q}(m, k)} p_\texttt{LA}(\hat \theta + Lz, y) \omega(z),
 $$
-where $m = \dim(\theta)$ and the Gauss-Hermite quadrature rule $z \in \mathcal{Q}(m, k)$ with weights $\omega:\mathcal{Q} \mapsto \mathbb{R}$ and $k$ points per dimension is adapted based upon
+where $m = \dim(\theta)$ and the Gauss-Hermite quadrature rule $z \in \mathcal{Q}(m, k)$ with weights $\omega:\mathcal{Q} \mapsto \mathbb{R}$ and $k$ points per dimension is adapted (Figure 2) based upon
   * The mode $\hat \theta = \text{argmax}_{\theta \in \Theta} p_\texttt{LA}(\theta, y)$
   * A matrix decomposition $LL^\top = - \partial_\theta^2 \log p_\texttt{LA}(\theta, y) \rvert_{\theta = \hat \theta}$
 * **PCA-AGHQ** To integrate over large spaces, use the spectral decomposition $L = E\Lambda^{1/2}$ and keep only the first $s < m$ principal components
@@ -125,7 +125,7 @@ where $m = \dim(\theta)$ and the Gauss-Hermite quadrature rule $z \in \mathcal{Q
 
 * Malawi is a relatively small country but still has latent field $\text{dim}(x) = 491$ and hyperparameters $\text{dim}(\theta) = 24$
 
-```{r fig3, echo=FALSE, fig.align='center', fig.cap='District-level model outputs for adults 15-49 in January 2016. Adapted from Eaton et al. 2021.'}
+```{r fig3, echo=FALSE, fig.align='center', fig.cap='District-level model outputs for adults 15-49.'}
 knitr::include_graphics("fig3.png")
 ```
 
@@ -145,24 +145,20 @@ ks_reduction <- ks %>%
   mutate(reduction = 100 * (ks_aghq - ks_tmb) / ks_tmb) %>%
   pull(reduction) %>%
   round()
+
+exceedance_summary <- read_csv("depends/exceedance-summary.csv")
+second90_rmse <- filter(exceedance_summary, indicator == "Second 90", method == "PCA-AGHQ")$rmse_diff
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-# second90 <- readr::read_csv("depends/second90.csv")
-# 
-# second90_reduction <- second90 %>%
-#   summarise(
-#     rmse_tmb = 100 * sqrt(mean((tmbstan - TMB)^2)),
-#     rmse_aghq = 100 * sqrt(mean((tmbstan - aghq)^2))
-#   ) %>%
-#   mutate(reduction = 100 * (rmse_aghq - rmse_tmb) / rmse_tmb) %>%
-#   pull(reduction) %>%
-#   round()
-```
 * Run three methods: 1. TMB (baseline, `r round(time_taken$TMB, 0)` secs), 2. PCA-AGHQ (new, `r round(time_taken$aghq, 0)` hour), 3. NUTS (gold-standard, `r round(time_taken$tmbstan, 1)` days)
   * For PCA-AGHQ $k = 3$ and $s = 8$ chosen using Scree plot to explain ~90% of variance
   * For NUTS 4 chains of 100,000 thinned by 40 were required for good diagnostics e.g. all $\hat R < 1.025$
-* Naomi can be used to assess probabilities targets have been met e.g. 90% of those who know their HIV status are on ART ("second 90"). Both TMB and PCA-AGHQ have biased inferences
+* Naomi can be used to assess probabilities targets have been met e.g. 90% of those who know their HIV status are on ART ("second 90")
+  * Though PCA-AGHQ is better (`r round(second90_rmse, 0)`% RMSE), both TMB and PCA-AGHQ are biased (Figure 5)
+
+```{r fig5, echo=FALSE, fig.align='center', fig.cap='PCA-AGHQ somewhat improves the second 90 bias.'}
+knitr::include_graphics("fig5.png")
+```
 
 ## 4. Future directions
 
@@ -177,7 +173,3 @@ ks_reduction <- ks %>%
 ## References
 
 <font size="5"> <div id="refs" class="references"></div> </font>
-
-<!-- To-do: -->
-<!-- * Get "3. Inference procedure" to be on next page -->
-<!-- * Try to reduce whitespace around Fig 3 -->
