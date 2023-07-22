@@ -495,7 +495,7 @@ saveRDS(ks_summary, "ks-summary.rds")
 
 extended_cbpalette <- colorRampPalette(multi.utils::cbpalette())
 
-ks_summary_latent <- filter(ks_summary, type == "Latent field")
+ks_summary_latent <- filter(ks_summary, type == "Latent")
 
 xy_length <- min(1, max(ks_summary_latent$aghq, ks_summary_latent$TMB) + 0.03)
 
