@@ -596,9 +596,9 @@ ks_summary <- readRDS("depends/ks-summary.rds")
 
 ks_summary %>%
   ungroup() %>%
-  filter(type == "Latent field") %>%
+  filter(type == "Latent") %>%
   select(-type) %>%
-  select(Parameter, TMB = `KS(TMB, tmbstan)`, `PCA-AGHQ` = `KS(aghq, tmbstan)`) %>%
+  select(Parameter = parname, TMB, `PCA-AGHQ` = aghq) %>%
   mutate(Difference = `PCA-AGHQ` - TMB) %>%
   gt::gt() %>%
   gt::summary_rows(
