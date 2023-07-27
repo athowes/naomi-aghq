@@ -108,9 +108,10 @@ Naomi is a complex model, and as such presents a challenging Bayesian inference 
 As well as hundreds of latent field parameters, Naomi has >20 hyperparameters: substantially more than the small number that can typically be handled by approaches like integrated nested Laplace approximations [INLA; @rue2009approximate].
 Moreover, observations depend on multiple structured additive predictors, such that Naomi falls into the class of extended latent Gaussian models [ELGMs; @stringer2022fast].
 
-To allow for interactive review and iteration of model results by workshop participants, the inference procedure should be fast and have low memory usage.
-Due to the scale of the model and features of its posterior geometry [@neal2003slice], Markov chain Monte Carlo (MCMC) approaches are prohibitively slow.
-Furthermore, use of the inference method across countries should be effortless, without requiring substantial statistical expertise, as would be the case for monitoring MCMC convergence and suitability.
+To allow interactive review and iteration of model results by workshop participants, the inference procedure should be fast and have low memory usage.
+Because of the scale of the model and challenging features of its posterior geometry [@neal2003slice], Markov chain Monte Carlo (MCMC) approaches are prohibitively slow.
+In addition, we require the inference procedure to be automatic and produce estimates reliably, across a range of country settings, with specific data not known in advance.
+As such, approaches requiring substantial statistical expertise, as would be the case for monitoring MCMC convergence and suitability, are not viable.
 
 To meet these requirements, inference is currently conducted using an empirical Bayes (EB) approach, with a Gaussian approximation to the latent field, via the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb], which we refer to as TMB (distinguished from the package `TMB`).
 Owing to its speed and flexibility, `TMB` is gaining popularity, particularly in spatial statistics [@osgood2022statistical] and via the user-friendly `glmmTMB` \textsc{R} package [@brooks2017glmmTMB].
@@ -119,14 +120,14 @@ For the Naomi model, this subset is the high-dimensional latent field, leaving a
 Taking inspiration from the AD Model Builder package [@fournier2012ad], `TMB` uses automatic differentiation [@baydin2017automatic] to calculate the derivatives required for numerical optimisation routines and the Laplace approximation.
 
 Although the TMB approach is fast, within the empirical Bayes framework hyperparameter uncertainty is not accounted for in the latent field posterior.
-We suspected this would result in underestimation of posterior variances, which may have implications 
-As such, we were motivated to look for an more fully Bayesian inference approach, which is also flexible enough to be compatible with the model, as well as fast enough to be run in production by country teams.
-We developed an inference method based on adaptive Gauss-Hermite quadrature (AGHQ) extended to handle integration over large numbers of hyperparameters.
-AGHQ is a quadrature method based on the theory of polynomial interpolation, which is well suited to statistical estimation problems.
+We expected this would result in underestimation of posterior variances, which may have practical implications for use of the resulting estimates.
+As such, we were motivated to look for an approach closer to full Bayesian inference, which is also flexible enough to be compatible with the model, as well as fast enough to be run in production by country teams.
+To meet these requirements, we developed an inference method based on adaptive Gauss-Hermite quadrature (AGHQ) extended to handle integration over large numbers of hyperparameters.
+AGHQ is a quadrature method based on the theory of polynomial interpolation, and is well suited to statistical estimation problems in which the integrand is well approximated by a Gaussian multiplied by a polynomial.
 @bilodeau2022stochastic prove stochastic convergence rates for Bayesian posterior quantities when the normalising constant is estimated using AGHQ.
-However, it is not computationally feasible to use AGHQ in high dimensions directly, as exponentially many nodes would be required.
-Instead, we use principal components analysis (PCA) of the inverse curvature at the mode to find a smaller number of dimensions which explain most of the variance.
-For the Naomi model in Malawi, this results in a grid which has millions of times fewer nodes the corresponding dense grid and is tractable to run.
+However, it is not computationally feasible to use AGHQ in >20 dimensions directly, as exponentially many nodes are required.
+Instead, we used principal components analysis (PCA) of the inverse curvature at the mode to find a subspace which explained most of the hyperparameter variance.
+For the Naomi model in Malawi, this resulted in a grid which was tractable as it had millions of times fewer nodes the corresponding dense grid.
 Our implementation of the method makes use of the existing Naomi `TMB` template, and is immediately compatible with any model with such a template.
 
 Other work aiming to extend the scope of the INLA method includes the `inlabru` \textsc{R} package [@bachl2019inlabru], INLA within MCMC [@gomez2018markov], and importance sampling with INLA [@berild2022importance], all of which leverage the `R-INLA` \textsc{R} package [@martins2013bayesian].
@@ -188,7 +189,7 @@ m^{\theta}_I = \frac{\left(\sum_j w_j\right)^2}{\sum_j w_j^2},
 \end{equation*}
 is the Kish effective sample size (ESS) [@kish1965survey].
 As the Kish ESS is maximised by constant design weights, in exchange for reducing bias we reduce our ESS and thereby increase variance.
-We use a binomial working likelihood defined to operate on the reals
+We use a binomial working likelihood [@chen2014use] defined to operate on the reals
 \begin{equation*}
 y^{\theta}_{I} \sim \text{xBin}(m^{\theta}_{I}, \theta_{I})
 \end{equation*}
