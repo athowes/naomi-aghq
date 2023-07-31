@@ -40,7 +40,7 @@ affiliation:
     name: MRC Centre for Global Infectious Disease Analysis, School of Public Health, Imperial College London
 
 abstract: |
-  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of policy interest, including HIV prevalence, HIV incidence, and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. The model is provided as a tool for countries to input their data to and generate estimates with during a yearly process supported by UNAIDS. Inference has previously been conducted using empirical Bayes and a Gaussian approximation via the \texttt{TMB} \textsc{R} package. We propose a new inference method extending adaptive Gauss-Hermite quadrature to deal with >20 hyperparameters. Using data from Malawi, our method improves the accuracy of inferences for model parameters, while being substantially faster to run than Hamiltonian Monte Carlo with the No-U-Turn sampler. However, for model ouptuts, we found the simpler empirical Bayes approach to achieve similar performance. Our implementation is based on the existing \texttt{TMB} \textsf{C++} template for the model's log-posterior, and is compatible with any model with such a template.
+  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of policy interest, including HIV prevalence, HIV incidence, and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. The model is provided as a tool for countries to input their data to and generate estimates with during a yearly process supported by UNAIDS. Inference has previously been conducted using empirical Bayes and a Gaussian approximation via the \texttt{TMB} \textsc{R} package. We propose a new inference method based on an extension of adaptive Gauss-Hermite quadrature to deal with >20 hyperparameters. Using data from Malawi, our method improves the accuracy of inferences for model parameters, while being substantially faster to run than Hamiltonian Monte Carlo with the No-U-Turn sampler. However, for model ouptuts, we found the simpler empirical Bayes approach to achieve similar performance. Our implementation is based on the existing \texttt{TMB} \textsf{C++} template for the model's log-posterior, and is compatible with any model with such a template.
 keyword-subclass: | 
  \begin{keyword}[class=MSC2020] % It must be define for aap, aop, aos journals. For aoas, sts is not used
  \kwd[Primary ]{00X00}
@@ -98,31 +98,32 @@ Producing granular estimates is challenging, in large part due to limitations of
 Nationally-representative household surveys provide the most statistically reliable data, but are costly to run and so only conducted every five years or so in most countries, with limited sample size at the district level.
 Other data sources, such as routine health surveillance of antenatal care (ANC) clinics, are available in closer to real-time, but are not representative of the entire population.
 To address these challenges, the Naomi small-area estimation model [@eaton2021naomi] synthesises data from multiple sources to estimate HIV indicators at a district-level, by age and sex.
-Modelling multiple data sources jointly in this way mitigates the limitations of any single source, increases statistical power, and can prompt investigation into possible conflicts of information.
+Modelling multiple data sources jointly mitigates the limitations of any single source, increases statistical power, and can prompt investigation into conflicts of information.
 
-Software (\url{https://naomi.unaids.org}) has been developed for Naomi, allowing over 35 countries to input their data and interactively generate estimates during workshops as a part of a yearly process supported by UNAIDS.
+Software has been developed for Naomi (\url{https://naomi.unaids.org}), allowing over 35 countries to input their data and interactively generate estimates during workshops as a part of a yearly process supported by UNAIDS.
 Creation of estimates by country teams, rather than external agencies or researchers, is an important and distinctive feature of the HIV response.
 Drawing on expertise closest to the data being modelled improves the accuracy of the process, as well as strengthening trust in the resulting estimates, creating a virtuous cycle of data quality, use and ownership [@noor2022country].
 
-Naomi is a complex model, and as such presents a challenging Bayesian inference problem.
-As well as hundreds of latent field parameters, Naomi has >20 hyperparameters: substantially more than the small number that can typically be handled by approaches like integrated nested Laplace approximations [INLA; @rue2009approximate].
+Naomi is a complex model, comprised of multiple linked generalized linear mixed models (GLMMs), and presents a challenging Bayesian inference problem.
+As well as hundreds of fixed and random effect parameters, Naomi has >20 hyperparameters: substantially more than the small number that can typically be handled by approaches like integrated nested Laplace approximations [INLA; @rue2009approximate].
 Moreover, observations depend on multiple structured additive predictors, such that Naomi falls into the class of extended latent Gaussian models [ELGMs; @stringer2022fast].
 
 To allow interactive review and iteration of model results by workshop participants, the inference procedure should be fast and have low memory usage.
 Because of the scale of the model and challenging features of its posterior geometry [@neal2003slice], Markov chain Monte Carlo (MCMC) approaches are prohibitively slow.
-In addition, we require the inference procedure to be automatic and produce estimates reliably, across a range of country settings, with specific data not known in advance.
-As such, approaches requiring substantial statistical expertise, as would be the case for monitoring MCMC convergence and suitability, are not viable.
+In addition, we require the inference procedure to produce estimates reliably and automatically, across a range of country settings, without knowledge of the specific data used in advance.
+As such, approaches requiring substantial statistical expertise or tuning, as would be the case for monitoring MCMC convergence and suitability, are not viable.
 
-To meet these requirements, inference is currently conducted using an empirical Bayes (EB) approach, with a Gaussian approximation to the latent field, via the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb], which we refer to as TMB (distinguished from the package `TMB`).
+To meet these requirements, inference is currently conducted using an empirical Bayes (EB) approach, with a Gaussian approximation to the latent field, via the Template Model Builder (`TMB`) \textsf{R} package [@kristensen2016tmb].
+We refer to this approach as TMB, distinguished from the package `TMB`.
 Owing to its speed and flexibility, `TMB` is gaining popularity, particularly in spatial statistics [@osgood2022statistical] and via the user-friendly `glmmTMB` \textsc{R} package [@brooks2017glmmTMB].
 Inference in `TMB` is based on optimisation of a \textsf{C++} template function, with the option available to use a Laplace approximation to integrate out any subset of the parameters.
 For the Naomi model, this subset is the high-dimensional latent field, leaving a smaller number of hyperparameters.
-Taking inspiration from the AD Model Builder package [@fournier2012ad], `TMB` uses automatic differentiation [@baydin2017automatic] to calculate the derivatives required for numerical optimisation routines and the Laplace approximation.
+Taking inspiration from the AD Model Builder package [@fournier2012ad], `TMB` uses automatic differentiation [@baydin2017automatic] to calculate the derivatives required for gradient-based numerical optimisation routines and the Laplace approximation.
 
 Although the TMB approach is fast, within the empirical Bayes framework hyperparameter uncertainty is not accounted for in the latent field posterior.
-We expected this would result in underestimation of posterior variances, which may have practical implications for use of the resulting estimates.
+We had concerns that this would result in underestimation of posterior variances, and may have important practical implications.
 As such, we were motivated to look for an approach closer to full Bayesian inference, which is also flexible enough to be compatible with the model, as well as fast enough to be run in production by country teams.
-To meet these requirements, we developed an inference method based on adaptive Gauss-Hermite quadrature (AGHQ) extended to handle integration over large numbers of hyperparameters.
+To meet these requirements, we developed an inference method based on adaptive Gauss-Hermite quadrature (AGHQ) extended to handle integration over many hyperparameters.
 AGHQ is a quadrature method based on the theory of polynomial interpolation, and is well suited to statistical estimation problems in which the integrand is well approximated by a Gaussian multiplied by a polynomial.
 @bilodeau2022stochastic prove stochastic convergence rates for Bayesian posterior quantities when the normalising constant is estimated using AGHQ.
 However, it is not computationally feasible to use AGHQ in >20 dimensions directly, as exponentially many nodes are required.
@@ -130,14 +131,13 @@ Instead, we used principal components analysis (PCA) of the inverse curvature at
 For the Naomi model in Malawi, this resulted in a grid which was tractable as it had millions of times fewer nodes the corresponding dense grid.
 Our implementation of the method makes use of the existing Naomi `TMB` template, and is immediately compatible with any model with such a template.
 
-Other work aiming to extend the scope of the INLA method includes the `inlabru` \textsc{R} package [@bachl2019inlabru], INLA within MCMC [@gomez2018markov], and importance sampling with INLA [@berild2022importance], all of which leverage the `R-INLA` \textsc{R} package [@martins2013bayesian].
-The approach of `inlabru` is to approximate non-linear predictors using linearisation, by making iterative calls to `R-INLA`.
 <!-- See https://inlabru-org.github.io/inlabru/articles/method.html -->
 <!-- Want to say in particular what the class of models that `inlabru` allows you to fit are -->
 <!-- Don't know the answer to this yet, but asking Janine Illian I'm told you don't have to call R-INLA that many times -->
-<!-- I think it'd obviously depend on the exact details of the problem at hand -->
+Other work aiming to extend the scope of INLA-like methods includes the `inlabru` \textsc{R} package [@bachl2019inlabru], INLA within MCMC [@gomez2018markov], and importance sampling with INLA [@berild2022importance], all of which leverage the `R-INLA` \textsc{R} package [@martins2013bayesian].
+The approach of `inlabru` is to approximate non-linear predictors using linearisation, by making iterative calls to `R-INLA`.
 INLA within MCMC and importance sampling with INLA are suitable for models which are LGMs conditional on some subset of the parameters being fixed.
-<!-- It would or would not be possible to fit the Naomi model in these frameworks. -->
+It's not clear the extent to which any of these methods would be compatible with Naomi.
 
 The remainder of this paper is organised as follows.
 Section \ref{sec:naomi} outlines the version of the Naomi model that we consider in this paper, and Section \ref{sec:elgm} describes how it falls within the ELGM framework.
@@ -199,7 +199,7 @@ to model these aggregate observations, where $\theta_{I}$ are the following weig
 \alpha_{I} = \frac{\sum_{i \in I} N_i \rho_i \alpha_i}{\sum_{i \in I} N_i \rho_i}, \quad
 \kappa_{I} = \frac{\sum_{i \in I} N_i \rho_i \kappa_i}{\sum_{i \in I} N_i \rho_i}.
 \end{equation*}
-Though our approach accounts for survey weights, it does not take into account sample correlation structure, for example due to cluster sampling [@wakefield2020small].
+Though our approach accounts for effect of survey weighting on the variance, it does not take into account correlation structure in the samples, for example due to cluster sampling [@wakefield2020small].
 
 ## ANC testing component \label{sec:anc}
 
@@ -312,7 +312,7 @@ Let $\tilde p_\texttt{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \
 \hat \x(\btheta) &= \argmax_\x \log p(\y, \x, \btheta), \label{eq:mode} \\
 \hat {\Hb}(\btheta) &= - \frac{\partial^2}{\partial \x \partial \x^\top} \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}. \label{eq:precision}
 \end{align}
-Then the Laplace approximation to $p(\btheta, \y)$ is given by
+Then the Laplace approximation [@tierney1986accurate] to $p(\btheta, \y)$ is given by
 \begin{equation}
 \tilde p_\texttt{LA}(\btheta, \y)
 = \frac{p(\y, \x, \btheta)}{\tilde p_\texttt{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat \x(\btheta)}
@@ -331,14 +331,14 @@ Let $\z \in \mathcal{Q}(m, k)$ be $m$-dimensional Gauss-Hermite quadrature [GHQ;
 \end{equation}
 with $\phi(\cdot)$ is a standard Gaussian density.
 The corresponding weighting function $\omega: \mathcal{Q}(m, k) \to \mathbb{R}$ is given by $\omega(\z) = \prod_{j = 1}^m \omega(z_j)$ where $\omega(z) = k! / [H_{k + 1}(z)]^2 \phi(z)$.
-For $k = 1$ GHQ corresponds to a Laplace approximation.
-Further GHQ is exact for functions which are a Gaussian density multiplied by a polynomial of total order no more than $2k - 1$, a class of functions we expect the posterior to be close to.
+GHQ is exact for functions which are a Gaussian density multiplied by a polynomial of total order no more than $2k - 1$.
 
 Let $\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA}) = - \partial^2 \log p_\texttt{LA}(\hat{\btheta}_\texttt{LA}, \y)$ be the curvature at the mode $\hat{\btheta}_\texttt{LA}$ and $[\hat{\Hb}_\texttt{LA}(\hat{\btheta}_\texttt{LA})]^{-1} = \hat{\mathbf{P}}_\texttt{LA} {\hat{\mathbf{P}}_\texttt{LA}}^\top$ be a matrix decomposition of the inverse curvature.
 An adaptive Gauss-Hermite quadrature [AHGQ; @naylor1982applications; @tierney1986accurate] estimate of the normalising constant $p(\y)$ based on the Laplace approximation is given by
 \begin{equation}
 p(\y) \approx \int_{\btheta} \tilde p_\texttt{LA}(\btheta, \y) \approx \tilde p_\texttt{AGHQ}(\y) = |\hat{\mathbf{P}}_\texttt{LA}|\sum_{\z \in \mathcal{Q}(m, k)} \tilde p_\texttt{LA}(\hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}, \y) \omega(\z). \label{eq:aghq}
 \end{equation}
+When $k = 1$ Equation \ref{eq:aghq} corresponds to a Laplace approximation.
 The unadapted nodes are shifted by the mode and rotated by a matrix decomposition of the inverse curvature such that $\z \mapsto \hat{\mathbf{P}}_\texttt{LA} \z + \hat{\btheta}_\texttt{LA}$.
 Repositioning the nodes is crucial for statistical quadrature problems like ours, where the integral depends on data $\y$ and regions of high density are not known in advance.
 Two alternatives for the matrix decomposition [@jackel2005note] are
@@ -593,28 +593,26 @@ knitr::include_graphics("depends/exceedance.png")
 
 # Discussion\label{sec:conclusions}
 
-We developed an approximate Bayesian inference algorithm, combining AGHQ with PCA, motivated by a challenging problem in small-area estimation of HIV.
-For the simplified Naomi model in Malawi (Section \ref{sec:results}) we demonstrated the method to be more accurate for model parameters, across a broad range of metrics, than TMB, and substantially faster than NUTS.
-However, this improvement in accuracy for model parameters did not translate into model outputs.
-Indeed, we found posterior exceedance probabilities (Section \ref{sec:exceedance}) from both TMB and PCA-AGHQ to have systematically inaccurates, with the potential to meaningfully mislead policy.
+We developed an approximate Bayesian inference algorithm, combining AGHQ with PCA, motivated by a challenging problem in small-area estimation of HIV indicators.
+For the simplified Naomi model in Malawi (Section \ref{sec:results}) we demonstrated the method to be more accurate at inferring posterior distributions of model parameters, across a broad range of metrics, than TMB, and substantially faster than NUTS.
+However, improvements in accuracy for model parameters did not translate into model outputs.
+Indeed, we found posterior exceedance probabilities (Section \ref{sec:exceedance}) from both TMB and PCA-AGHQ to have systematically inaccuracies, with the potential to meaningfully mislead policy.
+If possible, though not a desirable situation, it could be advisable to provide gold-standard NUTS results after the workshop has concluded.
+However, running NUTS for Naomi took days, in countries with 100s of districts it may simply not be feasible.
 
 PCA-AGHQ could be added to the Naomi web interface as an alternative to TMB.
 Analysts may then quickly iterate over model options using a fast inference approach, before switching to a more accurate approach once they are happy with the results.
 By selecting $s$ and $k$, PCA-AGHQ can be adjusted to suit the computational budget available. 
 We selected $s$ based on the Scree plot, and for the most part fixed $k = 3$.
-Whether it is preferable, for a given computational budget, to increase $s$ or increase $k$ remains an open question.
+Whether it is preferable, for a given computational budget, to increase $s$ or increase $k$ is an open question.
 Further strategies, such as gradually lowering $k$ over the principal components, could also be considered.
-
-@bilodeau2022stochastic highlight developing computationally feasible quadrature methods for high dimensions as a challenging open problem.
-
-PCA-AGHQ was implemented using the `TMB` and `aghq` \textsc{R} packages.
 
 We hope that our work further encourages use of deterministic inference algorithms for ELGMs in applied settings, as well as methodological exploration of their accuracy and limitations.
 Among the ELGM-type structures of particular interest in spatial epidemiology are aggregated Gaussian process models [@nandi2020disaggregation] and evidence synthesis models [@amoah2020geostatistical].
 
-## Future directions
+## Suggestions for future work
 
-### Improving the quadrature grid
+### Improved quadrature grids for moderate dimensions
 
 We aimed to develop a quadrature grid which allocates more effort to more important dimensions.
 While PCA is a sensible approach, there are avenues where it does not behave as one might hope, or otherwise overlooks potential benefits.
@@ -653,11 +651,8 @@ Similarly, implementation in Stan could be possible by use of the `bridgestan` p
 ### Statistical theory
 
 @stringer2022fast (Theorem 1) bound the total variation error of AGHQ, establishing convergence in probability of coverage probabilities under the approximate posterior to those under the true posterior.
-It's possible that similar theory could be established for PCA-AGHQ, or more generally AGHQ with varying numbers of nodes per dimension.
-
-### Laplace marginals
-
-See Appendix \ref{sec:laplace-marginals}.
+Similar theory might be established for PCA-AGHQ, or more generally AGHQ with varying numbers of nodes per dimension.
+The challenge of connecting this theory to use of the quadrature rule within nested compuations remains an open question.
 
 # Acknowledgements {-}
 
