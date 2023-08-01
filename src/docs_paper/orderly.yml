@@ -19,6 +19,13 @@ artefacts:
         - figB.png
         - figC.png
         - abstract.png
+  - data:
+      description: Any generated LaTeX tables
+      filenames:
+        - ks-summary.tex
+        - point-summary-mean.tex
+        - point-summary-sd.tex
+        - point-summary.tex
 
 resources:
   - paper.Rmd

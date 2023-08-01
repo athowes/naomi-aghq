@@ -9,4 +9,5 @@ appendix_cache
 *.out
 *.bbl
 *.toc
+*.md
 depends/
