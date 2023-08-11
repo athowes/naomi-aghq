@@ -125,3 +125,6 @@ run_commit_push("docs_21-06-23-mlgh")
 run_commit_push("docs_bayescomp-poster")
 run_commit_push("docs_bioinference-poster")
 run_commit_push("docs_statml-poster")
+
+#' For thesis
+run_commit_push("docs_thesis-resources")

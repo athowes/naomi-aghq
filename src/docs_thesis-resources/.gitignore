@@ -1,0 +1,13 @@
+*.log
+appendix.tex
+paper.tex
+paper_files
+paper_cache
+appendix_cache
+*.aux
+*.blg
+*.out
+*.bbl
+*.toc
+*.md
+depends/

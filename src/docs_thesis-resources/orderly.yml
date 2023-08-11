@@ -1,0 +1,83 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Figures in .png format
+      filenames:
+        - depends/nodes-samples-comparison.png
+
+packages:
+  - rmarkdown
+  - dplyr
+  - ggplot2
+  - forcats
+  - tidyverse
+  - patchwork
+
+depends:
+  - docs_paper:
+      id: latest
+      use:
+        depends/figA.png: figA.png
+        depends/figB.png: figB.png
+        depends/figC.png: figC.png
+  - naomi-simple_ks:
+      id: latest
+      use:
+        depends/ks-summary.rds: ks-summary.rds
+        depends/time-taken.csv: time-taken.csv
+        depends/beta_alpha.rds: beta_alpha.rds
+        depends/ks-ess.png: ks-ess.png
+  - plot-tikz_algorithm-flowchart:
+      id: latest
+      use:
+        depends/algorithm-flowchart.pdf: algorithm-flowchart.pdf
+  - plot-tikz_simplified-naomi:
+      id: latest
+      use:
+        depends/simplified-naomi.pdf: simplified-naomi.pdf
+  - naomi-simple_exceedance:
+      id: latest
+      use:
+        depends/exceedance.png: exceedance.png
+        depends/exceedance.csv: exceedance.csv
+  - naomi-simple_contraction:
+      id: latest
+      use:
+        depends/posterior-contraction.png: posterior-contraction.png
+  - naomi-simple_point-estimates:
+      id: latest
+      use:
+        depends/mean-sd-alt-latent.png: mean-sd-alt-latent.png
+        depends/mean-sd-alt-output.png: mean-sd-alt-output.png
+        depends/mean-sd.csv: mean-sd.csv
+        depends/point-estimates.csv: point-estimates.csv
+  - check_hyper-marginals:
+      id: latest
+      use:
+        depends/nodes-samples-comparison.pdf: nodes-samples-comparison.pdf
+        depends/nodes-quantiles-sd.png: nodes-quantiles-sd.png
+  - naomi-simple_mcmc:
+      id: latest
+      use:
+        depends/rhat.png: rhat.png
+        depends/ratio.png: ratio.png
+        depends/ess.png: ess.png
+        depends/mcmc-out.rds: out.rds
+        depends/rho_a.png: rho_a.png
+        depends/alpha_x.png: alpha_x.png
+        depends/ar1-bym2-cor.csv: ar1-bym2-cor.csv
+        depends/worst-trace.png: worst-trace.png
+        depends/nuts-params.rds: nuts-params.rds
+  - naomi-simple_fit:
+      id: latest(parameter:tmb == TRUE)
+      use:
+        depends/tmb.rds: out.rds
+  - dev_scale-grid:
+      id: latest
+      use:
+        depends/marginal-sd.png: marginal-sd.png
+        depends/reduced-rank.png: reduced-rank.png
+        depends/total-variation.png: total-variation.png
+        depends/total-variation.csv: total-variation.csv
+        depends/pc-loadings.png: pc-loadings.png
