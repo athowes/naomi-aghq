@@ -51,18 +51,19 @@ We are looking for values of $\hat R$ less than 1.05 here.
 
 ```{r}
 rhats <- bayesplot::rhat(mcmc)
+rhats <- bayesplot:::drop_NAs_and_warn(bayesplot:::new_rhat(rhats))
+rhats_df <- bayesplot:::diagnostic_data_frame(rhats)
 
-bayesplot::mcmc_rhat_data(rhats) %>%
-  ggplot(aes(x = value, y = parameter, col = description)) +
-  geom_segment(aes(yend = parameter, xend = ifelse(min(value) < 1, 1, -Inf)), na.rm = TRUE, alpha = 0.7) +
-  scale_color_manual(values = "#E69F00") +
-  geom_vline(xintercept = 1.05, linetype = "dashed", col = "grey40") +
-  labs(x = "Potential scale reduction factor", y = "NUTS parameter", col = "") +
+ggplot(rhats_df, aes(x = value, y = parameter)) +
+  geom_segment(aes(yend = parameter, xend = ifelse(min(value) < 1, 1, -Inf)), na.rm = TRUE, alpha = 0.7, col = "#56B4E9") +
+  lims(x = c(NA, 1.03)) +
+  labs(x = "Potential scale reduction factor", y = "Parameter", col = "") +
   theme_minimal() +
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    panel.grid.major = element_blank()
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
   )
 
 ggsave("rhat.png", h = 3, w = 6.25)
@@ -70,10 +71,18 @@ ggsave("rhat.png", h = 3, w = 6.25)
 (big_rhats <- rhats[rhats > 1.05])
 length(big_rhats) / length(rhats)
 
-(max_rhat <- max(rhats))
+#' I think that this $summary should be all of the chains grouped together
+mcmc_summary <- summary(mcmc)$summary
+
+(rhat_min <- min(mcmc_summary[, "Rhat"]))
+(rhat_lower <- quantile(mcmc_summary[, "Rhat"], 0.025))
+(rhat_median <- quantile(mcmc_summary[, "Rhat"], 0.50))
+(rhat_upper <- quantile(mcmc_summary[, "Rhat"], 0.975))
+(rhat_max <- max(mcmc_summary[, "Rhat"]))
+(rhat_mean <- mean(mcmc_summary[, "Rhat"]))
 ```
 
-# ESS ratio
+# ESS
 
 Reasonable to be worried about values less than 0.1 here.
 
@@ -82,60 +91,68 @@ ratios <- bayesplot::neff_ratio(mcmc)
 
 breaks <- c(0, 0.1, 0.25, 0.5, 0.75, 1)
 
-bayesplot::mcmc_neff_data(ratios) %>%
-  ggplot(mapping = aes(x = value, y = parameter, color = description)) +
+ess_fig <- bayesplot::mcmc_neff_data(ratios) %>%
+  mutate(
+    description_new = case_when(
+      value < 0.1 ~ "< 0.1",
+      value < 0.5 ~ "< 0.5",
+      value > 0.5 ~ "> 0.5"
+    )
+  ) %>%
+  ggplot(mapping = aes(x = value, y = parameter, color = description_new)) +
   geom_segment(aes(yend = parameter, xend = -Inf), na.rm = TRUE, alpha = 0.7) +
-  scale_color_manual(values = c("#56B4E9", "#009E73", "#E69F00")) +
-  geom_vline(xintercept = 0.1, linetype = "dashed", col = "grey40") +
-  geom_vline(xintercept = 0.5, linetype = "dashed", col = "grey40") +
-  geom_vline(xintercept = 1, linetype = "dashed", col = "grey40") +
-  labs(x = "ESS ratio", y = "NUTS parameter", col = "") +
+  scale_color_manual(values = c("#E69F00", "#009E73", "#56B4E9")) +
+  geom_vline(xintercept = 0.1, linetype = "dashed", col = "grey40", alpha = 0.5) +
+  geom_vline(xintercept = 0.5, linetype = "dashed", col = "grey40", alpha = 0.5) +
+  geom_vline(xintercept = 1, linetype = "dashed", col = "grey40", alpha = 0.5) +
+  labs(x = "ESS ratio", y = "Parameter", col = "", tag = "A") +
   theme_minimal() +
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    panel.grid.major = element_blank()
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
   )
 
-ggsave("ratio.png", h = 3, w = 6.25)
-
-(average_ess_ratio <- mean(ratios))
 ```
-
-# ESS
 
 What are the total effective sample sizes?
 
 ```{r}
-#' I think that this $summary should be all of the chains grouped together
-mcmc_summary <- summary(mcmc)$summary
-
-data.frame(mcmc_summary) %>%
+ess_histogram <- data.frame(mcmc_summary) %>%
   tibble::rownames_to_column("param") %>%
   ggplot(aes(x = n_eff)) +
     geom_histogram(alpha = 0.8) +
-    labs(x = "ESS", y = "Count")
+    labs(x = "ESS", y = "Count", tag = "B")
 
-ggsave("ess.png", h = 3, w = 6.25)
+ess_fig / ess_histogram
+
+ggsave("ess.png", h = 5, w = 6.25)
 
 (ess_min <- min(mcmc_summary[, "n_eff"]))
 (ess_lower <- quantile(mcmc_summary[, "n_eff"], 0.025))
 (ess_median <- quantile(mcmc_summary[, "n_eff"], 0.50))
 (ess_upper <- quantile(mcmc_summary[, "n_eff"], 0.975))
 (ess_max <- max(mcmc_summary[, "n_eff"]))
+(ess_mean <- mean(mcmc_summary[, "n_eff"]))
 ```
 
 Save outputs for use in manuscript:
 
 ```{r}
 out <- list(
-  "max_rhat" = max_rhat,
-  "average_ess_ratio" = average_ess_ratio, 
+  "rhat_min" = rhat_min,
+  "rhat_lower" = rhat_lower,
+  "rhat_median" = rhat_median,
+  "rhat_upper" = rhat_upper,
+  "rhat_max" = rhat_max,
+  "rhat_mean" = rhat_mean,
   "ess_min" = ess_min,
   "ess_lower" = ess_lower,
   "ess_median" = ess_median,
   "ess_upper" = ess_upper,
-  "ess_max" = ess_max
+  "ess_max" = ess_max,
+  "ess_mean" = ess_mean
 )
 
 saveRDS(out, "out.rds")
@@ -152,6 +169,9 @@ bayesplot::mcmc_acf(mcmc, pars = vars(starts_with("beta")))
 # Univariate traceplots
 
 ```{r}
+cbpalette <- c("#56B4E9", "#009E73", "#E69F00", "#F0E442", "#E69F00", "#E69F00")
+bayesplot::color_scheme_set(rev(cbpalette))
+
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("beta")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("logit")))
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("log_sigma")))
@@ -162,7 +182,7 @@ The parameters with the worst ESS and the worst $\hat R$:
 ```{r}
 (plot <- bayesplot::mcmc_trace(mcmc, pars = c(names(which.min(mcmc_summary[, "n_eff"])), names(which.max(rhats)))))
 
-ggsave("worst-trace.png", plot, h = 4, w = 6.25)
+ggsave("worst-trace.png", plot, h = 3, w = 6.25)
 ```
 
 ## Prevalence model
@@ -213,9 +233,49 @@ Hence there is an unidentifiabiility here that leads to correlated posteriors.
 bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_a", "logit_phi_alpha_a"), diag_fun = "hist", off_diag_fun = "hex")
 bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_as", "logit_phi_alpha_as"), diag_fun = "hist", off_diag_fun = "hex")
 bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_as", "logit_phi_rho_as"), diag_fun = "hist", off_diag_fun = "hex")
-(plot <- bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_a", "logit_phi_rho_a"), diag_fun = "hist", off_diag_fun = "hex"))
 
-ggsave("rho_a.png", plot, h = 4, w = 6.25)
+pairs_df <- extract(mcmc, pars = c("log_sigma_rho_a", "logit_phi_rho_a")) %>%
+  as.data.frame()
+
+fig_top_left <- ggplot(pairs_df, aes(x = log_sigma_rho_a)) +
+  geom_histogram(fill = "#56B4E9", col = "#1a88c6") +
+  labs(x = "", y = "", tag = "A") + 
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+
+fig_top_right <- ggplot(pairs_df, aes(x = logit_phi_rho_a, y = log_sigma_rho_a)) +
+  geom_point(shape = 1, alpha = 0.5, col = "#009E73") +
+  labs(x = "", y = "", tag = "B") + 
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+
+fig_bot_left <- ggplot(pairs_df, aes(x = log_sigma_rho_a, y = logit_phi_rho_a)) +
+  geom_point(shape = 1, alpha = 0.5, col = "#009E73") +
+  labs(x = "log_sigma_rho_a", y = "", tag = "C") + 
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+
+fig_bot_right <- ggplot(pairs_df, aes(x = logit_phi_rho_a)) +
+  geom_histogram(fill = "#56B4E9", col = "#1a88c6") +
+  labs(x = "logit_phi_rho_a", y = "", tag = "D") + 
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+
+(fig_top_left + fig_top_right) / (fig_bot_left + fig_bot_right)
+
+ggsave("rho_a.png", h = 4, w = 6.25)
 
 get_correlation <- function(par) {
   cor(as.data.frame(rstan::extract(mcmc, c(paste0("log_sigma_", par), paste0("logit_phi_", par)))))[1, 2]
@@ -239,9 +299,49 @@ Looks like the answer is mostly yes.
 bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_x", "logit_phi_rho_x"), diag_fun = "hist", off_diag_fun = "hex")
 bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_xs", "logit_phi_rho_xs"), diag_fun = "hist", off_diag_fun = "hex")
 bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_xs", "logit_phi_alpha_xs"), diag_fun = "hist", off_diag_fun = "hex")
-(plot <- bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_x", "logit_phi_alpha_x"), diag_fun = "hist", off_diag_fun = "hex"))
 
-ggsave("alpha_x.png", plot, h = 4, w = 6.25)
+pairs_df <- extract(mcmc, pars = c("log_sigma_alpha_x", "logit_phi_alpha_x")) %>%
+  as.data.frame()
+
+fig_top_left <- ggplot(pairs_df, aes(x = log_sigma_alpha_x)) +
+  geom_histogram(fill = "#56B4E9", col = "#1a88c6") +
+  labs(x = "", y = "", tag = "A") + 
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+
+fig_top_right <- ggplot(pairs_df, aes(x = logit_phi_alpha_x, y = log_sigma_alpha_x)) +
+  geom_point(shape = 1, alpha = 0.5, col = "#009E73") +
+  labs(x = "", y = "", tag = "B") + 
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+
+fig_bot_left <- ggplot(pairs_df, aes(x = log_sigma_alpha_x, y = logit_phi_alpha_x)) +
+  geom_point(shape = 1, alpha = 0.5, col = "#009E73") +
+  labs(x = "log_sigma_alpha_x", y = "", tag = "C") + 
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+
+fig_bot_right <- ggplot(pairs_df, aes(x = logit_phi_alpha_x)) +
+  geom_histogram(fill = "#56B4E9", col = "#1a88c6") +
+  labs(x = "logit_phi_alpha_x", y = "", tag = "D") + 
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+
+(fig_top_left + fig_top_right) / (fig_bot_left + fig_bot_right)
+
+ggsave("alpha_x.png", h = 4, w = 6.25)
 
 bym2_cor_df <- data.frame(
   par = c("rho_x", "rho_xs", "alpha_x", "alpha_xs"),
@@ -275,7 +375,7 @@ neighbours_pairs_plot <- function(par, i) {
 Here are Nkhata Bay and neighbours:
 
 ```{r}
-neighbours_pairs_plot("log_or_gamma", 5) 
+neighbours_pairs_plot("log_or_gamma", 5)
 ```
 
 And here are Blantyre and neighbours:

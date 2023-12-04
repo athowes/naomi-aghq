@@ -9,7 +9,6 @@ artefacts:
       description: Outputs to go into the appendix of the manuscript
       filenames:
         - rhat.png
-        - ratio.png
         - ess.png
         - out.rds
         - rho_a.png
@@ -34,6 +33,7 @@ packages:
   - rstan
   - bayesplot
   - sf
+  - patchwork
 
 depends:
   - naomi-simple_fit:

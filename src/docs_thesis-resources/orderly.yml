@@ -61,7 +61,6 @@ depends:
       id: latest
       use:
         depends/rhat.png: rhat.png
-        depends/ratio.png: ratio.png
         depends/ess.png: ess.png
         depends/mcmc-out.rds: out.rds
         depends/rho_a.png: rho_a.png
