@@ -71,14 +71,14 @@ data.frame(par = names(sd), sd = unname(sd)) %>%
     theme_minimal() +
     labs(x = "", y = "Marginal standard deviation", col = "Scale")
 
-ggsave("marginal-sd.png", height = 3.5, w = 6.25)
+ggsave("marginal-sd.png", height = 4, w = 6.25)
 ```
 
 Or, more generally, the covariance matrix is:
 
 ```{r cov, class.source = 'fold-hide', fig.cap="Covariance matrix."}
 C <- sd_out$cov.fixed
-(C_plot <- plot_matrix(C))
+(C_plot <- plot_matrix(unname(C), legend = FALSE))
 ```
 
 One way to place grid points would be proportional to the standard deviations shown in the plot above.
@@ -274,7 +274,7 @@ What do the PC loadings (columns of the matrix `E`) look like?
 rownames(eigenC$vectors) <- hypers
 plot_pc_loadings(eigenC)
 
-ggsave("pc-loadings.png", h = 3.5, w = 6.25)
+ggsave("pc-loadings.png", h = 4.5, w = 6.25)
 ```
 
 ## Keeping a smaller number of dimensions
@@ -301,8 +301,9 @@ E_s <- E[, 1:s]
 Lambda_s <- Lambda[1:s, 1:s]
 C_s <- E_s %*% Lambda_s %*% t(E_s)
 
-C_s_plot <- plot_matrix(C_s)
-{C_plot + theme(legend.position = "none") + labs(subtitle = "Full rank")} + {C_s_plot + theme(legend.position = "none") + labs(subtitle = "Reduced rank")}
+C_s_plot <- plot_matrix(C_s, legend = FALSE)
+
+{C_plot + labs(tag = "A", caption = "Full rank")} + {C_s_plot + labs(tag = "B", caption = "Reduced rank")}
 
 ggsave("reduced-rank.png", h = 3.5, w = 6.25)
 ```

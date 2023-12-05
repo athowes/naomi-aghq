@@ -139,14 +139,14 @@ create_pca_grid <- function(m, C, s, k) {
   return(gg)
 }
 
-plot_matrix <- function(M) {
-  name <- deparse(substitute(M))
+plot_matrix <- function(M, legend = TRUE) {
   M_df <- reshape2::melt(as.matrix(M))
 
-  ggplot(M_df, aes(x = Var1, y = Var2, fill = value)) +
-    labs(x = "", y = "", fill = paste0(name, "[i, j]")) +
+  fig <- ggplot(M_df, aes(x = Var1, y = Var2, fill = value)) +
+    labs(x = "", y = "") +
     geom_tile() +
     scale_fill_viridis_c() +
+    coord_fixed() +
     labs(x = "i", y = "j") +
     theme_minimal() +
     theme(
@@ -155,30 +155,37 @@ plot_matrix <- function(M) {
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank()
     )
+
+  if(legend) {
+    name <- deparse(substitute(M))
+    fig <- fig + labs(fill = paste0(name, "[i, j]"))
+  } else {
+    fig <- fig + theme(legend.position = "none")
+  }
 }
 
 plot_total_variation <- function(eigen, label_x) {
   ggplot(data = NULL, aes(x = 1:length(eigen$values), y = cumsum(eigen$values) / sum(eigen$values))) +
     geom_point() +
     geom_hline(yintercept = 0.9, col = "grey", linetype = "dashed") +
-    annotate("text", x = label_x, y = 0.875, label = "90% of total variation explained", col = "grey") +
+    annotate("text", x = label_x, y = 0.85, label = "90% of total variation explained", col = "grey") +
     scale_y_continuous(labels = scales::percent) +
-    labs(x = "PCA dimensions included", y = "Total variation explained") +
+    labs(x = "PCA dimensions included", y = "Proportion of total variation explained") +
     theme_minimal()
 }
 
 plot_pc_loadings <- function(eigen) {
   reshape2::melt(as.matrix(eigen$vectors)) %>%
-    ggplot(aes(x = Var1, y = factor(Var2), fill = value)) +
+    ggplot(aes(x = factor(Var2), y = Var1, fill = value)) +
     labs(x = "", y = "", fill = "") +
     geom_tile() +
-    coord_flip() +
+    coord_fixed() +
     scale_fill_gradientn(
       colours = c("#E69F00", "white", "#009E73"),
       rescaler = ~ scales::rescale_mid(.x, mid = 0),
       limits = c(-1.1, 1.1)
     ) +
-    labs(x = "Hyper", y = "Principal component loading") +
+    labs(y = "Hyperparameter", x = "Principal component loading") +
     theme_minimal() +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 }
