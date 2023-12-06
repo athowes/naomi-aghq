@@ -45,6 +45,7 @@ depends:
       id: latest
       use:
         depends/posterior-contraction.png: posterior-contraction.png
+        depends/nuts-hand-comparison.png: nuts-hand-comparison.png
   - naomi-simple_point-estimates:
       id: latest
       use:

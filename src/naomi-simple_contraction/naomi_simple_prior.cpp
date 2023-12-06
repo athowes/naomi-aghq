@@ -357,7 +357,6 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(ui_anc_alpha_x);
   val -= sum(dnorm(ui_anc_alpha_x, 0.0, sigma_ancalpha_x, true));
 
-
   // * ART attendance model *
 
   PARAMETER(log_sigma_or_gamma);

@@ -26,7 +26,8 @@ obj_prior <- TMB::MakeADFun(
   silent = TRUE,
 )
 
-prior_mcmc <- tmbstan::tmbstan(obj_prior, chains = 4, iter = 2000)
+#' Takes a while
+prior_mcmc <- tmbstan::tmbstan(obj_prior, chains = 4, iter = 20000)
 
 prior_stan_summary <- rstan::summary(prior_mcmc)$summary
 prior_sd <- prior_stan_summary[, "sd"][1:491] #' Remove the lp__ at the end
@@ -55,17 +56,15 @@ posterior_contraction_plot <- bind_rows(df_hyper, df_latent) %>%
   ggplot(aes(x = reorder(par, posterior_contraction), y = posterior_contraction, col = type, shape = type)) +
   geom_point() +
   coord_flip() +
-  labs(x = "", y = "Posterior contraction", col = "Type", shape = "Type") +
+  labs(x = "", y = "Posterior contraction", col = "", shape = "") +
   scale_color_manual(values = c("#56B4E9", "#009E73")) +
   scale_y_continuous(
     limits = c(-1, 1),
     breaks = c(-1.0, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1.0)
   ) +
-  geom_hline(yintercept = 0, linetype = "dashed", size = 0.25) +
-  annotate("text", x = 36, y = -0.6, size = 3, label = "Prior tighter") +
-  annotate("text", x = 36, y = 0.4, size = 3, label = "Posterior tighter") +
-  annotate("segment", x = 35, xend = 35, y = 0, yend = -1.0, size = 0.25, arrow = arrow(length = unit(0.2, "cm"))) +
-  annotate("segment", x = 35, xend = 35, y = 0, yend = 1.0, size = 0.25, arrow = arrow(length = unit(0.2, "cm"))) +
+  geom_hline(yintercept = 0, linetype = "dashed", size = 0.25, col = "grey40") +
+  annotate("text", x = 46, y = -0.8, size = 3, label = "Prior tighter", col = "grey40") +
+  annotate("text", x = 46, y = 0.4, size = 3, label = "Posterior tighter", col = "grey40") +
   theme_minimal()
 
 ggsave("posterior-contraction.png", posterior_contraction_plot, h = 6.5, w = 6.25, bg = "white")
@@ -76,16 +75,16 @@ names(subset(posterior_contraction, posterior_contraction < 0.5))
 #' Calculate the prior standard deviations manually for the hyperparameters
 nsim <- 100000
 phi_A <- rbeta(nsim, 0.5, 0.5)
-logit_phi_A_sd <- sd(qlogis(phi))
+logit_phi_A_sd <- sd(qlogis(phi_A))
 
-phi_B <- abs(rnorm(nsim, 0, 2.582))
-logit_phi_B_sd <- sd(phi_B)
+logit_phi_B <- rnorm(nsim, 0, 2.582)
+logit_phi_B_sd <- sd(logit_phi_B)
 
 sigma_A <- abs(rnorm(nsim, 0, 2.5))
-log_sigma_A_sd <- sd(log(sigma))
+log_sigma_A_sd <- sd(log(sigma_A))
 
 sigma_B <- abs(rnorm(nsim, 0, 1.0))
-log_sigma_B_sd <- sd(log(sigma))
+log_sigma_B_sd <- sd(log(sigma_B))
 
 manual_hyper_prior_sd <- list(
   "logit_phi_rho_x" = logit_phi_A_sd,
@@ -118,19 +117,19 @@ nuts_manual_comparison_df <- prior_sd[names(tmb$fit$obj$par)] %>%
   data.frame() %>%
   tibble::rownames_to_column("par") %>%
   rename("NUTS" = ".") %>%
-  mutate(Hand = unlist(manual_hyper_prior_sd))
+  mutate(Direct = unlist(manual_hyper_prior_sd))
 
 nuts_manual_comparison_df %>%
   pivot_longer(
-    cols = c("NUTS", "Hand"),
+    cols = c("NUTS", "Direct"),
     names_to = "method",
     values_to = "sd"
   ) %>%
   ggplot(aes(x = par, y = sd, col = method, shape = method)) +
-    geom_point() +
+    geom_point(size = 2) +
     coord_flip() +
     scale_color_manual(values = c("#E69F00", "#F0E442")) +
-    labs(x = "Hyperparamter", y = "Prior standard deviation", col = "Calculated by", shape = "Calculated by") +
+    labs(x = "Hyperparameter", y = "Prior standard deviation", col = "Calculation\nmethod", shape = "Calculation\nmethod") +
     theme_minimal()
 
-ggsave("nuts-hand-comparison.png", h = 3.5, w = 6.25)
+ggsave("nuts-hand-comparison.png", h = 4.5, w = 6.25, bg = "white")
