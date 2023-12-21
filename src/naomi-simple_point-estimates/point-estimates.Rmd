@@ -49,14 +49,14 @@ df_tmb <- lapply(tmb$fit$sample[type_key$par], function(row) {
     tibble::rowid_to_column("id")
   }) %>%
   dplyr::bind_rows(.id = "par") %>%
-  mutate(method = "TMB")
+  mutate(method = "GEB")
 
 df_aghq <- lapply(aghq$quad$sample[type_key$par], function(row) {
   data.frame("mean" = rowMeans(row), "sd" = matrixStats::rowSds(row)) %>%
     tibble::rowid_to_column("id")
   }) %>%
   dplyr::bind_rows(.id = "par") %>%
-  mutate(method = "PCA-AGHQ")
+  mutate(method = "GPCA-AGHQ")
 
 df_tmbstan <- lapply(tmbstan$mcmc$sample[type_key$par], function(row) {
   data.frame("mean" = rowMeans(row), "sd" = matrixStats::rowSds(row)) %>%
@@ -80,11 +80,11 @@ Pivot so that the data is ready to plot:
 df_plot <- df %>%
   pivot_longer(cols = c("sd", "mean"), names_to = "indicator", values_to = "estimate") %>%
   pivot_wider(values_from = "estimate", names_from = "method") %>%
-  pivot_longer(cols = c("TMB", "PCA-AGHQ"), names_to = "method", values_to = "approximate") %>%
+  pivot_longer(cols = c("GEB", "GPCA-AGHQ"), names_to = "method", values_to = "approximate") %>%
   rename("truth" = "NUTS") %>%
   mutate(
-    indicator = fct_recode(indicator, "Posterior mean estimate" = "mean", "Posterior SD estimate" = "sd"),
-    method = fct_relevel(method, "TMB", "PCA-AGHQ")
+    indicator = fct_recode(indicator, "Posterior mean" = "mean", "Posterior SD" = "sd"),
+    method = fct_relevel(method, "GEB", "GPCA-AGHQ")
   )
 
 head(df_plot)
@@ -105,7 +105,7 @@ df_metrics <- df_plot %>%
 head(df_metrics)
 ```
 
-Add difference in metric between TMB and PCA-AGHQ:
+Add difference in metric between GEB and GPCA-AGHQ:
 
 ```{r}
 df_metrics_pct <- df_metrics %>%
@@ -127,7 +127,7 @@ df_metrics <- df_metrics %>%
   ) %>%
   mutate(
     label = ifelse(
-      method == "PCA-AGHQ",
+      method == "GPCA-AGHQ",
       paste0("RMSE: ", signif(rmse, 2), " (", signif(rmse_diff, 2), "%)", "\nMAE: ", signif(mae, 2), " (", signif(mae_diff, 2), "%)"),
       paste0("RMSE: ", signif(rmse, 2), "\nMAE: ", signif(mae, 2))
     )
@@ -148,9 +148,9 @@ df_plot_latent %>%
   ggplot(aes(x = truth, y = approximate - truth)) +
   geom_point(shape = 1, alpha = 0.4) +
   facet_grid(indicator ~ method) +
-  geom_abline(slope = 0, intercept = 0, linetype = "dashed") +
+  geom_abline(intercept = 0, slope = 0, col = "#E69F00", linetype = "dashed") +
   geom_text(data = df_metrics_latent, aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5) +
-  labs(x = "NUTS", y = "Approximation - NUTS") +
+  labs(x = "Estimate", y = "Absolute difference to NUTS") +
   theme_minimal()
 
 ggsave("mean-sd-latent.png", h = 6, w = 6.25)
@@ -162,33 +162,33 @@ Version split into two for presentations
 jitter_amount <- 0.02
 
 mean_plot_latent <- df_plot_latent %>%
-  filter(indicator == "Posterior mean estimate") %>%
+  filter(indicator == "Posterior mean") %>%
   ggplot(aes(x = truth, y = approximate - truth)) +
   geom_jitter(shape = 1, alpha = 0.4, width = jitter_amount, height = jitter_amount) +
   lims(y = c(-0.4, 0.4)) +
   facet_grid(indicator ~ method) +
-  geom_abline(slope = 0, intercept = 0, linetype = "dashed", size = 0.25) +
+  geom_abline(intercept = 0, slope = 0, col = "#E69F00", linetype = "dashed") +
   geom_text(
-    data = filter(df_metrics_latent, indicator == "Posterior mean estimate"),
+    data = filter(df_metrics_latent, indicator == "Posterior mean"),
     aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
   ) +
-  labs(x = "NUTS", y = "Approximation - NUTS") +
+  labs(x = "Estimate", y = "Absolute difference to NUTS") +
   theme_minimal()
 
 ggsave("mean-latent.png", mean_plot_latent, h = 4, w = 6.25)
 
 sd_plot_latent <- df_plot_latent %>%
-  filter(indicator == "Posterior SD estimate") %>%
+  filter(indicator == "Posterior SD") %>%
   ggplot(aes(x = truth, y = approximate - truth)) +
   geom_jitter(shape = 1, alpha = 0.4, width = jitter_amount, height = jitter_amount) +
   lims(y = c(-0.6, 0.6)) +
   facet_grid(indicator ~ method) +
-  geom_abline(slope = 0, intercept = 0, linetype = "dashed", size = 0.25) +
+  geom_abline(intercept = 0, slope = 0, col = "#E69F00", linetype = "dashed") +
   geom_text(
-    data = filter(df_metrics_latent, indicator == "Posterior SD estimate"),
+    data = filter(df_metrics_latent, indicator == "Posterior SD"),
     aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
   ) +
-  labs(x = "NUTS", y = "Approximation - NUTS") +
+  labs(x = "Estimate", y = "Absolute difference to NUTS") +
   theme_minimal()
 
 ggsave("sd-latent.png", sd_plot_latent, h = 4, w = 6.25)
@@ -225,7 +225,7 @@ Where are the greatest errors occurring for the mean?
 
 ```{r}
 df_plot_latent %>%
-  filter(indicator == "Posterior mean estimate") %>%
+  filter(indicator == "Posterior mean") %>%
   mutate(diff = abs(approximate - truth)) %>%
   arrange(desc(diff)) %>%
   select(indicator, par, id, method, truth, approximate, diff) %>%
@@ -236,7 +236,7 @@ What about for the standard deviations?
 
 ```{r}
 df_plot_latent %>%
-  filter(indicator == "Posterior SD estimate") %>%
+  filter(indicator == "Posterior SD") %>%
   mutate(diff = abs(approximate - truth)) %>%
   arrange(desc(diff)) %>%
   select(indicator, par, id, method, truth, approximate, diff) %>%
@@ -248,7 +248,6 @@ df_plot_latent %>%
 ```{r}
 df_plot_output <- filter(df_plot, type == "output")
 df_metrics_output <- filter(df_metrics, type == "output")
-cbpalette <- c("#56B4E9","#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
 
 df_plot_output <- df_plot_output %>%
   mutate(par = fct_recode(par, "HIV prevalence" = "rho_t1_out", "ART coverage" = "alpha_t1_out", "HIV incidence" = "lambda_t1_out"))
@@ -256,11 +255,11 @@ df_plot_output <- df_plot_output %>%
 df_plot_output %>%
   ggplot() +
   geom_point(aes(x = truth, y = approximate - truth, color = par), shape = 1, alpha = 0.4) +
-  scale_color_manual(values = cbpalette) +
+  scale_color_manual(values = c("#56B4E9","#009E73", "#CC79A7")) +
   facet_grid(indicator ~ method) +
-  geom_abline(slope = 0, intercept = 0, linetype = "dashed") +
+  geom_abline(intercept = 0, slope = 0, col = "#E69F00", linetype = "dashed") +
   geom_text(data = df_metrics_output, aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5) +
-  labs(x = "NUTS", y = "Approximation - NUTS", col = "Output") +
+  labs(x = "Estimate", y = "Absolute difference to NUTS", col = "Output") +
   theme_minimal() +
   theme(legend.position = "bottom")
 
@@ -273,33 +272,33 @@ Version split into two for presentations
 jitter_amount <- 0
 
 mean_plot_output <- df_plot_output %>%
-  filter(indicator == "Posterior mean estimate") %>%
+  filter(indicator == "Posterior mean") %>%
   ggplot() +
   geom_jitter(aes(x = truth, y = approximate - truth, color = par), shape = 1, alpha = 0.4, width = jitter_amount, height = jitter_amount) +
-  scale_color_manual(values = cbpalette) +
+  scale_color_manual(values = c("#56B4E9","#009E73", "#CC79A7")) +
   facet_grid(indicator ~ method) +
-  geom_abline(slope = 0, intercept = 0, linetype = "dashed", size = 0.25) +
+  geom_abline(intercept = 0, slope = 0, col = "#E69F00", linetype = "dashed") +
   geom_text(
-    data = filter(df_metrics_output, indicator == "Posterior mean estimate"),
+    data = filter(df_metrics_output, indicator == "Posterior mean"),
     aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
   ) +
-  labs(x = "NUTS", y = "Approximation - NUTS", col = "Output") +
+  labs(x = "Estimate", y = "Absolute difference to NUTS", col = "Output") +
   theme_minimal()
 
 ggsave("mean-output.png", mean_plot_output, h = 4, w = 6.25)
 
 sd_plot_output <- df_plot_output %>%
-  filter(indicator == "Posterior SD estimate") %>%
+  filter(indicator == "Posterior SD") %>%
   ggplot() +
   geom_jitter(aes(x = truth, y = approximate - truth, color = par), shape = 1, alpha = 0.4, width = jitter_amount, height = jitter_amount) +
-  scale_color_manual(values = cbpalette) +
+  scale_color_manual(values = c("#56B4E9","#009E73", "#CC79A7")) +
   facet_grid(indicator ~ method) +
-  geom_abline(slope = 0, intercept = 0, linetype = "dashed", size = 0.25) +
+  geom_abline(intercept = 0, slope = 0, col = "#E69F00", linetype = "dashed") +
   geom_text(
-    data = filter(df_metrics_output, indicator == "Posterior SD estimate"),
+    data = filter(df_metrics_output, indicator == "Posterior SD"),
     aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
   ) +
-  labs(x = "NUTS", y = "Approximation - NUTS", col = "Output") +
+  labs(x = "Estimate", y = "Absolute difference to NUTS", col = "Output") +
   theme_minimal()
 
 ggsave("sd-output.png", sd_plot_output, h = 4, w = 6.25)
@@ -338,7 +337,7 @@ df_metrics_output_split <- df_metrics_output_split %>%
   ) %>%
   mutate(
     label = ifelse(
-      method == "PCA-AGHQ",
+      method == "GPCA-AGHQ",
       paste0("RMSE: ", signif(rmse, 2), " (", signif(rmse_diff, 2), "%)", "\nMAE: ", signif(mae, 2), " (", signif(mae_diff, 2), "%)"),
       paste0("RMSE: ", signif(rmse, 2), "\nMAE: ", signif(mae, 2))
     )
@@ -350,42 +349,43 @@ plot_outputs <- function(.indicator, .par, col) {
   ggplot() +
   geom_jitter(aes(x = truth, y = approximate - truth, color = par), shape = 1, alpha = 0.4, width = jitter_amount, height = jitter_amount) +
   scale_color_manual(values = c(col, "white", "white")) +
-  facet_grid(indicator + par ~ method) +
-  geom_abline(slope = 0, intercept = 0, linetype = "dashed", size = 0.25) +
+  facet_grid(indicator + par ~ method, labeller = labeller(indicator = function(x) {rep("", length(x))})) +
+  geom_abline(intercept = 0, slope = 0, col = "#E69F00", linetype = "dashed") +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 4)) +
   geom_text(
     data = filter(df_metrics_output_split, indicator == .indicator, par == .par),
     aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
   ) +
-  labs(x = "NUTS", y = "Approximation - NUTS", col = "Output") +
+  labs(x = "Estimate", y = "Absolute difference to NUTS", col = "Output") +
   theme_minimal() +
-  theme(legend.position = "none")
+  theme(legend.position = "none", panel.spacing.x = unit(6, "mm"))
 }
 
-mean_prev_plot <- plot_outputs(.indicator = "Posterior mean estimate", .par = "HIV prevalence", col = "#E69F00")
-mean_inc_plot <- plot_outputs(.indicator = "Posterior mean estimate", .par = "HIV incidence", col = "#009E73")
-mean_art_plot <- plot_outputs(.indicator = "Posterior mean estimate", .par = "ART coverage", col = "#56B4E9")
-sd_prev_plot <- plot_outputs(.indicator = "Posterior SD estimate", .par = "HIV prevalence", col = "#E69F00")
-sd_inc_plot <- plot_outputs(.indicator = "Posterior SD estimate", .par = "HIV incidence", col = "#009E73")
-sd_art_plot <- plot_outputs(.indicator = "Posterior SD estimate", .par = "ART coverage", col = "#56B4E9")
+mean_prev_plot <- plot_outputs(.indicator = "Posterior mean", .par = "HIV prevalence", col = "#CC79A7")
+mean_inc_plot <- plot_outputs(.indicator = "Posterior mean", .par = "HIV incidence", col = "#009E73")
+mean_art_plot <- plot_outputs(.indicator = "Posterior mean", .par = "ART coverage", col = "#56B4E9")
+sd_prev_plot <- plot_outputs(.indicator = "Posterior SD", .par = "HIV prevalence", col = "#CC79A7")
+sd_inc_plot <- plot_outputs(.indicator = "Posterior SD", .par = "HIV incidence", col = "#009E73")
+sd_art_plot <- plot_outputs(.indicator = "Posterior SD", .par = "ART coverage", col = "#56B4E9")
 
-#' Put together
-combine_three_plots <- function(plot1, plot2, plot3) {
-  plot1alt <- plot1 +
-    theme(legend.position = "none")
+combine_three_plots <- function(plot1, plot2, plot3, subtitle) {
+  
+  plot1alt <- plot1 + theme(legend.position = "none") + labs(subtitle = subtitle)
   
   plot2alt <- plot2 +
-  theme(
-    strip.background = element_blank(),
-    strip.text.x = element_blank(),
-    legend.position = "none"
-  )
+    theme(
+      strip.background = element_blank(),
+      strip.text.x = element_blank(),
+      
+      legend.position = "none"
+    )
   
   plot3alt <- plot3 +
-  theme(
-    strip.background = element_blank(),
-    strip.text.x = element_blank(),
-    legend.position = "none"
-  )
+    theme(
+      strip.background = element_blank(),
+      strip.text.x = element_blank(),
+      legend.position = "none"
+    )
   
   y_axis <- ggplot(data.frame(l = plot1$labels$y, x = 1, y = 1)) +
     geom_text(aes(x, y, label = l), angle = 90) +
@@ -395,14 +395,14 @@ combine_three_plots <- function(plot1, plot2, plot3) {
   plot1alt$labels$x <- plot2alt$labels$x <- ""
   plot1alt$labels$y <- plot2alt$labels$y <- plot3alt$labels$y <- ""
   
-  three_plots <- cowplot::plot_grid(plot1alt, plot2alt, plot3alt, ncol = 1)
+  three_plots <- cowplot::plot_grid(plot1alt, plot2alt, plot3alt, ncol = 1, rel_heights = c(1.25, 1, 1))
   cowplot::plot_grid(y_axis, three_plots, ncol = 2, rel_widths = c(1, 35))
 }
 
-combine_three_plots(mean_prev_plot, mean_inc_plot, mean_art_plot)
+combine_three_plots(mean_prev_plot, mean_inc_plot, mean_art_plot, subtitle = "Posterior mean")
 ggsave("mean-alt-output.png", h = 7, w = 6.25)
 
-combine_three_plots(sd_prev_plot, sd_inc_plot, sd_art_plot)
+combine_three_plots(sd_prev_plot, sd_inc_plot, sd_art_plot, subtitle = "Posterior SD")
 ggsave("sd-alt-output.png", h = 7, w = 6.25)
 ```
 
