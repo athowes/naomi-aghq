@@ -351,9 +351,8 @@ ggsave("exceedance.png", exceedance_manuscript_plot, h = 6.5, w = 6.25, bg = "wh
 exceedance_manuscript_plot_second90 <- df_wide %>%
   filter(indicator == "Second 90") %>%
   pivot_longer(cols = c("GEB", "GPCA-AGHQ"), names_to = "method", values_to = "estimate") %>%
-  ggplot(aes(x = NUTS, y = estimate)) +
+  ggplot(aes(x = NUTS, y = estimate - NUTS)) +
     geom_point(aes(col = sex), shape = 1, alpha = 0.4) +
-    coord_fixed(ratio = 1) +
     scale_colour_manual(values = c("#0072B2", "black"), labels = c("Female", "Male")) +
     geom_abline(slope = 0, intercept = 0, linetype = "dashed", col = "#E69F00") +
     geom_text(
@@ -363,7 +362,7 @@ exceedance_manuscript_plot_second90 <- df_wide %>%
       size = 3, hjust = 0, vjust = 1.5
     ) +
     facet_grid(indicator ~ method) +
-    labs(x = "NUTS", y = "Absolute difference to NUTS", col = "Sex") +
+    labs(x = "Estimate", y = "Absolute difference to NUTS", col = "Sex") +
     theme_minimal()
 
 ggsave("exceedance-second90.png", exceedance_manuscript_plot_second90, h = 3, w = 6.25)
@@ -371,9 +370,8 @@ ggsave("exceedance-second90.png", exceedance_manuscript_plot_second90, h = 3, w 
 exceedance_manuscript_plot_1inc <- df_wide %>%
   filter(indicator == "High incidence") %>%
   pivot_longer(cols = c("GEB", "GPCA-AGHQ"), names_to = "method", values_to = "estimate") %>%
-  ggplot(aes(x = NUTS, y = estimate)) +
+  ggplot(aes(x = NUTS, y = estimate - NUTS)) +
     geom_point(aes(col = sex), shape = 1, alpha = 0.6) +
-    coord_fixed(ratio = 1) +
     scale_colour_manual(values = c("#0072B2", "black"), labels = c("Female", "Male")) +
     geom_abline(slope = 0, intercept = 0, linetype = "dashed", col = "#E69F00") +
     geom_text(
@@ -383,7 +381,7 @@ exceedance_manuscript_plot_1inc <- df_wide %>%
       size = 3, hjust = 0, vjust = 1.5
     ) +
     facet_grid(indicator ~ method) +
-    labs(x = "NUTS", y = "Absolute difference to NUTS", col = "Sex") +
+    labs(x = "Estimate", y = "Absolute difference to NUTS", col = "Sex") +
     theme_minimal()
 
 ggsave("exceedance-1inc.png", exceedance_manuscript_plot_1inc, h = 3, w = 6.25)
