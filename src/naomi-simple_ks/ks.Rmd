@@ -151,155 +151,155 @@ pars_eval <- pars %in% c("beta_rho", "u_rho_x")
 names(pars_eval) <- pars
 ```
 
-## `beta_rho`
+<!-- ## `beta_rho` -->
 
-```{r eval = pars_eval[["beta_rho"]]}
-histogram_and_ecdf_list("beta_rho")
-```
+<!-- ```{r eval = pars_eval[["beta_rho"]]} -->
+<!-- histogram_and_ecdf_list("beta_rho") -->
+<!-- ``` -->
 
-## `beta_alpha`
+<!-- ## `beta_alpha` -->
 
-```{r eval = pars_eval[["beta_alpha"]]}
-histogram_and_ecdf_list("beta_alpha")
-```
+<!-- ```{r eval = pars_eval[["beta_alpha"]]} -->
+<!-- histogram_and_ecdf_list("beta_alpha") -->
+<!-- ``` -->
 
-## `beta_lambda`
+<!-- ## `beta_lambda` -->
 
-```{r eval = pars_eval[["beta_lambda"]]}
-histogram_and_ecdf_list("beta_lambda")
-```
+<!-- ```{r eval = pars_eval[["beta_lambda"]]} -->
+<!-- histogram_and_ecdf_list("beta_lambda") -->
+<!-- ``` -->
 
-## `beta_anc_rho`
+<!-- ## `beta_anc_rho` -->
 
-```{r eval = pars_eval[["beta_anc_rho"]]}
-histogram_and_ecdf_list("beta_anc_rho")
-```
+<!-- ```{r eval = pars_eval[["beta_anc_rho"]]} -->
+<!-- histogram_and_ecdf_list("beta_anc_rho") -->
+<!-- ``` -->
 
-## `beta_anc_alpha`
+<!-- ## `beta_anc_alpha` -->
 
-```{r eval = pars_eval[["beta_anc_alpha"]]}
-histogram_and_ecdf("beta_anc_alpha")
-```
+<!-- ```{r eval = pars_eval[["beta_anc_alpha"]]} -->
+<!-- histogram_and_ecdf("beta_anc_alpha") -->
+<!-- ``` -->
 
-## `logit`
+<!-- ## `logit` -->
 
-```{r eval = FALSE}
-lapply(pars[stringr::str_starts(pars, "logit")], histogram_and_ecdf)
-```
+<!-- ```{r eval = FALSE} -->
+<!-- lapply(pars[stringr::str_starts(pars, "logit")], histogram_and_ecdf) -->
+<!-- ``` -->
 
-## `log_sigma`
+<!-- ## `log_sigma` -->
 
-```{r eval = FALSE}
-lapply(pars[stringr::str_starts(pars, "log_sigma")], histogram_and_ecdf)
-```
+<!-- ```{r eval = FALSE} -->
+<!-- lapply(pars[stringr::str_starts(pars, "log_sigma")], histogram_and_ecdf) -->
+<!-- ``` -->
 
-## `u_rho_x`
+<!-- ## `u_rho_x` -->
 
-```{r eval = pars_eval[["u_rho_x"]]}
-histogram_and_ecdf_list("u_rho_x")
-```
+<!-- ```{r eval = pars_eval[["u_rho_x"]]} -->
+<!-- histogram_and_ecdf_list("u_rho_x") -->
+<!-- ``` -->
 
-## `us_rho_x`
+<!-- ## `us_rho_x` -->
 
-```{r eval = pars_eval[["us_rho_x"]]}
-histogram_and_ecdf_list("us_rho_x")
-```
+<!-- ```{r eval = pars_eval[["us_rho_x"]]} -->
+<!-- histogram_and_ecdf_list("us_rho_x") -->
+<!-- ``` -->
 
-## `u_rho_xs`
+<!-- ## `u_rho_xs` -->
 
-```{r eval = pars_eval[["u_rho_xs"]]}
-histogram_and_ecdf_list("u_rho_xs")
-```
+<!-- ```{r eval = pars_eval[["u_rho_xs"]]} -->
+<!-- histogram_and_ecdf_list("u_rho_xs") -->
+<!-- ``` -->
 
-## `us_rho_xs`
+<!-- ## `us_rho_xs` -->
 
-```{r eval = pars_eval[["us_rho_xs"]]}
-histogram_and_ecdf_list("us_rho_xs")
-```
+<!-- ```{r eval = pars_eval[["us_rho_xs"]]} -->
+<!-- histogram_and_ecdf_list("us_rho_xs") -->
+<!-- ``` -->
 
-## `u_rho_as`
+<!-- ## `u_rho_as` -->
 
-```{r eval = pars_eval[["u_rho_as"]]}
-histogram_and_ecdf_list("u_rho_as")
-```
+<!-- ```{r eval = pars_eval[["u_rho_as"]]} -->
+<!-- histogram_and_ecdf_list("u_rho_as") -->
+<!-- ``` -->
 
-## `u_alpha_x`
+<!-- ## `u_alpha_x` -->
 
-```{r eval = pars_eval[["u_alpha_x"]]}
-histogram_and_ecdf_list("u_alpha_x")
-```
+<!-- ```{r eval = pars_eval[["u_alpha_x"]]} -->
+<!-- histogram_and_ecdf_list("u_alpha_x") -->
+<!-- ``` -->
 
-## `us_alpha_x`
+<!-- ## `us_alpha_x` -->
 
-```{r eval = pars_eval[["us_alpha_x"]]}
-histogram_and_ecdf_list("us_alpha_x")
-```
+<!-- ```{r eval = pars_eval[["us_alpha_x"]]} -->
+<!-- histogram_and_ecdf_list("us_alpha_x") -->
+<!-- ``` -->
 
-## `u_alpha_xs`
+<!-- ## `u_alpha_xs` -->
 
-```{r eval = pars_eval[["u_alpha_xs"]]}
-histogram_and_ecdf_list("u_alpha_xs")
-```
+<!-- ```{r eval = pars_eval[["u_alpha_xs"]]} -->
+<!-- histogram_and_ecdf_list("u_alpha_xs") -->
+<!-- ``` -->
 
-## `us_alpha_xs`
+<!-- ## `us_alpha_xs` -->
 
-```{r eval = pars_eval[["beta_rho"]]}
-histogram_and_ecdf_list("us_alpha_xs")
-```
+<!-- ```{r eval = pars_eval[["beta_rho"]]} -->
+<!-- histogram_and_ecdf_list("us_alpha_xs") -->
+<!-- ``` -->
 
-## `u_alpha_a`
+<!-- ## `u_alpha_a` -->
 
-```{r eval = pars_eval[["u_alpha_a"]]}
-histogram_and_ecdf_list("u_alpha_a")
-```
+<!-- ```{r eval = pars_eval[["u_alpha_a"]]} -->
+<!-- histogram_and_ecdf_list("u_alpha_a") -->
+<!-- ``` -->
 
-## `u_alpha_as`
+<!-- ## `u_alpha_as` -->
 
-```{r eval = pars_eval[["u_alpha_as"]]}
-histogram_and_ecdf_list("u_alpha_as")
-```
+<!-- ```{r eval = pars_eval[["u_alpha_as"]]} -->
+<!-- histogram_and_ecdf_list("u_alpha_as") -->
+<!-- ``` -->
 
-## `u_alpha_xa`
+<!-- ## `u_alpha_xa` -->
 
-```{r eval = pars_eval[["u_alpha_xa"]]}
-histogram_and_ecdf_list("u_alpha_xa")
-```
+<!-- ```{r eval = pars_eval[["u_alpha_xa"]]} -->
+<!-- histogram_and_ecdf_list("u_alpha_xa") -->
+<!-- ``` -->
 
-## `ui_lambda_x`
+<!-- ## `ui_lambda_x` -->
 
-```{r eval = pars_eval[["ui_lambda_x"]]}
-histogram_and_ecdf_list("ui_lambda_x")
-```
+<!-- ```{r eval = pars_eval[["ui_lambda_x"]]} -->
+<!-- histogram_and_ecdf_list("ui_lambda_x") -->
+<!-- ``` -->
 
-## `ui_anc_rho_x`
+<!-- ## `ui_anc_rho_x` -->
 
-```{r eval = pars_eval[["ui_anc_rho_x"]]}
-histogram_and_ecdf_list("ui_anc_rho_x")
-```
+<!-- ```{r eval = pars_eval[["ui_anc_rho_x"]]} -->
+<!-- histogram_and_ecdf_list("ui_anc_rho_x") -->
+<!-- ``` -->
 
-## `ui_anc_alpha_x`
+<!-- ## `ui_anc_alpha_x` -->
 
-```{r eval = pars_eval[["ui_anc_alpha_x"]]}
-histogram_and_ecdf_list("ui_anc_alpha_x")
-```
+<!-- ```{r eval = pars_eval[["ui_anc_alpha_x"]]} -->
+<!-- histogram_and_ecdf_list("ui_anc_alpha_x") -->
+<!-- ``` -->
 
-## `log_or_gamma`
+<!-- ## `log_or_gamma` -->
 
-```{r eval = pars_eval[["log_or_gamma"]]}
-histogram_and_ecdf_list("log_or_gamma")
-```
+<!-- ```{r eval = pars_eval[["log_or_gamma"]]} -->
+<!-- histogram_and_ecdf_list("log_or_gamma") -->
+<!-- ``` -->
 
-## `rho_t1_out`
+<!-- ## `rho_t1_out` -->
 
-There are too many variables to plot this here!
+<!-- There are too many variables to plot this here! -->
 
-## `alpha_t1_out`
+<!-- ## `alpha_t1_out` -->
 
-There are too many variables to plot this here!
+<!-- There are too many variables to plot this here! -->
 
-## `lambda_t1_out`
+<!-- ## `lambda_t1_out` -->
 
-There are too many variables to plot this here!
+<!-- There are too many variables to plot this here! -->
 
 # KS plots 
 
@@ -340,141 +340,141 @@ ks_df_out <- function(par) {
 }
 ```
 
-### `beta`
+<!-- ### `beta` -->
 
-```{r}
-ks_plot_starts_with("beta")
-```
+<!-- ```{r} -->
+<!-- ks_plot_starts_with("beta") -->
+<!-- ``` -->
 
-### `logit`
+<!-- ### `logit` -->
 
-```{r}
-ks_plot_starts_with("logit")
-```
+<!-- ```{r} -->
+<!-- ks_plot_starts_with("logit") -->
+<!-- ``` -->
 
-### `log_sigma`
+<!-- ### `log_sigma` -->
 
-```{r}
-ks_plot_starts_with("log_sigma")
-```
+<!-- ```{r} -->
+<!-- ks_plot_starts_with("log_sigma") -->
+<!-- ``` -->
 
-### `u_rho_x`
+<!-- ### `u_rho_x` -->
 
-```{r eval = pars_eval[["u_rho_x"]]}
-ks_plot_starts_with("u_rho_x")
-```
+<!-- ```{r eval = pars_eval[["u_rho_x"]]} -->
+<!-- ks_plot_starts_with("u_rho_x") -->
+<!-- ``` -->
 
-### `u_rho_xs`
+<!-- ### `u_rho_xs` -->
 
-```{r eval = pars_eval[["u_rho_xs"]]}
-ks_plot_starts_with("u_rho_xs")
-```
+<!-- ```{r eval = pars_eval[["u_rho_xs"]]} -->
+<!-- ks_plot_starts_with("u_rho_xs") -->
+<!-- ``` -->
 
-### `us_rho_x`
+<!-- ### `us_rho_x` -->
 
-```{r eval = pars_eval[["us_rho_x"]]}
-ks_plot_starts_with("us_rho_x")
-```
+<!-- ```{r eval = pars_eval[["us_rho_x"]]} -->
+<!-- ks_plot_starts_with("us_rho_x") -->
+<!-- ``` -->
 
-### `us_rho_xs`
+<!-- ### `us_rho_xs` -->
 
-```{r eval = pars_eval[["us_rho_xs"]]}
-ks_plot_starts_with("us_rho_xs")
-```
+<!-- ```{r eval = pars_eval[["us_rho_xs"]]} -->
+<!-- ks_plot_starts_with("us_rho_xs") -->
+<!-- ``` -->
 
-### `u_rho_a`
+<!-- ### `u_rho_a` -->
 
-```{r eval = pars_eval[["u_rho_a"]]}
-ks_plot_starts_with("u_rho_a")
-```
+<!-- ```{r eval = pars_eval[["u_rho_a"]]} -->
+<!-- ks_plot_starts_with("u_rho_a") -->
+<!-- ``` -->
 
-### `u_rho_as`
+<!-- ### `u_rho_as` -->
 
-```{r eval = pars_eval[["u_rho_as"]]}
-ks_plot_starts_with("u_rho_as")
-```
+<!-- ```{r eval = pars_eval[["u_rho_as"]]} -->
+<!-- ks_plot_starts_with("u_rho_as") -->
+<!-- ``` -->
 
-### `u_alpha_x`
+<!-- ### `u_alpha_x` -->
 
-```{r eval = pars_eval[["u_alpha_x"]]}
-ks_plot_starts_with("u_alpha_x")
-```
+<!-- ```{r eval = pars_eval[["u_alpha_x"]]} -->
+<!-- ks_plot_starts_with("u_alpha_x") -->
+<!-- ``` -->
 
-### `u_alpha_xs`
+<!-- ### `u_alpha_xs` -->
 
-```{r eval = pars_eval[["u_alpha_xs"]]}
-ks_plot_starts_with("u_alpha_xs")
-```
+<!-- ```{r eval = pars_eval[["u_alpha_xs"]]} -->
+<!-- ks_plot_starts_with("u_alpha_xs") -->
+<!-- ``` -->
 
-### `us_alpha_x`
+<!-- ### `us_alpha_x` -->
 
-```{r eval = pars_eval[["us_alpha_x"]]}
-ks_plot_starts_with("us_alpha_x")
-```
+<!-- ```{r eval = pars_eval[["us_alpha_x"]]} -->
+<!-- ks_plot_starts_with("us_alpha_x") -->
+<!-- ``` -->
 
-### `us_alpha_xs`
+<!-- ### `us_alpha_xs` -->
 
-```{r eval = pars_eval[["us_alpha_xs"]]}
-ks_plot_starts_with("us_alpha_xs")
-```
+<!-- ```{r eval = pars_eval[["us_alpha_xs"]]} -->
+<!-- ks_plot_starts_with("us_alpha_xs") -->
+<!-- ``` -->
 
-### `u_alpha_a`
+<!-- ### `u_alpha_a` -->
 
-```{r eval = pars_eval[["u_alpha_a"]]}
-ks_plot_starts_with("u_alpha_a")
-```
+<!-- ```{r eval = pars_eval[["u_alpha_a"]]} -->
+<!-- ks_plot_starts_with("u_alpha_a") -->
+<!-- ``` -->
 
-### `u_alpha_as`
+<!-- ### `u_alpha_as` -->
 
-```{r eval = pars_eval[["u_alpha_as"]]}
-ks_plot_starts_with("u_alpha_as")
-```
+<!-- ```{r eval = pars_eval[["u_alpha_as"]]} -->
+<!-- ks_plot_starts_with("u_alpha_as") -->
+<!-- ``` -->
 
-### `u_alpha_xa`
+<!-- ### `u_alpha_xa` -->
 
-```{r eval = pars_eval[["u_alpha_xa"]]}
-ks_plot_starts_with("u_alpha_xa")
-```
+<!-- ```{r eval = pars_eval[["u_alpha_xa"]]} -->
+<!-- ks_plot_starts_with("u_alpha_xa") -->
+<!-- ``` -->
 
-### `ui_anc_rho_x`
+<!-- ### `ui_anc_rho_x` -->
 
-```{r eval = pars_eval[["ui_anc_rho_x"]]}
-ks_plot_starts_with("ui_anc_rho_x")
-```
+<!-- ```{r eval = pars_eval[["ui_anc_rho_x"]]} -->
+<!-- ks_plot_starts_with("ui_anc_rho_x") -->
+<!-- ``` -->
 
-### `ui_anc_alpha_x`
+<!-- ### `ui_anc_alpha_x` -->
 
-```{r eval = pars_eval[["ui_anc_alpha_x"]]}
-ks_plot_starts_with("ui_anc_alpha_x")
-```
+<!-- ```{r eval = pars_eval[["ui_anc_alpha_x"]]} -->
+<!-- ks_plot_starts_with("ui_anc_alpha_x") -->
+<!-- ``` -->
 
-### `log_or_gamma`
+<!-- ### `log_or_gamma` -->
 
-```{r eval = pars_eval[["log_or_gamma"]]}
-ks_plot_starts_with("log_or_gamma")
-```
+<!-- ```{r eval = pars_eval[["log_or_gamma"]]} -->
+<!-- ks_plot_starts_with("log_or_gamma") -->
+<!-- ``` -->
 
-### `rho_t1_out`
+<!-- ### `rho_t1_out` -->
 
-```{r}
-ks_df_out(par = "rho_t1_out") %>%
-  ks_plot(par = "rho_t1_out", alpha = 0.2)
-```
+<!-- ```{r} -->
+<!-- ks_df_out(par = "rho_t1_out") %>% -->
+<!--   ks_plot(par = "rho_t1_out", alpha = 0.2) -->
+<!-- ``` -->
 
-### `alpha_t1_out`
+<!-- ### `alpha_t1_out` -->
 
-```{r}
-ks_df_out(par = "alpha_t1_out") %>%
-  ks_plot(par = "rho_t1_out", alpha = 0.2)
-```
+<!-- ```{r} -->
+<!-- ks_df_out(par = "alpha_t1_out") %>% -->
+<!--   ks_plot(par = "rho_t1_out", alpha = 0.2) -->
+<!-- ``` -->
 
-### `lambda_t1_out`
+<!-- ### `lambda_t1_out` -->
 
-```{r}
-ks_df_out(par = "lambda_t1_out") %>%
-  filter(!age_group %in% c("Y005_009", "Y010_014", "Y080_999")) %>%
-  ks_plot(par = "lambda_t1_out", alpha = 0.2)
-```
+<!-- ```{r} -->
+<!-- ks_df_out(par = "lambda_t1_out") %>% -->
+<!--   filter(!age_group %in% c("Y005_009", "Y010_014", "Y080_999")) %>% -->
+<!--   ks_plot(par = "lambda_t1_out", alpha = 0.2) -->
+<!-- ``` -->
 
 Filter out the age group 5-9, 10-14 and 80+ here because there are new new infections in those age groups, and the posterior samples from each method are exactly the same: in particular draws of identically zero.
 
@@ -500,17 +500,15 @@ ks_summary_latent <- filter(ks_summary, type == "Latent")
 xy_length <- min(1, max(ks_summary_latent$aghq, ks_summary_latent$TMB) + 0.03)
 
 ks_summary_latent %>%
-  ggplot(aes(x = TMB, y = aghq, col = parname, size = size)) +
-  geom_point(alpha = 0.4) +
-  xlim(0, xy_length) +
-  ylim(0, xy_length) +
+  ggplot(aes(x = TMB, y = aghq - TMB, col = parname, size = size)) +
+  geom_point(alpha = 0.7) +
   scale_color_manual(values = extended_cbpalette(n = 20)) +
   scale_size_continuous(breaks = c(2, 10, 32), labels = c(2, 10, 32)) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  labs(x = "KS(TMB, NUTS)", y = "KS(PCA-AGHQ, NUTS)", col = "Parameter", size = "Length", subtitle = "Smaller KS values indicate higher accuracy") +
+  geom_abline(slope = 0, intercept = 0, linetype = "dashed") +
+  labs(x = "KS(GEB, NUTS)", y = "KS(GPCA-AGHQ, NUTS) - KS(GEB, NUTS)", col = "Parameter", size = "Length") +
   theme_minimal() +
   guides(size = guide_legend(title.position = "top", direction = "vertical"), col = guide_legend(title.position = "top")) +
-  theme(legend.position = "bottom", legend.title = element_text(size = rel(0.9)), legend.text = element_text(size = rel(0.7)))
+  theme(legend.position = "bottom", legend.title = element_text(size = rel(0.9)), legend.text = element_text(size = rel(0.65)))
 
 ggsave("ks-summary.png", h = 5, w = 6.25, bg = "white")
 ```
@@ -586,19 +584,19 @@ fct_reorg <- function(fac, ...) {
 
 ks_df %>%
   filter(type != "Hyper") %>%
-  mutate(method = fct_reorg(method, "TMB" = "TMB", "PCA-AGHQ" = "aghq")) %>%
+  mutate(method = fct_reorg(method, "GEB" = "TMB", "GPCA-AGHQ" = "aghq")) %>%
   left_join(data.frame(ess) %>%
     tibble::rownames_to_column("par"),
   ) %>%
   ggplot(aes(x = ess, y = ks)) +
     geom_point(shape = 1, alpha = 0.5) +
-    geom_smooth(method = "lm", color = "#56B4E9", fullrange = TRUE) +
-    stat_poly_eq(use_label("eq"), label.x.npc = "right") +
-    stat_poly_eq(label.y = 0.9, label.x.npc = "right") +
+    geom_smooth(method = "lm", color = "#CC79A7", fullrange = TRUE) +
+    ggpmisc::stat_poly_eq(ggpmisc::use_label("eq"), label.x.npc = "right") +
+    ggpmisc::stat_poly_eq(label.y = 0.9, label.x.npc = "right") +
     scale_x_continuous(limits = c(0, NA)) +
     facet_grid(~ method) +
     theme_minimal() +
-    labs(x = "ESS", y = "KS(method, NUTS)")
+    labs(x = "NUTS ESS", y = "KS(approach, NUTS)")
 
 ggsave("ks-ess.png", h = 4, w = 6.25)
 ```

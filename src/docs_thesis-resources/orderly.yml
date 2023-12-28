@@ -25,8 +25,8 @@ depends:
       id: latest
       use:
         depends/ks-summary.rds: ks-summary.rds
+        depends/ks-summary.png: ks-summary.png
         depends/time-taken.csv: time-taken.csv
-        depends/beta_alpha.rds: beta_alpha.rds
         depends/ks-ess.png: ks-ess.png
   - plot-tikz_algorithm-flowchart:
       id: latest
