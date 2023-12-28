@@ -25,7 +25,6 @@ artefacts:
 resources:
   - exceedance.Rmd
   - citations.bib
-  - 2d.cpp
 
 packages:
   - dplyr

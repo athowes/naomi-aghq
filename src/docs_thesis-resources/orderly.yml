@@ -40,6 +40,8 @@ depends:
       id: latest
       use:
         depends/exceedance.png: exceedance.png
+        depends/exceedance-second90.png: exceedance-second90.png
+        depends/exceedance-1inc.png: exceedance-1inc.png
         depends/exceedance.csv: exceedance.csv
   - naomi-simple_contraction:
       id: latest
@@ -51,6 +53,7 @@ depends:
       use:
         depends/mean-sd-alt-latent.png: mean-sd-alt-latent.png
         depends/mean-latent.png: mean-latent.png
+        depends/sd-latent.png: sd-latent.png
         depends/mean-sd-alt-output.png: mean-sd-alt-output.png
         depends/mean-alt-output.png: mean-alt-output.png
         depends/sd-alt-output.png: sd-alt-output.png

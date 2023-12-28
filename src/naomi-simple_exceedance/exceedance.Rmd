@@ -69,24 +69,24 @@ stopifnot(length(aghq_second90) == n)
 
 df_second90 <- data.frame(
   prob = c(tmbstan_second90, tmb_second90, aghq_second90),
-  method = c(rep("tmbstan", times = n), rep("TMB", times = n), rep("aghq", times = n)),
+  method = c(rep("NUTS", times = n), rep("GEB", times = n), rep("GPCA-AGHQ", times = n)),
   index = c(1:n, 1:n, 1:n)
 )
 
 df_wide_second90 <- pivot_wider(df_second90, names_from = method, values_from = prob)
 
-plot1 <- ggplot(df_wide_second90, aes(x = tmbstan, y = TMB)) +
-  geom_point(shape = 1, alpha = 0.6, col = "#999999") +
+plot1 <- ggplot(df_wide_second90, aes(x = NUTS, y = GEB)) +
+  geom_point(shape = 1, alpha = 0.6) +
   coord_fixed(ratio = 1) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  labs(x = "NUTS", y = "TMB") +
+  labs(x = "NUTS", y = "GEB") +
   theme_minimal()
 
-plot2 <- ggplot(df_wide_second90, aes(x = tmbstan, y = aghq)) +
-  geom_point(shape = 1, alpha = 0.6, col = "#999999") +
+plot2 <- ggplot(df_wide_second90, aes(x = NUTS, y = `GPCA-AGHQ`)) +
+  geom_point(shape = 1, alpha = 0.6) +
   coord_fixed(ratio = 1) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  labs(x = "NUTS", y = "PCA-AGHQ") +
+  labs(x = "NUTS", y = "GPCA-AGHQ") +
   theme_minimal()
 
 plot1 + plot2
@@ -113,6 +113,7 @@ And what about the mean square error and root mean square error?
 mse_change <- round(100 * (mse_aghq_second90 - mse_tmb_second90) / mse_tmb_second90)
 rmse_change <- round(100 * (rmse_aghq_second90 - rmse_tmb_second90) / rmse_tmb_second90)
 ```
+
 There is a change of `r mse_change`% in the MSE moving from `TMB` to `aghq`, and a change of `r rmse_change`% in the RMSE.
 
 Which strata have exceedance probabilities which are particularly poorly estimated?
@@ -120,15 +121,16 @@ First for `TMB`:
 
 ```{r}
 tmb_fails_second90 <- df_wide_second90 %>%
-  mutate(diff = tmbstan - TMB) %>%
+  mutate(diff = NUTS - GEB) %>%
   filter(diff > 0.1) %>%
   pull(index)
 ```
+
 And for `aghq`:
 
 ```{r}
 aghq_fails_second90 <- df_wide_second90 %>%
-  mutate(diff = tmbstan - aghq) %>%
+  mutate(diff = NUTS - `GPCA-AGHQ`) %>%
   filter(diff > 0.1) %>%
   pull(index)
 ```
@@ -145,6 +147,7 @@ unique(mf_out_fine[aghq_fails_second90, ]$area_id)
 unique(mf_out_fine[aghq_fails_second90, ]$sex)
 unique(mf_out_fine[aghq_fails_second90, ]$age_group)
 ```
+
 Add colour by sex to the above plots:
 
 ```{r}
@@ -155,37 +158,38 @@ df_wide_second90 <- df_wide_second90 %>%
     by = "index"
   )
 
-plot1 <- ggplot(df_wide_second90, aes(x = tmbstan, y = TMB, col = sex)) +
+plot1 <- ggplot(df_wide_second90, aes(x = NUTS, y = GEB, col = sex)) +
   geom_point(shape = 1, alpha = 0.6) +
   coord_fixed(ratio = 1) +
-  scale_color_manual(values = c("#E69F00", "#999999")) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  scale_colour_manual(values = c("#0072B2", "black")) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", col = "#E69F00") +
   labs(col = "Sex") +
   guides(col = "none") +
-  labs(x = "NUTS", y = "TMB") +
+  labs(x = "NUTS", y = "GEB") +
   theme_minimal()
 
-plot2 <- ggplot(df_wide_second90, aes(x = tmbstan, y = aghq, col = sex)) +
+plot2 <- ggplot(df_wide_second90, aes(x = NUTS, y = `GPCA-AGHQ`, col = sex)) +
   geom_point(shape = 1, alpha = 0.6) +
   coord_fixed(ratio = 1) +
-  scale_colour_manual(values = c("#E69F00", "#999999"), labels = c("Female", "Male")) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+    scale_colour_manual(values = c("#0072B2", "black"), labels = c("Female", "Male")) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", col = "#E69F00") +
   guides(colour = guide_legend(override.aes = list(alpha = 1))) +
-  labs(x = "NUTS", y = "PCA-AGHQ", col = "Sex") +
+  labs(x = "NUTS", y = "GPCA-AGHQ", col = "Sex") +
   theme_minimal()
 
-ggsave("second90.png", plot1 + plot2, h = 4, w = 6.25)
-
 plot1 + plot2
+
+ggsave("second90.png", h = 4, w = 6.25)
 ```
+
 Check the RMSE stratified by sex:
 
 ```{r}
 df_wide_second90 %>%
   group_by(sex) %>%
   summarise(
-    "RMSE TMB (percent)" = 100 * sqrt(mean((tmbstan - TMB)^2)),
-    "RMSE aghq (percent)" = 100 * sqrt(mean((tmbstan - aghq)^2))
+    "RMSE GEB (percent)" = 100 * sqrt(mean((NUTS - GEB)^2)),
+    "RMSE GPCA-AGHQ (percent)" = 100 * sqrt(mean((NUTS - `GPCA-AGHQ`)^2))
   )
 ```
 
@@ -209,7 +213,7 @@ stopifnot(length(aghq_1inc) == n)
 
 df_1inc <- data.frame(
   prob = c(tmbstan_1inc, tmb_1inc, aghq_1inc),
-  method = c(rep("tmbstan", times = n), rep("TMB", times = n), rep("aghq", times = n)),
+  method = c(rep("NUTS", times = n), rep("GEB", times = n), rep("GPCA-AGHQ", times = n)),
   index = c(1:n, 1:n, 1:n)
 )
 
@@ -222,23 +226,23 @@ df_wide_1inc <- df_wide_1inc %>%
     by = "index"
   )
 
-plot1 <- ggplot(df_wide_1inc, aes(x = tmbstan, y = TMB)) +
-  geom_point(shape = 1, alpha = 0.6, col = "#999999") +
+plot1 <- ggplot(df_wide_1inc, aes(x = NUTS, y = GEB)) +
+  geom_point(shape = 1, alpha = 0.6) +
   coord_fixed(ratio = 1) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  labs(x = "NUTS", y = "TMB") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", col = "#E69F00") +
+  labs(x = "NUTS", y = "GEB") +
   theme_minimal()
 
-plot2 <- ggplot(df_wide_1inc, aes(x = tmbstan, y = aghq)) +
-  geom_point(shape = 1, alpha = 0.6, col = "#999999") +
+plot2 <- ggplot(df_wide_1inc, aes(x = NUTS, y = `GPCA-AGHQ`)) +
+  geom_point(shape = 1, alpha = 0.6) +
   coord_fixed(ratio = 1) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  labs(x = "NUTS", y = "PCA-AGHQ") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", col = "#E69F00") +
+  labs(x = "NUTS", y = "GPCA-AGHQ") +
   theme_minimal()
-
-ggsave("1inc.png", plot1 + plot2, h = 4, w = 6.25)
 
 plot1 + plot2
+
+ggsave("1inc.png", h = 4, w = 6.25)
 
 cor(tmbstan_1inc, tmb_1inc)
 cor(tmbstan_1inc, aghq_1inc)
@@ -281,9 +285,9 @@ fct_reorg <- function(fac, ...) {
 }
 
 df_metrics <- df_wide %>%
-  select(TMB, aghq, truth = tmbstan, indicator) %>%
+  select(GEB, `GPCA-AGHQ`, truth = NUTS, indicator) %>%
   pivot_longer(
-    cols = c("TMB", "aghq"),
+    cols = c("GEB", "GPCA-AGHQ"),
     names_to = "method",
     values_to = "approximate"
   ) %>%
@@ -291,8 +295,7 @@ df_metrics <- df_wide %>%
   summarise(
     rmse = sqrt(mean((truth - approximate)^2)),
     mae = mean(abs(truth - approximate))
-  ) %>%
-  mutate(method = fct_reorg(method, "TMB" = "TMB", "PCA-AGHQ" = "aghq"))
+  )
   
 df_metrics_pct <- df_metrics %>%
   ungroup() %>%
@@ -304,12 +307,12 @@ df_metrics_pct <- df_metrics %>%
 
 df_metrics <- df_metrics %>%
   left_join(
-    mutate(df_metrics_pct, method = "PCA-AGHQ"),
+    mutate(df_metrics_pct, method = "GPCA-AGHQ"),
     by = c("indicator", "method")
   ) %>%
   mutate(
     label = ifelse(
-      method == "PCA-AGHQ",
+      method == "GPCA-AGHQ",
       paste0("RMSE: ", signif(rmse, 2), " (", signif(rmse_diff, 2), "%)", "\nMAE: ", signif(mae, 2), " (", signif(mae_diff, 2), "%)"),
       paste0("RMSE: ", signif(rmse, 2), "\nMAE: ", signif(mae, 2))
     )
@@ -319,20 +322,18 @@ df_metrics <- df_metrics %>%
 write_csv(df_metrics, "exceedance-summary.csv")
 
 exceedance_manuscript_plot <- df_wide %>%
-  pivot_longer(cols = c("TMB", "aghq"), names_to = "method", values_to = "estimate") %>%
+  pivot_longer(cols = c("GEB", "GPCA-AGHQ"), names_to = "method", values_to = "estimate") %>%
   mutate(
-    method = fct_reorg(method, "TMB" = "TMB", "PCA-AGHQ" = "aghq"),
     indicator = fct_relevel(indicator, "Second 90", "High incidence")
   ) %>%
-  ggplot(aes(x = tmbstan, y = estimate - tmbstan)) +
-    geom_point(aes(col = sex), shape = 1, alpha = 0.6) +
-    scale_colour_manual(values = c("#56B4E9", "#999999"), labels = c("Female", "Male")) +
-    geom_abline(slope = 0, intercept = 0, linetype = "dashed", size = 0.25) +
+  ggplot(aes(x = NUTS, y = estimate - NUTS)) +
+    geom_point(aes(col = sex), shape = 1, alpha = 0.4) +
+    scale_colour_manual(values = c("#0072B2", "black"), labels = c("Female", "Male")) +
+    geom_abline(slope = 0, intercept = 0, linetype = "dashed", col = "#E69F00") +
     facet_grid(indicator ~ method) +
-    labs(x = "NUTS", y = "Approximate - NUTS", col = "Sex") +
+    labs(x = "Estimate", y = "Absolute difference to NUTS", col = "Sex") +
     geom_text(
       data = df_metrics %>% mutate(
-        method = fct_relevel(method, "TMB", "PCA-AGHQ"),
         indicator = fct_relevel(indicator, "Second 90", "High incidence")    
       ),
       aes(x = -Inf, y = Inf, label = label),
@@ -349,51 +350,43 @@ ggsave("exceedance.png", exceedance_manuscript_plot, h = 6.5, w = 6.25, bg = "wh
 
 exceedance_manuscript_plot_second90 <- df_wide %>%
   filter(indicator == "Second 90") %>%
-  pivot_longer(cols = c("TMB", "aghq"), names_to = "method", values_to = "estimate") %>%
-  mutate(
-    method = fct_reorg(method, "TMB" = "TMB", "PCA-AGHQ" = "aghq")
-  ) %>%
-  ggplot(aes(x = tmbstan, y = estimate)) +
-    geom_point(aes(col = sex), shape = 1, alpha = 0.6) +
+  pivot_longer(cols = c("GEB", "GPCA-AGHQ"), names_to = "method", values_to = "estimate") %>%
+  ggplot(aes(x = NUTS, y = estimate)) +
+    geom_point(aes(col = sex), shape = 1, alpha = 0.4) +
     coord_fixed(ratio = 1) +
-    scale_colour_manual(values = c("#56B4E9", "#999999"), labels = c("Female", "Male")) +
-    geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+    scale_colour_manual(values = c("#0072B2", "black"), labels = c("Female", "Male")) +
+    geom_abline(slope = 0, intercept = 0, linetype = "dashed", col = "#E69F00") +
     geom_text(
     data = df_metrics %>%
-      filter(indicator == "Second 90") %>%
-      mutate(method = fct_relevel(method, "TMB", "PCA-AGHQ")),
+        filter(indicator == "Second 90"),
       aes(x = -Inf, y = Inf, label = label),
       size = 3, hjust = 0, vjust = 1.5
     ) +
     facet_grid(indicator ~ method) +
-    labs(x = "NUTS", y = "", col = "Sex") +
+    labs(x = "NUTS", y = "Absolute difference to NUTS", col = "Sex") +
     theme_minimal()
 
-ggsave("exceedance-second90.png", exceedance_manuscript_plot_second90, h = 4, w = 6.25)
+ggsave("exceedance-second90.png", exceedance_manuscript_plot_second90, h = 3, w = 6.25)
 
 exceedance_manuscript_plot_1inc <- df_wide %>%
   filter(indicator == "High incidence") %>%
-  pivot_longer(cols = c("TMB", "aghq"), names_to = "method", values_to = "estimate") %>%
-  mutate(
-    method = fct_reorg(method, "TMB" = "TMB", "PCA-AGHQ" = "aghq")
-  ) %>%
-  ggplot(aes(x = tmbstan, y = estimate)) +
+  pivot_longer(cols = c("GEB", "GPCA-AGHQ"), names_to = "method", values_to = "estimate") %>%
+  ggplot(aes(x = NUTS, y = estimate)) +
     geom_point(aes(col = sex), shape = 1, alpha = 0.6) +
     coord_fixed(ratio = 1) +
-    scale_colour_manual(values = c("#56B4E9", "#999999"), labels = c("Female", "Male")) +
-    geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+    scale_colour_manual(values = c("#0072B2", "black"), labels = c("Female", "Male")) +
+    geom_abline(slope = 0, intercept = 0, linetype = "dashed", col = "#E69F00") +
     geom_text(
-    data = df_metrics %>%
-      filter(indicator == "High incidence") %>%
-      mutate(method = fct_relevel(method, "TMB", "PCA-AGHQ")),
+      data = df_metrics %>%
+        filter(indicator == "High incidence"),
       aes(x = -Inf, y = Inf, label = label),
       size = 3, hjust = 0, vjust = 1.5
     ) +
     facet_grid(indicator ~ method) +
-    labs(x = "NUTS", y = "", col = "Sex") +
+    labs(x = "NUTS", y = "Absolute difference to NUTS", col = "Sex") +
     theme_minimal()
 
-ggsave("exceedance-1inc.png", exceedance_manuscript_plot_1inc, h = 4, w = 6.25)
+ggsave("exceedance-1inc.png", exceedance_manuscript_plot_1inc, h = 3, w = 6.25)
 ```
 
 # Excursion and contour uncertainty regions

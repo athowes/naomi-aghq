@@ -93,9 +93,9 @@ orderly::orderly_commit(id)
 
 #' Results
 run_commit_push("naomi-simple_mcmc")
+run_commit_push("naomi-simple_point-estimates")
 run_commit_push("naomi-simple_ks")
 run_commit_push("naomi-simple_exceedance")
-run_commit_push("naomi-simple_point-estimates")
 run_commit_push("naomi-simple_psis")
 run_commit_push("naomi-simple_mmd")
 run_commit_push("naomi-simple_model-checks")
