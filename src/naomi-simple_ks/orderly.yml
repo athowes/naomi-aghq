@@ -26,6 +26,8 @@ artefacts:
       filenames:
         - ks-summary.png
         - ks-ess.png
+        - ui-lambda-x.png
+        - ui-lambda-x.rds
 
 resources:
   - ks.Rmd

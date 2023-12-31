@@ -505,10 +505,10 @@ ks_summary_latent %>%
   scale_color_manual(values = extended_cbpalette(n = 20)) +
   scale_size_continuous(breaks = c(2, 10, 32), labels = c(2, 10, 32)) +
   geom_abline(slope = 0, intercept = 0, linetype = "dashed") +
-  labs(x = "KS(GEB, NUTS)", y = "KS(GPCA-AGHQ, NUTS) - KS(GEB, NUTS)", col = "Parameter", size = "Length") +
+  labs(x = "KS(GEB)", y = "KS(GPCA-AGHQ) - KS(GEB)", col = "Parameter", size = "Length") +
   theme_minimal() +
-  guides(size = guide_legend(title.position = "top", direction = "vertical"), col = guide_legend(title.position = "top")) +
-  theme(legend.position = "bottom", legend.title = element_text(size = rel(0.9)), legend.text = element_text(size = rel(0.65)))
+  guides(size = guide_legend(title.position = "top", direction = "vertical"), col = guide_legend(title.position = "top", nrow = 5, byrow = TRUE)) +
+  theme(legend.position = "bottom", legend.title = element_text(size = rel(0.9)), legend.text = element_text(size = rel(0.9)))
 
 ggsave("ks-summary.png", h = 5, w = 6.25, bg = "white")
 ```

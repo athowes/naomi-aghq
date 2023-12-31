@@ -28,6 +28,8 @@ depends:
         depends/ks-summary.png: ks-summary.png
         depends/time-taken.csv: time-taken.csv
         depends/ks-ess.png: ks-ess.png
+        depends/ui-lambda-x.png: ui-lambda-x.png
+        depends/ui-lambda-x.rds: ui-lambda-x.rds
   - plot-tikz_algorithm-flowchart:
       id: latest
       use:
