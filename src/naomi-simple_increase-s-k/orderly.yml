@@ -12,6 +12,7 @@ artefacts:
       description: Table of log normalising constants
       filenames:
         - increase-s-k.csv
+        - lognormconst.png
 
 resources:
   - increase-s-k.Rmd

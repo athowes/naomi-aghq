@@ -243,7 +243,7 @@ pairs_df <- extract(mcmc, pars = c("log_sigma_rho_a", "logit_phi_rho_a")) %>%
   as.data.frame()
 
 fig_top_left <- ggplot(pairs_df, aes(x = log_sigma_rho_a)) +
-  geom_histogram(fill = "#56B4E9", col = "#1a88c6") +
+  geom_histogram(fill = "#56B4E9") +
   labs(x = "", y = "", tag = "A") + 
   theme_minimal() +
   theme(
@@ -270,7 +270,7 @@ fig_bot_left <- ggplot(pairs_df, aes(x = log_sigma_rho_a, y = logit_phi_rho_a)) 
   )
 
 fig_bot_right <- ggplot(pairs_df, aes(x = logit_phi_rho_a)) +
-  geom_histogram(fill = "#56B4E9", col = "#1a88c6") +
+  geom_histogram(fill = "#56B4E9") +
   labs(x = "logit_phi_rho_a", y = "", tag = "D") + 
   theme_minimal() +
   theme(
@@ -309,7 +309,7 @@ pairs_df <- extract(mcmc, pars = c("log_sigma_alpha_x", "logit_phi_alpha_x")) %>
   as.data.frame()
 
 fig_top_left <- ggplot(pairs_df, aes(x = log_sigma_alpha_x)) +
-  geom_histogram(fill = "#56B4E9", col = "#1a88c6") +
+  geom_histogram(fill = "#56B4E9") +
   labs(x = "", y = "", tag = "A") + 
   theme_minimal() +
   theme(
@@ -336,7 +336,7 @@ fig_bot_left <- ggplot(pairs_df, aes(x = log_sigma_alpha_x, y = logit_phi_alpha_
   )
 
 fig_bot_right <- ggplot(pairs_df, aes(x = logit_phi_alpha_x)) +
-  geom_histogram(fill = "#56B4E9", col = "#1a88c6") +
+  geom_histogram(fill = "#56B4E9") +
   labs(x = "logit_phi_alpha_x", y = "", tag = "D") + 
   theme_minimal() +
   theme(

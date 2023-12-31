@@ -87,3 +87,8 @@ depends:
         depends/total-variation.png: total-variation.png
         depends/total-variation.csv: total-variation.csv
         depends/pc-loadings.png: pc-loadings.png
+  - naomi-simple_increase-s-k:
+      id: latest
+      use:
+        depends/increase-s-k.csv: increase-s-k.csv
+        depends/lognormconst.png: lognormconst.png

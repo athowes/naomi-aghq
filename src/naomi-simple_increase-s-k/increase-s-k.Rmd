@@ -108,19 +108,27 @@ write_csv(df, "increase-s-k.csv")
 # Visualisation
 
 ```{r}
-ggplot(df, aes(x = s, y = lognormconst)) +
-  geom_point() +
-  facet_grid(. ~ k) +
-  labs(x = "Dimensions kept of the PCA", y = "Log normalising constant") +
-  theme_minimal()
-```
+multi.utils::cbpalette()
 
+df %>%
+  pivot_longer(
+    cols = c("lognormconst", "time"),
+    values_to = "value",
+    names_to = "indicator"
+  ) %>%
+  mutate(
+    indicator = fct_recode(indicator,
+      "Log normalising\nconstant estimate" = "lognormconst",
+      "Time taken (m)" = "time"
+    )
+  ) %>%
+  ggplot(aes(x = s, y = value, col = indicator)) +
+    geom_point() +
+    facet_grid(indicator ~ k, scales = "free") +
+    labs(x = " PCA-AGHQ dimensions kept", y = "") +
+    scale_color_manual(values = c("#009E73", "#E69F00")) +
+    guides(col = "none") +
+    theme_minimal()
 
-```{r}
-ggplot(df, aes(x = s, y = time)) +
-  geom_point() +
-  facet_grid(. ~ k) +
-  scale_y_continuous(limits = c(0, NA)) +
-  labs(x = "Dimensions kept of the PCA", y = "Time (mins)") +
-  theme_minimal()
+ggsave("lognormconst.png", h = 4, w = 6.25, bg = "white")
 ```
