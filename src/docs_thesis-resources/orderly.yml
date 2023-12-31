@@ -94,3 +94,7 @@ depends:
       use:
         depends/increase-s-k.csv: increase-s-k.csv
         depends/lognormconst.png: lognormconst.png
+  - naomi-simple_mmd:
+      id: latest
+      use:
+        depends/mmd.rds: mmd.rds

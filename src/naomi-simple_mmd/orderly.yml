@@ -8,6 +8,7 @@ artefacts:
       description: Notebook comparing inferences
       filenames:
         - mmd.html
+        - mmd.rds
 
 resources:
   - mmd.Rmd

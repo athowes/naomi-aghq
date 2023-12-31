@@ -67,4 +67,6 @@ mmd_aghq@mmdstats
 
 round(100 * (mmd_aghq@mmdstats[1] - mmd_tmb@mmdstats[1]) / mmd_tmb@mmdstats[1])
 round(100 * (mmd_aghq@mmdstats[2] - mmd_tmb@mmdstats[2]) / mmd_tmb@mmdstats[2])
+
+saveRDS(list(mmd_tmb = mmd_tmb, mmd_aghq = mmd_aghq), file = "mmd.rds")
 ```
