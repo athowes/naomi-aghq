@@ -108,7 +108,6 @@ run_commit_push("check_tmb-output")
 run_commit_push("check_pca-aghq")
 
 #' Documentation and plots
-run_commit_push("docs_paper")
 run_commit_push("plot-tikz_algorithm-flowchart")
 run_commit_push("plot-tikz_simplified-naomi")
 
