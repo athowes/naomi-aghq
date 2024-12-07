@@ -1,0 +1,56 @@
+---
+title: Fast approximate Bayesian inference of HIV indicators using PCA adaptive Gauss-Hermite quadrature
+author:
+  - name: Adam Howes
+    email: ath19@ic.ac.uk
+    affiliation: A
+    correspondingauthor: true
+  - name: Alex Stringer
+    email: alex.stringer@uwaterloo.ca
+    affiliation: B
+  - name: Seth R. Flaxman
+    email: seth.flaxman@cs.ox.ac.uk
+    affiliation: C
+  - name: Jeffrey W. Imai-Eaton
+    email: jeaton@hsph.harvard.edu
+    affiliation: D
+address:
+  - code: A
+    organization: Department of Mathematics
+    country: Imperial College London
+  - code: B
+    organization: Department of Statistics and Actuarial Science
+    country: University of Waterloo
+  - code: C
+    organization: Department of Computer Science
+    country: University of Oxford
+  - code: D
+    organization: Harvard T.H. Chan School of Public Health
+    country: Harvard University
+abstract: |
+  This is the abstract.
+keywords: 
+  - Bayesian statistics
+  - spatial statistics
+  - evidence synthesis
+  - small-area estimation
+  - approximate inference
+  - INLA
+  - AGHQ
+  - HIV epidemiology
+journal: "Journal of Theoretical Biology"
+date: "`r Sys.Date()`"
+linenumbers: false
+numbersections: true
+bibliography: citations.bib
+biblio-style: elsarticle-harv # author year style for natbib - use 'elsarticle-num' or 'elsarticle-num-names' for numbered scheme
+classoption: preprint, 3p, authoryear # remove authoryear is not using `elsarticle-harv`
+# Use a CSL with `citation_package = "default"`
+# csl: https://www.zotero.org/styles/elsevier-harvard
+output: 
+  rticles::elsevier_article:
+    keep_tex: true
+    citation_package: natbib
+---
+
+# References {-}
