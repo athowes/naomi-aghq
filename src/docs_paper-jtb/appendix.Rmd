@@ -4,16 +4,13 @@ author:
   - Adam Howes^[Department of Mathematics, Imperial College London]
   - Alex Stringer^[Department of Statistics and Actuarial Science, University of Waterloo]
   - Seth R. Flaxman^[Department of Computer Science, Oxford University]
-  - Jeffrey W. Eaton^[Harvard T.H. Chan School of Public Health, Harvard University]
+  - Jeffrey W. Imai-Eaton^[Harvard T.H. Chan School of Public Health, Harvard University]
 output:
-  pdf_document:
+  bookdown::pdf_document2:
     toc: yes
     number_sections: yes
     keep_tex: yes
-    includes:
-      in_header: preamble.tex
 bibliography: citations.bib
-cls: imsart.cls
 header-includes:
   \usepackage{xr} \externaldocument{paper}
 ---
@@ -40,248 +37,125 @@ knitr::opts_chunk$set()
 
 \clearpage
 
-\setcounter{table}{0}  
-\renewcommand{\thetable}{S\arabic{table}} 
-\setcounter{figure}{0} 
-\renewcommand{\thefigure}{S\arabic{figure}}
-\setcounter{section}{0} 
-\renewcommand{\thesection}{S\arabic{section}}
+# Simplified Naomi model description {#naomi-math}
 
-\clearpage
+This section describes the simplified version of the Naomi model [@eaton2021naomi] in more detail.
+The concise $i$ indexing used in Section \@ref(naomi) is replaced by a more complete $x, s, a$ indexing.
+There are four sections:
 
-# Simplified Naomi model description \label{sec:math}
+1. Section \@ref(naomi-process) gives the process specifications, giving the terms in each structured additive predictor, along with their distributions.
+2. Section \@ref(naomi-likelihood) gives additional details about the likelihood terms not provided in Section \@ref(naomi).
+3. Section \@ref(naomi-identifiability) gives identifiability constraints used in circumstances where incomplete data is available for the country.
+4. Section \@ref(naomi-implementation) provides details of the `TMB` implementation.
 
-In this section we describe the simplified Naomi model [@eaton2021naomi] in complete detail.
+## Process specification {#naomi-process}
 
-## Background
+|                   | Model component    | Latent field | Hyperparameter |
+| ----------------- | ------------------ | ------------ | -------------- |
+| Section \@ref(hiv-prev)   | HIV prevalence     | $22 + 5n$    | 9              |
+| Section \@ref(art-cov)    | ART coverage       | $25 + 5n$    | 9              |
+| Section \@ref(hiv-inc)    | HIV incidence rate | $2 + n$      | 3              |
+| Section \@ref(anc-test)   | ANC testing        | $2 + 2n$     | 2              |
+| Section \@ref(art-attend) | ART attendance     | $n$          | 1              |
+|                   | Total              | $51 + 14n$   | 24             |
 
-### Indexing
+Table: (\#tab:process) The Naomi model can be conceptualised as having five processes. This table gives the number of latent field parameters and hyperparameters in each process, where $n$ is the number of districts in the country.
 
-Consider the most recent national household survey with HIV testing which has taken place in the country of interest.
-Let $x \in \{1, \ldots, n\}$ be district, $s \in \{\text{F}, \text{M}\}$ be sex, and $a \in \{\text{0-5}, \text{5-10}, \ldots, \text{75-80}, \text{80+}\}$ be five-year age groups.
-Each district is located within a correspodning Spectrum [@stover2010spectrum] region $R_x$.
-As short-hand, we write $a = l$ to refer to the age group with lower bound $l$, e.g. $a = 20$ for $a = \text{20-25}$.
+### HIV prevalence {#hiv-prev}
 
-We index the known quantity population size $N_{x, s, a}$ by district, sex and age-band, as well as the following unknown quantities:
-
-* HIV prevalence $\rho_{x, s, a} \in [0, 1]$,
-* ART coverage $\alpha_{x, s, a} \in [0, 1]$,
-* annual HIV incidence rate $\lambda_{x, s, a} > 0$, and
-* proportion of HIV positive persons recently infected $\kappa_{x, s, a} \in [0, 1]$.
-
-Sometimes data are observed at an aggregate level, rather than the more granular modelled level.
-We use $\{\cdot\}$ to generically refer to a aggregate set over which an observation is made, e.g. $\{a\} = \{\text{15-19}, \ldots, \text{45-49}\}$ for the adult age range 15-49.
-The notation $\sum_{\{x\}}$ is used as shorthand for $\sum_{x \in \{x\}}$.
-Analogous notion is used for sums over $\sum_{a \in \{a\}}$ and $\sum_{s \in \{s\}}$.
-
-### Structured random effects
-
-We use structured random effects to enable partial pooling of information across units assessed as being similar, such as those belonging to neighbouring districts or adjacent age groups.
-Let $\bu$ be a generic random effect, with length $\dim(\bu) > 1$.
-Three types of structured random effects are used in the model:
-
-1. We specify the first order auto-regressive model by $\bu \sim \text{AR}1(\sigma, \phi)$ such that
-\begin{align}
-u_1 &\sim \left( 0, \frac{1}{1 - \rho^2} \right), \\
-u_i &= \rho u_{i - 1} + \epsilon_i, \quad i = 2, \ldots, \dim(\bu),
-\end{align}
-where $\epsilon_i \sim \mathcal{N}(0, 1)$ are independent and identically distributed (IID) Gaussian random variables, $\sigma > 0$ is the marginal standard deviation, and $|\rho| < 1$ is the (lag-one) correlation parameter.
-2. We use $\bu \sim \text{ICAR}(\sigma)$ to refer to the Besag intrinsic conditional auto-regressive model (ICAR) [@besag1991bayesian] with full conditionals
+HIV prevalence $\rho_{x, s, a} \in [0, 1]$ was modelled on the logit scale using the structured additive predictor
 \begin{equation}
-u_i \, | \, \bu_{-i} \sim \mathcal{N} \left(\frac{\sum_{j: j \sim i} u_j}{n_{\delta i}}, \frac{\sigma^2}{n_{\delta i}}\right),
+\text{logit}(\rho_{x, s, a}) = \beta^\rho_0 + \beta_{S}^{\rho, s = \text{M}} + \mathbf{u}^\rho_a + \mathbf{u}_a^{\rho, s = \text{M}} + \mathbf{u}^\rho_x + \mathbf{u}_x^{\rho, s = \text{M}} + \mathbf{u}_x^{\rho, a < 15} + \boldsymbol{\mathbf{\eta}}^\rho_{R_x, s, a}. (\#eq:prev)
 \end{equation}
-where $\bu_{-i}$ is $\bu$ with the $i$th element removed i.e. $(u_1, \ldots, u_{i - 1}, u_{i + 1}, \ldots, u_{\dim(\bu)})$, $j \sim i$ if the units $i$ and $j$ are defined as adjacent, $n_{\delta i} = |\{j:j \sim i\}|$ is the total number of adjacent units, and $\sigma > 0$ is the marginal standard deviation.
-We follow recommendations of @freni2018note on scaling of precision matrices, disconnected adjacency graph components, and islands.
-3. For the reparameterised Besag-York-Mollie model [BYM2; @simpson2017penalising], we write $\bu \sim \text{BYM}2(\sigma, \phi)$, where $\bu$ is comprised of a spatially structured ICAR component $\bv$ with proportion $\phi \in (0, 1)$ and spatially unstructured IID component $\w$ with proportion $1 - \phi$, both scaled to have generalised variance equal to one, and $\sigma > 0$ is the marginal standard deviation such that
-\begin{equation}
-\bu = \sigma \left( \sqrt\phi \cdot \bv + \sqrt{1 - \phi} \cdot \w \right).
-\end{equation}
-
-### Complex survey design
-
-We assume the household survey was run according to a complex survey design where each individual $j$ in the population $U$ has non-zero probability $\pi_j \in (0, 1)$ of appearing in the sample $S \subseteq U$. Suppose we observe an outcome $\theta_j \in \{0, 1\}$ for $j \in S$.
-Let $w_j = 1 / \pi_j \times 1 / \omega_j$ be design weights, where $\omega_j$ is a non-response factor, then a survey weighted mean is given by
-\begin{equation}
-\hat \theta = \frac{\sum_{j \in S} w_j \theta_j}{\sum_{j \in S} w_j}.
-\end{equation}
-We account for survey weighting in the variance via the Kish effective sample size [@kish1965survey]
-\begin{equation}
-m^{\theta} = \frac{\left(\sum_{j \in S} w_j\right)^2}{\sum_{j \in S} w_j^2}.
-\end{equation}
-The observed number of indicator cases is then $y^{\theta} = m^{\theta} \cdot \hat \theta$.
-To make these calculations we used the `survey` \textsc{R} package [@lumley2004analysis]
-
-## Process specification
-
-\begin{table}[h]
-\centering
-\begin{tabularx}{\textwidth}{llXX}
-\toprule
-& Model component & Latent field & Hyperparameter \\ 
-\midrule
-\ref{sec:hiv-prev} & HIV prevalence & $22 + 5n$ & 9 \\ 
-\ref{sec:art-cov} & ART coverage & $25 + 5n$ & 9 \\ 
-\ref{sec:hiv-inc} & HIV incidence rate & $2 + n$ & 3 \\ 
-\ref{sec:anc-test} & ANC testing & $2 + 2n$ & 2 \\ 
-\ref{sec:art-attend} & ART attendance & $n$ & 1 \\ 
-& Total & $51 + 14n$ & 24 \\ 
-\bottomrule
-\end{tabularx}
-\caption{The numer of latent field parameters and hyperparameters in each model section.}
-\label{tab:latent-hyper-size}
-\end{table}
-
-We now describe the hyperparameter and latent field process specification for the model.
-Whereas in the main text process and likelihood specifications are given together, here we consider the likelihood equations separately (Section \ref{sec:likelihood}).
-Table \ref{tab:latent-hyper-size} gives the number of latent field parameters and hyperparameters in each component of the model.
-In the case of Malawi then $n = 32$ such that the total number of latent field parameters is $51 + 14 \cdot 32 = 499$ and the total number of hyperparameters is $24$.
-
-<!-- 51 + 13n + 467 is the value I get from the code. 467 + 24 = 491 total -->
-<!-- Need to check the discrepency -->
-
-### HIV prevalence \label{sec:hiv-prev}
-
-We model HIV prevalence $\rho_{x, s, a} \in [0, 1]$ on the logit scale using the linear predictor
-\begin{equation}
-\text{logit}(\rho_{x, s, a}) = \beta^\rho_0 + \beta_{S}^{\rho, s = \text{M}} + \bu^\rho_a + \bu_a^{\rho, s = \text{M}} + \bu^\rho_x + \bu_x^{\rho, s = \text{M}} + \bu_x^{\rho, a < 15} + \bmeta^\rho_{R_x, s, a}. \label{eq:prev}
-\end{equation}
-Table \ref{tab:prev} provides a description of the terms included in Equation \ref{eq:prev}.
-
-\begin{table}[h]
-\centering
-\begin{tabularx}{\textwidth}{llX}
-\toprule
-Term & Distribution & Description \\ 
-\midrule
-$\beta^\rho_0$ & $\mathcal{N}(0, 5)$ & Intercept \\
-$\beta_{s}^{\rho, s = \text{M}}$ & $\mathcal{N}(0, 5)$ & The difference in logit prevalence for men compared to women \\
-$\bu^\rho_a$ & $\text{AR}1(\sigma_A^\rho, \phi_A^\rho)$ & Age random effects for women \\
-$\bu_a^{\rho, s = \text{M}}$ & $\text{AR}1(\sigma_{AS}^\rho, \phi_{AS}^\rho)$ & Age random effects for the difference in logit prevalence for men compared to women age $a$ \\
-$\bu^\rho_x$ & $\text{BYM}2(\sigma_X^\rho, \phi_X^\rho)$ & Spatial random effects for women \\
-$\bu_x^{\rho, s = \text{M}}$ & $\text{BYM}2(\sigma_{XS}^\rho, \phi_{XS}^\rho)$ & Spatial random effects for the difference in logit prevalence for men compared to women in district $x$  \\
-$\bu_x^{\rho, a < 15}$ & $\text{ICAR}(\sigma_{XA}^\rho)$ & Spatial random effects for the ratio of paediatric prevalence to adult women prevalence \\
-$\bmeta^\rho_{R_x, s, a}$ & $-$ & Fixed offsets specifying assumed odds ratios for prevalence outside the age ranges for which data are available \\
-\bottomrule
-\end{tabularx}
-\caption{Terms included in the linear predictor for HIV prevalence (Equation \ref{eq:prev}).}
-\label{tab:prev}
-\end{table}
-
-The two BYM2 random effects $\bu^\rho_x$ and $\bu_x^{\rho, s = \text{M}}$ are comprised of the following unit scaled spatially structured $\{\bv_x^{\rho}, \bv_x^{\rho, s = \text{M}}\}$ and spatially unstructured $\{\w_x^{\rho}, \w_x^{\rho, s = \text{M}}\}$ components, respectively
-\begin{align}
-\bu_x^{\rho} &= \sigma_{X}^\rho \left( \sqrt\phi_{X}^\rho \cdot \bv_x^{\rho} + \sqrt{1 - \phi_{X}^\rho} \cdot \w_x^{\rho} \right), \\
-\bu_x^{\rho, s = \text{M}} &= \sigma_{XS}^\rho \left( \sqrt\phi_{XS}^\rho \cdot \bv_x^{\rho, s = \text{M}} + \sqrt{1 - \phi_{XS}^\rho} \cdot \w_x^{\rho, s = \text{M}} \right).
-\end{align}
-We use half-normal priors for the standard deviation terms
+Table \@ref(tab:prev) provides a description of the terms included in Equation \@ref(eq:prev).
+Independent half-normal prior distributions were chosen for the five standard deviation terms
 \begin{equation}
 \{\sigma_A^\rho, \sigma_{AS}^\rho, \sigma_X^\rho, \sigma_{XS}^\rho, \sigma_{XA}^\rho\} \sim \mathcal{N}^{+}(0, 2.5),
 \end{equation}
-uniform priors for the AR1 correlation parameters
+independent uniform prior distributions for the two AR1 correlation parameters
 \begin{equation}
 \{\phi_A^\rho, \phi_{AS}^\rho\} \sim \mathcal{U}(-1, 1),
 \end{equation}
-and beta priors for the BYM2 proportion parameters
+and independent beta prior distributions for the two BYM2 proportion parameters
 \begin{equation}
 \{\phi_X^\rho, \phi_{XS}^\rho\} \sim \text{Beta}(0.5, 0.5).
 \end{equation}
 
-<!-- Latent field size -->
-<!-- 1 + 1 + 10 + 10 + n + n + n = 36 + 3n -->
-<!-- Hyperparameter size -->
-<!-- 5 + 2 + 2 -->
+| Term                             | Distribution                                    | Description                                                                                                     |
+|----------------------------------|-------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| $\beta^\rho_0$                   | $\mathcal{N}(0, 5)$                             | Intercept                                                                                                       |
+| $\beta_{s}^{\rho, s = \text{M}}$ | $\mathcal{N}(0, 5)$                             | The difference in logit prevalence for men compared to women                                                    |
+| $\mathbf{u}^\rho_a$              | $\text{AR}1(\sigma_A^\rho, \phi_A^\rho)$        | Age random effects for women                                                                                    |
+| $\mathbf{u}_a^{\rho, s = \text{M}}$ | $\text{AR}1(\sigma_{AS}^\rho, \phi_{AS}^\rho)$  | Age random effects for the difference in logit prevalence for men compared to women age $a$                  |
+| $\mathbf{u}^\rho_x$              | $\text{BYM}2(\sigma_X^\rho, \phi_X^\rho)$       | Spatial random effects for women                                                                                |
+| $\mathbf{u}_x^{\rho, s = \text{M}}$ | $\text{BYM}2(\sigma_{XS}^\rho, \phi_{XS}^\rho)$ | Spatial random effects for the difference in logit prevalence for men compared to women in district $x$      |
+| $\mathbf{u}_x^{\rho, a < 15}$    | $\text{ICAR}(\sigma_{XA}^\rho)$                 | Spatial random effects for the difference in logit paediatric prevalence to adult women prevalence in district $x$ |
+| $\boldsymbol{\mathbf{\eta}}^\rho_{R_x, s, a}$ | $-$                                | Fixed offsets specifying assumed odds ratios for prevalence outside the age ranges for which data were available. Calculated from Spectrum model [@stover2019updates] outputs for region $R_x$ |
 
-### ART coverage \label{sec:art-cov}
+Table: (\#tab:prev) Each term in Equation \@ref(eq:prev) together with, where applicable, its prior distribution and a written description of its role.
 
-We model ART coverage $\alpha_{x, s, a} \in [0, 1]$ on the logit scale using the linear predictor
+### ART coverage {#art-cov}
+
+ART coverage $\alpha_{x, s, a} \in [0, 1]$ was modelled on the logit scale using the structured additive predictor
 \begin{equation}
-\text{logit}(\alpha_{x, s, a}) = \beta^\alpha_0 + \beta_{S}^{\alpha, s = \text{M}} + \bu^\alpha_a + \bu_a^{\alpha, s = \text{M}} + \bu^\alpha_x + \bu_x^{\alpha, s = \text{M}} + \bu_x^{\alpha, a < 15} + \bmeta^\alpha_{R_x, s, a} 
+\text{logit}(\alpha_{x, s, a}) = \beta^\alpha_0 + \beta_{S}^{\alpha, s = \text{M}} + \mathbf{u}^\alpha_a + \mathbf{u}_a^{\alpha, s = \text{M}} + \mathbf{u}^\alpha_x + \mathbf{u}_x^{\alpha, s = \text{M}} + \mathbf{u}_x^{\alpha, a < 15} + \boldsymbol{\mathbf{\eta}}^\alpha_{R_x, s, a} 
 \end{equation}
-with terms and priors analogous to the HIV prevalence process model in Section \ref{sec:hiv-prev} above.
+with terms and prior distributions analogous to the HIV prevalence process model in Section \@ref(hiv-prev) above.
 
-<!-- Latent field size -->
-<!-- 1 + 1 + 13 + 10 + n + n + n = 36 + 3n -->
-<!-- Hyperparameter size -->
-<!-- 5 + 2 + 2 -->
+### HIV incidence rate {#hiv-inc}
 
-### HIV incidence rate \label{sec:hiv-inc}
-
-We model HIV incidence rate $\lambda_{x, s, a} > 0$ on the log scale using the linear predictor
+HIV incidence rate $\lambda_{x, s, a} > 0$ was modelled on the log scale using the structured additive predictor
 \begin{equation}
-\log(\lambda_{x, s, a}) = \beta_0^\lambda + \beta_S^{\lambda, s = \text{M}} + \log(\rho_{x}^{\text{15-49}}) + \log(1 - \omega \cdot \alpha_{x}^{\text{15-49}}) + \bu_x^\lambda + \bmeta_{R_x, s, a}^\lambda. \label{eq:inc}
+\log(\lambda_{x, s, a}) = \beta_0^\lambda + \beta_S^{\lambda, s = \text{M}} + \log(\rho_{x}^{\text{15-49}}) + \log(1 - \omega \cdot \alpha_{x}^{\text{15-49}}) + \mathbf{u}_x^\lambda + \boldsymbol{\mathbf{\eta}}_{R_x, s, a}^\lambda. (\#eq:inc)
 \end{equation}
-Table \ref{tab:inc} provides a description of the terms included in Equation \ref{eq:inc}.
+Table \@ref(tab:inc) provides a description of the terms included in Equation \@ref(eq:inc).
 
-<!-- \citet{eaton2019estimation} -->
+| Term                              | Distribution                     | Description                                                                                                                                                   |
+|-----------------------------------|----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| $\beta^\lambda_0$                 | $\mathcal{N}(0, 5)$              | Intercept term proportional to the average HIV transmission rate for untreated HIV positive adults                                                            |
+| $\beta_S^{\lambda, s = \text{M}}$ | $\mathcal{N}(0, 5)$              | The log incidence rate ratio for men compared to women                                                                                                        |
+| $\rho_{x}^{\text{15-49}}$         | $-$                              | The HIV prevalence among adults 15-49 in district $x$ calculated by aggregating age-specific HIV prevalences                                                                  |
+| $\alpha_{x}^{\text{15-49}}$       | $-$                              | The ART coverage among adults 15-49 in district $x$ calculated by aggregating age-specific ART coverages                                                                      |
+| $\omega = 0.7$                    | $-$                              | Average reduction in HIV transmission rate per increase in population ART coverage fixed based on inputs to the Estimation and Projection Package (EPP) model |
+| $\mathbf{u}_x^\lambda$                   | $\mathcal{N}(0, \sigma^\lambda)$ | IID spatial random effects with $\sigma^\lambda \sim \mathcal{N}^+(0, 1)$                                                                              |
+| $\boldsymbol{\mathbf{\eta}}^\lambda_{R_x, s, a}$      | $-$          | Fixed log incidence rate ratios by sex and age group calculated from Spectrum model outputs for region $R_x$                                                                    |
 
-\begin{table}[h]
-\centering
-\begin{tabularx}{\textwidth}{llX}
-\toprule
-Term & Distribution & Description \\ 
-\midrule
-$\beta^\lambda_0$ & $\mathcal{N}(0, 5)$ & Intercept term proportional to the average HIV transmission rate for untreated HIV positive adults \\
-$\beta_S^{\lambda, s = \text{M}}$ & $\mathcal{N}(0, 5)$ & The log incidence rate ratio for men compared to women \\
-$\rho_{x}^{\text{15-49}} = \frac{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{45} N_{x, s, a} \cdot \rho_{x, s, a}}{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{45} N_{x, s, a}}$ & $-$ & The HIV prevalence among adults 15-49 calculated by aggregating age-specific HIV prevalences \\
-$\alpha_{x}^{\text{15-49}} = \frac{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{45} N_{x, s, a} \cdot \rho_{x, s, a} \cdot \alpha_{x, s, a}}{\sum_{s \in \{\text{F}, \text{M}\}} \sum_{a = 15}^{45} N_{x, s, a} \cdot \rho_{x, s, a}}$ & $-$ & The ART coverage among adults 15-49 calculated by aggregating age-specific ART coverages \\
-$\omega = 0.7$ & $-$ & Average reduction in HIV transmission rate per increase in population ART coverage fixed based on inputs to the Estimation and Projection Package (EPP) model \\
-$\bu_x^\lambda$ & $\mathcal{N}(0, \sigma^\lambda)$  & IID spatial random effects with $\sigma^\lambda \sim \mathcal{N}^+(0, 1)$ \\
-$\bmeta^\lambda_{R_x, s, a}$ & $-$ & Fixed log incidence rate ratios by sex and age group calculated from Spectrum model output \\
-\bottomrule
-\end{tabularx}
-\caption{Terms included in the linear predictor for HIV incidence (Equation \ref{eq:inc}). Note that the only source age structure for this part of the model are $\bmeta^\lambda_{R_x, s, a}$. As Spectrum assumes that there are no new infections in children aged 5-9 or 10-14, or adults aged over 80, the posterior over new infections in these age groups is exactly zero, by definition. We remove these identically zero posteriors from any later inference comparisons.}
-\label{tab:inc}
-\end{table}
+Table: (\#tab:inc) Each term in Equation \@ref(eq:inc) together with, where applicable, its prior distribution and a written description of its role.
 
-We model the proportion recently infected among HIV positive persons $\kappa_{x, s, a} \in [0, 1]$ as
+The proportion recently infected among HIV positive persons $\kappa_{x, s, a} \in [0, 1]$ was modelled as
 \begin{equation}
 \kappa_{x, s, a} = 1 - \exp \left(- \lambda_{x, s, a} \cdot \frac{1 - \rho_{x, s, a}}{\rho_{x, s, a}} \cdot (\Omega_T - \beta_T ) - \beta_T \right),
 \end{equation}
 where $\Omega_T \sim \mathcal{N}(\Omega_{T_0}, \sigma^{\Omega_T})$ is the mean duration of recent infection, and $\beta_T \sim \mathcal{N}^{+}(\beta_{T_0}, \sigma^{\beta_T})$ is the false recent ratio.
-We use an informative prior for $\Omega_T$ based on the characteristics of the recent infection testing algorithm.
-For PHIA surveys this is $\Omega_{T_0} = 130 \text{ days}$ and $\sigma^{\Omega_T} = 6.12 \text{ days}$, and further there is assumed to be no false recency, such that $\beta_{T_0} = 0.0$ and $\sigma^{\beta_T} = 0.0$.
+The prior distribution for $\Omega_T$ was informed by the characteristics of the recent infection testing algorithm.
+For PHIA surveys this was $\Omega_{T_0} = 130 \text{ days}$ and $\sigma^{\Omega_T} = 6.12 \text{ days}$.
+For PHIA surveys there was assumed to be no false recency, such that $\beta_{T_0} = 0.0$, $\sigma^{\beta_T} = 0.0$, and $\beta_T = 0$.
 
-<!-- Latent field size -->
-<!-- 1 + 1 + n + 1 + 1 = 4 + n -->
-<!-- Hyperparameter size -->
-<!-- 3 -->
+### ANC testing {#anc-test}
 
-### ANC testing \label{sec:anc-test}
-
-HIV prevalence $\rho_{x, a}^\text{ANC}$ and ART coverage $\alpha_{x, a}^\text{ANC}$ among pregnant women are modelled as being offset on the logit scale from the corresponding district-age indicators $\rho_{x, F, a}$ and $\alpha_{x, F, a}$ according to
+HIV prevalence $\rho_{x, a}^\text{ANC}$ and ART coverage $\alpha_{x, a}^\text{ANC}$ among pregnant women were modelled as being offset on the logit scale from the corresponding district-age indicators $\rho_{x, F, a}$ and $\alpha_{x, F, a}$ according to
 \begin{align}
-\text{logit}(\rho_{x, a}^{\text{ANC}}) &= \text{logit}(\rho_{x, F, a}) + \beta^{\rho^{\text{ANC}}} + \bu_x^{\rho^{\text{ANC}}} + \bmeta_{R_x, a}^{\rho^{\text{ANC}}}, \label{eq:anc1} \\
-\text{logit}(\alpha_{x, a}^{\text{ANC}}) &= \text{logit}(\alpha_{x, F, a}) + \beta^{\alpha^{\text{ANC}}} + \bu_x^{\alpha^{\text{ANC}}} + \bmeta_{R_x, a}^{\alpha^{\text{ANC}}} \label{eq:anc2}.
+\text{logit}(\rho_{x, a}^{\text{ANC}}) &= \text{logit}(\rho_{x, F, a}) + \beta^{\rho^{\text{ANC}}} + \mathbf{u}_x^{\rho^{\text{ANC}}} + \boldsymbol{\mathbf{\eta}}_{R_x, a}^{\rho^{\text{ANC}}}, (\#eq:anc1) \\
+\text{logit}(\alpha_{x, a}^{\text{ANC}}) &= \text{logit}(\alpha_{x, F, a}) + \beta^{\alpha^{\text{ANC}}} + \mathbf{u}_x^{\alpha^{\text{ANC}}} + \boldsymbol{\mathbf{\eta}}_{R_x, a}^{\alpha^{\text{ANC}}} (\#eq:anc2).
 \end{align}
-Table \ref{tab:anc} provides a description of the terms included in Equation \ref{eq:anc1} and Equation \ref{eq:anc2}.
+Table \@ref(tab:anc) provides a description of the terms included in Equation \@ref(eq:anc1) and Equation \@ref(eq:anc2).
 
-\begin{table}[h]
-\centering
-\begin{tabularx}{\textwidth}{llX}
-\toprule
-Term & Distribution & Description \\ 
-\midrule
-$\beta^{\theta^{\text{ANC}}}$ & $\mathcal{N}(0, 5)$ & Intercept giving the average difference between population and ANC outcomes \\
-$\bu_x^{\theta^{\text{ANC}}}$ & $\mathcal{N}(0, \sigma_X^{\theta^{\text{ANC}}})$ & IID district random effects with $\sigma_X^{\theta^{\text{ANC}}} \sim \mathcal{N}^+(0, 1)$ \\ 
-$\bmeta_{R_x, a}^{\theta^{\text{ANC}}}$ & $-$ & Offsets for the log fertility rate ratios for HIV positive women compared to HIV negative women and for women on ART to HIV positive women not on ART, calculated from Spectrum model outputs for region $R_x$ \\
-\bottomrule
-\end{tabularx}
-\caption{Terms included in the linear predictors for ANC testing, with $\theta \in \{\rho, \alpha\}$ (Equation \ref{eq:prev}).}
-\label{tab:anc}
-\end{table}
+| Term                                    | Distribution                                     | Description                                                                                                                                                                                                    |
+|-----------------------------------------|--------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| $\beta^{\theta^{\text{ANC}}}$           | $\mathcal{N}(0, 5)$                              | Intercept giving the average difference between population and ANC outcomes                                                                                                                                    |
+| $\mathbf{u}_x^{\theta^{\text{ANC}}}$    | $\mathcal{N}(0, \sigma_X^{\theta^{\text{ANC}}})$ | IID district random effects with $\sigma_X^{\theta^{\text{ANC}}} \sim \mathcal{N}^+(0, 1)$                                                                                                                     |
+| $\boldsymbol{\mathbf{\eta}}_{R_x, a}^{\theta^{\text{ANC}}}$ | $-$                          | Offsets for the log fertility rate ratios for HIV positive women compared to HIV negative women and for women on ART to HIV positive women not on ART, calculated from Spectrum model outputs for region $R_x$ |
 
-In the full Naomi model, for adult women 15-49 the number of ANC clients $\Psi_{x, a} > 0$ are modelled as
-$$
-\log (\Psi_{x, a}) = \log (N_{x, \text{F}, a}) + \psi_{R_x, a} + \beta^\psi + \bu_x^\psi,
-$$
-where $N_{x, \text{F}, a}$ are the female population sizes, $\psi_{R_x, a}$ are fixed age-sex fertility ratios in Spectrum region $R_x$, $\beta^\psi$ are log rate ratios for the number of ANC clients relative to the predicted fertility, and $\bu_x^\psi \sim \mathcal{N}(0, \sigma^\psi)$ are district random effects.
-Here we fix $\beta^\psi = 0$ and $\bu_x^\psi = \mathbf{0}$ such that $\Psi_{x, a}$ are simply constants.
+Table: (\#tab:anc) Each term in Equations \@ref(eq:anc1) and \@ref(eq:anc2) together with (where applicable) its prior distribution and a written description of its role. The notation $\theta$ is used as stand in for $\theta \in \{\rho, \alpha\}$.
 
-<!-- Latent field size -->
-<!-- 1 + n + 1 + n = 2 + 2n -->
-<!-- Hyperparameter size -->
-<!-- 2 --> 
+In the full Naomi model, for adult women 15-49 the number of ANC clients $\Psi_{x, a} > 0$ were modelled as
+\begin{equation}
+\log (\Psi_{x, a}) = \log (N_{x, \text{F}, a}) + \psi_{R_x, a} + \beta^\psi + \mathbf{u}_x^\psi,
+\end{equation}
+where $N_{x, \text{F}, a}$ are the female population sizes, $\psi_{R_x, a}$ are fixed age-sex fertility ratios in Spectrum region $R_x$, $\beta^\psi$ are log rate ratios for the number of ANC clients relative to the predicted fertility, and $\mathbf{u}_x^\psi \sim \mathcal{N}(0, \sigma^\psi)$ are district random effects.
+Here these terms are fixed to $\beta^\psi = 0$ and $\mathbf{u}_x^\psi = \mathbf{0}$ such that $\Psi_{x, a}$ are simply constants.
 
-### ART attendance \label{sec:art-attend}
+### ART attendance {#art-attend}
 
 ```{r}
 log_odds <- function(p) log(p / (1 - p))
@@ -290,451 +164,215 @@ logistic <- function(x) 1 / (1 + exp(-x))
 ```
 
 Let $\gamma_{x, x'} \in [0, 1]$ be the probability that a person on ART residing in district $x$ receives ART in district $x'$.
-We assume that $\gamma_{x, x'} = 0$ for $x \notin \{x, \text{ne}(x)\}$ such that individuals seek treatment only in their residing district or its neighbours $\text{ne}(x) = \{x': x' \sim x\}$, where $\sim$ is an adjacency relation, and $\sum_{x' \in \{x, \text{ne}(x)\}} \gamma_{x, x'} = 1$.
-To model $\gamma_{x, x'}$ for $x \sim x'$ we use a multinomial logistic regression model, based on the log-odds ratios
+Assume that $\gamma_{x, x'} = 0$ for $x \notin \{x, \text{ne}(x)\}$ such that individuals seek treatment only in their residing district or its neighbours $\text{ne}(x) = \{x': x' \sim x\}$, where $\sim$ is an adjacency relation, and $\sum_{x' \in \{x, \text{ne}(x)\}} \gamma_{x, x'} = 1$.
+
+The probabilities $\gamma_{x, x'}$ for $x \sim x'$ were modelled using multinomial logistic regression model, based on the log-odds ratios
 \begin{equation}
-\tilde \gamma_{x, x'} = \log \left( \frac{\gamma_{x, x'}}{1 - \gamma_{x, x'}} \right) = \tilde \gamma_0 + \bu_x^{\tilde \gamma}, \label{eq:log-or}
+\tilde \gamma_{x, x'} = \log \left( \frac{\gamma_{x, x'}}{1 - \gamma_{x, x'}} \right) = \tilde \gamma_0 + \mathbf{u}_x^{\tilde \gamma}. (\#eq:log-or)
 \end{equation}
-where $\tilde \gamma_0 = -4$ is a fixed intercept, and $\bu_x^{\tilde \gamma} \sim \mathcal{N}(0, \sigma_X^{\tilde \gamma})$ are district random effects with $\sigma_X^{\tilde \gamma} \sim \mathcal{N}^+(0, 2.5)$.
-Note that Equation \ref{eq:log-or} does not depend on $x'$, such that $\gamma_{x, x'}$ is only a function of $x$.
-Choice of $\tilde \gamma_0 = -4$ implies a prior mean on $\gamma_{x, x'}$ of 1.8%, such that $(100 - 1.8 \times \text{ne}(x))\%$ of ART clients in district $x$ obtain treatment in their home district, a-priori.
-We fix $\tilde \gamma_{x, x} = 0$ and recover the multinomial probabilities using the softmax
+Table \@ref(tab:log-or) provides a description of the terms included in Equation \@ref(eq:log-or).
+Fixing $\tilde \gamma_{x, x} = 0$ then the multinomial probabilities may be recovered using the softmax
 \begin{equation}
 \gamma_{x, x'} = \frac{\exp(\tilde \gamma_{x, x'})}{\sum_{x^\star \in \{x, \text{ne}(x)\}} \exp(\tilde \gamma_{x, x^\star})}.
 \end{equation}
-Given the total number of PLHIV on ART $A_{x, s, a} = N_{x, s, a} \cdot \rho_{x, s, a} \cdot \alpha_{x, s, a}$, the number of ART clients who reside in district $x$ and obtain ART in district $x'$ are $A_{x, x', s, a} = A_{x, s, a} \cdot \gamma_{x, x'}$, and the total attending ART facilities in district $x'$ are 
-\begin{equation}
-\tilde A_{x', s, a} = \sum_{x \in \{x', \text{ne}(x')\}} A_{x, x', s, a}.
-\end{equation}
 
-## Likelihood specification \label{sec:likelihood}
+| Term                           | Distribution                               | Description                                                                         |
+|--------------------------------|--------------------------------------------|-------------------------------------------------------------------------------------|
+| $\tilde \gamma_0$              | $-$                                        | Fixed intercept $\tilde \gamma_0 = -4$. Implies a prior mean on $\gamma_{x, x'}$ of 1.8%, such that a-priori $(100 - 1.8 \times \text{ne}(x))\%$ of ART clients in district $x$ obtain treatment in their home district |
+| $\mathbf{u}_x^{\tilde \gamma}$ | $\mathcal{N}(0, \sigma_X^{\tilde \gamma})$ | District random effects, with $\sigma_X^{\tilde \gamma} \sim \mathcal{N}^+(0, 2.5)$ |
+
+Table: (\#tab:log-or) Each term in Equation \@ref(eq:log-or) together with, where applicable, its prior distribution and a written description of its role.
+As no terms include $x'$, $\gamma_{x, x'}$ is only a function of $x$.
+
+## Additional likelihood specification {#naomi-likelihood}
+
+Additional useful details regarding Naomi's likelihood specification are provided here.
 
 ### Household survey data
 
-For HIV prevalence, ART coverage and recent HIV infections, denoted by $\theta \in \{\rho, \alpha, \kappa\}$, the most recent household survey furnishes weighted observations $\hat \theta_{\{x\}, \{s\}, \{a\}}$ with respective Kish effective sample sizes $m^{\theta}_{\{x\}, \{s\}, \{a\}} \in \mathbb{R}$, and observed number of cases
-\begin{equation}
-y^{\theta}_{\{x\}, \{s\}, \{a\}} = m^{\theta}_{\{x\}, \{s\}, \{a\}} \cdot \hat \theta_{\{x\}, \{s\}, \{a\}} \in \mathbb{R}.
-\end{equation}
-To model these observations, we use the following three binomial working likelihoods:
-
-1. The number of people living with HIV (PLHIV) is
-\begin{equation}
-y^{\rho}_{\{x\}, \{s\}, \{a\}} \sim \text{xBin}(m^{\rho}_{\{x\}, \{s\}, \{a\}}, \rho_{\{x\}, \{s\}, \{a\}}),
-\end{equation}
-where
-\begin{equation}
-\rho_{\{x\}, \{s\}, \{a\}} = \frac{\sum_{\{x\}} \sum_{\{s\}} \sum_{\{a\}} N_{x, s, a} \cdot \rho_{x, s, a}}{\sum_{\{x\}} \sum_{\{s\}} \sum_{\{a\}} N_{x, s, a}}
-\end{equation}
-has denominator given by the total population size.
-2. The number of PLHIV on ART is
-\begin{equation}
-y^{\alpha}_{\{x\}, \{s\}, \{a\}} \sim \text{xBin}(m^{\alpha}_{\{x\}, \{s\}, \{a\}}, \alpha_{\{x\}, \{s\}, \{a\}}),
-\end{equation}
-where
-\begin{equation}
-\alpha_{\{x\}, \{s\}, \{a\}} = \frac{\sum_{\{x\}} \sum_{\{s\}} \sum_{\{a\}} N_{x, s, a} \cdot \rho_{x, s, a} \cdot \alpha_{x, s, a}}{\sum_{\{x\}} \sum_{\{s\}} \sum_{\{a\}} N_{x, s, a} \cdot \rho_{x, s, a}}
-\end{equation}
-has denominator given by the total PLHIV.
-3. The number of PLHIV recently infected
-\begin{equation}
-y^{\kappa}_{\{x\}, \{s\}, \{a\}} \sim \text{xBin}(m^{\kappa}_{\{x\}, \{s\}, \{a\}}, \kappa_{\{x\}, \{s\}, \{a\}}),
-\end{equation}
-where
-\begin{equation}
-\kappa_{\{x\}, \{s\}, \{a\}} = \frac{\sum_{\{x\}} \sum_{\{s\}} \sum_{\{a\}} N_{x, s, a} \cdot \rho_{x, s, a} \cdot \kappa_{x, s, a}}{\sum_{\{x\}} \sum_{\{s\}} \sum_{\{a\}} N_{x, s, a} \cdot \rho_{x, s, a}}
-\end{equation}
-has denominator given by the total PLHIV.
-
-The generalised binomial $y \sim \text{xBin}(m, p)$ used above is defined for $y, m \in \mathbb{R}^+$ with $y \leq m$ such that
-\begin{equation}
-\log p(y) = \log \Gamma(m + 1) - \log \Gamma(y + 1) - \log \Gamma(m - y + 1) + y \log p + (m - y) \log(1 - p),
-\end{equation}
+The generalised binomial $y \sim \text{xBin}(m, p)$ is defined for $y, m \in \mathbb{R}^+$ with $y \leq m$ such that
+\begin{align}
+\log p(y) = &\log \Gamma(m + 1) - \log \Gamma(y + 1) \\
+            &- \log \Gamma(m - y + 1) + y \log p + (m - y) \log(1 - p),
+\end{align}
 where the gamma function $\Gamma$ is such that $\forall n \in \mathbb{N}$, $\Gamma(n) = (n - 1)!$.
 
-### ANC testing data
-
-We include ANC testing data for the year of the most recent survey.
-Let $W^\text{ANC}_{\{x\}}$ be the number of ANC clients, $X^\text{ANC}_{\{x\}}$ the number of those with ascertained status, $Y^\text{ANC}_{\{x\}}$ the number of those with positive status (either known or tested) and $Z^\text{ANC}_{\{x\}}$ the number of ANC clients already on ART prior to first ANC, such that
-\begin{equation}
-W^\text{ANC}_{x} \geq X^\text{ANC}_{x} \geq Y^\text{ANC}_{x} \geq Z^\text{ANC}_{x},
-\end{equation}
-for all $x \in \{x\}$.
-When ANC testing data are only available for part of a given year, we denote $m^\text{ANC} \in \{1, \ldots, 12\}$ the number of months of reported data reflected in counts for that year.
-The observed number of HIV positive and already on ART among ANC clients is modelled by
-\begin{align}
-Y_{\{x\} }^{\text{ANC}} &\sim \text{Bin} \left(X_{\{x\} }^{\text{ANC}}, \rho_{\{x\},\{15, \ldots 45\}}^{\text{ANC}}\right), \\
-Z_{\{x\} }^{\text{ANC}} &\sim \text{Bin} \left(Y_{\{x\} }^{\text{ANC}}, \alpha_{\{x\},\{15, \ldots 45\}}^{\text{ANC}}\right),
-\end{align}
-where prevalence and ART coverage are aggregated by the number of pregnant women $\Psi_{x, a}$
-\begin{align}
-\rho_{\{x\}\{a\}}^{\text{ANC}} &= \frac{\sum_{\{x\}} \sum_{\{a\}} \Psi_{x, a} \cdot \rho_{x, a}^{\text{ANC}}}{\sum_{\{x\}} \sum_{\{a\}} \Psi_{x, a}}, \\
-\alpha_{\{x\}\{a\}}^{\text{ANC}} &= \frac{\sum_{\{x\}} \sum_{\{a\}} \Psi_{x, a} \cdot \rho_{x, a}^{\text{ANC}} \cdot \alpha_{x, a}^{\text{ANC}}}{\sum_{\{x\}} \sum_{\{a\}} \Psi_{x, a} \cdot \rho_{x, a}^{\text{ANC}}}.
-\end{align}
-
-### Number receiving ART
-
-Let $\dot A_{\{x\}, \{s\}, \{a\}}$ be data for the number receiving ART
-$$
-\dot A_{\{x\}, \{s\}, \{a\}} = \sum_{\{x\}} \sum_{\{s\}} \sum_{\{a\}} \sum_{x \sim x', x = x'} \dot A_{x', x, s, a}.
-$$
-We model the unobserved numbers of ART clients travelling from $x'$ to $x$ as
-$$
-\dot A_{x', x, s, a} \sim \text{Bin}(N_{x', s, a}, \pi_{x', x, s, a})
-$$
-where $\pi_{x', x, s, a} = \rho_{x', s, a} \cdot \alpha_{x', s, a} \cdot \gamma_{x', x, s, a}$. This likelihood is approximated using a normal for the sum of binomials by
-$$
-\dot A_{\{x\}, \{s\}, \{a\}} \sim \mathcal{N}(\tilde A_{\{x\}, \{s\}, \{a\}}, \sigma^{\tilde A}_{\{x\}, \{s\}, \{a\}})
-$$
-where the mean is
-$$
-\tilde{A}_{\{x\},\{s\}\{a\}} = \sum_{\{x\}} \sum_{\{s\}} \sum_{\{a\}} \sum_{x \sim x', x = x'} N_{x', s, a} \cdot \pi_{x', x, s, a},
-$$
-and the variance is
-$$
-\left(\sigma_{\{x\},\{s\}\{a\}}^{\tilde{A}}\right)^2 = \sum_{\{x\}} \sum_{\{s\}} \sum_{\{a\}} \sum_{x \sim x', x = x'} N_{x', s, a} \cdot \pi_{x', x, s, a} \cdot \left(1-\pi_{x', x, s, a}\right).
-$$
-
-## Identifiability constaints
+## Identifiability constraints {#naomi-identifiability}
 
 If data are missing, some parameters are fixed to default values to help with identifiability.
 In particular:
 
-1. If survey data on HIV prevalence or ART coverage by age and sex are not available then we set $\bu_a^\theta = 0$ and $\bu_{a, s = \text{M}}^\theta = 0$ and use the average age-sex pattern of from the Spectrum offset $\bmeta_{R_x, s, a}^\theta$. For the Malawi example considered in the main text HIV prevalence and ART coverage data are not available for those aged 65+. As a result, there are $|\{\text{0-4}, \ldots, \text{50-54}\}| = 13$ age groups included for the age random effects.
-2. If no ART data, either survey or ART programme, are available but data on ART coverage among ANC clients are available, the level of ART coverage is not identifiable, but spatial variation is identifiable. In this instance, overall ART coverage is determined by the Spectrum offset, and only area random effects are estimated such that $\text{logit} \left(\alpha_{x, s, a} \right) = \bu_x^\alpha + \bmeta_{R_x, s, a}^\alpha$.
-3. If survey data on recent HIV infection are not included in the model, then $\beta_0^\lambda = \beta_S^{\lambda, s = \text{M}} = 0$ and $\bu_x^\lambda = \mathbf{0}$. The sex ratio for HIV incidence is determined by the sex incidence rate ratio from Spectrum in the same years and the incidence rate in all districts is modelled assuming the same average HIV transmission rate for untreated adults, but varies according to district estimates of HIV prevalence and ART coverage.
+1. If survey data on HIV prevalence or ART coverage by age and sex are not available then $\mathbf{u}_a^\theta = 0$ and $\mathbf{u}_{a, s = \text{M}}^\theta = 0$.
+In this case, the average age-sex pattern from the Spectrum is used.
+For the Malawi case-study (Section \@ref(malawi)), HIV prevalence and ART coverage data are not available for those aged 65+.
+As a result, there are $|\{\text{0-4}, \ldots, \text{50-54}\}| = 13$ age groups included for the age random effects.
+2. If no ART data, either survey or ART programme, are available but data on ART coverage among ANC clients are available, the level of ART coverage is not identifiable, but spatial variation is identifiable.
+In this instance, overall ART coverage is determined by the Spectrum offset, and only area random effects are estimated such that
+\begin{equation}
+\text{logit} \left(\alpha_{x, s, a} \right) = \mathbf{u}_x^\alpha + \boldsymbol{\mathbf{\eta}}_{R_x, s, a}^\alpha.
+\end{equation}
+3. If survey data on recent HIV infection are not included in the model, then $\beta_0^\lambda = \beta_S^{\lambda, s = \text{M}} = 0$ and $\mathbf{u}_x^\lambda = \mathbf{0}$.
+The sex ratio for HIV incidence is determined by the sex incidence rate ratio from Spectrum, and the incidence rate in all districts is modelled assuming the same average HIV transmission rate for untreated adults, but varies according to district-level estimates of HIV prevalence and ART coverage.
 
-<!-- Create DAG representing Naomi model. This would likely go into the appendix, so use that notation -->
+## Implementation {#naomi-implementation}
 
-```{r simplified-naomi, fig.cap="Directed acyclic graph describing the simplified Naomi model (work in progress)."}
-knitr::include_graphics("depends/simplified-naomi.pdf")
-```
-
-## Implementation
-
-The C++ `TMB` code for the negative log-posterior of the simplified Naomi model is available from the GitHub repository `athowes/naomi-aghq`.
-For ease of understanding, Table \ref{tab:tmb-lookup} provides correspondence between the mathematical notation used in Section \ref{sec:math} and the variable names used in the `TMB` code, for all hyperparameters and latent field parameters.
+The `TMB` C++ code for the negative log-posterior of the simplified Naomi model is available from [`https://github.com/athowes/naomi-aghq`](https://github.com/athowes/naomi-aghq).
+For ease of understanding, Table \@ref(tab:tmb-lookup) provides correspondence between the mathematical notation used in Section \@ref(naomi-math) and the variable names used in the `TMB` code, for all hyperparameters and latent field parameters.
 For further reference on the `TMB` software see @tmbdocumentation.
 
-<!-- Use table(names(tmb$fit$par.full)) to check the below table -->
+| Variable name              | Notation    | Type   | Domain  | $\rho$ | $\alpha$ | $\lambda$ |
+|----------------------------|-------------|--------|---------|--------|----------|-----------|
+| `logit_phi_rho_x`      | $\text{logit}(\phi_X^\rho)$                          | Hyper  | $\mathbb{R}$      | Yes |     |     |
+| `log_sigma_rho_x`      | $\log(\sigma_X^\rho)$                                | Hyper  | $\mathbb{R}$      | Yes |     |     |
+| `logit_phi_rho_xs`     | $\text{logit}(\phi_{XS}^\rho)$                       | Hyper  | $\mathbb{R}$      | Yes |     |     |
+| `log_sigma_rho_xs`     | $\log(\sigma_{XS}^\rho)$                             | Hyper  | $\mathbb{R}$      | Yes |     |     |
+| `logit_phi_rho_a`      | $\text{logit}(\phi_A^\rho)$                          | Hyper  | $\mathbb{R}$      | Yes |     |     |
+| `log_sigma_rho_a`      | $\log(\sigma_A^\rho)$                                | Hyper  | $\mathbb{R}$      | Yes |     |     |
+| `logit_phi_rho_as`     | $\text{logit}(\phi_{AS}^\rho)$                       | Hyper  | $\mathbb{R}$      | Yes |     |     |
+| `log_sigma_rho_as`     | $\log(\sigma_{AS}^\rho)$                             | Hyper  | $\mathbb{R}$      | Yes |     |     |
+| `log_sigma_rho_xa`     | $\log(\sigma_{XA}^\rho)$                             | Hyper  | $\mathbb{R}$      | Yes |     |     |
+| `logit_phi_alpha_x`    | $\text{logit}(\phi_X^\alpha)$                        | Hyper  | $\mathbb{R}$      |     | Yes |     |
+| `log_sigma_alpha_x`    | $\log(\sigma_X^\alpha)$                              | Hyper  | $\mathbb{R}$      |     | Yes |     |
+| `logit_phi_alpha_xs`   | $\text{logit}(\phi_{XS}^\alpha)$                     | Hyper  | $\mathbb{R}$      |     | Yes |     |
+| `log_sigma_alpha_xs`   | $\log(\sigma_{XS}^\alpha)$                           | Hyper  | $\mathbb{R}$      |     | Yes |     |
+| `logit_phi_alpha_a`    | $\text{logit}(\phi_A^\alpha)$                        | Hyper  | $\mathbb{R}$      |     | Yes |     |
+| `log_sigma_alpha_a`    | $\log(\sigma_A^\alpha)$                              | Hyper  | $\mathbb{R}$      |     | Yes |     |
+| `logit_phi_alpha_as`   | $\text{logit}(\phi_{AS}^\alpha)$                     | Hyper  | $\mathbb{R}$      |     | Yes |     |
+| `log_sigma_alpha_as`   | $\log(\sigma_{AS}^\alpha)$                           | Hyper  | $\mathbb{R}$      |     | Yes |     |
+| `log_sigma_alpha_xa`   | $\log(\sigma_{XA}^\alpha)$                           | Hyper  | $\mathbb{R}$      |     | Yes |     |
+| `OmegaT_raw`           | $\Omega_T$                                           | Hyper  | $\mathbb{R}$      |     |     | Yes |
+| `log_betaT`            | $\log(\beta_T)$                                      | Hyper  | $\mathbb{R}$      |     |     | Yes |
+| `log_sigma_lambda_x`   | $\log(\sigma^\lambda)$                               | Hyper  | $\mathbb{R}$      |     |     | Yes |
+| `log_sigma_ancrho_x`   | $\log(\sigma_X^{\rho^{\text{ANC}}})$                 | Hyper  | $\mathbb{R}$      |     | Yes |     |
+| `log_sigma_ancalpha_x` | $\log(\sigma_X^{\alpha^{\text{ANC}}})$               | Hyper  | $\mathbb{R}$      |     | Yes |     |
+| `log_sigma_or_gamma`   | $\log(\sigma_X^{\tilde \gamma})$                     | Hyper  | $\mathbb{R}$      |     |     |     |
+| `beta_rho`             | $(\beta^\rho_0, \beta_{s}^{\rho, s = \text{M}})$     | Latent | $\mathbb{R}^2$    | Yes |     |     |
+| `beta_alpha`           | $(\beta^\alpha_0, \beta_{S}^{\alpha, s = \text{M}})$ | Latent | $\mathbb{R}^2$    |     | Yes |     |
+| `beta_lambda`          | $(\beta_0^\lambda, \beta_S^{\lambda, s = \text{M}})$ | Latent | $\mathbb{R}^2$    |     |     | Yes |
+| `beta_anc_rho`         | $\beta^{\rho^{\text{ANC}}}$                          | Latent | $\mathbb{R}$      |     | Yes |     |
+| `beta_anc_alpha`       | $\beta^{\alpha^{\text{ANC}}}$                        | Latent | $\mathbb{R}$      |     | Yes |     |
+| `u_rho_x`              | $\mathbf{w}^\rho_x$                                  | Latent | $\mathbb{R}^{n}$  | Yes |     |     |
+| `us_rho_x`             | $\mathbf{v}^\rho_x$                                  | Latent | $\mathbb{R}^{n}$  | Yes |     |     |
+| `u_rho_xs`             | $\mathbf{w}_x^{\rho, s = \text{M}}$                  | Latent | $\mathbb{R}^{n}$  | Yes |     |     |
+| `us_rho_xs`            | $\mathbf{v}_x^{\rho, s = \text{M}}$                  | Latent | $\mathbb{R}^{n}$  | Yes |     |     |
+| `u_rho_a`              | $\mathbf{u}^\rho_a$                                  | Latent | $\mathbb{R}^{10}$ | Yes |     |     |
+| `u_rho_as`             | $\mathbf{u}_a^{\rho, s = \text{M}}$                  | Latent | $\mathbb{R}^{10}$ | Yes |     |     |
+| `u_rho_xa`             | $\mathbf{u}_x^{\rho, a < 15}$                        | Latent | $\mathbb{R}^{n}$  | Yes |     |     |
+| `u_alpha_x`            | $\mathbf{w}^\alpha_x$                                | Latent | $\mathbb{R}^{n}$  |     | Yes |     |
+| `us_alpha_x`           | $\mathbf{v}^\alpha_x$                                | Latent | $\mathbb{R}^{n}$  |     | Yes |     |
+| `u_alpha_xs`           | $\mathbf{w}_x^{\alpha, s = \text{M}}$                | Latent | $\mathbb{R}^{n}$  |     | Yes |     |
+| `us_alpha_xs`          | $\mathbf{v}_x^{\alpha, s = \text{M}}$                | Latent | $\mathbb{R}^{n}$  |     | Yes |     |
+| `u_alpha_a`            | $\mathbf{u}^\alpha_a$                                | Latent | $\mathbb{R}^{13}$ |     | Yes |     |
+| `u_alpha_as`           | $\mathbf{u}_a^{\alpha, s = \text{M}}$                | Latent | $\mathbb{R}^{10}$ |     | Yes |     |
+| `u_alpha_xa`           | $\mathbf{u}_x^{\alpha, a < 15}$                      | Latent | $\mathbb{R}^{n}$  |     | Yes |     |
+| `ui_lambda_x`          | $\mathbf{u}_x^\lambda$                               | Latent | $\mathbb{R}^{n}$  |     |     | Yes |
+| `ui_anc_rho_x`         | $\mathbf{u}_x^{\rho^{\text{ANC}}}$                   | Latent | $\mathbb{R}^{n}$  |     | Yes |     |
+| `ui_anc_alpha_x`       | $\mathbf{u}_x^{\alpha^{\text{ANC}}}$                 | Latent | $\mathbb{R}^{n}$  |     | Yes |     |
+| `log_or_gamma`         | $\mathbf{u}_x^{\tilde \gamma}$                       | Latent | $\mathbb{R}^{n}$  |     |     |      
 
-\begin{table}[p!]
-\centering
-\begin{tabularx}{\textwidth}{llllllll}
-\toprule
-Variable name & Notation & Type & Size & Domain & $\rho$ input? & $\alpha$ input? & $\lambda$ input? \\
-\midrule
-\texttt{logit\_phi\_rho\_x} & $\text{logit}(\phi_X^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
-\texttt{log\_sigma\_rho\_x} & $\log(\sigma_X^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
-\texttt{logit\_phi\_rho\_xs} & $\text{logit}(\phi_{XS}^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
-\texttt{log\_sigma\_rho\_xs} & $\log(\sigma_{XS}^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
-\texttt{logit\_phi\_rho\_a} & $\text{logit}(\phi_A^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
-\texttt{log\_sigma\_rho\_a} & $\log(\sigma_A^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
-\texttt{logit\_phi\_rho\_as} & $\text{logit}(\phi_{AS}^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
-\texttt{log\_sigma\_rho\_as} & $\log(\sigma_{AS}^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
-\texttt{log\_sigma\_rho\_xa} & $\log(\sigma_{XA}^\rho)$ & Hyper & 1 & $\mathbb{R}$ & \cmark & & \\
-\texttt{logit\_phi\_alpha\_x} & $\text{logit}(\phi_X^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
-\texttt{log\_sigma\_alpha\_x} & $\log(\sigma_X^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
-\texttt{logit\_phi\_alpha\_xs} & $\text{logit}(\phi_{XS}^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
-\texttt{log\_sigma\_alpha\_xs} & $\log(\sigma_{XS}^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
-\texttt{logit\_phi\_alpha\_a} & $\text{logit}(\phi_A^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
-\texttt{log\_sigma\_alpha\_a} & $\log(\sigma_A^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
-\texttt{logit\_phi\_alpha\_as} & $\text{logit}(\phi_{AS}^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
-\texttt{log\_sigma\_alpha\_as} & $\log(\sigma_{AS}^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
-\texttt{log\_sigma\_alpha\_xa} & $\log(\sigma_{XA}^\alpha)$ & Hyper & 1 & $\mathbb{R}$ & & \cmark & \\
-\texttt{OmegaT\_raw} & $\Omega_T$ & Hyper & 1 & $\mathbb{R}$ & & & \cmark \\
-\texttt{log\_betaT} & $\log(\beta_T)$ & Hyper & 1 & $\mathbb{R}$ & & & \cmark \\
-\texttt{log\_sigma\_lambda\_x} & $\log(\sigma^\lambda)$ & Hyper & 1 & $\mathbb{R}$ & & & \cmark \\
-\texttt{log\_sigma\_ancrho\_x} & $\log(\sigma_X^{\rho^{\text{ANC}}})$ & Hyper & 1 & $\mathbb{R}$ & & & \\
-\texttt{log\_sigma\_ancalpha\_x} & $\log(\sigma_X^{\alpha^{\text{ANC}}})$ & Hyper & 1 & $\mathbb{R}$ & & & \\
-\texttt{log\_sigma\_or\_gamma} & $\log(\sigma_X^{\tilde \gamma})$ & Hyper & 1 & $\mathbb{R}$ & & & \\
-\texttt{beta\_rho} & $(\beta^\rho_0, \beta_{s}^{\rho, s = \text{M}})$ & Latent & 2 & $\mathbb{R}^2$ & \cmark & & \\
-\texttt{beta\_alpha} & $(\beta^\alpha_0, \beta_{S}^{\alpha, s = \text{M}})$ & Latent & 2 & $\mathbb{R}^2$ & & \cmark & \\
-\texttt{beta\_lambda} & $(\beta_0^\lambda, \beta_S^{\lambda, s = \text{M}})$ & Latent & 2 & $\mathbb{R}^2$ & & & \cmark \\
-\texttt{beta\_anc\_rho} & $\beta^{\rho^{\text{ANC}}}$ & Latent & 1 & $\mathbb{R}$ & & & \\
-\texttt{beta\_anc\_alpha} & $\beta^{\alpha^{\text{ANC}}}$ & Latent & 1 & $\mathbb{R}$ & & & \\
-\texttt{u\_rho\_x} & $\w^\rho_x$ & Latent & $n$ & $\mathbb{R}^{n}$ & \cmark & & \\
-\texttt{us\_rho\_x} & $\bv^\rho_x$ & Latent & $n$ & $\mathbb{R}^{n}$ & \cmark & & \\
-\texttt{u\_rho\_xs} & $\w_x^{\rho, s = \text{M}}$ & Latent & $n$ & $\mathbb{R}^{n}$ & \cmark & & \\
-\texttt{us\_rho\_xs} & $\bv_x^{\rho, s = \text{M}}$ & Latent & $n$ & $\mathbb{R}^{n}$ & \cmark & & \\
-\texttt{u\_rho\_a} & $\bu^\rho_a$ & Latent & 10 & $\mathbb{R}^{10}$ & \cmark & & \\
-\texttt{u\_rho\_as} & $\bu_a^{\rho, s = \text{M}}$ & Latent & 10 & $\mathbb{R}^{10}$ & \cmark & & \\
-\texttt{u\_rho\_xa} & $\bu_x^{\rho, a < 15}$ & Latent & $n$ & $\mathbb{R}^{n}$ & \cmark & & \\
-\texttt{u\_alpha\_x} & $\w^\alpha_x$ & Latent & $n$ & $\mathbb{R}^{n}$ && \cmark & \\
-\texttt{us\_alpha\_x} & $\bv^\alpha_x$ & Latent & $n$ & $\mathbb{R}^{n}$ & & \cmark & \\
-\texttt{u\_alpha\_xs} & $\w_x^{\alpha, s = \text{M}}$ & Latent & $n$ & $\mathbb{R}^{n}$ & & \cmark & \\
-\texttt{us\_alpha\_xs} & $\bv_x^{\alpha, s = \text{M}}$ & Latent & $n$ & $\mathbb{R}^{n}$ & & \cmark & \\
-\texttt{u\_alpha\_a} & $\bu^\alpha_a$ & Latent & 13 & $\mathbb{R}^{13}$ & & \cmark & \\
-\texttt{u\_alpha\_as} & $\bu_a^{\alpha, s = \text{M}}$ & Latent & 10 & $\mathbb{R}^{10}$ & & \cmark & \\
-\texttt{u\_alpha\_xa} & $\bu_x^{\alpha, a < 15}$ & Latent & $n$ & $\mathbb{R}^{n}$ & & \cmark & \\
-\texttt{ui\_lambda\_x} & $\bu_x^\lambda$ & Latent & $n$ & $\mathbb{R}^{n}$ & & & \cmark \\
-\texttt{ui\_anc\_rho\_x} & $\bu_x^{\rho^{\text{ANC}}}$ & Latent & $n$ & $\mathbb{R}^{n}$ & & & \\
-\texttt{ui\_anc\_alpha\_x} & $\bu_x^{\alpha^{\text{ANC}}}$ & Latent & $n$ & $\mathbb{R}^{n}$ & & & \\
-\texttt{log\_or\_gamma} & $\bu_x^{\tilde \gamma}$ & Latent & $n$ & $\mathbb{R}^{n}$ & & & \\
-\bottomrule
-\end{tabularx}
-\caption{Correspondence between mathematical notation and variable names used in our \texttt{TMB} code. The total number of hyperparameters is 24, and the total number of latent field parameters is $51 + 14n$, where $n$ is the number of districts. We use the notation \cmark \ to refer to direct dependence of the parameter on the variable, \xmark \ to refer to no dependence, and a blank entry to refer to dependence conditional on the data.}
-\label{tab:tmb-lookup}
-\end{table}
-
-<!-- Latent field size -->
-<!-- 2 + 2 + 2 + 1 + 1+ 10 + 10 + 13 + 10 + 14n = 51 + 14n -->
-<!-- Hyperparameter size -->
-<!-- 24 -->
-
-<!-- \clearpage -->
-
-<!-- ```{cpp, echo=TRUE, eval=FALSE, output.var="ex", code=readLines("naomi_simple.cpp")} -->
-<!-- ``` -->
+Table: (\#tab:tmb-lookup) Correspondence between the variable name used in the Naomi `TMB` template and the mathematical notation used in Appendix \@ref(naomi-math). The parameter type, either a hyperparameter or element of the latent field, is also given. All of the parameters are defined on the real-scale in some dimension. In the final three columns ($\rho$, $\alpha$, and $\lambda$) indication is given as to which component of the model the parameter is primarily used in.
 
 \clearpage
 
-# Model assessment\label{sec:model-assessment}
+# NUTS convergence and suitability
 
-## Additional figures
+```{r}
+naomi_nuts <- readRDS("depends/mcmc-out.rds")
+```
 
-```{r contraction, fig.cap="A posterior contraction of 1 corresponds to a Dirac delta function. A posterior contraction of 0 corresponds to no change in standard deviation between prior and posterior. A posterior contraction less than 0 corresponds to a wider posterior than prior."}
+(ref:rhat) For NUTS run on the Naomi ELGM, the maximum potential scale reduction factor was `r round(naomi_nuts$rhat_max, 3)`, below the value of 1.05 typically used as a cutoff for acceptable chain mixing, indicating that the results are acceptable to use. Additionally, the vast majority (`r round(100 * naomi_nuts$rhat_above_threshold, 1)`%) of $\hat R$ values were less than 1.1.
+
+```{r rhat, fig.cap="(ref:rhat)"}
+knitr::include_graphics("depends/rhat.png")
+```
+
+(ref:ess) The efficiency of the NUTS, as measured by the ratio of effective sample size to total number of iterations run, was low for most parameters (Panel A). As a result, the number of iterations required for the the effective number of samples (mean `r round(naomi_nuts$ess_mean)`) to be satisfactory was high (Panel B). 
+
+```{r ess, fig.cap="(ref:ess)"}
+knitr::include_graphics("depends/ess.png")
+```
+
+(ref:worst-trace) Traceplots for the parameter with the lowest ESS which was `log_sigma_alpha_xs` (an $\text{ESS}$ of `r round(naomi_nuts$ess_min)`, Panel A) and highest potential scale reduction factor which was `ui_lambda_x[10]` (an $\hat R$ of `r round(naomi_nuts$rhat_max, 3)`, Panel B).
+
+```{r worst-trace, fig.cap="(ref:worst-trace)"}
+knitr::include_graphics("depends/worst-trace.png")
+```
+
+(ref:rho-a) Pairs plots for the parameters $\log(\sigma_{A}^\rho)$ and $\text{logit}(\phi_{A}^\rho)$, or `log_sigma_rho_a` and `logit_phi_rho_a` as implemented in code. These parameters are the log standard deviation and logit lag-one correlation parameter of an AR1 process. In the posterior distribution obtained with NUTS, they have a high degree of correlation.
+
+```{r rho-a, fig.cap="(ref:rho-a)"}
+knitr::include_graphics("depends/rho_a.png")
+```
+
+(ref:alpha-x) Pairs plots for the parameters $\log(\sigma_X^\alpha)$ and $\text{logit}(\phi_X^\alpha)$, or `log_sigma_alpha_x` and `logit_phi_alpha_x` as implemented in code. These parameters are the log standard deviation and logit BYM2 proportion parameter of a BYM2 process. In the posterior distribution obtained with NUTS, they are close to uncorrelated.
+
+```{r alpha-x, fig.cap="(ref:alpha-x)"}
+knitr::include_graphics("depends/alpha_x.png")
+```
+
+(ref:nuts-hand-comparison) Prior standard deviations were calculated by using NUTS to simulate from the prior distribution. This approach is more convenient than simulating directly from the model, but can lead to inaccuracies.
+
+```{r nuts-hand-comparison, fig.cap="(ref:nuts-hand-comparison)"}
+knitr::include_graphics("depends/nuts-hand-comparison.png")
+```
+
+(ref:posterior-contraction) The posterior contraction for each parameter in the model. Values are averaged for parameters of length greater than one. The posterior contraction is zero when the prior distribution and posterior distribution have the same standard deviation. This could indicate that the data is not informative about the parameter. The closer the posterior contraction is to one, the more than the marginal posterior distribution has concentrated about a single point.
+
+```{r posterior-contraction, fig.cap="(ref:posterior-contraction)"}
 knitr::include_graphics("depends/posterior-contraction.png")
 ```
 
-# AGHQ and PCA-AGHQ details
+\clearpage
 
-## Additional figures
+# Use of PCA-AGHQ
 
-```{r scree, fig.cap="Most variation in the inverse curvature could be explained using far fewer than the full 24 dimensions."}
-knitr::include_graphics("depends/total-variation.png")
+```{r}
+u <- runif(10000)
 ```
 
-```{r reduced-rank, fig.cap="The reduced rank ($s = 8$) matrix approximation to the covariance matrix is visually similar to the full rank original."}
-knitr::include_graphics("depends/reduced-rank.png")
-```
+(ref:nodes-quantiles-sd) The standard deviation of the quadrature nodes can be used as a measure of coverage of the posterior marginal distribution. Nodes spaced evenly within the marginal distribution would be expected to uniformly distributed quantile, corresponding to a standard deviation of `r signif(sd(u), 4)`, shown as a dashed line.
 
-```{r nodes-quantiles-sd, fig.cap="Standard deviations of the quantiles of the quadrature nodes within the NUTS posterior draws varied substantially, in accordance with the marginal standard deviations shown in Figure \\ref{fig:marginal-sd}."}
+```{r nodes-quantiles-sd, fig.cap="(ref:nodes-quantiles-sd)"}
 knitr::include_graphics("depends/nodes-quantiles-sd.png")
 ```
 
-```{r marginal-sd, fig.cap="Hyperparameters on the logit-scale had systematically higher marginal standard deviations than those on the log-scale. This is because variation on the real scale is compressed by the inverse logit and expanded by the inverse log (exponential)."}
+(ref:marginal-sd) The estimated posterior marginal standard deviation of each hyperparameter varied substantially based on its scale, either logarithmic or logistic.
+
+```{r marginal-sd, fig.cap="(ref:marginal-sd)"}
 knitr::include_graphics("depends/marginal-sd.png")
 ```
 
-```{r pc-loadings, fig.cap="Principal component loadings based on the eigendecomposition of the inverse curvature."}
-knitr::include_graphics("depends/pc-loadings.png")
+(ref:lognormconst) The logarithm of the normalising constant estimated using PCA-AGHQ and a range of possible values of $k = 2, 3, 5$ and $s \leq 8$. Using this range of settings, there was not convergence of the logarithm of the normalising constant estimate. The time taken by GPCA-AGHQ increases exponentially with number of PCA-AGHQ dimensions kept.
+
+```{r lognormconst, fig.cap="(ref:lognormconst)"}
+knitr::include_graphics("depends/lognormconst.png")
 ```
-
-## Normalising constant estimation\label{sec:normalising}
-
-Add here plots and description of the estimated normalising constant for different PCA-AGHQ settings.
 
 \clearpage
 
 # Inference comparison
 
-In this section we give more detailed inference comparison results for each parameter or group of parameters.
-For any parameter with length greater than one, the results presented are an average.
-
 ## Point estimates
 
-### Posterior mean
+(ref:mean-alt-output) Differences in Naomi model output posterior means as estimated by GEB and GPCA-AGHQ compared to NUTS. Each point is an estimate of the indicator for a particular strata. In all cases, error is reduced by GPCA-AGHQ, most of all for ART coverage.
 
-```{r}
-point_summary <- readr::read_csv("depends/point-estimates.csv")
-
-point_summary <- point_summary |>
-  mutate(type = forcats::fct_recode(type, "Output" = "output", "Latent" = "latent"))
-
-latex_table_point_estimates <- function(.indicator) {
-  point_summary |>
-  group_by(par, type, indicator, method) |>
-  summarise(
-    rmse = sqrt(mean((truth - approximate)^2)),
-    mae = mean(abs(truth - approximate))
-  ) |>
-  ungroup() |>
-  tidyr::pivot_wider(
-    names_from = "method",
-    values_from = c("rmse", "mae")
-  ) |>
-  filter(indicator == .indicator) |>
-  select(Parameter = par, Type = type, `TMB` = `rmse_TMB`, `PCA-AGHQ` = `rmse_PCA-AGHQ`) |>
-  mutate(
-    Difference = `PCA-AGHQ` - TMB,
-    `Percent Difference` =  (`PCA-AGHQ` - TMB) / TMB
-  ) |>
-  gt::gt(groupname_col = "Type") |>
-  gt::fmt_number(
-    columns = c(`TMB`, `PCA-AGHQ`, Difference),
-    n_sigfig = 2
-  ) |>
- gt::fmt_percent(
-    columns = `Percent Difference`,
-    decimals = 1
-  ) |>
-  gt::text_transform(
-    locations = gt::cells_body("Parameter"),
-    fn = function(x) paste0("\\texttt{", x, "}")
-  ) |>
-  gt::as_latex() |>
-  as.character()
-}
-
-latex_table_point_estimates("Posterior mean estimate") |>
-  cat(file = "point-summary-mean.tex")
-
-latex_table_point_estimates("Posterior SD estimate") |>
-  cat(file = "point-summary-sd.tex")
+```{r mean-alt-output, fig.cap="(ref:mean-alt-output)"}
+knitr::include_graphics("depends/mean-alt-output.png")
 ```
 
-\input{point-summary-mean.tex}
+(ref:sd-alt-output) Differences in Naomi model output posterior standard deviations as estimated by GEB and GPCA-AGHQ compared to NUTS. Each point is an estimate of the indicator for a particular strata. Error is increased by GPCA-AGHQ for HIV prevalence and HIV incidence, and reduced for ART coverage.
 
-### Posterior standard deviation
-
-\input{point-summary-sd.tex}
-
-## Distribution tests
-
-### Kolmogorov-Smirnov
-
-```{r}
-ks_summary <- readRDS("depends/ks-summary.rds")
-
-ks_summary |>
-  ungroup() |>
-  filter(type == "Latent") |>
-  select(-type) |>
-  select(Parameter = parname, TMB, `PCA-AGHQ` = aghq) |>
-  mutate(Difference = `PCA-AGHQ` - TMB) |>
-  gt::gt() |>
-  gt::summary_rows(
-   columns = c(`TMB`, `PCA-AGHQ`, Difference),
-   fns = list(Average = ~ mean(.x)),
-   formatter = gt::fmt_number,
-   decimals = 3
-  ) |>
-  gt::fmt_number(
-    columns = c(`TMB`, `PCA-AGHQ`, Difference),
-    decimals = 3
-  ) |>
-  gt::text_transform(
-    locations = gt::cells_body("Parameter"),
-    fn = function(x) paste0("\\texttt{", x, "}")
-  ) |>
-  gt::text_transform(
-    locations = gt::cells_body("Difference"),
-    fn = function(x) ifelse(x < 0, paste0("\\textbf{", x, "}"), paste0(x))
-  ) |>
-  gt::as_latex() |>
-  as.character() |>
-  cat(file = "ks-summary.tex")
+```{r sd-alt-output, fig.cap="(ref:sd-alt-output)"}
+knitr::include_graphics("depends/sd-alt-output.png")
 ```
 
-\input{ks-summary.tex}
+## Distributional quantities
 
-## Pareto-smoothed importance sampling
+(ref:ks-ess) The Kolmogorov-Smirnov (KS) test statistic for each latent field parameter is correlated with the effective sample size (ESS) from NUTS, for both GEB and GPCA-AGHQ. This may be because parameters which are harder to estimate with INLA-like methods also have posterior distributions which are more difficult to sample from. Alternatively, it may be that high KS values are caused by inaccurate NUTS estimates generated by limited effective samples.
 
-## Maximum mean discrepancy
-
-\clearpage
-
-# MCMC convergence and suitability\label{sec:mcmc}
-
-```{r}
-mcmc_out <- readRDS("depends/mcmc-out.rds")
-```
-
-We assessed MCMC convergence and suitability using a range of graphical and numerical tests.
-The largest scale reduction factor $\hat R$ was `r signif(mcmc_out$max_rhat, 3)` (Figure \ref{fig:rhat}).
-As such, all values of $\hat R < 1.05$.
-Even thinning by a factor of 20, samples were not obtained very efficiently, resulting in the majority of effective sample size (ESS) ratios being below 0.5, with some as low as 0.1 (Figure \ref{fig:ratio}).
-As a result, the number of obtained ESS varied substantially by parameter (Figure \ref{fig:ess}): the minimum was `r round(mcmc_out$ess_min, 1)`, 2.5% quantile was `r round(mcmc_out$ess_lower, 1)`, median was `r round(mcmc_out$ess_median, 1)`, 97.5% quantile was `r round(mcmc_out$ess_upper, 1)` and maximum was `r round(mcmc_out$ess_max, 1)`.
-Traceplots for the parameters with the lowest ESS (`log_sigma_alpha_xs`) and highest $\hat R$ (the 10th index of `ui_lambda_x`) are shown in Figure \ref{fig:worst_trace}.
-There were no divergent transitions.
-<!-- Could add energy plot from @betancourt2017conceptual here. -->
-
-```{r}
-np <- readRDS("depends/nuts-params.rds")
-
-n_divergent <- np |>
-  filter(Parameter == "divergent__") |>
-  summarise(n_divergent = sum(Value)) |>
-  pull(n_divergent)
-
-stopifnot(n_divergent == 0)
-```
-
-```{r rhat, fig.cap="The potential scale reduction factor compares between- and within- estimates of univariate parameters. It is recommended only to use NUTS results if the value is less than 1.05, which it is for all parameters."}
-knitr::include_graphics("depends/rhat.png")
-```
-
-```{r ratio, fig.cap="The efficiently, as measured by the ESS ratio, of the NUTS sampler was poor."}
-knitr::include_graphics("depends/ratio.png")
-```
-
-```{r ess, fig.cap="The effective number of samples we obtained varied substantially between parameters."}
-knitr::include_graphics("depends/ess.png")
-```
-
-```{r worst_trace, fig.cap="Traceplots of the parameters with the lowest ESS and highest scale reduction factor."}
-knitr::include_graphics("depends/worst-trace.png")
-```
-
-```{r rho_a, fig.cap="Variation between units can be explained either by high correlation and high variance, or by low correlation and low variance. As such, the AR1 hyperparameters had correlated posteriors. It is this correlation which we made use of with PCA-AGHQ."}
-knitr::include_graphics("depends/rho_a.png")
-```
-
-```{r alpha_x, fig.cap="In contrast to the AR1 hyperparameters, the BYM2 hyperparameter posteriors are much less correlated."}
-knitr::include_graphics("depends/alpha_x.png")
-```
-
-```{r ks-ess, fig.cap="The ESS was negatively correlated with KS test statistic for both TMB and PCA-AGHQ. This could be explained in two ways. First, harder to sample parameters could be more difficult to estimate with approximate methods. Second, as more effective samples are collected, the NUTS posterior could become closer to the approximate posteriors."}
+```{r ks-ess, fig.cap="(ref:ks-ess)"}
 knitr::include_graphics("depends/ks-ess.png")
 ```
-
-\clearpage
-
-# Algorithm using Laplace latent field marginals\label{sec:laplace-marginals}
-
-1. Calculate the mode, Hessian at the mode, lower Cholesky, and Laplace approximation
-\begin{align}
-\hat{\btheta} &= \argmax_{\btheta} {\tilde p_\texttt{LA}(\btheta, \y)}, \\
-\hat{\mathbf{H}} &= - \frac{\partial^2}{\partial \btheta \partial \btheta^\top} \log \tilde p_\texttt{LA}(\btheta, \y) \rvert_{\btheta = \hat \btheta}, \\
-\hat{\mathbf{H}}^{-1} &= \hat{\mathbf{L}} \hat{\mathbf{L}}^\top, \\
-\tilde p_\texttt{LA}(\btheta, \y) &= \frac{p(\y, \x, \btheta)}{\tilde p_\texttt{G}(\x \, | \, \btheta, \y)} \Big\rvert_{\x = \hat \x(\btheta)},
-\end{align}
-where $\tilde p_\texttt{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \x(\btheta), \hat{\mathbf{H}}(\btheta)^{-1})$ is a Gaussian approximation to $p(\x \, | \, \btheta, \y)$ with mode and precision matrix given by
-\begin{align}
-\hat \x(\btheta) &= \argmax_\x \log p(\y, \x, \btheta), \\
-\hat{\mathbf{H}}(\btheta) &= - \frac{\partial^2}{\partial \x \partial \x^\top} \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}.
-\end{align}
-2. Generate a set of nodes $\bu \in \mathcal{Q}(m, k)$ and weights $\omega: \bu \to \mathbb{R}$ from a Gauss-Hermite quadrature rule with $k$ nodes per dimension.
-Adapt these nodes based on the mode and lower Choleksy via $\btheta(\bu) = \hat{\btheta} + \mathbf{L} \bu$.
-Use this quadrature rule to calculate the normalising constant $\tilde p_{\texttt{AQ}}(\y)$ as follows
-\begin{equation}
-\tilde p_{\texttt{AQ}}(\y) = \sum_{\bu \in \mathcal{Q}(m, k)} \tilde p_\texttt{LA}(\btheta(\bu), \y) \omega(\bu). \label{eq:evidence1}
-\end{equation}
-3. For $i \in [N]$ generate $l$ nodes $x_i(\bv)$ via a Gauss-Hermite quadrature rule $\bv \in \mathcal{Q}(1, l)$ adapted based on the mode $\hat \x(\btheta)_i$ and standard deviation $\sqrt{\text{diag}[\hat{\mathbf{H}}(\btheta)^{-1}]_i}$ of the Gaussian marginal.
-A value of $l \geq 4$ is recommended to enable B-spline interpolation.
-For $x_i \in \{ x_i(\bv) \}_{\bv \in \mathcal{Q}(1, l)}$  and $\btheta \in \{ \btheta(\bu) \}_{\bu \in \mathcal{Q}(m, k)}$ calculate the modes and Hessians
-\begin{align}
-\hat \x_{-i}(x_i, \btheta) &= \argmax_{\x_{-i}} \log p(\y, x_i, \x_{-i}, \btheta), \\
-\hat{\mathbf{H}}_{-i, -i}(x_i, \btheta) &= - \frac{\partial^2}{\partial \x_{-i} \partial \x_{-i}^\top} \log p(\y, x_i, \x_{-i}, \btheta) \rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)},
-\end{align}
-where optimisation to obtain $\hat \x_{-i}(x_i, \btheta)$ can be initialised at $\hat \x(\btheta)_{-i}$.
-4. For $x_i \in \{ x_i(\bv) \}_{\bv \in \mathcal{Q}(1, l)}$ calculate
-\begin{equation}
-\end{equation}
-where
-$$
-\tilde p_\texttt{LA}(x_i, \y) = \sum_{\bu \in \mathcal{Q}(m, k)} \tilde p_\texttt{LA}(x_i, \btheta(\bu), \y) \omega(\bu).
-$$
-and
-$$
-\tilde p_\texttt{LA}(x_i, \btheta, \y) = \frac{p(x_i, \x_{-i}, \btheta, \y)}{\tilde p_\texttt{G}(\x_{-i} \, | \, x_i, \btheta, \y)} \Big\rvert_{\x_{-i} = \hat \x_{-i}(x_i, \btheta)}.
-$$
-Although Equation \ref{eq:laplace-marginal} can be calculated using the estimate of the evidence given in Equation \ref{eq:evidence1} it is more numerically accurate, and requires little extra computation, to use the estimate
-$$
-\tilde p_{\texttt{AQ}}(\y) = \sum_{\bv \in \mathcal{Q}(1, l)} \tilde p_\texttt{LA}(x_i(\bv), \y) \omega(\bv)
-$$
-
-5. Given $\{x_i(\bv), \tilde p_\texttt{AQ}(x_i(\bv) \, | \, \y)\}_{\bv \in \mathcal{Q}(1, l)}$ create a spline interpolant to each posterior marginal on the log-scale. Samples, and thereby relevant posterior marginal summaries, may be obtained using inverse transform sampling.
 
 \clearpage
 

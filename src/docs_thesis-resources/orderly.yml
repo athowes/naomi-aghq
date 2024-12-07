@@ -15,7 +15,7 @@ packages:
   - patchwork
 
 depends:
-  - docs_paper:
+  - docs_jtb-paper:
       id: latest
       use:
         depends/figA.png: figA.png

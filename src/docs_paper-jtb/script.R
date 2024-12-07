@@ -21,12 +21,6 @@ convert_pdf_png("nodes-samples-comparison")
 rmarkdown::render("paper.Rmd", clean = FALSE)
 rmarkdown::render("appendix.Rmd", clean = FALSE)
 
-tinytex::pdflatex("paper.tex", clean = FALSE)
-tinytex::pdflatex("appendix.tex", clean = FALSE)
-
-tinytex::pdflatex("paper.tex")
-tinytex::pdflatex("appendix.tex")
-
 pdftools::pdf_combine(c("paper.pdf", "appendix.pdf"), output = "naomi-aghq.pdf")
 
 #' I just used this function to check some things as I was writing!
