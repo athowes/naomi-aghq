@@ -32,9 +32,7 @@ resources:
   - appendix.Rmd
   - citations.bib
   - preamble.tex
-  - imsart-nameyear.bst
-  - imsart.cls
-  - imsart.sty
+  - elsarticle.cls
   - naomi_simple.cpp
   - 2d.cpp
   - figs.R

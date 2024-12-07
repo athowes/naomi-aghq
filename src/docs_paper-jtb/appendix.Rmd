@@ -18,7 +18,9 @@ header-includes:
   \usepackage{xr} \externaldocument{paper}
 ---
 
-```{r echo = FALSE}
+```{r echo = FALSE, message = FALSE}
+library(dplyr)
+
 options(scipen = 100)
 
 knitr::opts_chunk$set(
@@ -534,50 +536,50 @@ For any parameter with length greater than one, the results presented are an ave
 ### Posterior mean
 
 ```{r}
-point_summary <- read_csv("depends/point-estimates.csv")
+point_summary <- readr::read_csv("depends/point-estimates.csv")
 
-point_summary <- point_summary %>%
-  mutate(type = fct_recode(type, "Output" = "output", "Latent" = "latent"))
+point_summary <- point_summary |>
+  mutate(type = forcats::fct_recode(type, "Output" = "output", "Latent" = "latent"))
 
 latex_table_point_estimates <- function(.indicator) {
-  point_summary %>%
-  group_by(par, type, indicator, method) %>%
+  point_summary |>
+  group_by(par, type, indicator, method) |>
   summarise(
     rmse = sqrt(mean((truth - approximate)^2)),
     mae = mean(abs(truth - approximate))
-  ) %>%
-  ungroup() %>%
-  pivot_wider(
+  ) |>
+  ungroup() |>
+  tidyr::pivot_wider(
     names_from = "method",
     values_from = c("rmse", "mae")
-  ) %>%
-  filter(indicator == .indicator) %>%
-  select(Parameter = par, Type = type, `TMB` = `rmse_TMB`, `PCA-AGHQ` = `rmse_PCA-AGHQ`) %>%
+  ) |>
+  filter(indicator == .indicator) |>
+  select(Parameter = par, Type = type, `TMB` = `rmse_TMB`, `PCA-AGHQ` = `rmse_PCA-AGHQ`) |>
   mutate(
     Difference = `PCA-AGHQ` - TMB,
     `Percent Difference` =  (`PCA-AGHQ` - TMB) / TMB
-  ) %>%
-  gt::gt(groupname_col = "Type") %>%
+  ) |>
+  gt::gt(groupname_col = "Type") |>
   gt::fmt_number(
     columns = c(`TMB`, `PCA-AGHQ`, Difference),
     n_sigfig = 2
-  ) %>%
+  ) |>
  gt::fmt_percent(
     columns = `Percent Difference`,
     decimals = 1
-  ) %>%
+  ) |>
   gt::text_transform(
     locations = gt::cells_body("Parameter"),
     fn = function(x) paste0("\\texttt{", x, "}")
-  ) %>%
-  gt::as_latex() %>%
+  ) |>
+  gt::as_latex() |>
   as.character()
 }
 
-latex_table_point_estimates("Posterior mean estimate") %>%
+latex_table_point_estimates("Posterior mean estimate") |>
   cat(file = "point-summary-mean.tex")
 
-latex_table_point_estimates("Posterior SD estimate") %>%
+latex_table_point_estimates("Posterior SD estimate") |>
   cat(file = "point-summary-sd.tex")
 ```
 
@@ -594,33 +596,33 @@ latex_table_point_estimates("Posterior SD estimate") %>%
 ```{r}
 ks_summary <- readRDS("depends/ks-summary.rds")
 
-ks_summary %>%
-  ungroup() %>%
-  filter(type == "Latent") %>%
-  select(-type) %>%
-  select(Parameter = parname, TMB, `PCA-AGHQ` = aghq) %>%
-  mutate(Difference = `PCA-AGHQ` - TMB) %>%
-  gt::gt() %>%
+ks_summary |>
+  ungroup() |>
+  filter(type == "Latent") |>
+  select(-type) |>
+  select(Parameter = parname, TMB, `PCA-AGHQ` = aghq) |>
+  mutate(Difference = `PCA-AGHQ` - TMB) |>
+  gt::gt() |>
   gt::summary_rows(
    columns = c(`TMB`, `PCA-AGHQ`, Difference),
    fns = list(Average = ~ mean(.x)),
    formatter = gt::fmt_number,
    decimals = 3
-  ) %>%
+  ) |>
   gt::fmt_number(
     columns = c(`TMB`, `PCA-AGHQ`, Difference),
     decimals = 3
-  ) %>%
+  ) |>
   gt::text_transform(
     locations = gt::cells_body("Parameter"),
     fn = function(x) paste0("\\texttt{", x, "}")
-  ) %>%
+  ) |>
   gt::text_transform(
     locations = gt::cells_body("Difference"),
     fn = function(x) ifelse(x < 0, paste0("\\textbf{", x, "}"), paste0(x))
-  ) %>%
-  gt::as_latex() %>%
-  as.character() %>%
+  ) |>
+  gt::as_latex() |>
+  as.character() |>
   cat(file = "ks-summary.tex")
 ```
 
@@ -650,9 +652,9 @@ There were no divergent transitions.
 ```{r}
 np <- readRDS("depends/nuts-params.rds")
 
-n_divergent <- np %>%
-  filter(Parameter == "divergent__") %>%
-  summarise(n_divergent = sum(Value)) %>%
+n_divergent <- np |>
+  filter(Parameter == "divergent__") |>
+  summarise(n_divergent = sum(Value)) |>
   pull(n_divergent)
 
 stopifnot(n_divergent == 0)
@@ -733,10 +735,6 @@ $$
 $$
 
 5. Given $\{x_i(\bv), \tilde p_\texttt{AQ}(x_i(\bv) \, | \, \y)\}_{\bv \in \mathcal{Q}(1, l)}$ create a spline interpolant to each posterior marginal on the log-scale. Samples, and thereby relevant posterior marginal summaries, may be obtained using inverse transform sampling.
-
-<!-- ```{r algorithm-flowchart, fig.cap="Flowchart describing the algorithm we propose (work in progress)."} -->
-<!-- knitr::include_graphics("depends/algorithm-flowchart.pdf") -->
-<!-- ``` -->
 
 \clearpage
 
