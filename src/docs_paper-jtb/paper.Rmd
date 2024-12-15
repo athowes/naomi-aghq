@@ -435,8 +435,8 @@ naomi_nuts <- readRDS("depends/mcmc-out.rds")
 ```
 
 The Naomi model was difficult to efficiently sample from using NUTS via `tmbstan`.
-The lowest effective sample size was `r round(naomi_nuts$ess_min, 0)` (2.5% quantile `r round(naomi_nuts$ess_lower, 0)`, 50% quantile `r round(naomi_nuts$ess_median, 0)`, and 97.5% quantile `r round(naomi_nuts$ess_upper, 0)`; Panel \@ref(fig:worst-trace)A).
-The largest potential scale reduction factor was `r round(naomi_nuts$rhat_max, 3)` (2.5% quantile `r round(naomi_nuts$rhat_lower, 3)`, 50% quantile `r round(naomi_nuts$rhat_median, 3)`, and 97.5% quantile `r round(naomi_nuts$rhat_upper, 3)`; Panel \@ref(fig:worst-trace)B).
+The lowest effective sample size was `r round(naomi_nuts$ess_min, 0)` (2.5% quantile `r round(naomi_nuts$ess_lower, 0)`, 50% quantile `r round(naomi_nuts$ess_median, 0)`, and 97.5% quantile `r round(naomi_nuts$ess_upper, 0)`; Panel XA).
+The largest potential scale reduction factor was `r round(naomi_nuts$rhat_max, 3)` (2.5% quantile `r round(naomi_nuts$rhat_lower, 3)`, 50% quantile `r round(naomi_nuts$rhat_median, 3)`, and 97.5% quantile `r round(naomi_nuts$rhat_upper, 3)`; Panel XB).
 Though inaccuracies remain possible, these diagnostics are sufficient to treat inferences obtained from NUTS as a gold-standard.
 
 ## Use of PCA-AGHQ
@@ -445,9 +445,7 @@ Though inaccuracies remain possible, these diagnostics are sufficient to treat i
 tv_df <- readr::read_csv("depends/total-variation.csv")
 ```
 
-(ref:total-variation) Under PCA, the proportion of total variation explained is given by the sum of the first $s$ eigenvalues over the sum of all eigenvalues. A typical rule-of-thumb is to include dimensions sufficient to explain 90% of total variation. In this case, for computational reasons, `r round(100 * tv_df$tv[8])`% was considered sufficient.
-
-```{r total-variation, fig.cap="(ref:total-variation)"}
+```{r total-variation, fig.cap=paste0("Under PCA, the proportion of total variation explained is given by the sum of the first $s$ eigenvalues over the sum of all eigenvalues. A typical rule-of-thumb is to include dimensions sufficient to explain 90% of total variation. In this case, for computational reasons, ", round(100 * tv_df$tv[8]), "% was considered sufficient.")}
 knitr::include_graphics("depends/total-variation.png")
 ```
 
@@ -455,27 +453,27 @@ knitr::include_graphics("depends/total-variation.png")
 knitr::include_graphics("depends/reduced-rank.png")
 ```
 
-For the PCA-AGHQ quadrature grid, a Scree plot based on the spectral decomposition of $\hat {\mathbf{H}}_\texttt{LA}^{-1}$ (as defined in Equation \@ref(eq:hessian2)) was used to select the number of principal components to keep (Figure \ref{fig:total-variation}).
-Keeping $s = 8$ principal components was sufficient to explain `r round(100 * tv_df$tv[8])`% of total variation.
-The reduced rank approximation to the inverse curvature with this choice of $s$ was visually similar to the full rank matrix (Figure \@ref(fig:reduced-rank)).
-
-The principal component (PC) loadings (Figure \{fig:pc-loadings}) provide interpretable information about which directions had the greatest variation.
-Many of the first PC loadings are sums of two hyperparameters.
-As such, there is some redundancy in the hyperparameter parameterisation, supporting the findings of Section \@ref(naomi-nuts) regarding correlation structure in the hyperparameter posterior.
-It is exactly this correlation structure that PCA, and PCA-AGHQ, looks to utilise.
-
 ```{r nodes-samples-comparison, fig.cap="The grey histograms show the 24 hyperparameter marginal distributions obtained with NUTS. The green lines indicate the position of the 6561 PCA-AGHQ nodes projected onto each hyperparameter marginal. For some hyperparameters, the PCA-AGHQ nodes vary over the domain of the posterior marginal distribution, while for others they concentrate at the mode."}
 knitr::include_graphics("depends/nodes-samples-comparison.png")
 ```
 
+For the PCA-AGHQ quadrature grid, a Scree plot based on the spectral decomposition of $\hat {\mathbf{H}}_\texttt{LA}^{-1}$ was used to select the number of principal components to keep (Figure \ref{fig:total-variation}).
+Keeping $s = 8$ principal components was sufficient to explain `r round(100 * tv_df$tv[8])`% of total variation.
+The reduced rank approximation to the inverse curvature with this choice of $s$ was visually similar to the full rank matrix (Figure \ref{fig:reduced-rank}).
+
+The principal component (PC) loadings (Figure Appendix) provide interpretable information about which directions had the greatest variation.
+Many of the first PC loadings are sums of two hyperparameters.
+As such, there is some redundancy in the hyperparameter parameterisation, supporting the findings of the Appendix regarding correlation structure in the hyperparameter posterior.
+It is exactly this correlation structure that PCA, and PCA-AGHQ, looks to utilise.
+
 Projecting the $3^8 = 6561$ PCA-AGHQ quadrature nodes onto each hyperparameter dimension, there was substantial variation in coverage by hyperparameter (Figure \ref{fig:nodes-samples-comparison}).
 Approximately 12 hyperparameters had well covered marginals: greater than the 8 naively obtained with a dense grid, but nonetheless far fewer than the full 24.
 Coverage was higher among hyperparameters on the logistic scale, and lower among hyperparameters on the logarithmic scale.
-This discrepancy occurred due to logistic hyperparameters naturally having higher posterior marginal standard deviation than logarithmic hyperparameters (Figure \@ref(fig:marginal-sd)).
+This discrepancy occurred due to logistic hyperparameters naturally having higher posterior marginal standard deviation than logarithmic hyperparameters (Figure Appendix).
 
 ## Inference comparison
 
-Posterior inferences from GEB, GPCA-AGHQ and NUTS were compared using point estimates (Section \@ref(point-estimates)), distributional quantities (Section \@ref(distributional-quantities)), and exceedance probabilities (Section \@ref(exceedance))
+Posterior inferences from GEB, GPCA-AGHQ and NUTS were compared using point estimates (Section \ref{sec:point-estimates}), distributional quantities (Section \ref{sec:distributional-quantities}), and exceedance probabilities (Section \ref{sec:exceedance}).
 
 ### Point estimates \label{sec:point-estimates}
 
