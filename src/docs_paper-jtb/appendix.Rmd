@@ -40,11 +40,11 @@ knitr::opts_chunk$set()
 # Simplified Naomi model description {#naomi-math}
 
 This section describes the simplified version of the Naomi model [@eaton2021naomi] in more detail.
-The concise $i$ indexing used in Section \@ref(naomi) is replaced by a more complete $x, s, a$ indexing.
+The concise $i$ indexing is replaced by a more complete $x, s, a$ indexing.
 There are four sections:
 
 1. Section \@ref(naomi-process) gives the process specifications, giving the terms in each structured additive predictor, along with their distributions.
-2. Section \@ref(naomi-likelihood) gives additional details about the likelihood terms not provided in Section \@ref(naomi).
+2. Section \@ref(naomi-likelihood) gives additional details about the likelihood terms.
 3. Section \@ref(naomi-identifiability) gives identifiability constraints used in circumstances where incomplete data is available for the country.
 4. Section \@ref(naomi-implementation) provides details of the `TMB` implementation.
 
@@ -204,7 +204,7 @@ In particular:
 
 1. If survey data on HIV prevalence or ART coverage by age and sex are not available then $\mathbf{u}_a^\theta = 0$ and $\mathbf{u}_{a, s = \text{M}}^\theta = 0$.
 In this case, the average age-sex pattern from the Spectrum is used.
-For the Malawi case-study (Section \@ref(malawi)), HIV prevalence and ART coverage data are not available for those aged 65+.
+For the Malawi case-study, HIV prevalence and ART coverage data are not available for those aged 65+.
 As a result, there are $|\{\text{0-4}, \ldots, \text{50-54}\}| = 13$ age groups included for the age random effects.
 2. If no ART data, either survey or ART programme, are available but data on ART coverage among ANC clients are available, the level of ART coverage is not identifiable, but spatial variation is identifiable.
 In this instance, overall ART coverage is determined by the Spectrum offset, and only area random effects are estimated such that
@@ -298,6 +298,19 @@ knitr::include_graphics("depends/ess.png")
 knitr::include_graphics("depends/worst-trace.png")
 ```
 
+```{r}
+ar1_bym2_cor <- readr::read_csv("depends/ar1-bym2-cor.csv")
+
+ar1_bym2_cor_grouped <- ar1_bym2_cor %>%
+  dplyr::group_by(type) %>%
+  dplyr::summarise(cor_mean = mean(abs(cor)))
+```
+
+Correlation structure in the posterior can result in sampler inefficiency.
+Each of the four pairs of AR1 log standard deviation $\log(\sigma)$ and logit lag-one autocorrelation parameter $\text{logit}(\phi)$ posteriors were positively correlated (mean absolute correlation `r round(ar1_bym2_cor_grouped$cor_mean[1], 2)`, Figure \@ref(fig:rho-a)).
+These parameters are partially identifiable as variation can either be explained by high standard deviation and high autocorrelation or low standard deviation and low autocorrelation.
+On the other hand, the BYM2 log standard deviation $\log(\sigma)$ and logit proportion parameter $\text{logit}(\phi)$ were, as designed, more orthogonal (mean absolute correlation `r round(ar1_bym2_cor_grouped$cor_mean[2], 2)`, Figure \@ref(fig:alpha-x)).
+
 (ref:rho-a) Pairs plots for the parameters $\log(\sigma_{A}^\rho)$ and $\text{logit}(\phi_{A}^\rho)$, or `log_sigma_rho_a` and `logit_phi_rho_a` as implemented in code. These parameters are the log standard deviation and logit lag-one correlation parameter of an AR1 process. In the posterior distribution obtained with NUTS, they have a high degree of correlation.
 
 ```{r rho-a, fig.cap="(ref:rho-a)"}
@@ -309,6 +322,16 @@ knitr::include_graphics("depends/rho_a.png")
 ```{r alpha-x, fig.cap="(ref:alpha-x)"}
 knitr::include_graphics("depends/alpha_x.png")
 ```
+
+The informativeness of data about a parameter can be summarised by the posterior contraction [@schad2021toward] which compares the prior variance $\mathbb{V}_\text{prior}(\phi)$ to posterior variance $\mathbb{V}_\text{post}(\phi)$ via
+\begin{equation}
+c(\phi) = 1 - \frac{\mathbb{V}_\text{prior}}{\mathbb{V}_\text{post}(\phi)}.
+\end{equation}
+Posterior variances were extracted from NUTS results, and prior variances obtained by simulating from a model with the likelihood component removed (Figure \@ref(fig:nuts-hand-comparison)).
+The average posterior contraction was positive for all latent field parameter vectors, and for the majority of hyperparameters (Figure \@ref(fig:posterior-contraction)).
+However, for seven hyperparameters the posterior contraction was very close to zero.
+Furthermore, for some latent field parameter vectors, the average contraction was small.
+Based on this findings, these parameters may not be identifiable.
 
 (ref:nuts-hand-comparison) Prior standard deviations were calculated by using NUTS to simulate from the prior distribution. This approach is more convenient than simulating directly from the model, but can lead to inaccuracies.
 
@@ -346,6 +369,12 @@ knitr::include_graphics("depends/marginal-sd.png")
 
 ```{r lognormconst, fig.cap="(ref:lognormconst)"}
 knitr::include_graphics("depends/lognormconst.png")
+```
+
+(ref:pc-loadings) Each principal component loading, obtained by the eigendecomposition of the inverse curvature, gives the direction of maximum variation conditional on inclusion of each previous principal component loading. For example, the first principal component loading is a sum of `log_sigma_alpha_as` and `logit_phi_alpha_as`.
+
+```{r pc-loadings, fig.cap="(ref:pc-loadings)"}
+knitr::include_graphics("depends/pc-loadings.png")
 ```
 
 \clearpage

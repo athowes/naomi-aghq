@@ -79,7 +79,7 @@ Nationally-representative household surveys, while providing the most statistica
 Furthermore, sample sizes at the district level are limited.
 Other data sources, such as routine health surveillance of antenatal care (ANC) clinics, are available nearer to real-time, but lack population representativeness.
 
-The Naomi small-area estimation model [@eaton2021naomi] addresses these challenges by synthesising data from multiple sources to estimate HIV indicators at a district-level, by age and sex.
+The Naomi small-area estimation model [@eaton2021naomi; @esra2024improved] addresses these challenges by synthesising data from multiple sources to estimate HIV indicators at a district-level, by age and sex.
 Modelling multiple data sources jointly mitigates the limitations of any single source and increases statistical power.
 Software developed for Naomi (\url{https://naomi.unaids.org}) facilitates over 35 countries inputting their data and interactively generating estimates during workshops as a part of a yearly estimates process supported by UNAIDS.
 Generation of estimates by country teams is an important and distinctive feature of the HIV response.
@@ -157,6 +157,27 @@ y_i &\sim p(y_i \, | \, \bmeta_{\mathcal{J}_i}, \btheta_1), \quad i \in [n] \\
 \end{align*}
 with latent field and hyperparameter priors as in the LGM case.
 
+### Template Model Builder
+
+Template Model Builder [`TMB`; @kristensen2016tmb] is an R package which implements the Laplace approximation.
+In `TMB`, derivatives are obtained using automatic differentiation [AD; @baydin2017automatic].
+The approach of AD is to decompose any function into a sequence of elementary operations with known derivatives.
+The known derivatives of the elementary operations may then be composed by repeat use of the chain rule to obtain the function's derivative.
+A review of AD and how it can be efficiently implemented is provided by @margossian2019review.
+`TMB` uses the C++ package `CppAD` [@cppaddocumentation] for AD [Section 3; @kristensen2016tmb].
+The development of `TMB` was strongly inspired by the Automatic Differentiation Model Builder [ADMB; @fournier2012ad; @bolker2013strategies] project.
+An algorithm is used in `TMB` to automatically determine matrix sparsity structure [Section 4.2; @kristensen2016tmb].
+The R package `Matrix` and C++ package `Eigen` are then used for sparse and dense matrix calculations.
+@kristensen2016tmb highlight the modular design philosophy of `TMB`.
+A review of the use of `TMB` for spatial modelling, including comparison to `R-INLA`, is provided by @osgood2023statistical.
+
+Models are specified in `TMB` using a C++ template file which evaluates $\log p(\mathbf{y}, \mathbf{x}, \boldsymbol{\mathbf{\theta}})$ in a Bayesian context or $\log p(\mathbf{y} \, | \, \mathbf{x}, \boldsymbol{\mathbf{\theta}})$ in a frequentist setting.
+Other software packages have been developed which also use `TMB` C++ templates.
+The `tmbstan` R package [@monnahan2018no] allows running the Hamiltonian Monte Carlo (HMC) algorithm via `Stan`.
+The `aghq` R package [@stringer2021implementing] allows use of AGHQ, and AGHQ over the marginal Laplace approximation, via the `mvQuad` R package [@weiser2016mvquad].
+The `glmmTMB` R package [@brooks2017glmmTMB] allows specification of common GLMM models via a formula interface.
+It is also possible to extract the `TMB` objective function used by `glmmTMB`, which may then be passed into `aghq` or `tmbstan`.
+
 # Simplified Naomi model\label{sec:naomi}
 
 ```{r naomi-results, fig.cap="District-level HIV prevalence (A), ART coverage (B), and new HIV cases and HIV incidence (C) for adults 15-49 in Malawi. Inference conducted using EB."}
@@ -166,7 +187,7 @@ knitr::include_graphics("figB.png")
 @eaton2021naomi introduce a joint ELGM linking three small-area estimation models.
 We consider a simplified version defined only at the time of the most recent household survey with HIV testing.
 While this version omits nowcasting and temporal projection, as these time points involve limited inference we expect conclusions for the simplified model to be applicable to the complete model.
-An overview of the simplified model is given below, and Appendix \ref{sec:math} provides a full specification.
+An overview of the simplified model is given below, and a full specification is provided in the Appendix.
 
 ## Notation
 
@@ -189,7 +210,7 @@ The latent field is controlled by hyperparamters $\btheta$ which include standar
 
 Independent logistic regression models are specified for HIV prevalence and ART coverage in the general population such that $\text{logit}(\rho_i) = \eta^\rho_i$ and $\text{logit}(\alpha_i) = \eta^\alpha_i$.
 HIV incidence rate is modelled by $\log(\lambda_i) = \eta^\lambda_i$ and depends on adult HIV prevalence and adult ART coverage.
-The structured additive predictors $\eta^\theta_i$ for $\theta \in \{\rho, \alpha, \lambda\}$ are given in Appendix \ref{sec:math}.
+The structured additive predictors $\eta^\theta_i$ for $\theta \in \{\rho, \alpha, \lambda\}$ are given in the Appendix.
 The proportion recently infected $\kappa_i$ is linked to HIV incidence via
 \begin{equation}
 \kappa_i = 1- \exp \left( - \lambda_i \cdot \frac{1 - \rho_i}{\rho_i} \cdot (\Omega_T - \beta_T) - \beta_T \right), \label{eq:kappa}
@@ -339,11 +360,6 @@ Inference for the latent field follows analogously to Equation \ref{eq:nest}.
 
 # Application to data from Malawi\label{sec:results}
 
-```{r}
-#' It's a shame here that I have to put "seconds", "hours" and "days" manually and it's not stored in the time taken
-time_taken <- readr::read_csv("depends/time-taken.csv")
-```
-
 We fit the simplified Naomi model (Section \ref{sec:naomi}) to data from Malawi.
 Data from Malawi has previously been used to demonstrate the Naomi model, including as a part of the `naomi` R package vignette.
 Malawi was chosen in part because it has a small number of districts, $n = 30$, limiting the computational demand of the model.
@@ -359,8 +375,8 @@ Three Bayesian inference approaches were considered:
 \toprule
 Method & Software & Details \\
 \midrule
-TMB & \texttt{TMB} & $1000$ samples \\
-PCA-AGHQ & \texttt{aghq} & $k = 3, s = 8$ (see Section \ref{sec:pca-use}), 1000 samples \\
+GEB & \texttt{TMB} & $1000$ samples \\
+GPCA-AGHQ & \texttt{aghq} & $k = 3, s = 8$, 1000 samples \\
 NUTS & \texttt{tmbstan} & 4 chains of 100000 iterations, with the first 50000 iterations of each chain discarded as warmup, thinned by a factor of 20, to give a total of 10000 samples kept. Default NUTS tuning parameters \citep{hoffman2014no}. \\
 \bottomrule
 \end{tabularx}
@@ -378,6 +394,94 @@ For all methods, age-sex-district specific HIV prevalence, ART coverage and HIV 
 
 The \textsc{R} [@r] code used to produce all results we describe below is available at `github.com/athowes/naomi-aghq`.
 We used `orderly` [@orderly] for reproducible research, `ggplot2` for data visualisation [@wickham2016ggplot2] and `rticles` [@allaire2022rticles] for reporting via `rmarkdown` [@allaire2022rmarkdown].
+
+## Time taken
+
+```{r naomi-time}
+time_taken <- readr::read_csv("depends/time-taken.csv")
+
+time_taken$aghq <- time_taken$aghq * 60 * 60 
+time_taken$tmbstan <- time_taken$tmbstan * 60 * 60 * 24
+
+time_taken_df <- as.data.frame(t(time_taken)) %>%
+  tibble::rownames_to_column("method") %>%
+  mutate(
+    mins = V1 / 60,
+    hours = mins / 60,
+    days = hours / 24,
+    method = case_when(
+      method == "TMB" ~ "GEB",
+      method == "aghq" ~ "GPCA-AGHQ",
+      method == "tmbstan" ~ "NUTS"
+    ),
+    software = case_when(
+      method == "NUTS" ~ "tmbstan",
+      TRUE ~ "TMB"
+    )
+  )
+
+naomi_time_tmbstan_hours <- signif(filter(time_taken_df, method == "NUTS")$hours, 2)
+naomi_time_aghq_hours <- signif(filter(time_taken_df, method == "GPCA-AGHQ")$hours, 2)
+naomi_time_tmb_minutes <- signif(filter(time_taken_df, method == "GEB")$mins, 1)
+```
+
+Inference with NUTS took `r naomi_time_tmbstan_hours` hours, while inference with GPCA-AGHQ took `r naomi_time_aghq_hours` hours and GEB just `r naomi_time_tmb_minutes` minutes.
+Both the NUTS and GPCA-AGHQ algorithms can be run under a range of settings, trading off accuracy and runtime.
+
+## NUTS convergence and suitability
+
+```{r}
+naomi_nuts <- readRDS("depends/mcmc-out.rds")
+```
+
+The Naomi model was difficult to efficiently sample from using NUTS via `tmbstan`.
+The lowest effective sample size was `r round(naomi_nuts$ess_min, 0)` (2.5% quantile `r round(naomi_nuts$ess_lower, 0)`, 50% quantile `r round(naomi_nuts$ess_median, 0)`, and 97.5% quantile `r round(naomi_nuts$ess_upper, 0)`; Panel \@ref(fig:worst-trace)A).
+The largest potential scale reduction factor was `r round(naomi_nuts$rhat_max, 3)` (2.5% quantile `r round(naomi_nuts$rhat_lower, 3)`, 50% quantile `r round(naomi_nuts$rhat_median, 3)`, and 97.5% quantile `r round(naomi_nuts$rhat_upper, 3)`; Panel \@ref(fig:worst-trace)B).
+Though inaccuracies remain possible, these diagnostics are sufficient to treat inferences obtained from NUTS as a gold-standard.
+
+## Use of PCA-AGHQ
+
+```{r}
+tv_df <- readr::read_csv("depends/total-variation.csv")
+```
+
+(ref:total-variation) Under PCA, the proportion of total variation explained is given by the sum of the first $s$ eigenvalues over the sum of all eigenvalues. A typical rule-of-thumb is to include dimensions sufficient to explain 90% of total variation. In this case, for computational reasons, `r round(100 * tv_df$tv[8])`% was considered sufficient.
+
+```{r total-variation, fig.cap="(ref:total-variation)"}
+knitr::include_graphics("depends/total-variation.png")
+```
+
+```{r reduced-rank, fig.cap="The full rank original covariance matrix (Panel A) was closely reproduced by its reduced rank ($s = 8$) matrix approximation (Panel B)."}
+knitr::include_graphics("depends/reduced-rank.png")
+```
+
+For the PCA-AGHQ quadrature grid, a Scree plot based on the spectral decomposition of $\hat {\mathbf{H}}_\texttt{LA}^{-1}$ (as defined in Equation \@ref(eq:hessian2)) was used to select the number of principal components to keep (Figure \ref{fig:total-variation}).
+Keeping $s = 8$ principal components was sufficient to explain `r round(100 * tv_df$tv[8])`% of total variation.
+The reduced rank approximation to the inverse curvature with this choice of $s$ was visually similar to the full rank matrix (Figure \@ref(fig:reduced-rank)).
+
+The principal component (PC) loadings (Figure \{fig:pc-loadings}) provide interpretable information about which directions had the greatest variation.
+Many of the first PC loadings are sums of two hyperparameters.
+As such, there is some redundancy in the hyperparameter parameterisation, supporting the findings of Section \@ref(naomi-nuts) regarding correlation structure in the hyperparameter posterior.
+It is exactly this correlation structure that PCA, and PCA-AGHQ, looks to utilise.
+
+```{r nodes-samples-comparison, fig.cap="The grey histograms show the 24 hyperparameter marginal distributions obtained with NUTS. The green lines indicate the position of the 6561 PCA-AGHQ nodes projected onto each hyperparameter marginal. For some hyperparameters, the PCA-AGHQ nodes vary over the domain of the posterior marginal distribution, while for others they concentrate at the mode."}
+knitr::include_graphics("depends/nodes-samples-comparison.png")
+```
+
+Projecting the $3^8 = 6561$ PCA-AGHQ quadrature nodes onto each hyperparameter dimension, there was substantial variation in coverage by hyperparameter (Figure \ref{fig:nodes-samples-comparison}).
+Approximately 12 hyperparameters had well covered marginals: greater than the 8 naively obtained with a dense grid, but nonetheless far fewer than the full 24.
+Coverage was higher among hyperparameters on the logistic scale, and lower among hyperparameters on the logarithmic scale.
+This discrepancy occurred due to logistic hyperparameters naturally having higher posterior marginal standard deviation than logarithmic hyperparameters (Figure \@ref(fig:marginal-sd)).
+
+## Inference comparison
+
+Posterior inferences from GEB, GPCA-AGHQ and NUTS were compared using point estimates (Section \@ref(point-estimates)), distributional quantities (Section \@ref(distributional-quantities)), and exceedance probabilities (Section \@ref(exceedance))
+
+### Point estimates \label{sec:point-estimates}
+
+### Distributional quantities\label{sec:distributional-quantities}
+
+### Exceedance probabilities\label{sec:exceedance}
 
 # Conclusion\label{sec:conclusions}
 
