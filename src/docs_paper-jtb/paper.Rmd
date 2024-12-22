@@ -103,10 +103,10 @@ Although the EB approach is fast, it does not take into account hyperparameter u
 This concern could have important practical implications for use of the estimates from the Naomi model, and motivated us to look for an approach closer full Bayesian inference.
 We developed a method based on adaptive Gauss-Hermite quadrature (AGHQ) extended to handle integration over many hyperparameters.
 AGHQ is a quadrature method based on the theory of polynomial interpolation, and is well suited to statistical estimation problems in which the integrand is well approximated by a Gaussian multiplied by a polynomial.
-For example, @bilodeau2022stochastic prove stochastic convergence rates for Bayesian posterior quantities when the normalising constant is estimated using AGHQ.
+For example, @bilodeau2024stochastic prove stochastic convergence rates for Bayesian posterior quantities when the normalising constant is estimated using AGHQ.
 However, it is not computationally feasible to use AGHQ in >20 dimensions directly, as exponentially many nodes are required.
 Instead, we used principal components analysis (PCA) of the inverse curvature at the mode to find a subspace which explained most of the hyperparameter variance.
-In an application to Malawi, this resulted in a grid which was tractable as it had millions of times fewer nodes the corresponding dense grid.
+In an application to Malawi, this resulted in a grid which was tractable as it had millions of times fewer nodes than the corresponding dense grid.
 Our implementation of the method makes use of the existing Naomi `TMB` template, and is immediately compatible with any model with such a template.
 
 <!-- See https://inlabru-org.github.io/inlabru/articles/method.html -->
@@ -171,7 +171,7 @@ The R package `Matrix` and C++ package `Eigen` are then used for sparse and dens
 @kristensen2016tmb highlight the modular design philosophy of `TMB`.
 A review of the use of `TMB` for spatial modelling, including comparison to `R-INLA`, is provided by @osgood2023statistical.
 
-Models are specified in `TMB` using a C++ template file which evaluates $\log p(\mathbf{y}, \mathbf{x}, \boldsymbol{\mathbf{\theta}})$ in a Bayesian context or $\log p(\mathbf{y} \, | \, \mathbf{x}, \boldsymbol{\mathbf{\theta}})$ in a frequentist setting.
+Models are specified in `TMB` using a C++ template file which evaluates $\log p(\mathbf{y}, \mathbf{x}, \boldsymbol{\mathbf{\theta}})$.
 Other software packages have been developed which also use `TMB` C++ templates.
 The `tmbstan` R package [@monnahan2018no] allows running the Hamiltonian Monte Carlo (HMC) algorithm via `Stan`.
 The `aghq` R package [@stringer2021implementing] allows use of AGHQ, and AGHQ over the marginal Laplace approximation, via the `mvQuad` R package [@weiser2016mvquad].
