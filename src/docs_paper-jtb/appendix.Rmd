@@ -41,9 +41,9 @@ knitr::opts_chunk$set()
 
 This section describes the simplified version of the Naomi model [@eaton2021naomi] in more detail.
 The concise $i$ indexing is replaced by a more complete $x, s, a$ indexing.
-There are four sections:
+There are four sections, as follows:
 
-1. Section \@ref(naomi-process) gives the process specifications, giving the terms in each structured additive predictor, along with their distributions.
+1. Section \@ref(naomi-process) gives the process specifications, including the terms in each structured additive predictor, along with their distributions.
 2. Section \@ref(naomi-likelihood) gives additional details about the likelihood terms.
 3. Section \@ref(naomi-identifiability) gives identifiability constraints used in circumstances where incomplete data is available for the country.
 4. Section \@ref(naomi-implementation) provides details of the `TMB` implementation.
@@ -59,7 +59,7 @@ There are four sections:
 | Section \@ref(art-attend) | ART attendance     | $n$          | 1              |
 |                   | Total              | $51 + 14n$   | 24             |
 
-Table: (\#tab:process) The Naomi model can be conceptualised as having five processes. This table gives the number of latent field parameters and hyperparameters in each process, where $n$ is the number of districts in the country.
+Table: (\#tab:process) The Naomi model can be conceptualised as having five processes. This table gives the number of latent field parameters and hyperparameters in each model component, where $n$ is the number of districts in the country.
 
 ### HIV prevalence {#hiv-prev}
 
@@ -98,7 +98,7 @@ Table: (\#tab:prev) Each term in Equation \@ref(eq:prev) together with, where ap
 
 ART coverage $\alpha_{x, s, a} \in [0, 1]$ was modelled on the logit scale using the structured additive predictor
 \begin{equation}
-\text{logit}(\alpha_{x, s, a}) = \beta^\alpha_0 + \beta_{S}^{\alpha, s = \text{M}} + \mathbf{u}^\alpha_a + \mathbf{u}_a^{\alpha, s = \text{M}} + \mathbf{u}^\alpha_x + \mathbf{u}_x^{\alpha, s = \text{M}} + \mathbf{u}_x^{\alpha, a < 15} + \boldsymbol{\mathbf{\eta}}^\alpha_{R_x, s, a} 
+\text{logit}(\alpha_{x, s, a}) = \beta^\alpha_0 + \beta_{S}^{\alpha, s = \text{M}} + \mathbf{u}^\alpha_a + \mathbf{u}_a^{\alpha, s = \text{M}} + \mathbf{u}^\alpha_x + \mathbf{u}_x^{\alpha, s = \text{M}} + \mathbf{u}_x^{\alpha, a < 15} + \boldsymbol{\mathbf{\eta}}^\alpha_{R_x, s, a},
 \end{equation}
 with terms and prior distributions analogous to the HIV prevalence process model in Section \@ref(hiv-prev) above.
 
@@ -217,7 +217,7 @@ The sex ratio for HIV incidence is determined by the sex incidence rate ratio fr
 ## Implementation {#naomi-implementation}
 
 The `TMB` C++ code for the negative log-posterior of the simplified Naomi model is available from [`https://github.com/athowes/naomi-aghq`](https://github.com/athowes/naomi-aghq).
-For ease of understanding, Table \@ref(tab:tmb-lookup) provides correspondence between the mathematical notation used in Section \@ref(naomi-math) and the variable names used in the `TMB` code, for all hyperparameters and latent field parameters.
+Table \@ref(tab:tmb-lookup) maps the mathematical notation used in Section \@ref(naomi-math) to the variable names used in the `TMB` code for all hyperparameters and latent field parameters.
 For further reference on the `TMB` software see @tmbdocumentation.
 
 | Variable name              | Notation    | Type   | Domain  | $\rho$ | $\alpha$ | $\lambda$ |
@@ -280,16 +280,16 @@ Table: (\#tab:tmb-lookup) Correspondence between the variable name used in the N
 naomi_nuts <- readRDS("depends/mcmc-out.rds")
 ```
 
-(ref:rhat) For NUTS run on the Naomi ELGM, the maximum potential scale reduction factor was `r round(naomi_nuts$rhat_max, 3)`, below the value of 1.05 typically used as a cutoff for acceptable chain mixing, indicating that the results are acceptable to use. Additionally, the vast majority (`r round(100 * naomi_nuts$rhat_above_threshold, 1)`%) of $\hat R$ values were less than 1.1.
-
-```{r rhat, fig.cap="(ref:rhat)"}
-knitr::include_graphics("depends/rhat.png")
-```
-
 (ref:ess) The efficiency of the NUTS, as measured by the ratio of effective sample size to total number of iterations run, was low for most parameters (Panel A). As a result, the number of iterations required for the the effective number of samples (mean `r round(naomi_nuts$ess_mean)`) to be satisfactory was high (Panel B). 
 
 ```{r ess, fig.cap="(ref:ess)"}
 knitr::include_graphics("depends/ess.png")
+```
+
+(ref:rhat) For NUTS run on the Naomi ELGM, the maximum potential scale reduction factor was `r round(naomi_nuts$rhat_max, 3)`, below the value of 1.05 typically used as a cutoff for acceptable chain mixing, indicating that the results are acceptable to use. Additionally, the vast majority (`r round(100 * naomi_nuts$rhat_above_threshold, 1)`%) of $\hat R$ values were less than 1.1.
+
+```{r rhat, fig.cap="(ref:rhat)"}
+knitr::include_graphics("depends/rhat.png")
 ```
 
 (ref:worst-trace) Traceplots for the parameter with the lowest ESS which was `log_sigma_alpha_xs` (an $\text{ESS}$ of `r round(naomi_nuts$ess_min)`, Panel A) and highest potential scale reduction factor which was `ui_lambda_x[10]` (an $\hat R$ of `r round(naomi_nuts$rhat_max, 3)`, Panel B).
@@ -297,6 +297,8 @@ knitr::include_graphics("depends/ess.png")
 ```{r worst-trace, fig.cap="(ref:worst-trace)"}
 knitr::include_graphics("depends/worst-trace.png")
 ```
+
+## Posterior correlation structure
 
 ```{r}
 ar1_bym2_cor <- readr::read_csv("depends/ar1-bym2-cor.csv")
@@ -322,6 +324,8 @@ knitr::include_graphics("depends/rho_a.png")
 ```{r alpha-x, fig.cap="(ref:alpha-x)"}
 knitr::include_graphics("depends/alpha_x.png")
 ```
+
+## Posterior contraction
 
 The informativeness of data about a parameter can be summarised by the posterior contraction [@schad2021toward] which compares the prior variance $\mathbb{V}_\text{prior}(\phi)$ to posterior variance $\mathbb{V}_\text{post}(\phi)$ via
 \begin{equation}
@@ -349,6 +353,18 @@ knitr::include_graphics("depends/posterior-contraction.png")
 
 # Use of PCA-AGHQ
 
+(ref:pc-loadings) Each principal component loading, obtained by the eigendecomposition of the inverse curvature, gives the direction of maximum variation conditional on inclusion of each previous principal component loading. For example, the first principal component loading is a sum of `log_sigma_alpha_as` and `logit_phi_alpha_as`.
+
+```{r pc-loadings, fig.cap="(ref:pc-loadings)"}
+knitr::include_graphics("depends/pc-loadings.png")
+```
+
+(ref:marginal-sd) The estimated posterior marginal standard deviation of each hyperparameter varied substantially based on its scale, either logarithmic or logistic.
+
+```{r marginal-sd, fig.cap="(ref:marginal-sd)"}
+knitr::include_graphics("depends/marginal-sd.png")
+```
+
 ```{r}
 u <- runif(10000)
 ```
@@ -359,22 +375,10 @@ u <- runif(10000)
 knitr::include_graphics("depends/nodes-quantiles-sd.png")
 ```
 
-(ref:marginal-sd) The estimated posterior marginal standard deviation of each hyperparameter varied substantially based on its scale, either logarithmic or logistic.
-
-```{r marginal-sd, fig.cap="(ref:marginal-sd)"}
-knitr::include_graphics("depends/marginal-sd.png")
-```
-
 (ref:lognormconst) The logarithm of the normalising constant estimated using PCA-AGHQ and a range of possible values of $k = 2, 3, 5$ and $s \leq 8$. Using this range of settings, there was not convergence of the logarithm of the normalising constant estimate. The time taken by GPCA-AGHQ increases exponentially with number of PCA-AGHQ dimensions kept.
 
 ```{r lognormconst, fig.cap="(ref:lognormconst)"}
 knitr::include_graphics("depends/lognormconst.png")
-```
-
-(ref:pc-loadings) Each principal component loading, obtained by the eigendecomposition of the inverse curvature, gives the direction of maximum variation conditional on inclusion of each previous principal component loading. For example, the first principal component loading is a sum of `log_sigma_alpha_as` and `logit_phi_alpha_as`.
-
-```{r pc-loadings, fig.cap="(ref:pc-loadings)"}
-knitr::include_graphics("depends/pc-loadings.png")
 ```
 
 \clearpage
