@@ -478,7 +478,95 @@ Posterior inferences from GEB, GPCA-AGHQ and NUTS were compared using point esti
 
 ### Point estimates \label{sec:point-estimates}
 
+```{r}
+df_point <- readr::read_csv(paste0("resources/naomi-aghq/", resource_version, "/depends/mean-sd.csv"))
+
+df_point_pct <- df_point %>%
+  ungroup() %>%
+  group_by(indicator, type) %>%
+  summarise(
+    rmse_diff = 100 * diff(rmse) / max(rmse),
+    mae_diff = 100 * diff(mae) / max(mae)
+  )
+
+rmse_aghq_mean <- filter(df_point, method == "GPCA-AGHQ", indicator == "Posterior mean", type == "latent") %>% pull(rmse) %>% signif(2)
+rmse_tmb_mean <- filter(df_point, method == "GEB", indicator == "Posterior mean", type == "latent") %>% pull(rmse) %>% signif(2)
+rmse_diff_mean <- filter(df_point_pct, indicator == "Posterior mean", type == "latent") %>% pull(rmse_diff) %>% signif(2)
+
+rmse_aghq_sd <- filter(df_point, method == "GPCA-AGHQ", indicator == "Posterior SD", type == "latent") %>% pull(rmse) %>% signif(2)
+rmse_tmb_sd <- filter(df_point, method == "GEB", indicator == "Posterior SD", type == "latent") %>% pull(rmse) %>% signif(2)
+rmse_diff_sd <- filter(df_point_pct, indicator == "Posterior SD", type == "latent") %>% pull(rmse_diff) %>% signif(0)
+```
+
+(ref:mean-sd-alt-latent) The latent field posterior mean and posterior standard deviation point estimates from each inference method as compared with those from NUTS. The root mean square error (RMSE) and mean absolute error (MAE) are displayed in the top left. For both the posterior mean and posterior standard deviation, GPCA-AGHQ reduced RMSE and MAE as compared with GEB.
+
+```{r mean-sd-alt-latent, fig.cap="(ref:mean-sd-alt-latent)"}
+knitr::include_graphics(paste0("resources/naomi-aghq/", resource_version, "/depends/mean-sd-alt-latent.png"))
+```
+
+Latent field point estimates obtained from GPCA-AGHQ were closer to the gold-standard results from NUTS than those obtained from GEB (Figure \@ref(fig:mean-sd-alt-latent)).
+The root mean square error (RMSE) between posterior mean estimates from GPCA-AGHQ and NUTS (`r rmse_aghq_mean`) was `r abs(rmse_diff_mean)`% lower than that between GEB and NUTS (`r rmse_tmb_mean`).
+For the posterior standard deviation estimates, there was a substantial `r abs(rmse_diff_sd)`% reduction in RMSE: from `r abs(rmse_tmb_sd)` (TMB) to `r abs(rmse_aghq_sd)` (PCA-AGHQ).
+However, puzzlingly, improvements in latent field estimate accuracy only transferred to model outputs to a limited extent (Figures \@ref(fig:mean-alt-output) and \@ref(fig:sd-alt-output)).
+
 ### Distributional quantities\label{sec:distributional-quantities}
+
+##### Kolmogorov-Smirnov
+
+```{r}
+ks_summary <- readRDS(paste0("resources/naomi-aghq/", resource_version, "/depends/ks-summary.rds"))
+
+ks_summary_summarise <- ks_summary %>%
+  ungroup() %>%
+  filter(type == "Latent") %>%
+  summarise(
+    tmb = sum(size * TMB) / sum(size),
+    aghq = sum(size * aghq) / sum(size)
+  )
+
+ks_pct <- (ks_summary_summarise$tmb - ks_summary_summarise$aghq) / ks_summary_summarise$tmb
+```
+
+(ref:ks-summary) The average Kolmogorov-Smirnov (KS) test statistic for each latent field parameter of the Naomi model. Vectors of parameters were grouped together. For points above the dashed line at zero, performance of GEB was better. For points below the dashed line, performance of GPCA-AGHQ was better. Most notably, for the latent field parameters `ui_lambda_x` the test statistic for GEB was substantially higher than for GPCA-AGHQ. This parameter, of length 32, corresponds to $\mathbf{u}_x^\lambda$ and plays a key role in the ART attendance component of the Naomi (Section \@ref(art)).
+
+```{r ks-summary, fig.cap="(ref:ks-summary)"}
+knitr::include_graphics(paste0("resources/naomi-aghq/", resource_version, "/depends/ks-summary.png"))
+```
+
+```{r}
+ui_lambda_x <- readRDS(paste0("resources/naomi-aghq/", resource_version, "/depends/ui-lambda-x.rds"))
+```
+
+(ref:ui-lambda-x) The parameter ``r paste0(ui_lambda_x$par)`` had the greatest difference in KS test statistics between GEB and GPCA-AGHQ to NUTS. For this parameter, the potential scale reduction factor was `r ui_lambda_x$rhat` and effective sample size was `r ui_lambda_x$ess`.
+
+```{r ui-lambda-x, fig.cap="(ref:ui-lambda-x)"}
+knitr::include_graphics(paste0("resources/naomi-aghq/", resource_version, "/depends/ui-lambda-x.png"))
+```
+
+The two-sample Kolmogorov-Smirnov (KS) test statistic [@smirnov1948table] is the maximum absolute difference between two ECDFs $F(\omega) = \frac{1}{n} \sum_{i = 1}^n \mathbb{I}_{\phi_i \leq \omega}$.
+It is a relatively stringent, worst case, measure of distance between empirical distributions.
+The average KS test statistic for GPCA-AGHQ (`r signif(ks_summary_summarise$aghq, 2)`) was `r signif(100 * ks_pct, 2)`% less than the average KS test statistic for GEB (`r signif(ks_summary_summarise$tmb, 2)`).
+
+For both GEB and GPCA-AGHQ the KS test statistic for a parameter was correlated with low NUTS ESS (Figure \@ref(fig:ks-ess)).
+This may be due to by difficulties estimating particular parameters for all inference methods, or high KS values caused by NUTS inaccuracies.
+
+##### Maximum mean discrepancy
+
+```{r}
+mmd <- readRDS("depends/mmd.rds")
+
+first_order_pct <- signif(100 * (mmd$mmd_tmb@mmdstats[1] - mmd$mmd_aghq@mmdstats[1]) / mmd$mmd_tmb@mmdstats[1], 1)
+third_order_pct <- signif(100 * (mmd$mmd_tmb@mmdstats[2] - mmd$mmd_aghq@mmdstats[2]) / mmd$mmd_tmb@mmdstats[2], 1)
+```
+
+Let $\Phi^{1} = \{\boldsymbol{\mathbf{\phi}}^1_i\}_{i = 1}^n$ and $\Phi^2 = \{\boldsymbol{\mathbf{\phi}}^2_i\}_{i = 1}^n$ be two sets of joint posterior samples, and $k$ be a kernel.
+The maximum mean discrepancy [MMD; @gretton2006kernel] is a measure of distance between joint distributions, and can be estimated empirically by samples
+\begin{equation}
+\text{MMD}(\Phi^1, \Phi^2) = \sqrt{\frac{1}{n^2} \sum_{i, j = 1}^n k(\boldsymbol{\mathbf{\phi}}^1_i, \boldsymbol{\mathbf{\phi}}^1_j) - \frac{2}{n^2} \sum_{i, j = 1}^n k(\boldsymbol{\mathbf{\phi}}_i^1, \boldsymbol{\mathbf{\phi}}_j^2) + \frac{1}{n^2} \sum_{i, j = 1}^n k(\boldsymbol{\mathbf{\phi}}^2_i, \boldsymbol{\mathbf{\phi}}^2_j)}.
+\end{equation}
+The kernel was set to $k(\boldsymbol{\mathbf{\phi}}^1, \boldsymbol{\mathbf{\phi}}^2) = \exp(-\sigma \lVert \boldsymbol{\mathbf{\phi}}^1 - \boldsymbol{\mathbf{\phi}}^2 \rVert^2)$ with $\sigma$ estimated from data using the `kernlab` \textsc{R} package [@karatzoglou2019package].
+The first and third order MMD statistics for GEB were `r signif(mmd$mmd_tmb@mmdstats[1], 2)` and `r signif(mmd$mmd_tmb@mmdstats[2], 2)`.
+Those of GPCA-AGHQ (`r signif(mmd$mmd_aghq@mmdstats[1], 2)` and `r signif(mmd$mmd_aghq@mmdstats[2], 2)`) were `r first_order_pct`% and `r third_order_pct`% lower.
 
 ### Exceedance probabilities\label{sec:exceedance}
 
