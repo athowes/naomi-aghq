@@ -393,7 +393,7 @@ For GEB and GPCA-AGHQ, hyperparameter and latent field samples were simulated fo
 For all methods, age-sex-district specific HIV prevalence, ART coverage and HIV incidence were simulated from the latent field and hyperparameter posteriors.
 
 The \textsc{R} [@r] code used to produce all results we describe below is available at `github.com/athowes/naomi-aghq`.
-We used `orderly` [@orderly] for reproducible research, `ggplot2` for data visualisation [@wickham2016ggplot2] and `rticles` [@allaire2022rticles] for reporting via `rmarkdown` [@allaire2022rmarkdown].
+We used `orderly` [@orderly] for reproducible research, `ggplot2` for data visualisation [@wickham2016ggplot2] and `rticles` [@allaire2022rticles] to write this paper via `rmarkdown` [@allaire2022rmarkdown].
 
 ## Time taken
 
@@ -525,9 +525,39 @@ ks_summary_summarise <- ks_summary %>%
 ks_pct <- (ks_summary_summarise$tmb - ks_summary_summarise$aghq) / ks_summary_summarise$tmb
 ```
 
-```{r ks-summary, fig.cap="The average Kolmogorov-Smirnov (KS) test statistic for each latent field parameter of the Naomi model. Vectors of parameters were grouped together. For points above the dashed line at zero, performance of GEB was better. For points below the dashed line, performance of GPCA-AGHQ was better. Most notably, for the latent field parameters ui_lambda_x the test statistic for GEB was substantially higher than for GPCA-AGHQ. This parameter, of length 32, corresponds to and plays a key role in the ART attendance component of the Naomi."}
+```{r ks-summary, fig.cap="The average Kolmogorov-Smirnov (KS) test statistic for each latent field parameter of the Naomi model. Vectors of parameters were grouped together. For points above the dashed line at zero, performance of GEB was better. For points below the dashed line, performance of GPCA-AGHQ was better."}
 knitr::include_graphics("depends/ks-summary.png")
 ```
+
+#### Maximum mean discrepancy
+
+## Exceedance probabilities\label{sec:exceedance}
+
+As realistic use cases for Naomi model outputs, we considered the following two case-studies based on exceedance probabilities.
+
+### Meeting the second 90
+
+```{r exceedance-second90, fig.cap="The probability each strata has met the second 90 (ART coverage above 81\\%) calculated using each inference method, as compared with NUTS. The root mean square error (RMSE) and mean absolute error (MAE) are displayed in the top left."}
+knitr::include_graphics("depends/exceedance-second90.png")
+```
+
+Ambitious targets for scaling up ART treatment have been developed by UNAIDS, with the goal of ending the AIDS epidemic by 2030 [@unaids2014target].
+Meeting the 90-90-90 fast-track target requires that 90% of people living with HIV know their status, 90% of those are on ART, and 90% of those have a suppressed viral load.
+Inferences from Naomi can be used to identify treatment gaps by calculating the probability that the second 90 target has been met, that is $\mathbb{P}(\alpha_i > 0.9^2 = 0.81)$ for each strata $i$.
+Strata probabilities of having met the second 90 target were more accurately estimated by GPCA-AGHQ than GEB (Figure \ref{fig:exceedance-second90}).
+However, both GPCA-AGHQ and GEB had substantial error as compared to results from NUTS, particularly for women and girls.
+The discrepancy in accuracy by sex may be due to a more challenging posterior geometry caused by interactions between the household survey and ANC components of the model.
+
+### Finding strata with high incidence
+
+```{r exceedance-1inc, fig.cap="The probability each strata has high HIV incidence (above 1\\% per year) calculated using each inference method, as compared with NUTS. The root mean square error (RMSE) and mean absolute error (MAE) are displayed in the top left."}
+knitr::include_graphics("depends/exceedance-1inc.png")
+```
+
+Some HIV interventions are cost-effective only within high HIV incidence settings, typically defined as higher than 1% incidence per year.
+Inferences from Naomi can be used to calculate the probability of a strata having high incidence by evaluating $\mathbb{P}(\lambda_i > 0.01)$.
+GPCA-AGHQ gave more accurate estimates of the probability that a strata has high HIV incidence than GEB (Figure \ref{fig:exceedance-1inc}).
+Again, both methods had significant error as compared with NUTS.
 
 # Conclusion\label{sec:conclusions}
 
