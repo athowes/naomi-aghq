@@ -28,7 +28,7 @@ address:
     organization: Harvard T.H. Chan School of Public Health
     country: Harvard University
 abstract: |
-  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of policy interest, including HIV prevalence, HIV incidence, and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. The model is provided as a tool for countries to input their data to and generate estimates with during a yearly process supported by UNAIDS. Previously, inference has been conducted using empirical Bayes and a Gaussian approximation, implemented via the \texttt{TMB} \textsc{R} package. We propose a new inference method based on an extension of adaptive Gauss-Hermite quadrature to deal with more than 20 hyperparameters. Using data from Malawi, our method improves the accuracy of inferences for model parameters, while being substantially faster to run than Hamiltonian Monte Carlo with the No-U-Turn sampler. Our implementation is based on the existing \texttt{TMB} \textsf{C++} template for the model's log-posterior, and is compatible with any model with such a template.
+  | Naomi is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa. Multiple outcomes of policy interest, including HIV prevalence, HIV incidence, and antiretroviral therapy treatment coverage are jointly modelled using both household survey data and routinely reported health system data. The model is provided as a tool for countries to input their data to and generate estimates with during a yearly process supported by UNAIDS. Previously, inference has been conducted using empirical Bayes and a Gaussian approximation, implemented via the \texttt{TMB} \textsc{R} package. We propose a new inference method based on an extension of adaptive Gauss-Hermite quadrature to deal with more than 20 hyperparameters. Using data from Malawi, our method improves the accuracy of inferences for model parameters, while being substantially faster to run than Hamiltonian Monte Carlo with the No-U-Turn sampler. Our implementation leverages the existing \texttt{TMB} \textsf{C++} template for the model's log-posterior, and is compatible with any model with such a template.
 keywords: 
   - Bayesian statistics
   - spatial statistics
@@ -85,7 +85,7 @@ The Naomi small-area estimation model [@eaton2021naomi; @esra2024improved] addre
 Modelling multiple data sources jointly mitigates the limitations of any single source and increases statistical power.
 Software developed for Naomi (\url{https://naomi.unaids.org}) facilitates over 35 countries inputting their data and interactively generating estimates during workshops as a part of a yearly estimates process supported by UNAIDS.
 Generation of estimates by country teams is an important and distinctive feature of the HIV response.
-Drawing on expert knowledge of the data improves the accuracy of the process and strengthens trust in the resulting estimates, creating a virtuous cycle of data quality, use, and ownership [@noor2022country].
+Drawing on expert knowledge about the data improves the accuracy of the process and strengthens trust in the resulting estimates, creating a virtuous cycle of data quality, use, and ownership [@noor2022country].
 
 Naomi comprises multiple linked generalized linear mixed models (GLMMs) and presents a challenging Bayesian inference problem.
 The model contains hundreds of fixed and random effect parameters and over 20 hyperparameters.
@@ -93,7 +93,7 @@ This is substantially more than the small number that can typically be handled b
 Additionally, observations depend on multiple structured additive predictors, such that Naomi falls into the class of extended latent Gaussian models [ELGMs; @stringer2022fast].
 Inference must be fast and have low memory usage, to allow interactive review and iteration of model results by workshop participants.
 The scale of the model and features of its posterior geometry [@neal2003slice] make Markov chain Monte Carlo (MCMC) approaches are prohibitively slow.
-Inference must be reliable and automatic across a range of country settings, and should not require close monitoring and diagnostics (e.g. for MCMC convergence).
+Inference should also be reliable, automatic across various country settings, and require minimal manual monitoring (e.g. of MCMC convergence).
 
 Inference for Naomi is currently conducted using an empirical Bayes (EB) approach.
 A Gaussian approximation to the latent field is used via the Template Model Builder (`TMB`) [@kristensen2016tmb] \textsf{R} package.
@@ -130,11 +130,11 @@ Finally, we discuss our conclusions, and directions for future research in Secti
 ## Latent Gaussian model
 
 Latent Gaussian models [LGMs; @rue2009approximate] are three-stage hierarchical models with
-\begin{align*}
+\begin{align}
 y_i &\sim p(y_i \, | \, \eta_i, \btheta_1), \quad i \in [n]\\
 \mu_i &= \mathbb{E}(y_i \, | \, \eta_i) = g(\eta_i), \\
 \eta_i &= \beta_0 + \sum_{l = 1}^{p} \beta_j z_{ji} + \sum_{k = 1}^{r} f_k(u_{ki}),
-\end{align*}
+\end{align}
 where $[n] = \{1, \ldots, n\}$.
 The response variable is $\y = (y)_{i \in [n]}$ with likelihood $p(\y \, | \, \bmeta, \btheta_1) = \prod_{i = 1}^n p(y_i \, | \, \eta_i, \btheta_1)$, where $\bmeta = (\eta)_{i \in [n]}$.
 Each response has conditional mean $\mu_i$ with inverse link function $g: \mathbb{R} \to \mathbb{R}$ such that $\mu_i = g(\eta_i)$.
@@ -152,11 +152,11 @@ Each mean response $\mu_i$ now depends on some subset $\mathcal{J}_i \subseteq [
 The inverse link function $g$ is redefined for each observation to be a possibly many-to-one mapping $g_i: \mathbb{R}^{|\mathcal{J}_i|} \to \mathbb{R}$, such that $\mu_i = g_i(\bmeta_{\mathcal{J}_i})$.
 Importantly, this mapping allows for the presence of non-linearity in the model.
 Put together, ELGMs are then of the form
-\begin{align*}
+\begin{align}
 y_i &\sim p(y_i \, | \, \bmeta_{\mathcal{J}_i}, \btheta_1), \quad i \in [n] \\
 \mu_i &= \mathbb{E}(y_i \, | \, \bmeta_{\mathcal{J}_i}) = g_i(\bmeta_{\mathcal{J}_i}), \\
 \eta_j &= \beta_0 + \sum_{l = 1}^{p} \beta_j z_{ji} + \sum_{k = 1}^{r} f_k(u_{ki}), \quad j \in [N_n],
-\end{align*}
+\end{align}
 with latent field and hyperparameter priors as in the LGM case.
 
 ## Template Model Builder
@@ -223,47 +223,47 @@ where the mean duration of recent infection $\Omega_T$ and the proportion of lon
 
 These processes are each informed by household survey data.
 Weighted aggregate survey observations are calculated based on individual responses $\theta_j \in \{0, 1\}$ as
-\begin{equation*}
+\begin{equation}
 \hat \theta_I = \frac{\sum_j w_j \cdot\theta_j}{\sum_j w_j}.
-\end{equation*}
+\end{equation}
 Design weights $w_j$ for each of $\theta \in \{\rho, \alpha, \kappa\}$ are supplied by the survey provider and aim to reduce bias by decreasing possible correlation between response and recording mechanism [@meng2018statistical].
 The index $j$ runs across all individuals in strata $i \in I$ within the relevant denominator i.e. for ART coverage, only those individuals who are HIV positive.
 The weighted observed number of outcomes is taken to be $y^{\theta}_{I} = m^{\theta}_{I} \cdot \hat \theta_{I}$ where
-\begin{equation*}
+\begin{equation}
 m^{\theta}_I = \frac{\left(\sum_j w_j\right)^2}{\sum_j w_j^2},
-\end{equation*}
+\end{equation}
 is the Kish effective sample size [ESS; @kish1965survey].
 The weighted aggregated number of outcomes are modelled using a binomial working likelihood [@chen2014use] defined to operate on the reals
-\begin{equation*}
+\begin{equation}
 y^{\theta}_{I} \sim \text{xBin}(m^{\theta}_{I}, \theta_{I})
-\end{equation*}
+\end{equation}
 The terms $\theta_{I}$ are the following weighted aggregates
-\begin{equation*}
+\begin{equation}
 \rho_{I} = \frac{\sum_{i \in I} N_i \rho_i}{\sum_{i \in I} N_i}, \quad
 \alpha_{I} = \frac{\sum_{i \in I} N_i \rho_i \alpha_i}{\sum_{i \in I} N_i \rho_i}, \quad
 \kappa_{I} = \frac{\sum_{i \in I} N_i \rho_i \kappa_i}{\sum_{i \in I} N_i \rho_i}.
-\end{equation*}
+\end{equation}
 
 ## ANC testing component {#sec:anc}
 
 Women attending ANC clinics are routinely tested for HIV, to help prevent mother-to-child transmission.
 HIV prevalence $\rho^\text{ANC}_i$ and ART coverage $\alpha^\text{ANC}_i$ among pregnant women are modelled as offset from the general population indicators as follows
-\begin{align*}
+\begin{align}
 \text{logit}(\rho^\text{ANC}_i) &= \text{logit}(\rho_i) + \eta^{\rho^\text{ANC}}_i, \\
 \text{logit}(\alpha^\text{ANC}_i) &= \text{logit}(\alpha_i) + \eta^{\alpha^\text{ANC}}_i.
-\end{align*}
+\end{align}
 These processes are informed by likelihoods specified for aggregate ANC data from the year of the most recent survey.
 The number of ANC clients with ascertained status to be fixed as $m^{\rho^\text{ANC}}_I$. 
 The number of those with positive status $y^{\rho^\text{ANC}}_I$, and the number of those already on ART prior to their first ANC visit $y^{\alpha^\text{ANC}}_I$ are modelled using nested binomial likelihoods
-\begin{align*}
+\begin{align}
 y^{\rho^\text{ANC}}_I &\sim \text{Bin}(m^{\rho^\text{ANC}}_I, \rho^\text{ANC}_{I}), \\
 y^{\alpha^\text{ANC}}_I &\sim \text{Bin}(y^{\rho^\text{ANC}}_I, \alpha^\text{ANC}_{I}).
-\end{align*}
+\end{align}
 As in the household survey component, weighted aggregates
-\begin{equation*}
+\begin{equation}
 \rho^\text{ANC}_{I} = \frac{\sum_{i \in I} \Psi_i \rho_i^\text{ANC}}{\sum_{i \in I} \Psi_i}, \quad
 \alpha^\text{ANC}_{I} = \frac{\sum_{i \in I} \Psi_i \rho_i^\text{ANC} \alpha^\text{ANC}_i}{\sum_{i \in I} \Psi_i \rho_i^\text{ANC}},
-\end{equation*}
+\end{equation}
 are used, with $\Psi_i$ the number of pregnant women assumed here to be fixed.
 
 ## ART attendance component {#sec:art}
@@ -285,10 +285,10 @@ In Section \@ref(sec:pca) we propose an extension of the method which uses PCA t
 ## Inference for ELGMs {#sec:inferenceelgm}
 
 The joint posterior of the parameters $(\x, \btheta)$ given data $\y$ and hyperparameter prior distribution $p(\btheta)$ in an ELGM is given by
-\begin{equation*}
+\begin{equation}
   p(\x, \btheta \, | \, \y)
   \propto p(\btheta) |\mathbf{Q}(\btheta)|^{n/2} \exp \left( - \frac{1}{2} \x^\top \mathbf{Q}(\btheta) \x + \sum_{i = 1}^n \log p(y_i \, | \, \x_{\mathcal{J}_i}, \btheta) \right).
-\end{equation*}
+\end{equation}
 We consider approximations to the posterior marginals of each latent random variable $x_i$ and hyperparameter $\theta_j$ given by
 \begin{align}
   p(x_i \, | \, \y) &\approx \tilde p(x_i \, | \, \y) = \int \tilde p(x_i \, | \, \btheta, \y) \tilde p(\btheta \, | \, \y) \text{d}\btheta, \quad i \in [N], \label{eq:inla1} \\
@@ -687,9 +687,10 @@ This approach could be generalised to also test the suitability of PCA-AGHQ grid
 
 # Acknowledgements {-}
 
-AH was supported by the EPSRC Centre for Doctoral Training in Modern Statistics and Statistical Machine Learning (EP/S023151/1), and conducted part of this research while an International Visiting Graduate Student at the University of Waterloo.
+AH was supported by the EPSRC Centre for Doctoral Training in Modern Statistics and Statistical Machine Learning (EP/S023151/1).
+AH conducted part of this research while an International Visiting Graduate Student at the University of Waterloo.
 AH and JWE were supported by the Bill and Melinda Gates Foundation (OPP1190661, OPP1164897).
-AS was supported by NSERC Discovery Grant RGPIN-2023-03331.
+AS was supported by NSERC Discovery Grant (RGPIN-2023-03331).
 SRF was supported by the EPSRC (EP/V002910/2).
 JWE was supported by UNAIDS and National Institute of Allergy and Infectious Disease of the National Institutes of Health (R01AI136664).
 This research was supported by the MRC Centre for Global Infectious Disease Analysis (MR/R015600/1), jointly funded by the UK Medical Research Council (MRC) and the UK Foreign, Commonwealth \& Development Office (FCDO), under the MRC/FCDO Concordat program and is also part of the EDCTP2 programme supported by the European Union.

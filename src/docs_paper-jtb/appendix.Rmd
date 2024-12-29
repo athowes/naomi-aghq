@@ -122,7 +122,7 @@ Table \@ref(tab:inc) provides a description of the terms included in Equation \@
 
 Table: (\#tab:inc) Each term in Equation \@ref(eq:inc) together with, where applicable, its prior distribution and a written description of its role.
 
-The proportion recently infected among HIV positive persons $\kappa_{x, s, a} \in [0, 1]$ was modelled as
+The proportion who were recently infected among HIV positive persons $\kappa_{x, s, a} \in [0, 1]$ was modelled as
 \begin{equation}
 \kappa_{x, s, a} = 1 - \exp \left(- \lambda_{x, s, a} \cdot \frac{1 - \rho_{x, s, a}}{\rho_{x, s, a}} \cdot (\Omega_T - \beta_T ) - \beta_T \right),
 \end{equation}
@@ -280,7 +280,7 @@ Table: (\#tab:tmb-lookup) Correspondence between the variable name used in the N
 naomi_nuts <- readRDS("depends/mcmc-out.rds")
 ```
 
-(ref:ess) The efficiency of the NUTS, as measured by the ratio of effective sample size to total number of iterations run, was low for most parameters (Panel A). As a result, the number of iterations required for the the effective number of samples (mean `r round(naomi_nuts$ess_mean)`) to be satisfactory was high (Panel B). 
+(ref:ess) The efficiency of the NUTS, as measured by the ratio of effective sample size to total number of iterations run, was low for most parameters (Panel A). As a result, the number of iterations required for the effective number of samples (mean `r round(naomi_nuts$ess_mean)`) to be satisfactory was high (Panel B). 
 
 ```{r ess, fig.cap="(ref:ess)"}
 knitr::include_graphics("depends/ess.png")
