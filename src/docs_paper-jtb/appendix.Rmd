@@ -393,11 +393,13 @@ knitr::include_graphics("depends/lognormconst.png")
 knitr::include_graphics("depends/mean-alt-output.png")
 ```
 
-(ref:sd-alt-output) Differences in Naomi model output posterior standard deviations as estimated by GEB and GPCA-AGHQ compared to NUTS. Each point is an estimate of the indicator for a particular strata. Error is increased by GPCA-AGHQ for HIV prevalence and HIV incidence, and reduced for ART coverage.
+(ref:sd-alt-output) Differences in Naomi model output posterior standard deviations as estimated by GEB and GPCA-AGHQ compared to NUTS. Each point is an estimate of the indicator for a particular strata. Error is increased by GPCA-AGHQ for ART coverage and HIV incidence, and reduced for HIV prevalence.
 
 ```{r sd-alt-output, fig.cap="(ref:sd-alt-output)"}
 knitr::include_graphics("depends/sd-alt-output.png")
 ```
+
+\clearpage
 
 ## Distributional quantities
 
