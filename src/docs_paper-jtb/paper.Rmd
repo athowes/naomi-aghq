@@ -383,7 +383,7 @@ Method & Software & Details \\
 \midrule
 GEB & \texttt{TMB} & $1000$ samples \\
 GPCA-AGHQ & \texttt{aghq} & $k = 3, s = 8$, 1000 samples \\
-NUTS & \texttt{tmbstan} & 4 chains of 100000 iterations, with the first 50000 iterations of each chain discarded as warmup, thinned by a factor of 20, to give a total of 10000 samples kept. Default NUTS tuning parameters \citep{hoffman2014no}. \\
+NUTS & \texttt{tmbstan} & 4 chains of 100000 iterations, with the first half of each chain discarded as warmup, thinned by a factor of 20, to give a total of 10000 samples. Default NUTS tuning parameters \citep{hoffman2014no}. \\
 \bottomrule
 \end{tabularx}
 \caption{A summary of settings used for each inferential method.}
