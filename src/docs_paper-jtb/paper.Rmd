@@ -412,8 +412,8 @@ naomi_nuts <- readRDS("depends/mcmc-out.rds")
 ```
 
 The Naomi model was difficult to efficiently sample from using NUTS via `tmbstan`.
-The lowest effective sample size (ESS) was `r round(naomi_nuts$ess_min, 0)` (2.5% quantile `r round(naomi_nuts$ess_lower, 0)`, 50% quantile `r round(naomi_nuts$ess_median, 0)`, and 97.5% quantile `r round(naomi_nuts$ess_upper, 0)`; Supplementary Figure 1).
-The largest potential scale reduction factor ($\hat R$) was `r round(naomi_nuts$rhat_max, 3)` (2.5% quantile `r round(naomi_nuts$rhat_lower, 3)`, 50% quantile `r round(naomi_nuts$rhat_median, 3)`, and 97.5% quantile `r round(naomi_nuts$rhat_upper, 3)`; Supplementary Figure 2A).
+The lowest effective sample size (ESS) was `r round(naomi_nuts$ess_min, 0)` (2.5% quantile `r round(naomi_nuts$ess_lower, 0)`, 50% quantile `r round(naomi_nuts$ess_median, 0)`, and 97.5% quantile `r round(naomi_nuts$ess_upper, 0)`; Supplementary Figure 1A).
+The largest potential scale reduction factor ($\hat R$) was `r round(naomi_nuts$rhat_max, 3)` (2.5% quantile `r round(naomi_nuts$rhat_lower, 3)`, 50% quantile `r round(naomi_nuts$rhat_median, 3)`, and 97.5% quantile `r round(naomi_nuts$rhat_upper, 3)`; Supplementary Figure 2).
 Supplementary Figure 3 shows traceplots for the parameters with the lowest ESS and $\hat R$ respectively.
 Though inaccuracies remain possible, these diagnostics are sufficient to treat inferences obtained from NUTS as a gold-standard.
 
@@ -454,7 +454,7 @@ Approximately 12 hyperparameters had well covered marginals: greater than the 8 
 Coverage was higher among hyperparameters on the logistic scale, and lower among hyperparameters on the logarithmic scale (Supplementary Figure 9).
 This discrepancy occurred due to logistic hyperparameters naturally having higher posterior marginal standard deviation than logarithmic hyperparameters (Supplementary Figure 10).
 
-## Time taken
+## Time taken comparison
 
 ```{r naomi-time}
 time_taken <- readr::read_csv("depends/time-taken.csv")
