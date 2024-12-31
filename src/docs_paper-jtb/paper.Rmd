@@ -182,7 +182,7 @@ It is also possible to extract the `TMB` objective function used by `glmmTMB`, w
 
 # Simplified Naomi model {#sec:naomi}
 
-(ref:naomi-results) District-level HIV prevalence (A), ART coverage (B), and new HIV cases and HIV incidence (C) for adults 15-49 in Malawi. Inference conducted using EB.
+(ref:naomi-results) District-level HIV prevalence (A), ART coverage (B), and new HIV cases and HIV incidence (C) for adults 15-49 in Malawi. Inference here was conducted using and Gaussian approximation and EB via `TMB`.
 
 ```{r naomi-results, fig.cap="(ref:naomi-results)"}
 knitr::include_graphics("figB.png")
@@ -612,77 +612,71 @@ Again, both methods had significant error as compared with NUTS.
 
 # Conclusion {#sec:conclusions}
 
-For the simplified Naomi model applied to data from Malawi, GPCA-AGHQ more accurately inferred latent field posterior marginal distributions than GEB.
-However, model output posterior marginals did not see the same improvements.
-Approximate posterior exceedance probabilities from both GEB and GPCA-AGHQ had systematic inaccuracies as compared with NUTS.
-GEB and GPCA-AGHQ were substantially faster than NUTS, which took over two days to reach convergence.
+In the Malawi case-study, GPCA-AGHQ more accurately inferred latent field posterior marginal distributions than GEB.
+Benefits were particularly large for latent field posterior marginal standard deviations (Figure \@ref(fig:mean-sd-alt-latent)).
+However, the benefit of using GPCA-AGHQ for model outputs, obtained by a link function applied to a linear transformation of latent field parameters, was more limited.
+Although posterior exceedance probabilities based on model outputs from GPCA-AGHQ were more accurate (Figures \@ref(fig:exceedance-second90) and \@ref(fig:exceedance-1inc)), both GEB and GPCA-AGHQ showed systematic inaccuracies as compared with NUTS.
 
 Inaccuracies in model outputs from GEB and GPCA-AGHQ do have potential to meaningfully mislead policy.
-As such, where possible, gold-standard NUTS results should be computed.
-Though NUTS is to slow too run during a workshop, it could be run afterwards.
-As the UNAIDS HIV estimates process occurs annually, requiring days to compute more accurate estimates is viable.
+As such, where it is possible to do so, gold-standard NUTS results should be computed.
+Although NUTS is too slow to run during a workshop, as the UNAIDS HIV estimates process occurs annually, it would be viable to compute more accurate estimates afterwards.
 That said, Malawi is one of the countries with the fewest number of districts.
-As NUTS took days to run in Malawi, for larger countries, with hundreds of districts, it may be impossible to run NUTS to convergence, and approximate methods may be required.
+As NUTS took over two days to reach convergence in Malawi, for larger countries, with hundreds of districts, it may be impossible to run NUTS to convergence, and faster approximate methods such as GEB and GPCA-AGHQ may be necessary.
 
 To empower users, GPCA-AGHQ and NUTS could be added to the Naomi web interface as alternatives to GEB.
 Analysts would be able to quickly iterate over model options using GEB, before switching to a more accurate approach once they are happy with the results.
-
-PCA-AGHQ can be adjusted to suit the computational budget available by choice of the number of dimensions kept in the PCA $s$ and the number of points per dimension $k$.
-The scree plot is a well established heuristic for choosing $s$.
-Heuristics for choosing $k$ are less well established.
+One benefit of PCA-AGHQ is that it can be adjusted to suit the computational budget available by choice of the number of dimensions kept in the PCA $s$ and the number of points per dimension $k$.
+The scree plot is a well established heuristic for choosing $s$, while heuristics for choosing $k$ are less well established.
 Whether it is preferable for a given computational budget to increase $s$ or increase $k$ is an open question.
 Further strategies, such as gradually lowering $k$ over the principal components, could also be considered.
 
 ## Suggestions for future work
 
-### Further comparisons {#further-comparisons}
+### Further comparisons {#sec:further-comparisons}
 
-Comparison to further Bayesian inference methods could be included.
-Four possibilities stand out as being particularly valuable:
-
-1. There exist other quadrature rules for moderate dimension, such as the CCD.
+Comparison to further Bayesian inference methods could prove beneficial.
+Four possibilities stand out as being particularly valuable.
+First, there exist other quadrature rules for moderate dimension, such as the Box-Wilson central composite design [@box1992experimental].
 It would be of interest to compare INLA with a PCA-AGHQ rule to INLA with other such quadrature rules.
-2. Rather than use quadrature to integrate the marginal Laplace approximation, an alternative approach is to run HMC [@monnahan2018no; @margossian2020hamiltonian].
+Second, rather than use quadrature to integrate the marginal Laplace approximation, an alternative approach is to run HMC [@monnahan2018no; @margossian2020hamiltonian].
+This method can be run by using `tmbstan` and setting `laplace = TRUE`.
 When run to convergence, inferential error of this method would solely be due to the Laplace approximation, helping to clarify the extent to which the inferential error of INLA is attributable to the quadrature grid.
-Preliminary testing of this approach, using `tmbstan` and setting `laplace = TRUE`, did not show immediate success but likely could be worked on.
-3. NUTS is not especially well suited to sampling from Gaussian latent field models like Naomi.
+Third, NUTS is not especially well suited to sampling from Gaussian latent field models like Naomi.
 Other MCMC algorithms, such as blocked Gibbs sampling [@geman1984stochastic] or slice sampling [@neal2003slice], could be considered.
 It may be difficult to implement such algorithms using `TMB`.
-Many MCMC algorithms are implemented and customisable (including, for example, the choice of block structure) within the `NIMBLE` probabilistic programming language [@de2017programming].
-Requiring rewriting the Naomi model log-posterior outside of `TMB` would be a substantial downside.
-4. Finally, it would be of substantial interest to implement the Naomi model using the iterative INLA method via `inlabru`.
+Many MCMC algorithms are implemented and customisable (including, for example, the choice of block structure) within the `NIMBLE` probabilistic programming language [@de2017programming], however requiring rewriting the Naomi model log-posterior outside of `TMB` would be a downside.
+Finally, it would be of substantial interest to implement the Naomi model using the iterative INLA method via `inlabru`.
 However, as `inlabru`, like `R-INLA`, is based on a formula interface, it may not be possible to do so directly.
 
 ### Better quadrature grids
 
-PCA-AGHQ is a sensible approach to allocating more computational to dimensions which contribute more to the integral in question.
-However, its application to Naomi surfaced instances where it overlooked potential benefits, or otherwise did not behave as one might wish:
-
-1. The amount of variation explained in the Hessian matrix may not be of direct interest.
+PCA-AGHQ is a sensible approach to allocating more computational effort to dimensions which contribute more to the integral in question.
+Its application to Naomi surfaced several ideas for improvement and challenges to be overcome.
+First, the amount of variation explained in the Hessian matrix may not be of direct interest.
 For the Naomi model, interest is in the effect of including each dimension on the relevant model outputs.
 As such, using alternative measures of importance from sensitivity analysis, such as Shapley values [@shapley1953value] or Sobol indices, could be preferable.
-2. Use of PCA is challenging when the dimensions have different scales.
+Second, use of PCA is challenging when the dimensions have different scales.
 For the Naomi model, logit-scale hyperparameters were systematically favoured over those on the log-scale.
-3. When the quadrature rule is used within an INLA algorithm, it is more important to allocate quadrature nodes to those hyperparameter marginals which are non-Gaussian.
+Third, when the quadrature rule is used within an INLA algorithm, it is more important to allocate quadrature nodes to those hyperparameter marginals which are non-Gaussian.
 This is because the Laplace approximation is exact when the integrand is Gaussian, so a single quadrature node is sufficient.
 The difficulty is, of course, knowing in advance which marginals will be non-Gaussian.
 This could be done if there were a cheap way to obtain posterior means, which could then be compared to posterior modes obtained using optimisation.
 Another approach would be to measure the fit of marginal samples from a cheap approximation, like EB.
 The measures of fit would have to be for marginals, ruling out approaches like PSIS [@yao2018yes] which operate on joint distributions.
-4. Finally, it may be possible to achieve better performance by pruning and prerotation, as discussed by @jackel2005note.
+Finally, it may be possible to achieve better performance by pruning and prerotation of the quadrature grid, as discussed by @jackel2005note.
 
-#### Statistical theory
+### Statistical theory
 
 The class of functions which are integrated exactly by PCA-AGHQ remains to be shown.
 Theorem 1 of @stringer2022fast bounds the total variation error of AGHQ, establishing convergence in probability of coverage probabilities under the approximate posterior distribution to those under the true posterior distribution.
 Similar theory could be established for PCA-AGHQ, or more generally AGHQ with varying levels.
-The challenge of connecting this theory to nested use of any quadrature rule, like that in the INLA algorithm, remains an important open question.
+The challenge of connecting this theory to nested use of any quadrature rule, like GPCA-AGHQ, remains an important open question.
 
-#### Testing quadrature assumptions
+### Testing quadrature assumptions
 
-It may be possible to test the assumptions made by use of AGHQ grids, allowing their suitability for a particular integral to be assessed.
-Specifically, AGHQ assumes that the integrand is closely approximated by a polynomial multiplied by a Gaussian density.
-Given NUTS hyperparameter samples (or better yet, hyperparameter samples from the Laplace NUTS hybrid discussed in Section \@ref(further-comparisons)) this assumption could be tested by fitting a model using a polynomial times Gaussian kernel.
+It may be possible to test the assumptions underlying use of AGHQ grids, enabling assessment of their suitability for specific integrals.
+In particular, AGHQ assumes that the integrand is well approximated by a polynomial multiplied by a Gaussian density.
+This assumption could be tested by fitting a model using a polynomial times Gaussian kernel, given NUTS hyperparameter samples (or even better, hyperparameter samples obtained from the Laplace NUTS approach mentioned in Section \@ref(sec:further-comparisons)).
 This approach could be generalised to also test the suitability of PCA-AGHQ grids.
 
 # Acknowledgements {-}
