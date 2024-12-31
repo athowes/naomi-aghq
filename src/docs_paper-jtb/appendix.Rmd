@@ -359,12 +359,6 @@ knitr::include_graphics("depends/posterior-contraction.png")
 knitr::include_graphics("depends/pc-loadings.png")
 ```
 
-(ref:marginal-sd) The estimated posterior marginal standard deviation of each hyperparameter varied substantially based on its scale, either logarithmic or logistic.
-
-```{r marginal-sd, fig.cap="(ref:marginal-sd)"}
-knitr::include_graphics("depends/marginal-sd.png")
-```
-
 ```{r}
 u <- runif(10000)
 ```
@@ -373,6 +367,12 @@ u <- runif(10000)
 
 ```{r nodes-quantiles-sd, fig.cap="(ref:nodes-quantiles-sd)"}
 knitr::include_graphics("depends/nodes-quantiles-sd.png")
+```
+
+(ref:marginal-sd) The estimated posterior marginal standard deviation of each hyperparameter varied substantially based on its scale, either logarithmic or logistic.
+
+```{r marginal-sd, fig.cap="(ref:marginal-sd)"}
+knitr::include_graphics("depends/marginal-sd.png")
 ```
 
 (ref:lognormconst) The logarithm of the normalising constant estimated using PCA-AGHQ and a range of possible values of $k = 2, 3, 5$ and $s \leq 8$. Using this range of settings, there was not convergence of the logarithm of the normalising constant estimate. The time taken by GPCA-AGHQ increases exponentially with number of PCA-AGHQ dimensions kept.

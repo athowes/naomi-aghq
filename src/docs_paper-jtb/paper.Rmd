@@ -97,7 +97,7 @@ Inference should also be reliable, automatic across various country settings, an
 
 Inference for Naomi is currently conducted using an empirical Bayes (EB) approach.
 A Gaussian approximation to the latent field is used via the Template Model Builder (`TMB`) [@kristensen2016tmb] \textsf{R} package.
-`TMB` is gaining popularity due to its speed and flexibility, especially in spatial statistics [@osgood2022statistical] and via the user-friendly `glmmTMB` \textsc{R} package [@brooks2017glmmTMB].
+`TMB` is gaining popularity due to its speed and flexibility, especially in spatial statistics [@osgood2023statistical.] and via the user-friendly `glmmTMB` \textsc{R} package [@brooks2017glmmTMB].
 Inference in `TMB` occurs via optimisation of a \textsf{C++} template function, with the option available to use a Laplace approximation to integrate out any subset of the parameters.
 `TMB` uses automatic differentiation [@fournier2012ad; @baydin2017automatic] to calculate the derivatives required for gradient-based numerical optimisation routines and the Laplace approximation.
 
@@ -122,7 +122,7 @@ The remainder of this paper is organised as follows.
 In Section \@ref(sec:background) we give background on latent Gaussian and extended latent Gaussian models.
 Section \@ref(sec:naomi) outlines the version of the Naomi model that we consider in this paper.
 In Section \@ref(sec:inferencenaomi) we review the deterministic inference method for ELGMs used by @stringer2022fast based on nested application of AGHQ and the Laplace approximation, before introducing the PCA-based modification we use to enable application to Naomi.
-In Section \@ref(sec:results) we evaluate the accuracy of PCA-AGHQ for the simplified Naomi model fit to data from Malawi, as compared with TMB and gold-standard MCMC.
+In Section \@ref(sec:results) we evaluate the accuracy of a PCA-AGHQ grid for the simplified Naomi model fit to data from Malawi, as compared with EB and gold-standard MCMC.
 Finally, we discuss our conclusions, and directions for future research in Section \@ref(sec:conclusions).
 
 # Background {#sec:background}
@@ -179,6 +179,7 @@ The `tmbstan` R package [@monnahan2018no] allows running the Hamiltonian Monte C
 The `aghq` R package [@stringer2021implementing] allows use of AGHQ, and AGHQ over the marginal Laplace approximation, via the `mvQuad` R package [@weiser2016mvquad].
 The `glmmTMB` R package [@brooks2017glmmTMB] allows specification of common GLMM models via a formula interface.
 It is also possible to extract the `TMB` objective function used by `glmmTMB`, which may then be passed into `aghq` or `tmbstan`.
+This discussion highlights the utility of `TMB` templates, emphasising that our approach, built on `TMB`, is both general and broadly applicable.
 
 # Simplified Naomi model {#sec:naomi}
 
@@ -191,30 +192,32 @@ knitr::include_graphics("figB.png")
 @eaton2021naomi introduce a joint ELGM linking three small-area estimation models.
 We consider a simplified version defined only at the time of the most recent household survey with HIV testing.
 While this version omits nowcasting and temporal projection, as these time points involve limited inference we expect conclusions for the simplified model to be applicable to the complete model.
-An overview of the simplified model is given below, and a full specification is provided in the Appendix.
+An overview of the simplified model is given below, and a full specification is provided in Appendix 1.
 
-## Notation
+## Notation and overview
 
 Consider a country in sub-Saharan Africa where a household survey with complex survey design has taken place.
 Let $x \in \mathcal{X}$ index district, $a \in \mathcal{A}$ index five-year age group, and $s \in \mathcal{S}$ index sex.
 For ease of notation, let $i$ index the finest district-age-sex division included in the model.
 Let $I \subseteq \mathcal{X} \times \mathcal{A} \times \mathcal{S}$ be a set of indices $i$ for which an aggregate observation is reported, and $\mathcal{I}$ be the set of all $I$ such that $I \in \mathcal{I}$.
 
-Let $N_i \in \mathbb{N}$ be the known, fixed population size, $\rho_i \in [0, 1]$ be the HIV prevalence, $\alpha_i \in [0, 1]$ be the antiretroviral therapy (ART) coverage, $\kappa_i \in [0, 1]$ be the proportion recently infected among HIV positive persons, and $\lambda_i > 0$ be the annual HIV incidence rate.
+Let $N_i \in \mathbb{N}$ be the known, fixed population size, $\rho_i \in [0, 1]$ be the HIV prevalence, $\alpha_i \in [0, 1]$ be the antiretroviral therapy (ART) coverage, $\kappa_i \in [0, 1]$ be the proportion who are recently infected among HIV positive persons, and $\lambda_i > 0$ be the annual HIV incidence rate.
 
 Some observations are made at an aggregate level over a collection of strata $i$ rather than for a single $i$.
 Let $I \subseteq \mathcal{X} \times \mathcal{A} \times \mathcal{S}$ be a set of indices $i$ for which an aggregate observation is reported.
 The set of all $I$ is denoted $\mathcal{I}$ such that $I \in \mathcal{I}$.
 
-Naomi is a joint model on the observations $\mathbf{y} = (y^{\theta}_I)$ for $\theta \in \{\rho, \alpha, \kappa, \rho^\text{ANC}, \alpha^\text{ANC}, N^\text{ART}\}$ and $I \in \mathcal{I}$.
+Naomi is a joint model on the observations $\mathbf{y} = (y^\theta_I)$ for $\theta \in \{\rho, \alpha, \kappa, \rho^\text{ANC}, \alpha^\text{ANC}, N^\text{ART}\}$ and $I \in \mathcal{I}$.
+A superscript is used here to refer to components of the model (and does not refer to a power, unless made clear).
 The structured additive predictors contain intercept effects, age random effects, and spatial random effects which we collectively describe as the latent field $\x$.
 The latent field is controlled by hyperparamters $\btheta$ which include standard deviations, first-order autoregressive model correlation parameters, and reparameterised Besag-York-Mollie model [BYM2; @simpson2017penalising] proportion parameters.
+The number of hyperparameters is a key feature making inference challenging.
 
 ## Household survey component {#sec:household}
 
 Independent logistic regression models are specified for HIV prevalence and ART coverage in the general population such that $\text{logit}(\rho_i) = \eta^\rho_i$ and $\text{logit}(\alpha_i) = \eta^\alpha_i$.
 HIV incidence rate is modelled by $\log(\lambda_i) = \eta^\lambda_i$ and depends on adult HIV prevalence and adult ART coverage.
-The structured additive predictors $\eta^\theta_i$ for $\theta \in \{\rho, \alpha, \lambda\}$ are given in the Appendix.
+The structured additive predictors $\eta^\theta_i$ for $\theta \in \{\rho, \alpha, \lambda\}$ are given in Appendix 1.
 The proportion recently infected $\kappa_i$ is linked to HIV incidence via
 \begin{equation}
 \kappa_i = 1- \exp \left( - \lambda_i \cdot \frac{1 - \rho_i}{\rho_i} \cdot (\Omega_T - \beta_T) - \beta_T \right), \label{eq:kappa}
@@ -287,17 +290,18 @@ In Section \@ref(sec:pca) we propose an extension of the method which uses PCA t
 The joint posterior of the parameters $(\x, \btheta)$ given data $\y$ and hyperparameter prior distribution $p(\btheta)$ in an ELGM is given by
 \begin{equation}
   p(\x, \btheta \, | \, \y)
-  \propto p(\btheta) |\mathbf{Q}(\btheta)|^{n/2} \exp \left( - \frac{1}{2} \x^\top \mathbf{Q}(\btheta) \x + \sum_{i = 1}^n \log p(y_i \, | \, \x_{\mathcal{J}_i}, \btheta) \right).
+  \propto p(\btheta) |\mathbf{Q}(\btheta)|^{N/2} \exp \left( - \frac{1}{2} \x^\top \mathbf{Q}(\btheta) \x + \sum_{i = 1}^n \log p(y_i \, | \, \x_{\mathcal{J}_i}, \btheta) \right).
 \end{equation}
 We consider approximations to the posterior marginals of each latent random variable $x_i$ and hyperparameter $\theta_j$ given by
 \begin{align}
   p(x_i \, | \, \y) &\approx \tilde p(x_i \, | \, \y) = \int \tilde p(x_i \, | \, \btheta, \y) \tilde p(\btheta \, | \, \y) \text{d}\btheta, \quad i \in [N], \label{eq:inla1} \\
-  p(\theta_j \, | \, \y) &\approx \tilde p(\theta_j \, | \, \y) = \int \tilde  p(\btheta \, | \, \y) \text{d}\btheta_{-j} \quad j \in [m]. \label{eq:inla2}
+  p(\theta_j \, | \, \y) &\approx \tilde p(\theta_j \, | \, \y) = \int \tilde  p(\btheta \, | \, \y) \text{d}\btheta_{-j} \quad j \in [m], \label{eq:inla2}
 \end{align}
+where the approximations $\tilde p(x_i \, | \, \btheta, \y)$ and $\tilde  p(\btheta \, | \, \y)$ remain to be defined.
 
 ### Laplace approximation\label{sec:la}
 
-Let $\tilde p_\texttt{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \x(\btheta), \hat{\Hb}(\btheta)^{-1})$ be a Gaussian approximation to $p(\x \, | \, \btheta, \y)$ with mode and precision matrix given by
+Let $\tilde p_\texttt{G}(\x \, | \, \btheta, \y) = \mathcal{N}(\x \, | \, \hat \x(\btheta), \hat{\Hb}(\btheta)^{-1})$ be a Gaussian approximation to $p(\x \, | \, \btheta, \y)$ defined by mode and precision matrix
 \begin{align}
 \hat \x(\btheta) &= \argmax_\x \log p(\y, \x, \btheta), \label{eq:mode} \\
 \hat {\Hb}(\btheta) &= - \frac{\partial^2}{\partial \x \partial \x^\top} \log p(\y, \x, \btheta) \rvert_{\x = \hat \x(\btheta)}. \label{eq:precision}
@@ -310,7 +314,7 @@ Then the Laplace approximation [@naylor1982applications] to $p(\btheta, \y)$ is 
 \end{equation}
 Inference proceeds by optimising Equation \@ref(eq:la) using a gradient-based routine to obtain $\hat{\btheta}_\texttt{LA} = \argmax_{\btheta} \tilde p_\texttt{LA}(\btheta, \y)$.
 Each evaluation in the optimisation requires an inner optimisation to obtain $\hat \x(\btheta)$ via Equation \@ref(eq:mode).
-Supposing the hyperparameters are to be considered fixed, as with the TMB approach used currently for Naomi, then latent field joint and marginal inferences then follow directly from the Gaussian approximation $\tilde p_\texttt{G}(\x \, | \, \hat{\btheta}_\texttt{LA}, \y)$.
+Supposing the hyperparameters are to be considered fixed, as with the `TMB` approach used currently for Naomi, then latent field joint and marginal inferences then follow directly from the Gaussian approximation $\tilde p_\texttt{G}(\x \, | \, \hat{\btheta}_\texttt{LA}, \y)$.
 
 ### Adaptive Gauss-Hermite quadrature
 
@@ -368,7 +372,7 @@ Inference for the latent field follows analogously to Equation \@ref(eq:nest).
 # Application to data from Malawi {#sec:results}
 
 We fit the simplified Naomi model (Section \@ref(sec:naomi)) to data from Malawi.
-Data from Malawi, which has $n = 30$ districts, has previously been used to demonstrate the Naomi model, including as a part of the `naomi` R package vignette.
+Malawi, which has $n = 30$ districts, has previously been used to demonstrate the Naomi model, including as a part of the `naomi` R package vignette.
 Three Bayesian inference approaches were considered:
 
 1. Gaussian marginals and EB with `TMB`. This approach was previously used in production for Naomi. As short-hand, this approach is referred to as GEB.
@@ -391,7 +395,7 @@ NUTS & \texttt{tmbstan} & 4 chains of 100000 iterations, with the first half of 
 \small
 \end{table}
 
-Our goal was to determine the accuracy of the approximate methods (TMB and PCA-AGHQ) as compared with the gold-standard (NUTS).
+Our goal was to determine the accuracy of the approximate methods (GEB and GPCA-AGHQ) as compared with the gold-standard (NUTS).
 Settings used for each inferential method are provided in Table \@ref(tab:inference-methods), and, where relevant, discussed further below.
 The `TMB` C++ user-template used to specify the log-posterior was the same for each approach.
 The dimension of the latent field was $N = 467$ and the dimension of the hyperparameters was $m = 24$.
@@ -400,39 +404,6 @@ For all methods, age-sex-district specific HIV prevalence, ART coverage and HIV 
 
 The \textsc{R} [@r] code used to produce all results we describe below is available at `github.com/athowes/naomi-aghq`.
 We used `orderly` [@orderly] for reproducible research, `ggplot2` for data visualisation [@wickham2016ggplot2] and `rticles` [@allaire2022rticles] to write this paper via `rmarkdown` [@allaire2022rmarkdown].
-
-## Time taken
-
-```{r naomi-time}
-time_taken <- readr::read_csv("depends/time-taken.csv")
-
-time_taken$aghq <- time_taken$aghq * 60 * 60 
-time_taken$tmbstan <- time_taken$tmbstan * 60 * 60 * 24
-
-time_taken_df <- as.data.frame(t(time_taken)) %>%
-  tibble::rownames_to_column("method") %>%
-  mutate(
-    mins = V1 / 60,
-    hours = mins / 60,
-    days = hours / 24,
-    method = case_when(
-      method == "TMB" ~ "GEB",
-      method == "aghq" ~ "GPCA-AGHQ",
-      method == "tmbstan" ~ "NUTS"
-    ),
-    software = case_when(
-      method == "NUTS" ~ "tmbstan",
-      TRUE ~ "TMB"
-    )
-  )
-
-naomi_time_tmbstan_hours <- signif(filter(time_taken_df, method == "NUTS")$hours, 2)
-naomi_time_aghq_hours <- signif(filter(time_taken_df, method == "GPCA-AGHQ")$hours, 2)
-naomi_time_tmb_minutes <- signif(filter(time_taken_df, method == "GEB")$mins, 1)
-```
-
-Inference with NUTS took `r naomi_time_tmbstan_hours` hours, while inference with GPCA-AGHQ took `r naomi_time_aghq_hours` hours and GEB just `r naomi_time_tmb_minutes` minutes.
-Both the NUTS and GPCA-AGHQ algorithms can be run under a range of settings, trading off accuracy and runtime.
 
 ## NUTS convergence and suitability
 
@@ -476,13 +447,46 @@ The reduced rank approximation to the inverse curvature with this choice of $s$ 
 
 The principal component (PC) loadings (Supplementary Figure 8) provide interpretable information about which directions had the greatest variation.
 Several of the first $s = 8$ PC loadings are sums of two hyperparameters, indicating some redundancy in the hyperparameter parameterisation.
-This finding is supported analysis of correlation structure in the NUTS hyperparameter posterior (Appendix 2.1).
-It is exactly this correlation structure that PCA, and PCA-AGHQ, makes use of.
+This finding is supported by analysis of correlation structure in the NUTS hyperparameter posterior (Appendix 2.1).
 
-Projecting the $3^8 = 6561$ PCA-AGHQ quadrature nodes onto each hyperparameter dimension, there was substantial variation in coverage by hyperparameter (Figure \@ref(fig:nodes-samples-comparison)).
+Projecting the $3^8 = 6561$ PCA-AGHQ quadrature nodes onto each univariate hyperparameter dimension, there was substantial variation in coverage by hyperparameter (Figure \@ref(fig:nodes-samples-comparison)).
 Approximately 12 hyperparameters had well covered marginals: greater than the 8 naively obtained with a dense grid, but nonetheless far fewer than the full 24.
-Coverage was higher among hyperparameters on the logistic scale, and lower among hyperparameters on the logarithmic scale.
-This discrepancy occurred due to logistic hyperparameters naturally having higher posterior marginal standard deviation than logarithmic hyperparameters (Supplementary Figures 9 and 10).
+Coverage was higher among hyperparameters on the logistic scale, and lower among hyperparameters on the logarithmic scale (Supplementary Figure 9).
+This discrepancy occurred due to logistic hyperparameters naturally having higher posterior marginal standard deviation than logarithmic hyperparameters (Supplementary Figure 10).
+
+## Time taken
+
+```{r naomi-time}
+time_taken <- readr::read_csv("depends/time-taken.csv")
+
+time_taken$aghq <- time_taken$aghq * 60 * 60 
+time_taken$tmbstan <- time_taken$tmbstan * 60 * 60 * 24
+
+time_taken_df <- as.data.frame(t(time_taken)) %>%
+  tibble::rownames_to_column("method") %>%
+  mutate(
+    mins = V1 / 60,
+    hours = mins / 60,
+    days = hours / 24,
+    method = case_when(
+      method == "TMB" ~ "GEB",
+      method == "aghq" ~ "GPCA-AGHQ",
+      method == "tmbstan" ~ "NUTS"
+    ),
+    software = case_when(
+      method == "NUTS" ~ "tmbstan",
+      TRUE ~ "TMB"
+    )
+  )
+
+naomi_time_tmbstan_hours <- signif(filter(time_taken_df, method == "NUTS")$hours, 2)
+naomi_time_aghq_hours <- signif(filter(time_taken_df, method == "GPCA-AGHQ")$hours, 2)
+naomi_time_tmb_hours <- signif(filter(time_taken_df, method == "GEB")$hours, 2)
+naomi_time_tmb_minutes <- signif(filter(time_taken_df, method == "GEB")$mins, 2)
+```
+
+Inference with NUTS took `r naomi_time_tmbstan_hours` hours, while inference with GPCA-AGHQ took `r naomi_time_aghq_hours` hours and GEB just `r naomi_time_tmb_hours` hours (equivalent to `r naomi_time_tmb_minutes` minutes).
+Both the NUTS and GPCA-AGHQ algorithms can be run under a range of settings, trading off accuracy and runtime.
 
 ## Inference comparison
 
@@ -518,7 +522,7 @@ knitr::include_graphics("depends/mean-sd-alt-latent.png")
 
 Latent field mean and standard deviation point estimates obtained from GPCA-AGHQ were more accurate than those from GEB (Figure \@ref(fig:mean-sd-alt-latent)).
 The root mean square error (RMSE) between posterior mean estimates from GPCA-AGHQ and NUTS (`r rmse_aghq_mean`) was `r abs(rmse_diff_mean)`% lower than that between GEB and NUTS (`r rmse_tmb_mean`).
-For the posterior standard deviation estimates, there was a substantial `r abs(rmse_diff_sd)`% reduction in RMSE: from `r abs(rmse_tmb_sd)` (TMB) to `r abs(rmse_aghq_sd)` (PCA-AGHQ).
+For the posterior standard deviation estimates, there was a substantial `r abs(rmse_diff_sd)`% reduction in RMSE: from `r abs(rmse_tmb_sd)` (GEB) to `r abs(rmse_aghq_sd)` (GPCA-AGHQ).
 However, improvements in latent field estimate accuracy transferred to model outputs to a more limited and mixed extent (Supplementary Figures 12 and 13).
 
 ### Distributional quantities {#sec:distributional-quantities}
@@ -539,7 +543,7 @@ ks_summary_summarise <- ks_summary %>%
 ks_pct <- (ks_summary_summarise$tmb - ks_summary_summarise$aghq) / ks_summary_summarise$tmb
 ```
 
-(ref:ks-summary) The average Kolmogorov-Smirnov (KS) test statistic for each latent field parameter of the Naomi model. Vectors of parameters were grouped together. For points above the dashed line at zero, performance of GEB was better. For points below the dashed line, performance of GPCA-AGHQ was better. Most notably, for the latent field parameters $\texttt{ui\_lambda\_x}$ the average test statistic for GEB was substantially higher than for GPCA-AGHQ. This length 32 parameter $\mathbf{u}_x^{\lambda}$ plays a key role in the ART attendance component of the Naomi.
+(ref:ks-summary) The average Kolmogorov-Smirnov (KS) test statistic for each latent field parameter of the Naomi model. Vectors of parameters were grouped together. For points above the dashed line at zero, performance of GEB was better. For points below the dashed line, performance of GPCA-AGHQ was better. Most notably, for the latent field parameters $\texttt{ui\_lambda\_x}$ the average test statistic for GEB was substantially higher than for GPCA-AGHQ. This length 32 parameter $\mathbf{u}_x^{\lambda}$ plays a key role in the ART attendance component of the Naomi (Section \@ref(sec:art)).
 
 ```{r ks-summary, fig.cap="(ref:ks-summary)"}
 knitr::include_graphics("depends/ks-summary.png")
@@ -549,7 +553,7 @@ knitr::include_graphics("depends/ks-summary.png")
 ui_lambda_x <- readRDS("depends/ui-lambda-x.rds")
 ```
 
-(ref:ui-lambda-x) The parameter ``r paste0(ui_lambda_x$par)`` had the greatest difference in KS test statistics between GEB and GPCA-AGHQ to NUTS. For this parameter, the potential scale reduction factor was `r ui_lambda_x$rhat` and effective sample size was `r ui_lambda_x$ess`.
+(ref:ui-lambda-x) The parameter ``r paste0(ui_lambda_x$par)`` had the greatest difference in KS test statistics between GEB and GPCA-AGHQ to NUTS. For this parameter, the potential scale reduction factor was `r ui_lambda_x$rhat` and effective sample size was `r ui_lambda_x$ess`, indicating that NUTS results are likely to be accurate.
 
 ```{r ui-lambda-x, fig.cap="(ref:ui-lambda-x)"}
 knitr::include_graphics("depends/ui-lambda-x.png")
@@ -558,6 +562,8 @@ knitr::include_graphics("depends/ui-lambda-x.png")
 The two-sample Kolmogorov-Smirnov (KS) test statistic [@smirnov1948table] is the maximum absolute difference between two ECDFs $F(\omega) = \frac{1}{n} \sum_{i = 1}^n \mathbb{I}_{\phi_i \leq \omega}$.
 It is a relatively stringent worst-case measure of distance between empirical distributions.
 The average KS test statistic for GPCA-AGHQ (`r signif(ks_summary_summarise$aghq, 2)`) was `r signif(100 * ks_pct, 2)`% less than the average KS test statistic for GEB (`r signif(ks_summary_summarise$tmb, 2)`).
+Figure \@ref(fig:ks-summary) shows the differences in average KS test statistic for each latent field parameter.
+GCPA-AGHQ showed the greatest average improvement in KS test statistic for a vector of parameters in the ART attendance component of Naomi (Figure \@ref(fig:ui-lambda-x)).
 For both GEB and GPCA-AGHQ the KS test statistic for a parameter was correlated with low NUTS ESS (Supplementary Figure 14).
 This correlation may be due to by difficulties estimating particular parameters for all inference methods, or high KS values caused by NUTS inaccuracies.
 
@@ -578,13 +584,13 @@ Let $\Phi^{1} = \{\boldsymbol{\mathbf{\phi}}^1_s\}_{s = 1}^S$ and $\Phi^2 = \{\b
 The kernel was set to $k(\boldsymbol{\mathbf{\phi}}^1, \boldsymbol{\mathbf{\phi}}^2) = \exp(-\sigma \lVert \boldsymbol{\mathbf{\phi}}^1 - \boldsymbol{\mathbf{\phi}}^2 \rVert^2)$ with $\sigma$ estimated from data using the `kernlab` \textsc{R} package [@karatzoglou2019package].
 Then, the first and third order MMD statistics for GEB were `r signif(mmd$mmd_tmb@mmdstats[1], 2)` and `r signif(mmd$mmd_tmb@mmdstats[2], 2)` while those of GPCA-AGHQ (`r signif(mmd$mmd_aghq@mmdstats[1], 2)` and `r signif(mmd$mmd_aghq@mmdstats[2], 2)`) were `r first_order_pct`% and `r third_order_pct`% lower.
 
-## Exceedance probabilities {#sec:exceedance}
+### Exceedance probabilities {#sec:exceedance}
 
 As realistic use cases for Naomi model outputs, we considered the following two case-studies based on exceedance probabilities.
 
-### Meeting the second 90
+#### Meeting the second 90
 
-(ref:exceedance-second90) The probability each strata has met the second 90 (ART coverage above 81\\%) calculated using each inference method, as compared with NUTS. The root mean square error (RMSE) and mean absolute error (MAE) are displayed in the top left.
+(ref:exceedance-second90) The probability each strata has met the second 90 (ART coverage above 81\%) calculated using each inference method, as compared with NUTS. The root mean square error (RMSE) and mean absolute error (MAE) are displayed in the top left.
 
 ```{r exceedance-second90, fig.cap="(ref:exceedance-second90)"}
 knitr::include_graphics("depends/exceedance-second90.png")
@@ -597,9 +603,9 @@ Strata probabilities of having met the second 90 target were more accurately est
 However, both GPCA-AGHQ and GEB had substantial error as compared to results from NUTS, particularly for women and girls.
 The discrepancy in accuracy by sex may be due to a more challenging posterior geometry caused by interactions between the household survey and ANC components of the model.
 
-### Finding strata with high incidence
+#### Finding strata with high incidence
 
-(ref:exceedance-1inc) The probability each strata has high HIV incidence (above 1\\% per year) calculated using each inference method, as compared with NUTS. The root mean square error (RMSE) and mean absolute error (MAE) are displayed in the top left.
+(ref:exceedance-1inc) The probability each strata has high HIV incidence (above 1\% per year) calculated using each inference method, as compared with NUTS. The root mean square error (RMSE) and mean absolute error (MAE) are displayed in the top left.
 
 ```{r exceedance-1inc, fig.cap="(ref:exceedance-1inc)"}
 knitr::include_graphics("depends/exceedance-1inc.png")
@@ -659,11 +665,11 @@ Second, use of PCA is challenging when the dimensions have different scales.
 For the Naomi model, logit-scale hyperparameters were systematically favoured over those on the log-scale.
 Third, when the quadrature rule is used within an INLA algorithm, it is more important to allocate quadrature nodes to those hyperparameter marginals which are non-Gaussian.
 This is because the Laplace approximation is exact when the integrand is Gaussian, so a single quadrature node is sufficient.
-The difficulty is, of course, knowing in advance which marginals will be non-Gaussian.
+The difficulty is knowing in advance which marginals will be non-Gaussian.
 This could be done if there were a cheap way to obtain posterior means, which could then be compared to posterior modes obtained using optimisation.
 Another approach would be to measure the fit of marginal samples from a cheap approximation, like EB.
 The measures of fit would have to be for marginals, ruling out approaches like PSIS [@yao2018yes] which operate on joint distributions.
-Finally, it may be possible to achieve better performance by pruning and prerotation of the quadrature grid, as discussed by @jackel2005note.
+Finally, it is likely possible to achieve better performance by pruning and prerotation of the quadrature grid, as discussed by @jackel2005note.
 
 ### Statistical theory
 
