@@ -102,7 +102,7 @@ Inference in `TMB` occurs via optimisation of a \textsf{C++} template function, 
 `TMB` uses automatic differentiation [@fournier2012ad; @baydin2017automatic] to calculate the derivatives required for gradient-based numerical optimisation routines and the Laplace approximation.
 
 Although the EB approach is fast, it does not take into account hyperparameter uncertainty in the latent field posterior, potentially resulting in underestimated posterior variances.
-This concern could have important practical implications for use of the estimates from the Naomi model, and motivated us to look for an approach closer full Bayesian inference.
+This concern could have important practical implications for use of the estimates from the Naomi model, and motivated us to look for an approach closer to full Bayesian inference.
 We developed a method based on adaptive Gauss-Hermite quadrature (AGHQ) extended to handle integration over many hyperparameters.
 AGHQ is a quadrature method based on the theory of polynomial interpolation, and is well suited to statistical estimation problems in which the integrand is well approximated by a Gaussian multiplied by a polynomial.
 For example, @bilodeau2024stochastic prove stochastic convergence rates for Bayesian posterior quantities when the normalising constant is estimated using AGHQ.

@@ -1,6 +1,9 @@
 *.log
-appendix.tex
+paper.pdf
+appendix.pdf
+revisions.pdf
 paper.tex
+appendix.tex
 paper_files
 paper_cache
 appendix_cache

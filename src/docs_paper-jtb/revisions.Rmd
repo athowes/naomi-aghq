@@ -1,0 +1,53 @@
+---
+title: Response to reviewers
+author:
+  - Adam Howes^[Department of Mathematics, Imperial College London]
+  - Alex Stringer^[Department of Statistics and Actuarial Science, University of Waterloo]
+  - Seth R. Flaxman^[Department of Computer Science, Oxford University]
+  - Jeffrey W. Imai-Eaton^[Harvard T.H. Chan School of Public Health, Harvard University]
+output:
+  bookdown::pdf_document2:
+    toc: no
+    number_sections: yes
+    keep_tex: yes
+bibliography: citations.bib
+header-includes:
+  \usepackage{xr} \externaldocument{paper}
+---
+
+```{r echo = FALSE, message = FALSE}
+library(dplyr)
+
+options(scipen = 100)
+
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  dpi = 320,
+  cache = TRUE,
+  out.width = "95%",
+  fig.align = "center",
+  fig.pos = "!h",
+  out.extra = ""
+)
+
+knitr::opts_chunk$set()
+```
+
+Thank you for taking the time to read and review our paper "Fast approximate Bayesian inference of HIV indicators using PCA adaptive Gauss-Hermite quadrature".
+In what follows we address your comments and suggestions point by point.
+We appreciate the feedback to improve the work and have made the relevant changes to the manuscript.
+
+\clearpage
+
+# Reviewer 1 {-}
+
+> Typos spotted
+
+Thank you for spotting these two typographic errors.
+We have corrected them in the manuscript.
+
+# Reviewer 2 {-}
+
+# References {#references .unnumbered}
