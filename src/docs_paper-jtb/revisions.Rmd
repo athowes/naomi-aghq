@@ -48,6 +48,39 @@ We appreciate the feedback to improve the work and have made the relevant change
 Thank you for spotting these two typographic errors.
 We have corrected them in the manuscript.
 
+> On `tmbstan` as compared with e.g. `rstan`
+
+`tmbstan` does use the Stan NUTS algorithm directly.
+That said, the performance can differ depending on the model and parameterisation.
+@monnahan2018no discuss a binomial GLMM implemented in `tmbstan` and Stan directly in which there is essentially no performance difference.
+That said, in the supplementary information, two models "zdiag" and "growth" are discussed where it does appear that models implemented directly in Stan are faster (in the figure "TMB" refers to `tmbstan`).
+For this reason, I do think that implementing the model directly in Stan would be likely to have some performance benefit.
+As @monnahan2018no write:
+
+> Based on our performance tests (S1 Table, S1 Fig), substantial speed improvements by converting models to the Stan language is not guaranteed.
+
+```{r fig.height = 4}
+knitr::include_graphics("revisions/monnahan2028no_s1.png")
+```
+
+> Bayesian optimisation as a competitor in the space
+
+The goal of Bayesian optimisation (BO) is to find the maximum of a (black box) function.
+For this reason, we do not see BO as a competitor to algorithms (like ours) intended to perform Bayesian inference.
+One could imagine using BO to optimise the hyperparameters, however it would likely be preferable to use gradients (as they are available).
+
 # Reviewer 2 {-}
+
+> ...the method is tunable with how many PCA components are selected and what value of $k$ to use...
+
+We agree that it would be of interest to explore the effect of choosing a different number of PCA components ($s$) and number of quadrature points per dimension ($s$).
+Furthermore, one could consider a varying number of quadrature points.
+A particular instance of this approach could look like "gradually lowering $k$ over the principal components".
+
+> ...a useful intermediate scheme to me seems to be to drop the corners of the grid...
+
+We agree that this could be a useful approach.
+Indeed Section 6.1.2. reads "Finally, it is likely possible to achieve better performance by pruning and prerotation of the quadrature grid, as discussed by @jackel2005note.".
+We believe the suggested approach is what we refer to here (very briefly) as "pruning".
 
 # References {#references .unnumbered}

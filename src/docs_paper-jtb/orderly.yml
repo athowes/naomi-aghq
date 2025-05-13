@@ -36,6 +36,7 @@ resources:
   - naomi_simple.cpp
   - 2d.cpp
   - figs.R
+  - revisions
 
 packages:
   - rmarkdown
