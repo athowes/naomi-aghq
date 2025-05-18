@@ -63,6 +63,15 @@ As @monnahan2018no write:
 knitr::include_graphics("revisions/monnahan2028no_s1.png")
 ```
 
+> Questions about the HIV model
+
+Jeff broadly agrees with the reviewer.
+(This is an area of current work on Naomi extension.)
+
+> Selecting dimensions in proportion to variance in some outcome explained
+
+
+
 > Bayesian optimisation as a competitor in the space
 
 The goal of Bayesian optimisation (BO) is to find the maximum of a (black box) function.
@@ -70,6 +79,28 @@ For this reason, we do not see BO as a competitor to algorithms (like ours) inte
 One could imagine using BO to optimise the hyperparameters, however it would likely be preferable to use gradients (as they are available).
 
 # Reviewer 2 {-}
+
+> On Figure 5
+
+Thank you for the suggestion.
+We have adjusted the `alpha` value from 0.5 to 0.1 and added a caption to the figure explaining the possible overlap to make the figure clearer.
+
+```{r}
+knitr::include_graphics("revisions/fig5_edit.png")
+```
+
+> On Figure 6
+
+Thank you for noting that the $y$-axis here is ambiguous.
+We have clarified this here and in other instances throughout the manuscript.
+(Remains to do this!)
+
+> On Figure 7
+
+We agree that there are too many colours here for this figure to be clear.
+Thank you for the good suggestion to split the plot into multiple panels.
+We have done this, choosing to group the parameters by the component of the model they are most associated with.
+(Remains to do this!)
 
 > ...the method is tunable with how many PCA components are selected and what value of $k$ to use...
 

@@ -64,16 +64,24 @@ pdf("nodes-samples-comparison.pdf", h = 8, w = 6.25)
 
 ggplot(tmbstan_samples, aes(x = x)) +
   geom_histogram(fill = "lightgrey", col = "darkgrey", alpha = 0.5) +
-  geom_rug(data = aghq_nodes, aes(x = node), col = "#009E73", length = unit(0.1, "npc"), alpha = 0.5) +
+  geom_rug(data = aghq_nodes, aes(x = node), col = "#009E73", length = unit(0.1, "npc"), alpha = 0.1) +
   scale_y_continuous(expand = c(0.2, 0.2)) +
   facet_wrap(~ par, scales = "free", ncol = 4) +
-  labs(x = "", y = "") +
+  labs(
+    x = "",
+    y = "",
+    caption = paste0(
+      "<b style='color:#A9A9A9;'>Grey</b> histograms: hyperparameter marginal samples from NUTS. <br>",
+      "<b style='color:#009E73;'>Green</b> lines: positions of ", nrow(aghq_nodes) / length(hyper), " (possibly overlapping) PCA-AGHQ nodes projected onto the marginal."
+    )
+  ) +
   theme_minimal() +
   theme(
     axis.text.x = element_blank(),
     axis.ticks.x = element_blank(),
     axis.text.y = element_blank(),
-    axis.ticks.y = element_blank()
+    axis.ticks.y = element_blank(),
+    plot.caption = ggtext::element_markdown(size = 8, hjust = 0, lineheight = 1.4)
   )
 
 dev.off()

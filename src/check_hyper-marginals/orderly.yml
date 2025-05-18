@@ -23,6 +23,7 @@ packages:
   - patchwork
   - gt
   - excursions
+  - ggtext
 
 depends:
   - naomi-simple_fit:
