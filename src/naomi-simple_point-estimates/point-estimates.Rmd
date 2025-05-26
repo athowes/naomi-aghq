@@ -150,7 +150,7 @@ df_plot_latent %>%
   facet_grid(indicator ~ method) +
   geom_abline(intercept = 0, slope = 0, col = "#E69F00", linetype = "dashed") +
   geom_text(data = df_metrics_latent, aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5) +
-  labs(x = "Estimate", y = "Absolute difference to NUTS") +
+  labs(x = "Estimate", y = "Absolute difference (NUTS - method)") +
   theme_minimal()
 
 ggsave("mean-sd-latent.png", h = 6, w = 6.25)
@@ -172,7 +172,7 @@ mean_plot_latent <- df_plot_latent %>%
     data = filter(df_metrics_latent, indicator == "Posterior mean"),
     aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
   ) +
-  labs(x = "Estimate", y = "Absolute difference to NUTS") +
+  labs(x = "Estimate", y = "Absolute difference (NUTS - method)") +
   theme_minimal()
 
 ggsave("mean-latent.png", mean_plot_latent, h = 4, w = 6.25)
@@ -188,7 +188,7 @@ sd_plot_latent <- df_plot_latent %>%
     data = filter(df_metrics_latent, indicator == "Posterior SD"),
     aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
   ) +
-  labs(x = "Estimate", y = "Absolute difference to NUTS") +
+  labs(x = "Estimate", y = "Absolute difference (NUTS - method)") +
   theme_minimal()
 
 ggsave("sd-latent.png", sd_plot_latent, h = 4, w = 6.25)
@@ -259,7 +259,7 @@ df_plot_output %>%
   facet_grid(indicator ~ method) +
   geom_abline(intercept = 0, slope = 0, col = "#E69F00", linetype = "dashed") +
   geom_text(data = df_metrics_output, aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5) +
-  labs(x = "Estimate", y = "Absolute difference to NUTS", col = "Output") +
+  labs(x = "Estimate", y = "Absolute difference (NUTS - method)", col = "Output") +
   theme_minimal() +
   theme(legend.position = "bottom")
 
@@ -282,7 +282,7 @@ mean_plot_output <- df_plot_output %>%
     data = filter(df_metrics_output, indicator == "Posterior mean"),
     aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
   ) +
-  labs(x = "Estimate", y = "Absolute difference to NUTS", col = "Output") +
+  labs(x = "Estimate", y = "Absolute difference (NUTS - method)", col = "Output") +
   theme_minimal()
 
 ggsave("mean-output.png", mean_plot_output, h = 4, w = 6.25)
@@ -298,7 +298,7 @@ sd_plot_output <- df_plot_output %>%
     data = filter(df_metrics_output, indicator == "Posterior SD"),
     aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
   ) +
-  labs(x = "Estimate", y = "Absolute difference to NUTS", col = "Output") +
+  labs(x = "Estimate", y = "Absolute difference (NUTS - method)", col = "Output") +
   theme_minimal()
 
 ggsave("sd-output.png", sd_plot_output, h = 4, w = 6.25)
@@ -356,7 +356,7 @@ plot_outputs <- function(.indicator, .par, col) {
     data = filter(df_metrics_output_split, indicator == .indicator, par == .par),
     aes(x = -Inf, y = Inf, label = label), size = 3, hjust = 0, vjust = 1.5
   ) +
-  labs(x = "Estimate", y = "Absolute difference to NUTS", col = "Output") +
+  labs(x = "Estimate", y = "Absolute difference (NUTS - method)", col = "Output") +
   theme_minimal() +
   theme(legend.position = "none", panel.spacing.x = unit(6, "mm"))
 }
