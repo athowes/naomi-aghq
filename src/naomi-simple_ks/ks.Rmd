@@ -495,22 +495,54 @@ saveRDS(ks_summary, "ks-summary.rds")
 
 extended_cbpalette <- colorRampPalette(multi.utils::cbpalette())
 
-ks_summary_latent <- filter(ks_summary, type == "Latent")
+fct_case_when <- function(...) {
+  args <- as.list(match.call())
+  levels <- sapply(args[-1], function(f) f[[3]])  # extract RHS of formula
+  levels <- levels[!is.na(levels)]
+  factor(dplyr::case_when(...), levels=levels)
+}
+
+# Include group information
+ks_summary_latent <- filter(ks_summary, type == "Latent") %>%
+  mutate(
+    component = fct_case_when(
+      parname %in% c("beta_rho", "u_rho_a", "u_rho_as", "u_rho_x", "u_rho_xs", "us_rho_x", "us_rho_xs") ~ "HIV prevalence",
+      parname %in% c("beta_lambda", "ui_lambda_x") ~ "HIV incidence",
+      parname %in% c("beta_alpha", "u_alpha_a", "u_alpha_as", "u_alpha_x", "u_alpha_xs", "us_alpha_x", "us_alpha_xs", "u_alpha_xa", "ui_anc_alpha_x", "ui_anc_rho_x", "log_or_gamma") ~ "ART coverage",
+      TRUE ~ "Other"
+    ),
+    label = fct_case_when(
+      parname %in% c("beta_alpha", "beta_rho", "beta_lambda") ~ "Intercept",
+      parname %in% c("u_alpha_a", "u_rho_a") ~ "Age effect",
+      parname %in% c("u_alpha_x", "u_alpha_xs", "u_rho_x", "us_rho_x", "us_alpha_x", "ui_lambda_x", "ui_anc_alpha_x", "ui_anc_rho_x") ~ "Space effect",
+      parname %in% c("u_alpha_as", "u_rho_as", "u_alpha_xa") ~ "Age-sex effect",
+      parname %in% c("us_rho_xs", "us_alpha_xs", "u_rho_xs") ~ "Space-sex effect",
+      parname %in% c("log_or_gamma") ~ "Log odds ratio",
+      TRUE ~ "Other"
+    )
+  )
 
 xy_length <- min(1, max(ks_summary_latent$aghq, ks_summary_latent$TMB) + 0.03)
 
 ks_summary_latent %>%
-  ggplot(aes(x = TMB, y = aghq - TMB, col = parname, size = size)) +
-  geom_point(alpha = 0.7) +
-  scale_color_manual(values = extended_cbpalette(n = 20)) +
-  scale_size_continuous(breaks = c(2, 10, 32), labels = c(2, 10, 32)) +
-  geom_abline(slope = 0, intercept = 0, linetype = "dashed") +
-  labs(x = "KS(GEB)", y = "KS(GPCA-AGHQ) - KS(GEB)", col = "Parameter", size = "Length") +
+  ggplot(aes(x = TMB, y = aghq - TMB, col = label, size = size)) +
+  facet_wrap(~ component, ncol = 1) +
+  geom_point(shape = 1) +
+  scale_color_manual(values = multi.utils::cbpalette()) +
+  geom_abline(slope = 0, intercept = 0, linetype = "dashed", col = "grey") +
+  scale_size_continuous(breaks = c(2, 10, 32), labels = c(2, 10, 32), range = c(2, 4)) +
+  scale_y_continuous(limits = c(-0.08, 0.08)) +
+  labs(x = "Average of KS(GEB)", y = "Average of KS(GPCA-AGHQ) - KS(GEB)", col = "Parameter type", size = "Parameter length") +
   theme_minimal() +
-  guides(size = guide_legend(title.position = "top", direction = "vertical"), col = guide_legend(title.position = "top", nrow = 5, byrow = TRUE)) +
-  theme(legend.position = "bottom", legend.title = element_text(size = rel(0.9)), legend.text = element_text(size = rel(0.9)))
+  guides(size = guide_legend(title.position = "top", direction = "horizontal"), col = guide_legend(title.position = "top", nrow = 6, byrow = TRUE)) +
+  theme(
+    legend.position = "right",
+    legend.title = element_text(size = rel(0.9)),
+    legend.text = element_text(size = rel(0.9)),
+    panel.spacing.y = unit(1.2, "lines")
+  )
 
-ggsave("ks-summary.png", h = 5, w = 6.25, bg = "white")
+ggsave("ks-summary.png", h = 5.25, w = 6.25, bg = "white")
 ```
 
 ```{r}
