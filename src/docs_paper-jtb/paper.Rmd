@@ -543,7 +543,7 @@ ks_summary_summarise <- ks_summary %>%
 ks_pct <- (ks_summary_summarise$tmb - ks_summary_summarise$aghq) / ks_summary_summarise$tmb
 ```
 
-(ref:ks-summary) The average Kolmogorov-Smirnov (KS) test statistic for each latent field parameter of the Naomi model. Vectors of parameters were grouped together. For points above the dashed line at zero, performance of GEB was better. For points below the dashed line, performance of GPCA-AGHQ was better. Most notably, for the latent field parameters $\texttt{ui\_lambda\_x}$ the average test statistic for GEB was substantially higher than for GPCA-AGHQ. This length 32 parameter $\mathbf{u}_x^{\lambda}$ plays a key role in the ART attendance component of the Naomi (Section \@ref(sec:art)).
+(ref:ks-summary) The average Kolmogorov-Smirnov (KS) test statistic for each latent field parameter of the Naomi model. Vectors of parameters were grouped together. For points above the dashed line at zero, performance of GEB was better. For points below the dashed line, performance of GPCA-AGHQ was better. Most notably, for the latent field parameters $\texttt{ui\_lambda\_x}$ the average test statistic for GEB was substantially higher than for GPCA-AGHQ. This length 32 parameter $\mathbf{u}_x^{\lambda}$ plays a key role in modelling ART attendance (Section \@ref(sec:art)).
 
 ```{r ks-summary, fig.cap="(ref:ks-summary)"}
 knitr::include_graphics("depends/ks-summary.png")

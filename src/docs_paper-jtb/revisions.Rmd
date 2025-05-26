@@ -88,10 +88,12 @@ We have clarified the $y$-axis here (and where relevant throughout the manuscrip
 
 > On Figure 7
 
-We agree that there are too many colours here for this figure to be clear.
-Thank you for the suggestion to split the plot into multiple panels.
-We have done this, choosing to group the parameters by the component of the model they are most associated with.
-(Remains to do this!)
+We agree that there are too many colours here for this figure to be clear, and that the suggestion to split the figure across panels is a good one.
+To do so, we have grouped the parameters by the model component (e.g. HIV prevalence), and used colour to represent the type of parameter (e.g. intecept).
+
+```{r}
+knitr::include_graphics("depends/ks-summary.png")
+```
 
 > ...the method is tunable with how many PCA components are selected and what value of $k$ to use...
 
