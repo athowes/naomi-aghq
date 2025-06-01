@@ -83,5 +83,8 @@ ecdf_plot <- ggplot(ecdf_df, aes(x = x, y = ecdf_diff, col = method)) +
 
 histogram_plot + ecdf_plot
 
-saveRDS(list(par = par_name, rhat = rhat, ess = ess), file = "ui-lambda-x.rds")
 ggsave("ui-lambda-x.png", h = 4, w = 6.25)
+
+dev.off()
+
+saveRDS(list(par = par_name, rhat = rhat, ess = ess), file = "ui-lambda-x.rds")

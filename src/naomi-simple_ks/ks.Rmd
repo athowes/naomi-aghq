@@ -610,13 +610,16 @@ ess_ratio <- bayesplot::neff_ratio(tmbstan$mcmc$stanfit)
 niter <- 0.5 * 4 * tmbstan_details$niter / tmbstan_details$nthin
 ess <- ess_ratio * niter
 
-fct_reorg <- function(fac, ...) {
-  fct_recode(fct_relevel(fac, ...), ...)
-}
-
 ks_df %>%
   filter(type != "Hyper") %>%
-  mutate(method = fct_reorg(method, "GEB" = "TMB", "GPCA-AGHQ" = "aghq")) %>%
+  mutate(
+    method = fct_recode(
+      method,
+      "GEB" = "TMB",
+      "GPCA-AGHQ" = "aghq",
+    ),
+    method = fct_relevel(method, "GEB", "GPCA-AGHQ")
+  ) %>%
   left_join(data.frame(ess) %>%
     tibble::rownames_to_column("par"),
   ) %>%

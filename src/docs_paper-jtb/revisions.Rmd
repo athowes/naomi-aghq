@@ -50,10 +50,16 @@ As such, the NUTS algorithm used should be the same.
 Nonetheless, it could be that there are speed differences between function evaluations in `TMB` and Stan.
 We have added a sentence to the discussion noting this possible comparison: "Additionally, direct implementation of Naomi within the Stan PPL could alter the speed by as much as plus or minus 50% [@monnahan2018no] and would give access to other algorithms implemented in Stan such as variational inference [@kucukelbir2015automatic] and Pathfinder [@zhang2022pathfinder]."
 
-> Questions about the HIV model
+> On the proportion recently infected and ANC offsets
 
-Jeff broadly agrees with the reviewer.
-(This is an area of current work on Naomi extension.)
+Some HIV surveys provide bio-marker data on whether or not the infection was recent.
+The equation in the manuscript links the probability of recent infection to HIV prevalence, HIV incidence, and properties of the recent infection assay.
+This allows us to back-out estimates of the HIV incidence.
+<!-- Is there something to add to the manuscript here? -->
+
+We agree that tightening the bounds on the ANC offsets would be an important step for improving estimates of HIV incidence.
+Work is ongoing to improve the Naomi model [@esra2024improved].
+<!-- Has this work been included yet, or it's still to be done in future? -->
 
 > Selecting dimensions in proportion to variance in some outcome explained
 
@@ -89,7 +95,7 @@ We have clarified the $y$-axis here (and where relevant throughout the manuscrip
 > On Figure 7
 
 We agree that there are too many colours here for this figure to be clear, and that the suggestion to split the figure across panels is a good one.
-To do so, we have grouped the parameters by the model component (e.g. HIV prevalence), and used colour to represent the type of parameter (e.g. intecept).
+To do so, we have grouped the parameters by the model component (e.g. HIV prevalence), and used colour to represent the type of parameter (e.g. intercept).
 
 ```{r}
 knitr::include_graphics("depends/ks-summary.png")
