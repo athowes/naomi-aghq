@@ -61,7 +61,7 @@ ctx <- context::context_save(
   "context",
   packages = packages,
   package_sources = src
-)ß
+)
 
 obj <- didehpc::queue_didehpc(ctx, config = config)
 
