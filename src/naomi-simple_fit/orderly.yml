@@ -38,12 +38,18 @@ parameters:
   #' Perform Laplace approximation when running HMC? TRUE or FALSE
   hmc_laplace:
     default: FALSE
-  #' Default number of iterations for tmbstan, with four chains
+  #' Number of chains for tmbstan
+  nchains:
+    default: 4
+  #' Number of iterations for tmbstan
   niter:
     default: 1000
   #' Thinning parameter for tmbstan
   nthin:
     default: 1
+  #' Number of cores to run tmbstan with
+  ncores:
+    default: 4
   #' Run inference with new method under development? TRUE or FALSE
   adam:
     default: FALSE
