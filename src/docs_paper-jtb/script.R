@@ -20,6 +20,7 @@ convert_pdf_png("nodes-samples-comparison")
 #' Render documents
 rmarkdown::render("paper.Rmd", clean = FALSE)
 rmarkdown::render("appendix.Rmd", clean = FALSE)
+rmarkdown::render("revisions.Rmd", clean = FALSE)
 
 pdftools::pdf_combine(c("paper.pdf", "appendix.pdf"), output = "naomi-aghq.pdf")
 

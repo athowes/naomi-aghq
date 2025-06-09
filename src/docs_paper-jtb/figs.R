@@ -118,7 +118,7 @@ outputs <- tmb$outputs
 #' Adapted from figure from Naomi paper (Eaton 2021)
 #' https://github.com/jeffeaton/naomi-model-paper/blob/master/analysis.R
 
-indicators <- naomi:::add_output_labels(outputs) %>%
+indicators <- naomi::add_output_labels(outputs) %>%
   left_join(
     select(outputs$meta_area, area_level, area_id, center_x, center_y),
     by = c("area_level", "area_id")

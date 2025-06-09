@@ -45,6 +45,7 @@ packages:
   - bayesplot
   - patchwork
   - gt
+  - naomi
 
 depends:
   - naomi-simple_fit:

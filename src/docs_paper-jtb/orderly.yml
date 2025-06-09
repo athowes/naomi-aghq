@@ -6,12 +6,14 @@ artefacts:
       filenames:
         - paper.pdf
         - appendix.pdf
+        - revisions.pdf
         - naomi-aghq.pdf
   - data:
       description: Main paper, appendix, and figures and tables .tex
       filenames:
         - paper.tex
         - appendix.tex
+        - revisions.tex
   - data:
       description: Any generated figures
       filenames:
@@ -19,17 +21,18 @@ artefacts:
         - figB.png
         - figC.png
         - abstract.png
-  - data:
-      description: Any generated LaTeX tables
-      filenames:
-        - ks-summary.tex
-        - point-summary-mean.tex
-        - point-summary-sd.tex
-        - point-summary.tex
+  # - data:
+  #     description: Any generated LaTeX tables
+  #     filenames:
+  #       - ks-summary.tex
+  #       - point-summary-mean.tex
+  #       - point-summary-sd.tex
+  #       - point-summary.tex
 
 resources:
   - paper.Rmd
   - appendix.Rmd
+  - revisions.Rmd
   - citations.bib
   - preamble.tex
   - elsarticle.cls
@@ -56,6 +59,7 @@ depends:
         depends/ks-ess.png: ks-ess.png
         depends/ui-lambda-x.png: ui-lambda-x.png
         depends/ui-lambda-x.rds: ui-lambda-x.rds
+        depends/beta_alpha.rds: beta_alpha.rds
   - plot-tikz_algorithm-flowchart:
       id: latest
       use:
@@ -124,4 +128,3 @@ depends:
       id: latest
       use:
         depends/mmd.rds: mmd.rds
-
