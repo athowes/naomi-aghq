@@ -88,7 +88,7 @@ Work is ongoing to improve the Naomi model [@esra2024improved].
 You anticipated my very clever idea for improving the performance of the PCA algorithm: namely, to consider the relevance of each dimension to a measure of uncertainty relevant to the end predictive purposes. Are calculations of this nature possible with TMB as it stands, or would one need to dig into the bowels of the c++ code and create a TMB package extension? I think this is an interesting area for future work.
 \end{reviewer}
 
-We agree this is an interesting area for future work, and have added a sentence to Section 6.1.2. discussing the possibility of doing this in `TMB`:
+We agree that this is an interesting area for future work, and have added a sentence to Section 6.1.2. discussing the possibility of doing this in `TMB`:
 
 > This may be achievable by applying the `ADREPORT` function to model outputs within the `TMB` template to obtain gradients.
 
