@@ -96,9 +96,8 @@ We agree this is an interesting area for future work, and have added a sentence 
 Finally, on page 17 it feels like Bayesian 'optimisation' is another natural competitor in this space, especially since it's quite straightforward to just run this kind of algorithm to explore hyper parameters until you get bored or run out of time, i.e., you get what you get from stopping early, unlike HMC for instance.
 \end{reviewer}
 
-The goal of Bayesian optimisation (BO) is to find the maximum of a (black box) function.
-For this reason, we do not see BO as a competitor to algorithms (like ours) intended to perform Bayesian inference.
-(One could imagine using BO to optimise the hyperparameters, however it would be preferable to use gradients [as they are available].)
+Our understanding is that the goal of Bayesian optimisation (BO) is to find the maximum of a (black box) function, rather than to perform Bayesian inference.
+One could imagine using BO to optimise the hyperparameters, however it would be preferable to use gradients as they are available.
 
 \begin{reviewer}
 Typos spotted:
