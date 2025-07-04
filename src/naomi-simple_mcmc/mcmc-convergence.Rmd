@@ -41,8 +41,21 @@ This MCMC took `r round(out$time, 3)` days to run
 ```{r}
 cbpalette <- c("#56B4E9", "#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
 
-color_scheme_set("viridis")
+bayesplot::color_scheme_set("viridis")
 ggplot2::theme_set(theme_minimal())
+```
+
+```{r}
+# This is code I tried when one chain was not converging -- trying for a rerun instead!
+remove_chains = function(fit, drop) {
+  sim <- fit@sim
+  sim$samples <- sim$samples[-drop]
+  sim$chains <- sim$chains - length(drop)
+  sim$warmup2 <- sim$warmup2[-drop]
+  sim$n_save <- sim$n_save[-drop]
+  fit@sim <- sim
+  fit
+}
 ```
 
 # $\hat R$
@@ -80,7 +93,7 @@ mcmc_summary <- summary(mcmc)$summary
 (rhat_upper <- quantile(mcmc_summary[, "Rhat"], 0.975))
 (rhat_max <- max(mcmc_summary[, "Rhat"]))
 (rhat_mean <- mean(mcmc_summary[, "Rhat"]))
-(rhat_above_threshold <- mean(mcmc_summary[, "Rhat"] < 1.01))
+(rhat_above_threshold <- mean(mcmc_summary[, "Rhat"] > 1.01))
 ```
 
 # ESS
@@ -114,7 +127,6 @@ ess_fig <- bayesplot::mcmc_neff_data(ratios) %>%
     panel.grid.major.y = element_blank(),
     panel.grid.minor.y = element_blank()
   )
-
 ```
 
 What are the total effective sample sizes?
@@ -171,7 +183,7 @@ bayesplot::mcmc_acf(mcmc, pars = vars(starts_with("beta")))
 # Univariate traceplots
 
 ```{r}
-cbpalette <- c("#56B4E9", "#009E73", "#E69F00", "#F0E442", "#E69F00", "#E69F00")
+cbpalette <- c("#56B4E9", "#009E73", "#E69F00", "#F0E442", "#0072B2", "#D55E00")
 bayesplot::color_scheme_set(rev(cbpalette))
 
 bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("beta")))
