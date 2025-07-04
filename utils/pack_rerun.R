@@ -17,3 +17,5 @@ report <- "naomi-simple_fit"
 param <- list(tmbstan = TRUE, niter = niter, nthin = nthin, nchains = nchains, ncores = ncores)
 
 bundle <- orderly::orderly_bundle_pack(path = "naomi-rerun", name = report, parameters = param)
+
+orderly::orderly_bundle_import(path = "20250619-174833-3548c8b4.zip", root = NULL)
