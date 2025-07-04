@@ -159,7 +159,7 @@ y_i &\sim p(y_i \, | \, \bmeta_{\mathcal{J}_i}, \btheta_1), \quad i \in [n] \\
 \end{align}
 with latent field and hyperparameter priors as in the LGM case.
 
-Section \@ref(sec:naomi) show that the Naomi model involves many-to-one mappings of latent field components to the structured additive predictor for each response.
+Section \@ref(sec:naomi) (e.g. Equations \@ref(eq:weighted-aggregate) to \@ref(eq:weighted-aggregate2)) shows that the Naomi model involves many-to-one mappings of latent field components to the structured additive predictor for each response.
 Because of this, the Naomi model cannot be written as an LGM of the form described in Section \@ref(sec:lgm), but can be written as an ELGM. 
 
 ## Template Model Builder
@@ -654,7 +654,7 @@ Third, NUTS is not especially well suited to sampling from Gaussian latent field
 Other MCMC algorithms, such as blocked Gibbs sampling [@geman1984stochastic] or slice sampling [@neal2003slice], could be considered.
 It may be difficult to implement such algorithms using `TMB`.
 Many MCMC algorithms are implemented and customisable (including, for example, the choice of block structure) within the `NIMBLE` probabilistic programming language (PPL) [@de2017programming].
-Additionally, direct implementation of Naomi within the Stan PPL could alter the speed by as much as plus or minus 50% [@monnahan2018no] and would give access to other algorithms implemented in Stan such as variational inference [@kucukelbir2015automatic] and Pathfinder [@zhang2022pathfinder].
+Direct implementation of Naomi within the Stan PPL could alter the speed by as much as plus or minus 50% [@monnahan2018no] and would give access to other algorithms implemented in Stan such as variational inference [@kucukelbir2015automatic] and Pathfinder [@zhang2022pathfinder].
 However, requiring rewriting the Naomi model log-posterior outside of `TMB` would be a substantial downside.
 Finally, it would be of substantial interest to implement the Naomi model using the iterative INLA method via `inlabru`.
 However, as `inlabru`, like `R-INLA`, is based on a formula interface, it may not be possible to do so directly.
