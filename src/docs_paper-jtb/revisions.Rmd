@@ -54,7 +54,7 @@ The class of models to which the present model is assigned, namely Extended Late
 
 We have added the following text in Section 2.2 with the aim of making the mapping between the latent field and structured additive predictor of the Naomi model clearer:
 
-> Equations...
+> Section 3 show that the Naomi model involves many-to-one mappings of latent field components to thestructured additive predictor for each response. Because of this, the Naomi model cannot be written as anLGM of the form described in Section 2.1, but can be written as an ELGM.
 
 We are not aware of any named smaller class of ELGMs to which the Naomi model belongs.
 The available convergence theory for ELGMs is very restrictive and it is not clear whether or how the available results apply to the Naomi model; accordingly, we do not make any claims about theoretical performance in the present paper.
