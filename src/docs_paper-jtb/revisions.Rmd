@@ -151,9 +151,8 @@ knitr::include_graphics("depends/ks-summary.png")
 The authors mention that the method is tunable with how many PCA components are selected and what value of k to use. It is a bit of a shame that one or two other options are not examined. But I understand it is already a lot of work to describe all the results. Given that this model is now on the slow side, I would prioritise examining a method that accounts for 80% of the variance, i.e. a faster model rather than a more accurate model. So I will leave it to the authors whether or not to do more work here.
 \end{reviewer}
 
-We agree that it would be of interest to explore the effect of choosing a different number of PCA components ($s$) and number of quadrature points per dimension ($k$).
-One could also consider a varying number of quadrature points.
-For example "gradually lowering $k$ over the principal components" presumably would be the most efficient approach.
+In the current work we focused on results which were as accurate as possible while still running in a practical amount of time.
+We agree that it is possible that faster results that are nearly as accurate could be obtained using or procedure.
 
 \begin{reviewer}
 Just looking at Figure 2, a useful intermediate scheme to me seems to be to drop the corners of the grid. So you would be left with 5 points. That said, I think the benefit of this reduces as you get to higher dimensions. So please don't take this comments as work to be done, but rather as an interesting idea for future work.
