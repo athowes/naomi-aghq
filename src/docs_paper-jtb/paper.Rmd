@@ -652,7 +652,7 @@ Other MCMC algorithms, such as blocked Gibbs sampling [@geman1984stochastic] or 
 It may be difficult to implement such algorithms using `TMB`.
 Many MCMC algorithms are implemented and customisable (including, for example, the choice of block structure) within the `NIMBLE` probabilistic programming language (PPL) [@de2017programming].
 Additionally, direct implementation of Naomi within the Stan PPL could alter the speed by as much as plus or minus 50% [@monnahan2018no] and would give access to other algorithms implemented in Stan such as variational inference [@kucukelbir2015automatic] and Pathfinder [@zhang2022pathfinder].
-However, requiring rewriting the Naomi model log-posterior outside of `TMB` would be a subtantial downside.
+However, requiring rewriting the Naomi model log-posterior outside of `TMB` would be a substantial downside.
 Finally, it would be of substantial interest to implement the Naomi model using the iterative INLA method via `inlabru`.
 However, as `inlabru`, like `R-INLA`, is based on a formula interface, it may not be possible to do so directly.
 
@@ -663,6 +663,7 @@ Its application to Naomi surfaced several ideas for improvement and challenges t
 First, the amount of variation explained in the Hessian matrix may not be of direct interest.
 For the Naomi model, interest is in the effect of including each dimension on the relevant model outputs.
 As such, using alternative measures of importance from sensitivity analysis, such as Shapley values [@shapley1953value] or Sobol indices, could be preferable.
+This may be achievable by applying the `ADREPORT` function to model outputs within the `TMB` template to obtain gradients.
 Second, use of PCA is challenging when the dimensions have different scales.
 For the Naomi model, logit-scale hyperparameters were systematically favoured over those on the log-scale.
 Third, when the quadrature rule is used within an INLA algorithm, it is more important to allocate quadrature nodes to those hyperparameter marginals which are non-Gaussian.
