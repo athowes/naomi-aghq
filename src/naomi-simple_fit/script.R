@@ -225,7 +225,7 @@ if(tmbstan) {
     iter = niter,
     thin = nthin,
     cores = ncores,
-    control = list(adapt_delta = 0.99, max_treedepth = 15),
+    control = list(adapt_delta = 0.95, max_treedepth = 12),
     DLL = "naomi_simple",
     laplace = hmc_laplace
   )
