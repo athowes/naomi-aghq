@@ -18,7 +18,7 @@ param <- list(tmbstan = TRUE, niter = niter, nthin = nthin, nchains = nchains, n
 
 bundle <- orderly::orderly_bundle_pack(path = "naomi-rerun", name = report, parameters = param)
 
-recieved_bundle <- "20250706-214814-55f7a543"
+recieved_bundle <- "20250723-222404-100e319a"
 
 orderly::orderly_bundle_import(path = paste0(recieved_bundle, ".zip"), root = NULL)
 
