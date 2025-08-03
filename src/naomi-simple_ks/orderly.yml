@@ -57,6 +57,6 @@ depends:
       use:
         depends/aghq.rds: out.rds
   - naomi-simple_fit:
-      id: latest(parameter:tmbstan == TRUE && parameter:niter > 50000)
+      id: latest(parameter:tmbstan == TRUE && parameter:niter >= 40000)
       use:
         depends/tmbstan.rds: out.rds
