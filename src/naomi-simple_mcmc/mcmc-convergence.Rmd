@@ -45,19 +45,6 @@ bayesplot::color_scheme_set("viridis")
 ggplot2::theme_set(theme_minimal())
 ```
 
-```{r}
-# This is code I tried when one chain was not converging -- trying for a rerun instead!
-remove_chains = function(fit, drop) {
-  sim <- fit@sim
-  sim$samples <- sim$samples[-drop]
-  sim$chains <- sim$chains - length(drop)
-  sim$warmup2 <- sim$warmup2[-drop]
-  sim$n_save <- sim$n_save[-drop]
-  fit@sim <- sim
-  fit
-}
-```
-
 # $\hat R$
 
 We are looking for values of $\hat R$ less than 1.05 here. 
@@ -69,7 +56,7 @@ rhats_df <- bayesplot:::diagnostic_data_frame(rhats)
 
 ggplot(rhats_df, aes(x = value, y = parameter)) +
   geom_segment(aes(yend = parameter, xend = ifelse(min(value) < 1, 1, -Inf)), na.rm = TRUE, alpha = 0.7, col = "#56B4E9") +
-  lims(x = c(NA, 1.03)) +
+  lims(x = c(NA, 1.012)) +
   labs(x = "Potential scale reduction factor", y = "Parameter", col = "") +
   theme_minimal() +
   theme(
@@ -136,7 +123,8 @@ ess_histogram <- data.frame(mcmc_summary) %>%
   tibble::rownames_to_column("param") %>%
   ggplot(aes(x = n_eff)) +
     geom_histogram(col = "grey60", fill = "grey80") +
-    labs(x = "Effective sample size", y = "Count", tag = "B")
+    scale_x_log10() +
+    labs(x = "Effective sample size (log 10 scale)", y = "Count", tag = "B")
 
 ess_fig / ess_histogram
 
@@ -194,12 +182,28 @@ bayesplot::mcmc_trace(mcmc, pars = vars(starts_with("log_sigma")))
 The parameters with the worst ESS and the worst $\hat R$:
 
 ```{r}
-worst_eff <- bayesplot::mcmc_trace(mcmc, pars = names(which.min(mcmc_summary[, "n_eff"]))) + labs(tag = "A") + guides(col = "none")
-worst_rhat <- bayesplot::mcmc_trace(mcmc, pars = names(which.max(rhats))) + labs(tag = "B")
+worst_ess_par <- names(which.min(mcmc_summary[, "n_eff"]))
+worst_rhat_par <- names(which.max(rhats))
 
-worst_eff + worst_rhat
+worst_df <- bayesplot::mcmc_trace_data(mcmc, pars = c(worst_ess_par, worst_rhat_par)) |>
+  mutate(
+    chain_group = case_when(
+      chain %in% 1:6 ~ "Chains 1–6",
+      chain %in% 7:12 ~ "Chains 7–12",
+      chain %in% 13:18 ~ "Chains 13–18"
+    ),
+    chain_id = as.numeric(chain) %% 6 + 1
+  )
 
-ggsave("worst-trace.png", h = 3, w = 6.25)
+worst <- ggplot(worst_df, aes(x = iteration, y = value, col = as.factor(chain_id))) +
+  geom_line() +
+  scale_color_manual(values = cbpalette) +
+  facet_grid(chain_group ~ parameter) +
+  guides(col = "none") +
+  labs(x = "Iteration", y = "") +
+  theme_minimal()
+
+ggsave("worst-trace.png", worst, h = 4.5, w = 6.25)
 ```
 
 ## Prevalence model
@@ -251,7 +255,7 @@ bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_a", "logit_phi_alpha_a"), 
 bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_alpha_as", "logit_phi_alpha_as"), diag_fun = "hist", off_diag_fun = "hex")
 bayesplot::mcmc_pairs(mcmc, pars = c("log_sigma_rho_as", "logit_phi_rho_as"), diag_fun = "hist", off_diag_fun = "hex")
 
-pairs_df <- extract(mcmc, pars = c("log_sigma_rho_a", "logit_phi_rho_a")) %>%
+pairs_df <- rstan::extract(mcmc, pars = c("log_sigma_rho_a", "logit_phi_rho_a")) %>%
   as.data.frame()
 
 fig_top_left <- ggplot(pairs_df, aes(x = log_sigma_rho_a)) +
@@ -379,9 +383,14 @@ Let's have a look at the pairs plot for neighbouring districts and the `log_or_g
 ```{r}
 area_merged <- sf::read_sf(system.file("extdata/demo_areas.geojson", package = "naomi"))
 
+sf_to_nb <- function(sf){
+  nb <- spdep::poly2nb(as(sf, "Spatial"))
+  return(nb)
+}
+
 nb <- area_merged %>%
   filter(area_level == max(area_level)) %>%
-  bsae::sf_to_nb()
+  sf_to_nb()
 
 neighbours_pairs_plot <- function(par, i) {
   neighbour_pars <- paste0(par, "[", c(i, nb[[i]]), "]")
