@@ -117,3 +117,5 @@ node_quantiles_df %>%
     labs(x = "",  y = "Standard deviation of quadrature node quantiles within NUTS posterior", col = "Scale")
 
 ggsave("nodes-quantiles-sd.png", h = 3.5, w = 6.25)
+
+dev.off()
