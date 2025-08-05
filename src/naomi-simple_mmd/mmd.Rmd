@@ -31,7 +31,7 @@ Check that the parameters (latent field, hyperparameters, model outputs) sampled
 
 ```{r}
 stopifnot(names(tmb$fit$sample) == names(aghq$quad$sample))
-stopifnot(names(tmb$fit$sample) == names(tmbstan$mcmc$sample))
+stopifnot(setequal(names(tmb$fit$sample), names(tmbstan$mcmc$sample)))
 ```
 
 # Maximum mean discrepancy
@@ -46,8 +46,8 @@ tmb_samples <- par_samp_matrix(tmb$fit$sample)
 aghq_samples <- par_samp_matrix(aghq$quad$sample)
 tmbstan_samples <- par_samp_matrix(tmbstan$mcmc$sample)
 
-#' Keep only the final 1000 samples from tmbstan
-tmbstan_samples <- tmbstan_samples[, 4001:5000]
+#' Thin down to 1000 samples from tmbstan
+tmbstan_samples <- tmbstan_samples[, seq(from = 1, to = ncol(tmbstan_samples), length.out = 1000)]
 
 mmd_tmb <- kernlab::kmmd(tmb_samples, tmbstan_samples, kernel = "rbfdot")
 mmd_aghq <- kernlab::kmmd(aghq_samples, tmbstan_samples, kernel = "rbfdot")
