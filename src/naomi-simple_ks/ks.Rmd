@@ -33,7 +33,7 @@ Check that the parameters (latent field, hyperparameters, model outputs) sampled
 
 ```{r}
 stopifnot(names(tmb$fit$sample) == names(aghq$quad$sample))
-stopifnot(names(tmb$fit$sample) == names(tmbstan$mcmc$sample))
+stopifnot(setequal(names(tmb$fit$sample), names(tmbstan$mcmc$sample)))
 ```
 
 ## Run details {.tabset}
@@ -607,7 +607,7 @@ Is there any correlation between the value of $\text{KS}(\texttt{method}, \textt
 ```{r}
 rhats <- bayesplot::rhat(tmbstan$mcmc$stanfit)
 ess_ratio <- bayesplot::neff_ratio(tmbstan$mcmc$stanfit)
-niter <- 0.5 * 4 * tmbstan_details$niter / tmbstan_details$nthin
+niter <- 0.5 * tmbstan_details$nchains * tmbstan_details$niter / tmbstan_details$nthin
 ess <- ess_ratio * niter
 
 ks_df %>%
