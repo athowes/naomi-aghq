@@ -27,7 +27,7 @@ obj_prior <- TMB::MakeADFun(
 )
 
 #' Takes a while
-prior_mcmc <- tmbstan::tmbstan(obj_prior, chains = 4, iter = 20000)
+prior_mcmc <- tmbstan::tmbstan(obj_prior, chains = 4, iter = 20000, cores = 4)
 
 prior_stan_summary <- rstan::summary(prior_mcmc)$summary
 prior_sd <- prior_stan_summary[, "sd"][1:491] #' Remove the lp__ at the end
@@ -133,3 +133,5 @@ nuts_manual_comparison_df %>%
     theme_minimal()
 
 ggsave("nuts-hand-comparison.png", h = 4.5, w = 6.25, bg = "white")
+
+dev.off()
