@@ -280,19 +280,19 @@ Table: (\#tab:tmb-lookup) Correspondence between the variable name used in the N
 naomi_nuts <- readRDS("depends/mcmc-out.rds")
 ```
 
-(ref:ess) The efficiency of the NUTS, as measured by the ratio of effective sample size to total number of iterations run, was low for most parameters (Panel A). As a result, the number of iterations required for the effective number of samples (mean `r round(naomi_nuts$ess_mean)`) to be satisfactory was high (Panel B). 
+(ref:ess) The efficiency of the NUTS, as measured by the ratio of effective sample size to total number of iterations run, was low for some parameters (Panel A). As a result, the number of iterations required for the effective number of samples (mean `r round(naomi_nuts$ess_mean)`) to be satisfactory was high (Panel B). 
 
 ```{r ess, fig.cap="(ref:ess)"}
 knitr::include_graphics("depends/ess.png")
 ```
 
-(ref:rhat) For NUTS run on the Naomi ELGM, the maximum potential scale reduction factor was `r round(naomi_nuts$rhat_max, 3)`, below the value of 1.05 typically used as a cutoff for acceptable chain mixing, indicating that the results are acceptable to use. Additionally, the vast majority (`r round(100 * naomi_nuts$rhat_above_threshold, 1)`%) of $\hat R$ values were less than 1.1.
+(ref:rhat) For NUTS run on the Naomi ELGM, the maximum potential scale reduction factor was `r round(naomi_nuts$rhat_max, 3)`, substantially below the value of 1.05 typically used as a cutoff for acceptable chain mixing, indicating that the results are of high quality. Additionally, all $\hat R$ values were less than 1.1.
 
 ```{r rhat, fig.cap="(ref:rhat)"}
 knitr::include_graphics("depends/rhat.png")
 ```
 
-(ref:worst-trace) Traceplots for the parameter with the lowest ESS which was `log_sigma_alpha_xs` (an $\text{ESS}$ of `r round(naomi_nuts$ess_min)`, Panel A) and highest potential scale reduction factor which was `ui_lambda_x[10]` (an $\hat R$ of `r round(naomi_nuts$rhat_max, 3)`, Panel B).
+(ref:worst-trace) Traceplots for the parameter with the lowest ESS which was `log_sigma_lambda_x` (an $\text{ESS}$ of `r round(naomi_nuts$ess_min)`, Panel A) and highest potential scale reduction factor which was `log_sigma_alpha_x` (an $\hat R$ of `r round(naomi_nuts$rhat_max, 3)`, Panel B).
 
 ```{r worst-trace, fig.cap="(ref:worst-trace)"}
 knitr::include_graphics("depends/worst-trace.png")
