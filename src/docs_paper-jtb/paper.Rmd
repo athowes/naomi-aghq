@@ -390,7 +390,7 @@ Method & Software & Details \\
 \midrule
 GEB & \texttt{TMB} & $1000$ samples \\
 GPCA-AGHQ & \texttt{aghq} & $k = 3, s = 8$, 1000 samples \\
-NUTS & \texttt{tmbstan} & 4 chains of 100000 iterations, with the first half of each chain discarded as warmup, thinned by a factor of 20, to give a total of 10000 samples. Default NUTS tuning parameters \citep{hoffman2014no}. \\
+NUTS & \texttt{tmbstan} & 18 chains of 40000 iterations, with the first half of each chain discarded as warmup, thinned by a factor of 20, to give a total of 18000 samples. The target average acceptance probability was set to 0.95 and the maximum treedepth to 12 \citep{hoffman2014no}. \\
 \bottomrule
 \end{tabularx}
 \caption{A summary of settings used for each inferential method.}
@@ -414,11 +414,12 @@ We used `orderly` [@orderly] for reproducible research, `ggplot2` for data visua
 naomi_nuts <- readRDS("depends/mcmc-out.rds")
 ```
 
-The Naomi model was difficult to efficiently sample from using NUTS via `tmbstan`.
-The lowest effective sample size (ESS) was `r round(naomi_nuts$ess_min, 0)` (2.5% quantile `r round(naomi_nuts$ess_lower, 0)`, 50% quantile `r round(naomi_nuts$ess_median, 0)`, and 97.5% quantile `r round(naomi_nuts$ess_upper, 0)`; Supplementary Figure 1A).
-The largest potential scale reduction factor ($\hat R$) was `r round(naomi_nuts$rhat_max, 3)` (2.5% quantile `r round(naomi_nuts$rhat_lower, 3)`, 50% quantile `r round(naomi_nuts$rhat_median, 3)`, and 97.5% quantile `r round(naomi_nuts$rhat_upper, 3)`; Supplementary Figure 2).
+The Naomi model was challenging to efficiently sample from using NUTS via `tmbstan`.
+We used 18 chains of 40000 iterations run on a high-performance computing cluster (Table \@ref(tab:inference-methods)).
+The lowest resulting effective sample size (ESS) was `r round(naomi_nuts$ess_min, 0)` (2.5% quantile `r round(naomi_nuts$ess_lower, 0)`, 50% quantile `r round(naomi_nuts$ess_median, 0)`, and 97.5% quantile `r round(naomi_nuts$ess_upper, 0)`; Supplementary Figure 1A).
+The largest resulting potential scale reduction factor ($\hat R$) was `r round(naomi_nuts$rhat_max, 3)` (2.5% quantile `r round(naomi_nuts$rhat_lower, 3)`, 50% quantile `r round(naomi_nuts$rhat_median, 3)`, and 97.5% quantile `r round(naomi_nuts$rhat_upper, 3)`; Supplementary Figure 2).
 Supplementary Figure 3 shows traceplots for the parameters with the lowest ESS and $\hat R$ respectively.
-Though inaccuracies remain possible, these diagnostics are sufficient to treat inferences obtained from NUTS as a gold-standard.
+Based on these diagnostics, we considered the NUTS samples to be of a high quality and suitable for use as a gold-standard.
 
 ## Use of PCA-AGHQ
 
