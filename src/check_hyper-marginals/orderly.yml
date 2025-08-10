@@ -31,6 +31,6 @@ depends:
       use:
         depends/tmbstan.rds: out.rds
   - naomi-simple_fit:
-      id: latest(parameter:aghq == TRUE && parameter:k == 3 && parameter:s == 8)
+      id: latest(parameter:aghq == TRUE && parameter:k == 3 && parameter:s == 8 && parameter:grid_type == 'pca')
       use:
         depends/aghq.rds: out.rds

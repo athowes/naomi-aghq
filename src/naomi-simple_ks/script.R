@@ -12,8 +12,11 @@ saveRDS(beta_anc_rho$df, "beta_anc_rho.rds")
 
 #' Quick plot for thesis!
 
-par <- "ui_lambda_x"
-i <- 26
+ks_df |>
+  filter(str_detect(par, "^us_alpha_xs"))
+
+par <- "us_alpha_xs"
+i <- 18
 
 colours <- c("#56B4E9", "#009E73", "#E69F00", "#CC79A7")
 
@@ -83,8 +86,8 @@ ecdf_plot <- ggplot(ecdf_df, aes(x = x, y = ecdf_diff, col = method)) +
 
 histogram_plot + ecdf_plot
 
-ggsave("ui-lambda-x.png", h = 4, w = 6.25)
+ggsave("us-alpha-xs.png", h = 4, w = 6.25)
 
 dev.off()
 
-saveRDS(list(par = par_name, rhat = rhat, ess = ess), file = "ui-lambda-x.rds")
+saveRDS(list(par = par_name, rhat = rhat, ess = ess), file = "us-alpha-xs.rds")
