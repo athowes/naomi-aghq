@@ -46,6 +46,15 @@ Thank you for taking the time to read and review our paper "Fast approximate Bay
 In what follows we address your comments and suggestions point by point.
 We appreciate the feedback to improve the work and have made the relevant changes to the manuscript.
 
+**Important**
+
+While addressing the comments, we noticed an issue with the presented results.
+Some of the AGHQ results in the manuscript used the PCA grid, and others used an experimental "scaled" PCA grid.
+This "scaled" grid involved scaling all hyperparameters to have the same marginal variance, which we found not to work well in practice.
+We have now corrected the results in the manuscript to all be from the PCA grid described.
+This change impacts the KS test, MMD, and exceedance probabilities.
+We are grateful to have had a chance to find and correct this issue before publication.
+
 # Reviewer 1
 
 \begin{reviewer}

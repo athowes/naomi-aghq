@@ -489,8 +489,8 @@ naomi_time_tmb_hours <- signif(filter(time_taken_df, method == "GEB")$hours, 2)
 naomi_time_tmb_minutes <- signif(filter(time_taken_df, method == "GEB")$mins, 2)
 ```
 
-Inference with NUTS took `r naomi_time_tmbstan_hours` hours, while inference with GPCA-AGHQ took `r naomi_time_aghq_hours` hours and GEB just `r naomi_time_tmb_hours` hours (equivalent to `r naomi_time_tmb_minutes` minutes).
-Both the NUTS and GPCA-AGHQ algorithms can be run under a range of settings, trading off accuracy and runtime.
+Inference with NUTS took `r naomi_time_tmbstan_hours` hours (across 18 cores), while inference with GPCA-AGHQ took `r naomi_time_aghq_hours` hours and GEB just `r naomi_time_tmb_hours` hours (equivalent to `r naomi_time_tmb_minutes` minutes) both on a laptop.
+The NUTS and GPCA-AGHQ algorithms can be run under a range of settings, trading off accuracy and run-time.
 
 ## Inference comparison
 
@@ -527,7 +527,7 @@ knitr::include_graphics("depends/mean-sd-alt-latent.png")
 Latent field mean and standard deviation point estimates obtained from GPCA-AGHQ were more accurate than those from GEB (Figure \@ref(fig:mean-sd-alt-latent)).
 The root mean square error (RMSE) between posterior mean estimates from GPCA-AGHQ and NUTS (`r rmse_aghq_mean`) was `r abs(rmse_diff_mean)`% lower than that between GEB and NUTS (`r rmse_tmb_mean`).
 For the posterior standard deviation estimates, there was a substantial `r abs(rmse_diff_sd)`% reduction in RMSE: from `r abs(rmse_tmb_sd)` (GEB) to `r abs(rmse_aghq_sd)` (GPCA-AGHQ).
-However, improvements in latent field estimate accuracy transferred to model outputs to a more limited and mixed extent (Supplementary Figures 12 and 13).
+Improvements in latent field estimate accuracy transferred to model outputs to a more limited and mixed extent (Supplementary Figures 12 and 13).
 
 ### Distributional quantities {#sec:distributional-quantities}
 
@@ -547,29 +547,29 @@ ks_summary_summarise <- ks_summary %>%
 ks_pct <- (ks_summary_summarise$tmb - ks_summary_summarise$aghq) / ks_summary_summarise$tmb
 ```
 
-(ref:ks-summary) The average Kolmogorov-Smirnov (KS) test statistic for each latent field parameter of the Naomi model. Vectors of parameters were grouped together. For points above the dashed line at zero, performance of GEB was better. For points below the dashed line, performance of GPCA-AGHQ was better. Most notably, for the latent field parameters $\texttt{ui\_lambda\_x}$ the average test statistic for GEB was substantially higher than for GPCA-AGHQ. This length 32 parameter $\mathbf{u}_x^{\lambda}$ plays a key role in modelling ART attendance (Section \@ref(sec:art)).
+(ref:ks-summary) The average Kolmogorov-Smirnov (KS) test statistic for each latent field parameter of the Naomi model. Vectors of parameters were grouped together. For points above the dashed line at zero, performance of GEB was better. For points below the dashed line, performance of GPCA-AGHQ was better. The latent field parameters informing the ART coverage component of the model (Section \@ref(sec:art)) had the greatest reduction in average test statistic.
 
 ```{r ks-summary, fig.cap="(ref:ks-summary)"}
 knitr::include_graphics("depends/ks-summary.png")
 ```
 
 ```{r}
-ui_lambda_x <- readRDS("depends/ui-lambda-x.rds")
+us_alpha_xs <- readRDS("depends/us-alpha-xs.rds")
 ```
 
-(ref:ui-lambda-x) The parameter ``r paste0(ui_lambda_x$par)`` had the greatest difference in KS test statistics between GEB and GPCA-AGHQ to NUTS. For this parameter, the potential scale reduction factor was `r ui_lambda_x$rhat` and effective sample size was `r ui_lambda_x$ess`, indicating that NUTS results are likely to be accurate.
+(ref:us-alpha-xs) The parameters `us_alpha_xs` had the greatest difference in KS test statistics between GEB and GPCA-AGHQ to NUTS. This figure shows the element ``r paste0(ui_lambda_x$par)``. For this element, the NUTS potential scale reduction factor was `r ui_lambda_x$rhat` and effective sample size was `r ui_lambda_x$ess`.
 
-```{r ui-lambda-x, fig.cap="(ref:ui-lambda-x)"}
-knitr::include_graphics("depends/ui-lambda-x.png")
+```{r us-alpha-xs, fig.cap="(ref:us-alpha-xs)"}
+knitr::include_graphics("depends/us-alpha-xs.png")
 ```
 
 The two-sample Kolmogorov-Smirnov (KS) test statistic [@smirnov1948table] is the maximum absolute difference between two ECDFs $F(\omega) = \frac{1}{n} \sum_{i = 1}^n \mathbb{I}_{\phi_i \leq \omega}$.
 It is a relatively stringent worst-case measure of distance between empirical distributions.
 The average KS test statistic for GPCA-AGHQ (`r signif(ks_summary_summarise$aghq, 2)`) was `r signif(100 * ks_pct, 2)`% less than the average KS test statistic for GEB (`r signif(ks_summary_summarise$tmb, 2)`).
 Figure \@ref(fig:ks-summary) shows the differences in average KS test statistic for each latent field parameter.
-GCPA-AGHQ showed the greatest average improvement in KS test statistic for a vector of parameters in the ART attendance component of Naomi (Figure \@ref(fig:ui-lambda-x)).
-For both GEB and GPCA-AGHQ the KS test statistic for a parameter was correlated with low NUTS ESS (Supplementary Figure 14).
-This correlation may be due to by difficulties estimating particular parameters for all inference methods, or high KS values caused by NUTS inaccuracies.
+GCPA-AGHQ showed the greatest average improvement in KS test statistic for parameters in the ART coverage component of Naomi (Figure \@ref(fig:us-alpha-xs)).
+For both GEB and GPCA-AGHQ the KS test statistic for a parameter was correlated with lower NUTS ESS (Supplementary Figure 14).
+This correlation may be due to by difficulties estimating particular parameters for all inference methods.
 
 #### Maximum mean discrepancy
 
@@ -631,7 +631,8 @@ Inaccuracies in model outputs from GEB and GPCA-AGHQ do have potential to meanin
 As such, where it is possible to do so, gold-standard NUTS results should be computed.
 Although NUTS is too slow to run during a workshop, as the UNAIDS HIV estimates process occurs annually, it would be viable to compute more accurate estimates afterwards.
 That said, Malawi is one of the countries with the fewest number of districts.
-As NUTS took over two days to reach convergence in Malawi, for larger countries, with hundreds of districts, it may be impossible to run NUTS to convergence, and faster approximate methods such as GEB and GPCA-AGHQ may be necessary.
+As NUTS took around three days to reach convergence in Malawi and required substantial computational resources.
+For larger countries, with hundreds of districts, it may be impossible to run NUTS to convergence, and faster approximate methods such as GEB and GPCA-AGHQ may be necessary.
 
 To empower users, GPCA-AGHQ and NUTS could be added to the Naomi web interface as alternatives to GEB.
 Analysts would be able to quickly iterate over model options using GEB, before switching to a more accurate approach once they are happy with the results.
