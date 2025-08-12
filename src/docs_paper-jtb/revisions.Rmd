@@ -106,7 +106,7 @@ Finally, on page 17 it feels like Bayesian 'optimisation' is another natural com
 \end{reviewer}
 
 Our understanding is that the goal of Bayesian optimisation (BO) is to find the maximum of a (black box) function, rather than to perform Bayesian inference.
-One could imagine using BO to optimise the hyperparameters, however it would be preferable to use gradients as they are available.
+(For example, one could imagine using BO to optimise the hyperparameters.)
 
 \begin{reviewer}
 Typos spotted:
