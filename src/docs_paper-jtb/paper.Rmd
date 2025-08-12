@@ -489,7 +489,8 @@ naomi_time_tmb_hours <- signif(filter(time_taken_df, method == "GEB")$hours, 2)
 naomi_time_tmb_minutes <- signif(filter(time_taken_df, method == "GEB")$mins, 2)
 ```
 
-Inference with NUTS took `r naomi_time_tmbstan_hours` hours (across 18 cores), while inference with GPCA-AGHQ took `r naomi_time_aghq_hours` hours and GEB just `r naomi_time_tmb_hours` hours (equivalent to `r naomi_time_tmb_minutes` minutes) both on a laptop.
+Inference with NUTS took `r naomi_time_tmbstan_hours` hours (across 18 cores, i.e. over 50 days of compute time) running on a high performance computing cluster.
+Meanwhile, inference with GPCA-AGHQ took `r naomi_time_aghq_hours` hours and GEB just `r naomi_time_tmb_hours` hours (equivalent to `r naomi_time_tmb_minutes` minutes), both running on a laptop.
 The NUTS and GPCA-AGHQ algorithms can be run under a range of settings, trading off accuracy and run-time.
 
 ## Inference comparison
