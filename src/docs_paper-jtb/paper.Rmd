@@ -557,7 +557,7 @@ knitr::include_graphics("depends/ks-summary.png")
 us_alpha_xs <- readRDS("depends/us-alpha-xs.rds")
 ```
 
-(ref:us-alpha-xs) The parameters `us_alpha_xs` had the greatest difference in KS test statistics between GEB and GPCA-AGHQ to NUTS. This figure shows the element ``r paste0(ui_lambda_x$par)``. For this element, the NUTS potential scale reduction factor was `r ui_lambda_x$rhat` and effective sample size was `r ui_lambda_x$ess`.
+(ref:us-alpha-xs) The parameters `us_alpha_xs` had the greatest difference in KS test statistics between GEB and GPCA-AGHQ to NUTS. This figure shows the element ``r paste0(us_alpha_xs$par)``. For this element, the NUTS potential scale reduction factor was `r us_alpha_xs$rhat` and effective sample size was `r us_alpha_xs$ess`.
 
 ```{r us-alpha-xs, fig.cap="(ref:us-alpha-xs)"}
 knitr::include_graphics("depends/us-alpha-xs.png")
