@@ -36,13 +36,15 @@ knitr::opts_chunk$set()
 
 \clearpage
 
-Dear Dr. XXXX,
+Dear Dr. Chaplain,
 
 Many thanks for your consideration of our paper "Fast approximate Bayesian inference of HIV indicators using PCA adaptive Gauss-Hermite quadrature" and to the reviewers for their thoughtful comments on the manuscript.
 
-Below we address the reviewers' comments and suggestions point by point. While updating and extending the simulations to address some of the reviewers' comments, we noticed that the results reported arose from two different versions of the model, with some from an alternative experimental algorithm that was not retained for the final method. Along with updating all results with longer MCMC chain simulations, we have now corrected the results in the manuscript to all be from the PCA grid described. This change impacts numerical results reported for the KS test, MMD, and exceedance probabilities, but does not change the overall conclusions or recommendations from the paper.
-
 We appreciate the feedback to improve the work and have made the relevant changes to the manuscript as described below.
+
+While updating and extending the simulations to address some of the reviewers' comments, we noticed that the results reported arose from two different versions of the method, with some from an alternative experimental algorithm that was not retained for the final method.
+Along with updating all results with longer MCMC chain simulations, we have now corrected the results in the manuscript to all be from the PCA grid described.
+This change impacts numerical results reported for the KS test, MMD, and exceedance probabilities, but does not change the overall conclusions or recommendations from the paper.
 
 Sincerely,  
 Adam Howes on behalf of Alex Stringer, Seth Flaxman, and Jeff Imai-Eaton
@@ -71,7 +73,7 @@ Our empirical analysis shows that we obtain results that are practically similar
 \end{reviewer}
 
 \textbf{Response:} `tmbstan` passes the objective function and its gradient (calculated in `TMB`) directly to `rstan` via the [`op_matrix_vari`](https://mc-stan.org/math/classstan_1_1math_1_1op__matrix__vari.html).
-As such, the NUTS algorithm used is exactly the same (as the same underlying `rstan` code is called.
+As such, the NUTS algorithm used is exactly the same (as the same underlying `rstan` code is called).
 It could be the case that there are speed differences between function evaluations in `TMB` and Stan.
 We have added a sentence to the discussion noting this possible comparison:
 
@@ -83,14 +85,16 @@ We have added a sentence to the discussion noting this possible comparison:
 \end{itemize}
 \end{reviewer}
 
-\textbf{Response:} Some HIV surveys, including the example data from Malawi used in the analysis reported here, provide bio-marker data on whether or not HIV infection was recently acquired (approximately within the previous 4 months; the $\Omega_T$ parameter in Equation 7). This information on the proportion recently infected along with characteristics of the assay used to measure recent infection provides a direct survey estimator for HIV incidence, as derived by Kassanjee \textit{et al.} (https://pubmed.ncbi.nlm.nih.gov/22627902/). The formula in Equation 7 is a reformulation of the Kassanjee \textit{et al.} estimator to express a likelihood for the survey observations of the number recenlty infected, enabling Bayesian inference on the $\lambda_i$ parameters (HIV incidence rate). Details of the derivation of Equation 7 are described in the supplementary materials of Eaton \text{et al.} (and also Bao \text{et al.} (https://pubmed.ncbi.nlm.nih.gov/25406754/)). We have revised the manuscript here to clarify that Equation 7 is derived from the classical Kassanjee \textit{et al.} estimator:
+\textbf{Response:} Some HIV surveys, including the example data from Malawi used in the analysis reported here, provide bio-marker data on whether or not HIV infection was recently acquired (approximately within the previous 4 months; the $\Omega_T$ parameter in Equation 7). This information on the proportion recently infected along with characteristics of the assay used to measure recent infection provides a direct survey estimator for HIV incidence, as derived by @kassanjee2012new. The formula in Equation 7 is a reformulation of the @kassanjee2012new estimator to express a likelihood for the survey observations of the number recently infected, enabling Bayesian inference on the $\lambda_i$ parameters (HIV incidence rate). Details of the derivation of Equation 7 are described in the supplementary materials of @eaton2021naomi (and also @bao2014incorporating). We have revised the manuscript here to clarify that Equation 7 is derived from the classical @kassanjee2012new estimator:
 
-> The proportion recently infected $\kappa_i$ is linked to HIV incidence via a reformulation of the Kassanjee \textit{et al.} biomarker-based incidence estimator...
+> The proportion recently infected $\kappa_i$ is linked to HIV incidence via a reformulation of the biomarker-based incidence estimator of @kassanjee2012new...
 
-The proposed approach by the reviewer to extend the model described here to a compartmental model that makes inference on HIV incidence from fitting to time series of HIV prevalence is indeed promising and an active area of research for our group and others. However, we feel this is separate from and outside the scope of the methodological inference questions addressed in this paper and describing this potential extension adds complexity that distracts from the primary research questions addressed here. 
+The proposed approach by the reviewer to extend the model described here to a compartmental model that makes inference on HIV incidence from fitting to time series of HIV prevalence is indeed promising and an active area of research for our group and others.
+However, we feel this is separate from and outside the scope of the methodological inference questions addressed in this paper and describing this potential extension adds complexity that distracts from the primary research questions addressed here. 
 
-The reviewer is also correct to intuit that there are well characterised relationships between fertility and HIV infection that shape the pattern of HIV prevalence among pregnant women versus all women over the life course. However, at the ecological level the relationship can be somewhat more complex because of other confounding factors that affect both fertility and HIV risk, resulting in variation in the ANC versus population offsets across countries (for example, higher fertility and lower HIV prevalence in rural areas compared to urban areas). For this reason, we opted for a diffuse prior on the offset parameters, which in practice is well identified with the data available in applications.
-
+The reviewer is also correct to intuit that there are well characterised relationships between fertility and HIV infection that shape the pattern of HIV prevalence among pregnant women versus all women over the life course.
+However, at the ecological level the relationship can be somewhat more complex because of other confounding factors that affect both fertility and HIV risk, resulting in variation in the ANC versus population offsets across countries (for example, higher fertility and lower HIV prevalence in rural areas compared to urban areas).
+For this reason, we opted for a diffuse prior on the offset parameters, which in practice is well identified with the data available in applications.
 
 \begin{reviewer}
 \begin{itemize}
@@ -98,7 +102,9 @@ The reviewer is also correct to intuit that there are well characterised relatio
 \end{itemize}
 \end{reviewer}
 
-\textbf{Response:} We agree that this is an interesting area for future work. Regarding the question about whether this is possible within the existing `TMB` infrastructure, we believe it would be. We have added the following sentence to Section 6.1.2. discussing how:
+\textbf{Response:} We agree that this is an interesting area for future work.
+Regarding the question about whether this is possible within the existing `TMB` infrastructure, we believe it would be.
+We have added the following sentence to Section 6.1.2. discussing how:
 
 > This may be achievable by applying the `ADREPORT` function to model outputs within the `TMB` template to obtain gradients.
 
@@ -132,7 +138,8 @@ p4. "hyperparmters"
 \textbf{Response:} We agree that running more iterations of the NUTS sampler is a good idea, and could improve the minimum ESS and accuracy of any comparisons, especially distributional ones.
 We have rerun the NUTS sampler using a HPC with 18 chains (across 18 cores) with 40,000 per chain and a thinning factor of 20.
 To improve the sampling also increased the `adapt_delta` parameter from the default of 0.8 to 0.95, and the `max_treedepth` parameter from the default of 10 to 12.
-The resulting diagnostics are much improved. Updated sampler diagnostic results are reported in Section 5.1:
+The resulting diagnostics are much improved.
+Updated sampler diagnostic results are reported in Section 5.1:
 
 ```{r}
 naomi_nuts <- readRDS("depends/mcmc-out.rds")
@@ -180,7 +187,7 @@ The updated version of Figure 7 is shown below:
 ```{r}
 knitr::include_graphics("depends/ks-summary.png")
 ```
-
+ 
 \begin{reviewer}
 \begin{itemize}
 \item [R2.5] The authors mention that the method is tunable with how many PCA components are selected and what value of k to use. It is a bit of a shame that one or two other options are not examined. But I understand it is already a lot of work to describe all the results. Given that this model is now on the slow side, I would prioritise examining a method that accounts for 80% of the variance, i.e. a faster model rather than a more accurate model. So I will leave it to the authors whether or not to do more work here.
@@ -188,7 +195,7 @@ knitr::include_graphics("depends/ks-summary.png")
 \end{reviewer}
 
 \textbf{Response:} In the current work we focused on results which were as accurate as possible while still running in a practical amount of time.
-We agree that it is possible that faster results that are nearly as accurate could be obtained using or procedure.
+We agree that it is possible that faster results that are nearly as accurate could be obtained using our procedure.
 
 \begin{reviewer}
 \begin{itemize}
