@@ -221,7 +221,8 @@ The number of hyperparameters is a key feature making inference challenging.
 Independent logistic regression models are specified for HIV prevalence and ART coverage in the general population such that $\text{logit}(\rho_i) = \eta^\rho_i$ and $\text{logit}(\alpha_i) = \eta^\alpha_i$.
 HIV incidence rate is modelled by $\log(\lambda_i) = \eta^\lambda_i$ and depends on adult HIV prevalence and adult ART coverage.
 The structured additive predictors $\eta^\theta_i$ for $\theta \in \{\rho, \alpha, \lambda\}$ are given in Appendix 1.
-The proportion recently infected $\kappa_i$ is linked to HIV incidence via
+The proportion recently infected $\kappa_i$ is linked to HIV incidence via a reformulation of the Kassanjee \textit{et al.} biomarker-based incidence estimator (INSERT REFERENCE: https://pubmed.ncbi.nlm.nih.gov/22627902/):
+
 \begin{equation}
 \kappa_i = 1- \exp \left( - \lambda_i \cdot \frac{1 - \rho_i}{\rho_i} \cdot (\Omega_T - \beta_T) - \beta_T \right), \label{eq:kappa}
 \end{equation}
@@ -657,7 +658,7 @@ Third, NUTS is not especially well suited to sampling from Gaussian latent field
 Other MCMC algorithms, such as blocked Gibbs sampling [@geman1984stochastic] or slice sampling [@neal2003slice], could be considered.
 It may be difficult to implement such algorithms using `TMB`.
 Many MCMC algorithms are implemented and customisable (including, for example, the choice of block structure) within the `NIMBLE` probabilistic programming language (PPL) [@de2017programming].
-Direct implementation of Naomi within the Stan PPL could alter the speed by as much as plus or minus 50% [@monnahan2018no] and would give access to other algorithms implemented in Stan such as variational inference [@kucukelbir2015automatic] and Pathfinder [@zhang2022pathfinder].
+Direct implementation of Naomi within the Stan PPL could alter the speed by as much as plus or minus 50%  based on experiements conducted by others [@monnahan2018no] and would give access to other algorithms implemented in Stan such as variational inference [@kucukelbir2015automatic] and Pathfinder [@zhang2022pathfinder].
 However, requiring rewriting the Naomi model log-posterior outside of `TMB` would be a substantial downside.
 Finally, it would be of substantial interest to implement the Naomi model using the iterative INLA method via `inlabru`.
 However, as `inlabru`, like `R-INLA`, is based on a formula interface, it may not be possible to do so directly.
