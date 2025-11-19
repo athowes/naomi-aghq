@@ -1,6 +1,6 @@
 # naomi-aghq
 
-Code for the manuscript Howes, Stringer, Flaxman and Imai-Eaton "Fast approximate Bayesian inference of HIV indicators using PCA adaptive Gauss-Hermite quadrature" ([preprint](https://arxiv.org/abs/2508.15665)).
+Code for the manuscript Howes, Stringer, Flaxman and Imai-Eaton "Fast approximate Bayesian inference of HIV indicators using PCA adaptive Gauss-Hermite quadrature" ([Journal of Theoretical Biology](https://www.sciencedirect.com/science/article/pii/S0022519325002565)).
 
 [Naomi](https://github.com/mrc-ide/naomi) ([Eaton et al, 2021](https://onlinelibrary.wiley.com/doi/10.1002/jia2.25788)) is a spatial evidence synthesis model used to produce district-level HIV epidemic indicators in sub-Saharan Africa.
 Multiple outcomes of interest, including HIV prevalence, HIV incidence and treatment coverage are jointly modelled using both household survey data and routinely reported health system data.
